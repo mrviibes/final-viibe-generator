@@ -4668,9 +4668,9 @@ const Index = () => {
             </Button>
             
             <Button
+              variant={currentStep === 1 && !isStep1Complete() ? "outline" : "brand"}
               onClick={() => setCurrentStep(2)}
               disabled={currentStep === 1 && !isStep1Complete()}
-              className={currentStep === 1 && !isStep1Complete() ? "opacity-50 cursor-not-allowed" : ""}
             >
               Continue
               <ArrowRight className="h-4 w-4 ml-2" />
