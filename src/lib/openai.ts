@@ -161,10 +161,16 @@ export class OpenAIService {
     if (category) contextParts.push(`Category: ${category}`);
     if (subtopic) contextParts.push(`Topic: ${subtopic}`);
     if (pick) contextParts.push(`Specific focus: ${pick}`);
-    if (tags.length > 0) contextParts.push(`Tags: ${tags.join(', ')}`);
     
     const context = contextParts.join(', ');
-    const prompt = `Generate exactly 4 short ${tone.toLowerCase()} text options for: ${context}. Each option must be ${wordLimit} words or fewer (including any provided tags). Be creative and engaging. Return as a JSON array of strings.`;
+    
+    let prompt = `Generate exactly 4 short ${tone.toLowerCase()} text options for: ${context}.`;
+    
+    if (tags.length > 0) {
+      prompt += ` IMPORTANT: Each option MUST include ALL of these exact words/tags: ${tags.join(', ')}.`;
+    }
+    
+    prompt += ` Each option must be ${wordLimit} words or fewer. Be creative and engaging. Return as a JSON array of strings.`;
 
     try {
       const response = await fetch(OPENAI_API_URL, {
