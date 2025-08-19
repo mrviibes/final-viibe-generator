@@ -3337,6 +3337,409 @@ const dailyLifeOptions = [{
   id: "fire-drill",
   name: "Fire drill"
 }];
+
+const vibesPunchlinesOptions = [{
+  id: "dad-jokes",
+  name: "Dad Jokes",
+  subtitle: "Cheesy predictable puns"
+}, {
+  id: "daily-vibes", 
+  name: "Daily Vibes",
+  subtitle: "Day-of-week jokes"
+}, {
+  id: "quotes",
+  name: "Quotes",
+  subtitle: "General, tone later"
+}, {
+  id: "one-liners",
+  name: "One-Liners",
+  subtitle: "Quick single jokes"
+}, {
+  id: "comebacks",
+  name: "Comebacks",
+  subtitle: "Witty fast retorts"
+}, {
+  id: "knock-knock-jokes",
+  name: "Knock-Knock Jokes",
+  subtitle: "Classic \"Who's there\""
+}, {
+  id: "puns-wordplay",
+  name: "Puns & Wordplay",
+  subtitle: "Clever double meanings"
+}, {
+  id: "self-deprecating",
+  name: "Self-Deprecating",
+  subtitle: "Jokes on yourself"
+}, {
+  id: "roasts",
+  name: "Roasts",
+  subtitle: "Playful sharp burns"
+}, {
+  id: "dark-humor",
+  name: "Dark Humor",
+  subtitle: "Morbid edgy jokes"
+}, {
+  id: "endings",
+  name: "Endings",
+  subtitle: "Funny closing lines"
+}, {
+  id: "life-tips",
+  name: "Life Tips",
+  subtitle: "Helpful witty advice"
+}, {
+  id: "affirmations",
+  name: "Affirmations",
+  subtitle: "Positive self-reminders"
+}, {
+  id: "relationship-humor",
+  name: "Relationship Humor",
+  subtitle: "Dating, couple jokes"
+}, {
+  id: "family-jokes",
+  name: "Family Jokes",
+  subtitle: "Friends or relatives"
+}, {
+  id: "office-humor",
+  name: "Office Humor",
+  subtitle: "Workplace banter struggles"
+}, {
+  id: "school-life",
+  name: "School Life",
+  subtitle: "Classroom study humor"
+}, {
+  id: "food-jokes",
+  name: "Food Jokes",
+  subtitle: "Eating, cravings"
+}, {
+  id: "coffee-humor",
+  name: "Coffee Humor",
+  subtitle: "Morning caffeine jokes"
+}, {
+  id: "pet-humor",
+  name: "Pet Humor",
+  subtitle: "Cats, dogs, animals"
+}, {
+  id: "tech-humor",
+  name: "Tech Humor",
+  subtitle: "Gadgets, glitches, online"
+}, {
+  id: "pop-culture",
+  name: "Pop Culture",
+  subtitle: "Celebs, TV, music"
+}, {
+  id: "classic-quotes",
+  name: "Classic Quotes",
+  subtitle: "Famous old lines"
+}, {
+  id: "monday-blues",
+  name: "Monday Blues",
+  subtitle: "Dreading week start"
+}, {
+  id: "friday-feeling",
+  name: "Friday Feeling",
+  subtitle: "Weekend hype laughs"
+}, {
+  id: "sunday-vibes",
+  name: "Sunday Vibes",
+  subtitle: "Chill or dread"
+}, {
+  id: "absurd-humor",
+  name: "Absurd Humor",
+  subtitle: "Nonsense surreal jokes"
+}, {
+  id: "parodies",
+  name: "Parodies",
+  subtitle: "Imitations with twist"
+}, {
+  id: "satire-irony",
+  name: "Satire & Irony",
+  subtitle: "Social commentary humor"
+}, {
+  id: "holiday-humor",
+  name: "Holiday Humor",
+  subtitle: "Seasonal festive laughs"
+}, {
+  id: "parenting-humor",
+  name: "Parenting Humor",
+  subtitle: "Raising kids chaos"
+}, {
+  id: "travel-humor",
+  name: "Travel Humor",
+  subtitle: "Vacation trip fails"
+}, {
+  id: "sports-fitness",
+  name: "Sports & Fitness",
+  subtitle: "Exercise, fan banter"
+}, {
+  id: "music-humor",
+  name: "Music Humor",
+  subtitle: "Songs and musicians"
+}, {
+  id: "nostalgia-humor",
+  name: "Nostalgia Humor",
+  subtitle: "Childhood retro laughs"
+}, {
+  id: "internet-humor",
+  name: "Internet Humor",
+  subtitle: "Social trend jokes"
+}, {
+  id: "insults",
+  name: "Insults",
+  subtitle: "Burns, jabs, putdowns"
+}, {
+  id: "tongue-twisters",
+  name: "Tongue Twisters",
+  subtitle: "Word challenges"
+}, {
+  id: "riddles",
+  name: "Riddles",
+  subtitle: "Puzzle-style jokes"
+}, {
+  id: "proverb-twists",
+  name: "Proverb Twists",
+  subtitle: "Old sayings flipped"
+}, {
+  id: "shower-thoughts",
+  name: "Shower Thoughts",
+  subtitle: "Odd clever ideas"
+}, {
+  id: "complaints",
+  name: "Complaints",
+  subtitle: "Overblown small problems"
+}, {
+  id: "generational-humor",
+  name: "Generational Humor",
+  subtitle: "Gen Z vs Millennials"
+}, {
+  id: "adulting-humor",
+  name: "Adulting Humor",
+  subtitle: "Grown-up struggles"
+}, {
+  id: "introvert-extrovert",
+  name: "Introvert Extrovert",
+  subtitle: "Social energy jokes"
+}, {
+  id: "self-care-humor",
+  name: "Self-Care Humor",
+  subtitle: "Lazy indulgent laughs"
+}, {
+  id: "grammar-humor",
+  name: "Grammar Humor",
+  subtitle: "Language punctuation fun"
+}, {
+  id: "pirate-jokes",
+  name: "Pirate Jokes",
+  subtitle: "Nautical \"Arrr\" puns"
+}, {
+  id: "fantasy-zombie",
+  name: "Fantasy & Zombie",
+  subtitle: "Geeky monster humor"
+}, {
+  id: "science-humor",
+  name: "Science Humor",
+  subtitle: "STEM nerdy jokes"
+}, {
+  id: "weather-humor",
+  name: "Weather Humor",
+  subtitle: "Forecast seasonal laughs"
+}, {
+  id: "karen-memes",
+  name: "Karen Memes",
+  subtitle: "Entitled stereotypes"
+}, {
+  id: "celebrity-satire",
+  name: "Celebrity Satire",
+  subtitle: "Mocking famous quirks"
+}, {
+  id: "fails",
+  name: "Fails",
+  subtitle: "Funny mishaps mistakes"
+}, {
+  id: "philosophy-twists",
+  name: "Philosophy Twists",
+  subtitle: "Deep silly flips"
+}, {
+  id: "fun-facts",
+  name: "Fun Facts",
+  subtitle: "Trivia with punchline"
+}, {
+  id: "emoji-humor",
+  name: "Emoji Humor",
+  subtitle: "Playing with symbols"
+}, {
+  id: "quote-mashups",
+  name: "Quote Mashups",
+  subtitle: "Mixed sayings"
+}, {
+  id: "innuendo-humor",
+  name: "Innuendo Humor",
+  subtitle: "Suggestive double meanings"
+}, {
+  id: "work-from-home",
+  name: "Work From Home",
+  subtitle: "Remote job fun"
+}, {
+  id: "health-wellness",
+  name: "Health & Wellness",
+  subtitle: "Fitness diet laughs"
+}, {
+  id: "late-night-thoughts",
+  name: "Late Night Thoughts",
+  subtitle: "Overtired musings"
+}, {
+  id: "annoying-questions",
+  name: "Annoying Questions",
+  subtitle: "Nosy silly prods"
+}, {
+  id: "slang-lingo",
+  name: "Slang & Lingo",
+  subtitle: "Wordplay jokes"
+}, {
+  id: "mystery-puns",
+  name: "Mystery Puns",
+  subtitle: "Detective-style punchlines"
+}, {
+  id: "lightbulb-jokes",
+  name: "Lightbulb Jokes",
+  subtitle: "\"How many X\""
+}, {
+  id: "chuck-norris-jokes",
+  name: "Chuck Norris Jokes",
+  subtitle: "Absurd superhuman facts"
+}, {
+  id: "math-humor",
+  name: "Math Humor",
+  subtitle: "Number equation puns"
+}, {
+  id: "coding-jokes",
+  name: "Coding Jokes",
+  subtitle: "Programmer IT humor"
+}, {
+  id: "pet-peeves",
+  name: "Pet Peeves",
+  subtitle: "Shared annoyances"
+}, {
+  id: "apologies",
+  name: "Apologies",
+  subtitle: "Sorry not sorry"
+}, {
+  id: "awkward-comedy",
+  name: "Awkward Comedy",
+  subtitle: "Cringe relatable laughs"
+}, {
+  id: "trick-questions",
+  name: "Trick Questions",
+  subtitle: "Gotcha Q&A jokes"
+}, {
+  id: "self-help-parody",
+  name: "Self-Help Parody",
+  subtitle: "Motivational spoofs"
+}, {
+  id: "edgy-one-liners",
+  name: "Edgy One-Liners",
+  subtitle: "Risky quick jokes"
+}, {
+  id: "burnout-humor",
+  name: "Burnout Humor",
+  subtitle: "Exhaustion jokes"
+}, {
+  id: "ai-robot-jokes",
+  name: "AI Robot Jokes",
+  subtitle: "Future tech laughs"
+}, {
+  id: "gamer-memes",
+  name: "Gamer Memes",
+  subtitle: "Gaming culture fun"
+}, {
+  id: "would-you-rather",
+  name: "Would You Rather",
+  subtitle: "Absurd choices"
+}, {
+  id: "cat-memes",
+  name: "Cat Memes",
+  subtitle: "Feline antics"
+}, {
+  id: "dog-memes",
+  name: "Dog Memes",
+  subtitle: "Canine silliness"
+}, {
+  id: "dating-humor",
+  name: "Dating Humor",
+  subtitle: "Single romance laughs"
+}, {
+  id: "money-jokes",
+  name: "Money Jokes",
+  subtitle: "Broke rich jokes"
+}, {
+  id: "toilet-humor",
+  name: "Toilet Humor",
+  subtitle: "Bathroom laughs"
+}, {
+  id: "astrology-memes",
+  name: "Astrology Memes",
+  subtitle: "Zodiac stereotypes"
+}, {
+  id: "doctor-humor",
+  name: "Doctor Humor",
+  subtitle: "Medical profession laughs"
+}, {
+  id: "stoner-humor",
+  name: "Stoner Humor",
+  subtitle: "Cannabis culture fun"
+}, {
+  id: "bar-jokes",
+  name: "Bar Jokes",
+  subtitle: "Walks into..."
+}, {
+  id: "yo-mama-jokes",
+  name: "Yo Mama Jokes",
+  subtitle: "Insult classics"
+}, {
+  id: "clever-comebacks",
+  name: "Clever Comebacks",
+  subtitle: "Smart quick retorts"
+}, {
+  id: "anti-jokes",
+  name: "Anti-Jokes",
+  subtitle: "No punchline jokes"
+}, {
+  id: "pick-up-lines",
+  name: "Pick-Up Lines",
+  subtitle: "Flirty cheesy openers"
+}, {
+  id: "celebrations",
+  name: "Celebrations",
+  subtitle: "Joyful milestones"
+}, {
+  id: "funny-rants",
+  name: "Funny Rants",
+  subtitle: "Angry but funny"
+}, {
+  id: "lawyer-jokes",
+  name: "Lawyer Jokes",
+  subtitle: "Legal profession laughs"
+}, {
+  id: "little-johnny",
+  name: "Little Johnny",
+  subtitle: "Kid cheeky lines"
+}, {
+  id: "pranks",
+  name: "Pranks",
+  subtitle: "Trick setups"
+}, {
+  id: "heartbreak",
+  name: "Heartbreak",
+  subtitle: "Breakup lost love"
+}, {
+  id: "party-humor",
+  name: "Party Humor",
+  subtitle: "Night out fun"
+}, {
+  id: "seasonal-events",
+  name: "Seasonal Events",
+  subtitle: "Big yearly happenings"
+}];
+
 const textOptions = [{
   id: "ai-assist",
   name: "Option 1 - AI Assist",
@@ -3773,6 +4176,95 @@ const Index = () => {
                     setSubOptionSearchTerm("");
                   }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                           Change sport
+                        </button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+              </div> : selectedStyle === "vibes-punchlines" && !selectedSubOption ? <div className="w-full max-w-md mx-auto mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-6">
+                  <p className="text-xl text-muted-foreground">Choose a specific vibe or punchline style</p>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input value={subOptionSearchTerm} onChange={e => setSubOptionSearchTerm(e.target.value)} onFocus={() => setIsSearchFocused(true)} onBlur={() => {
+                // Delay hiding the list to allow clicks to complete
+                setTimeout(() => setIsSearchFocused(false), 150);
+              }} placeholder="Search vibes & punchlines..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                  </div>
+
+                  {/* Vibes & Punchlines List */}
+                  {(isSearchFocused || subOptionSearchTerm.length > 0) && <Card className="max-h-96 overflow-hidden">
+                      <ScrollArea className="h-96">
+                        <div className="p-4 space-y-2">
+                          {(() => {
+                    const filteredVibes = vibesPunchlinesOptions.filter(vibe => 
+                      (vibe.name + " " + vibe.subtitle).toLowerCase().includes(subOptionSearchTerm.toLowerCase())
+                    );
+                    return filteredVibes.length > 0 ? filteredVibes.map(vibe => <div key={vibe.id} onClick={e => {
+                      console.log('Vibe clicked:', vibe.name);
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedSubOption(vibe.name);
+                      setIsSearchFocused(false);
+                      setTextOption("no-text");
+                      setSubOptionSearchTerm("");
+                    }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                                  <p className="text-sm font-medium text-card-foreground">
+                                    {vibe.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {vibe.subtitle}
+                                  </p>
+                                </div>) : subOptionSearchTerm.trim() ? <div onClick={e => {
+                      console.log('Custom vibe clicked:', subOptionSearchTerm.trim());
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedSubOption(subOptionSearchTerm.trim());
+                      setIsSearchFocused(false);
+                      setTextOption("no-text");
+                      setSubOptionSearchTerm("");
+                    }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
+                                <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
+                                  <span className="text-xs font-bold text-muted-foreground">+</span>
+                                </div>
+                                <p className="text-sm font-medium text-card-foreground">
+                                  Add "{subOptionSearchTerm.trim()}" as custom vibe
+                                </p>
+                              </div> : <div className="text-center py-8">
+                                <p className="text-muted-foreground">Start typing to search vibes & punchlines</p>
+                              </div>;
+                  })()}
+                        </div>
+                      </ScrollArea>
+                    </Card>}
+                </div>
+              </div> : selectedStyle === "vibes-punchlines" && selectedSubOption ? <div className="flex flex-col items-center">
+                {/* Selected Vibe/Punchline Card */}
+                <div className="mb-8">
+                  <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg max-w-md">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-semibold text-card-foreground text-center">
+                        {selectedSubOption}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-sm text-muted-foreground text-center">
+                        {(() => {
+                          const selectedVibe = vibesPunchlinesOptions.find(vibe => vibe.name === selectedSubOption);
+                          return selectedVibe ? selectedVibe.subtitle : "Selected vibe/punchline";
+                        })()}
+                      </CardDescription>
+                      <div className="text-center mt-3">
+                        <button onClick={() => {
+                    setSelectedSubOption(null);
+                    setSubOptionSearchTerm("");
+                  }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                          Change
                         </button>
                       </div>
                     </CardContent>
