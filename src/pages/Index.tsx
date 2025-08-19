@@ -5063,132 +5063,138 @@ const Index = () => {
                   </div>
                 )}
 
-                {/* Generated Text Options */}
+                {/* Show stacked selections when text option is selected */}
+                {selectedGeneratedOption && (
+                  <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4 mb-8">
+                    {/* Show selected text style */}
+                    <div className="selected-card">
+                      <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                            {textStyleOptions.find(s => s.id === selectedTextStyle)?.name}
+                            <span className="text-sm">✓</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <CardDescription className="text-sm text-muted-foreground text-center">
+                            {textStyleOptions.find(s => s.id === selectedTextStyle)?.description}
+                          </CardDescription>
+                          <div className="text-center mt-3">
+                            <button onClick={() => {
+                              setSelectedTextStyle(null);
+                              setSelectedCompletionOption(null);
+                              setGeneratedOptions([]);
+                              setSelectedGeneratedOption(null);
+                            }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                              Change selection
+                            </button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Show selected completion option */}
+                    <div className="selected-card">
+                      <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                            {completionOptions.find(opt => opt.id === selectedCompletionOption)?.name}
+                            <span className="text-sm">✓</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <CardDescription className="text-sm text-muted-foreground text-center">
+                            {completionOptions.find(opt => opt.id === selectedCompletionOption)?.description}
+                          </CardDescription>
+                          <div className="text-center mt-3">
+                            <button onClick={() => {
+                              setSelectedCompletionOption(null);
+                              setGeneratedOptions([]);
+                              setSelectedGeneratedOption(null);
+                            }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                              Change selection
+                            </button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Show selected generated text option */}
+                    <div className="selected-card">
+                      <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                            Option {generatedOptions.findIndex(opt => opt === selectedGeneratedOption) + 1}
+                            <span className="text-sm">✓</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <CardDescription className="text-sm text-muted-foreground text-center">
+                            {selectedGeneratedOption}
+                          </CardDescription>
+                          <div className="text-center mt-3">
+                            <button onClick={() => setSelectedGeneratedOption(null)} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                              Change selection
+                            </button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                )}
+
+                {/* Generated Text Options Grid - Show when options exist */}
                 {generatedOptions.length > 0 && selectedCompletionOption === "ai-assist" && (
                   <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    {!selectedGeneratedOption ? (
-                      <>
-                        <div className="text-center mb-6">
-                          <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
-                        </div>
+                    <div className="text-center mb-6">
+                      <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
+                    </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
-                          {generatedOptions.map((option, index) => (
-                            <Card 
-                              key={index}
-                              className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50"
-                              onClick={() => setSelectedGeneratedOption(option)}
-                            >
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium text-muted-foreground">
-                                    Option {index + 1}
-                                  </span>
-                                </div>
-                                <p className="text-sm text-card-foreground leading-relaxed">
-                                  {option}
-                                </p>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-
-                        <div className="text-center">
-                          <Button 
-                            variant="outline"
-                            onClick={handleGenerateText}
-                            disabled={isGenerating}
-                            className="px-6 py-2"
-                          >
-                            {isGenerating ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Regenerating...
-                              </>
-                            ) : (
-                              "Regenerate Text"
-                            )}
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      /* Show selected text option with stacked previous selections */
-                      <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
-                        {/* Show selected text style */}
-                        {selectedTextStyle && (
-                          <div className="selected-card">
-                            <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                              <CardHeader className="pb-3">
-                                <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                                  {textStyleOptions.find(s => s.id === selectedTextStyle)?.name}
-                                  <span className="text-sm">✓</span>
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <CardDescription className="text-sm text-muted-foreground text-center">
-                                  {textStyleOptions.find(s => s.id === selectedTextStyle)?.description}
-                                </CardDescription>
-                                <div className="text-center mt-3">
-                                  <button onClick={() => setSelectedTextStyle(null)} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                                    Change selection
-                                  </button>
-                                </div>
-                              </CardContent>
-                            </Card>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
+                      {generatedOptions.map((option, index) => (
+                        <Card 
+                          key={index}
+                          className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 ${
+                            selectedGeneratedOption === option 
+                              ? "border-[#0db0de] bg-[#0db0de]/5 shadow-md" 
+                              : "hover:bg-accent/50"
+                          }`}
+                          onClick={() => setSelectedGeneratedOption(option)}
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Option {index + 1}
+                              </span>
+                              {selectedGeneratedOption === option && (
+                                <span className="text-[#0db0de] text-sm">✓</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-card-foreground leading-relaxed">
+                              {option}
+                            </p>
                           </div>
-                        )}
+                        </Card>
+                      ))}
+                    </div>
 
-                        {/* Show selected completion option */}
-                        {selectedCompletionOption && (
-                          <div className="selected-card">
-                            <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                              <CardHeader className="pb-3">
-                                <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                                  {completionOptions.find(opt => opt.id === selectedCompletionOption)?.name}
-                                  <span className="text-sm">✓</span>
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <CardDescription className="text-sm text-muted-foreground text-center">
-                                  {completionOptions.find(opt => opt.id === selectedCompletionOption)?.description}
-                                </CardDescription>
-                                <div className="text-center mt-3">
-                                  <button onClick={() => {
-                                    setSelectedCompletionOption(null);
-                                    setGeneratedOptions([]);
-                                    setSelectedGeneratedOption(null);
-                                  }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                                    Change selection
-                                  </button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </div>
+                    <div className="text-center">
+                      <Button 
+                        variant="outline"
+                        onClick={handleGenerateText}
+                        disabled={isGenerating}
+                        className="px-6 py-2"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Regenerating...
+                          </>
+                        ) : (
+                          "Regenerate Text"
                         )}
-
-                        {/* Show selected generated text option */}
-                        <div className="selected-card">
-                          <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                                Option {generatedOptions.findIndex(opt => opt === selectedGeneratedOption) + 1}
-                                <span className="text-sm">✓</span>
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <CardDescription className="text-sm text-muted-foreground text-center">
-                                {selectedGeneratedOption}
-                              </CardDescription>
-                              <div className="text-center mt-3">
-                                <button onClick={() => setSelectedGeneratedOption(null)} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                                  Change selection
-                                </button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </div>
-                    )}
+                      </Button>
+                    </div>
                   </div>
                 )}
 
