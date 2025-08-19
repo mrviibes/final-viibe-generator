@@ -3731,6 +3731,88 @@ const vibesPunchlinesOptions = [{
   subtitle: "Big yearly happenings"
 }];
 
+const popCultureOptions = [{
+  id: "celebrities",
+  name: "Celebrities",
+  subtitle: "Gossip, drama, fame"
+}, {
+  id: "movies",
+  name: "Movies",
+  subtitle: "Blockbusters, hits, franchises"
+}, {
+  id: "tv-shows",
+  name: "TV Shows",
+  subtitle: "Streaming, binge, dramas"
+}, {
+  id: "music",
+  name: "Music",
+  subtitle: "Songs, albums, concerts"
+}, {
+  id: "memes",
+  name: "Memes",
+  subtitle: "Viral jokes, trends"
+}, {
+  id: "social-media",
+  name: "Social Media",
+  subtitle: "Influencers, posts, trends"
+}, {
+  id: "fashion",
+  name: "Fashion",
+  subtitle: "Style, looks, red carpet"
+}, {
+  id: "sports-pop",
+  name: "Sports",
+  subtitle: "Games, stars, events"
+}, {
+  id: "gaming",
+  name: "Gaming",
+  subtitle: "Consoles, PC, esports"
+}, {
+  id: "superheroes",
+  name: "Superheroes",
+  subtitle: "Marvel, DC, franchises"
+}, {
+  id: "reality-tv",
+  name: "Reality TV",
+  subtitle: "Drama, dating, competitions"
+}, {
+  id: "anime",
+  name: "Anime",
+  subtitle: "Shows, manga, cosplay"
+}, {
+  id: "award-shows",
+  name: "Award Shows",
+  subtitle: "Oscars, Grammys, Met Gala"
+}, {
+  id: "nostalgia",
+  name: "Nostalgia",
+  subtitle: "Throwbacks, reboots, classics"
+}, {
+  id: "food-trends",
+  name: "Food Trends",
+  subtitle: "Viral snacks, drinks"
+}, {
+  id: "tech-pop",
+  name: "Tech",
+  subtitle: "Gadgets, apps, AI"
+}, {
+  id: "books",
+  name: "Books",
+  subtitle: "Novels, memoirs, bestsellers"
+}, {
+  id: "royals",
+  name: "Royals",
+  subtitle: "Gossip, weddings, scandals"
+}, {
+  id: "festivals",
+  name: "Festivals",
+  subtitle: "Concerts, cons, gatherings"
+}, {
+  id: "comedy",
+  name: "Comedy",
+  subtitle: "Stand-up, skits, talk shows"
+}];
+
 const Index = () => {
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [selectedSubOption, setSelectedSubOption] = useState<string | null>(null);
@@ -4144,6 +4226,91 @@ const Index = () => {
                     setSubOptionSearchTerm("");
                   }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                           Change
+                        </button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+              </div> : selectedStyle === "pop-culture" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-6">
+                  <p className="text-xl text-muted-foreground">Choose a specific pop culture topic</p>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input value={subOptionSearchTerm} onChange={e => setSubOptionSearchTerm(e.target.value)} onFocus={() => setIsSearchFocused(true)} onBlur={() => {
+                // Delay hiding the list to allow clicks to complete
+                setTimeout(() => setIsSearchFocused(false), 150);
+              }} placeholder="Search pop culture..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                  </div>
+
+                  {/* Pop Culture List */}
+                  {(isSearchFocused || subOptionSearchTerm.length > 0) && <Card className="max-h-96 overflow-hidden">
+                      <ScrollArea className="h-96">
+                        <div className="p-4 space-y-2">
+                          {(() => {
+                    const filteredPopCulture = popCultureOptions.filter(item => item.name.toLowerCase().includes(subOptionSearchTerm.toLowerCase()) || item.subtitle.toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
+                    return filteredPopCulture.length > 0 ? filteredPopCulture.map(item => <div key={item.id} onClick={e => {
+                      console.log('Pop culture clicked:', item.name);
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedSubOption(item.name);
+                      setIsSearchFocused(false);
+                      setSubOptionSearchTerm("");
+                    }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                                  <p className="text-sm font-medium text-card-foreground">
+                                    {item.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {item.subtitle}
+                                  </p>
+                                </div>) : subOptionSearchTerm.trim() ? <div onClick={e => {
+                      console.log('Custom pop culture clicked:', subOptionSearchTerm.trim());
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedSubOption(subOptionSearchTerm.trim());
+                      setIsSearchFocused(false);
+                      setSubOptionSearchTerm("");
+                    }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
+                                <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
+                                  <span className="text-xs font-bold text-muted-foreground">+</span>
+                                </div>
+                                <p className="text-sm font-medium text-card-foreground">
+                                  Add "{subOptionSearchTerm.trim()}" as custom pop culture topic
+                                </p>
+                              </div> : <div className="text-center py-8">
+                                <p className="text-muted-foreground">Start typing to search pop culture</p>
+                              </div>;
+                  })()}
+                        </div>
+                      </ScrollArea>
+                    </Card>}
+                </div>
+              </div> : selectedStyle === "pop-culture" && selectedSubOption ? <div className="flex flex-col items-stretch">
+                {/* Selected Pop Culture Card */}
+                <div className="mb-8 selected-card">
+                  <Card className="card-selected w-full">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-semibold text-card-foreground text-center">
+                        {selectedSubOption}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-sm text-muted-foreground text-center">
+                        {(() => {
+                          const selectedPopCulture = popCultureOptions.find(item => item.name === selectedSubOption);
+                          return selectedPopCulture ? selectedPopCulture.subtitle : "Selected pop culture topic";
+                        })()}
+                      </CardDescription>
+                      <div className="text-center mt-3">
+                        <button onClick={() => {
+                    setSelectedSubOption(null);
+                    setSubOptionSearchTerm("");
+                  }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                          Change topic
                         </button>
                       </div>
                     </CardContent>
