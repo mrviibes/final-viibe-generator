@@ -4385,118 +4385,126 @@ const Index = () => {
                   </Card>
                 </div>
 
-                {/* Search Box for Pop Culture */}
-                <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="text-center mb-6">
-                    <p className="text-xl text-muted-foreground">Search within {selectedSubOption}</p>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {/* Search Input */}
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                      <Input 
-                        value={finalSearchTerm} 
-                        onChange={e => handleSearchInputChange(e.target.value)} 
-                        onFocus={() => setIsFinalSearchFocused(true)} 
-                        onBlur={() => {
-                          // Delay hiding to allow clicks to complete
-                          setTimeout(() => setIsFinalSearchFocused(false), 150);
-                        }} 
-                        placeholder={`Search ${selectedSubOption.toLowerCase()}...`} 
-                        className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" 
-                      />
-                      {isSearching && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                        </div>
-                      )}
+                {/* Search Box for Pop Culture - Only show when no selection is made */}
+                {!selectedPick && (
+                  <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="text-center mb-6">
+                      <p className="text-xl text-muted-foreground">Search within {selectedSubOption}</p>
                     </div>
+                    
+                    <div className="space-y-4">
+                      {/* Search Input */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input 
+                          value={finalSearchTerm} 
+                          onChange={e => handleSearchInputChange(e.target.value)} 
+                          onFocus={() => setIsFinalSearchFocused(true)} 
+                          onBlur={() => {
+                            // Delay hiding to allow clicks to complete
+                            setTimeout(() => setIsFinalSearchFocused(false), 150);
+                          }} 
+                          placeholder={`Search ${selectedSubOption.toLowerCase()}...`} 
+                          className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" 
+                        />
+                        {isSearching && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Search Results */}
-                    {(isFinalSearchFocused || finalSearchTerm.length > 0) && finalSearchTerm.trim() && (
-                      <Card className="max-h-96 overflow-hidden bg-card border-border z-50">
-                        <ScrollArea className="h-full">
-                          <div className="p-4 space-y-2">
-                            {/* Error State */}
-                            {searchError && (
-                              <div className="p-3 rounded-lg border border-destructive/20 bg-destructive/5 flex items-center gap-2">
-                                <AlertCircle className="h-4 w-4 text-destructive" />
-                                <p className="text-sm text-destructive">{searchError}</p>
-                              </div>
-                            )}
+                      {/* Search Results */}
+                      {(isFinalSearchFocused || finalSearchTerm.length > 0) && finalSearchTerm.trim() && (
+                        <Card className="max-h-96 overflow-hidden bg-card border-border z-50">
+                          <ScrollArea className="h-full">
+                            <div className="p-4 space-y-2">
+                              {/* Error State */}
+                              {searchError && (
+                                <div className="p-3 rounded-lg border border-destructive/20 bg-destructive/5 flex items-center gap-2">
+                                  <AlertCircle className="h-4 w-4 text-destructive" />
+                                  <p className="text-sm text-destructive">{searchError}</p>
+                                </div>
+                              )}
 
-                            {/* Loading State */}
-                            {isSearching && !searchError && (
-                              <div className="p-3 rounded-lg border border-dashed border-border bg-card flex items-center gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                                <p className="text-sm text-muted-foreground">
-                                  Searching {selectedSubOption.toLowerCase()}...
-                                </p>
-                              </div>
-                            )}
+                              {/* Loading State */}
+                              {isSearching && !searchError && (
+                                <div className="p-3 rounded-lg border border-dashed border-border bg-card flex items-center gap-2">
+                                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                  <p className="text-sm text-muted-foreground">
+                                    Searching {selectedSubOption.toLowerCase()}...
+                                  </p>
+                                </div>
+                              )}
 
-                            {/* AI Results */}
-                            {searchResults.length > 0 && !isSearching && (
-                              <>
-                                {searchResults.map((result, index) => (
-                                   <div 
-                                     key={index}
-                                     onClick={e => {
-                                       console.log('AI result clicked:', result.title);
-                                       e.preventDefault();
-                                       e.stopPropagation();
-                                       setSelectedPick(result.title);
-                                       setIsFinalSearchFocused(false);
-                                       setFinalSearchTerm("");
-                                     }} 
-                                     className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors bg-card"
-                                   >
-                                    <div className="flex items-start gap-3">
-                                      <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                        <span className="text-xs font-bold text-primary">AI</span>
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-card-foreground mb-1">
-                                          {result.title}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground line-clamp-2">
-                                          {result.description}
-                                        </p>
+                              {/* AI Results */}
+                              {searchResults.length > 0 && !isSearching && (
+                                <>
+                                  {searchResults.map((result, index) => (
+                                     <div 
+                                       key={index}
+                                       onClick={e => {
+                                         console.log('AI result clicked:', result.title);
+                                         e.preventDefault();
+                                         e.stopPropagation();
+                                         setSelectedPick(result.title);
+                                         setIsFinalSearchFocused(false);
+                                         setFinalSearchTerm("");
+                                         setSearchResults([]);
+                                         setIsSearching(false);
+                                         setSearchError(null);
+                                       }} 
+                                       className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors bg-card"
+                                     >
+                                      <div className="flex items-start gap-3">
+                                        <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                          <span className="text-xs font-bold text-primary">AI</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-sm font-medium text-card-foreground mb-1">
+                                            {result.title}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground line-clamp-2">
+                                            {result.description}
+                                          </p>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                ))}
-                              </>
-                            )}
+                                  ))}
+                                </>
+                              )}
 
-                            {/* Manual Search Option */}
-                            {!isSearching && (
-                              <div 
-                                onClick={e => {
-                                  console.log('Manual search clicked:', finalSearchTerm.trim());
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setSelectedPick(finalSearchTerm.trim());
-                                  setIsFinalSearchFocused(false);
-                                  setFinalSearchTerm("");
-                                }} 
-                                className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2 bg-card"
-                              >
-                                <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
-                                  <span className="text-xs font-bold text-muted-foreground">+</span>
+                              {/* Manual Search Option */}
+                              {!isSearching && (
+                                <div 
+                                  onClick={e => {
+                                    console.log('Manual search clicked:', finalSearchTerm.trim());
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setSelectedPick(finalSearchTerm.trim());
+                                    setIsFinalSearchFocused(false);
+                                    setFinalSearchTerm("");
+                                    setSearchResults([]);
+                                    setIsSearching(false);
+                                    setSearchError(null);
+                                  }} 
+                                  className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2 bg-card"
+                                >
+                                  <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
+                                    <span className="text-xs font-bold text-muted-foreground">+</span>
+                                  </div>
+                                  <p className="text-sm font-medium text-card-foreground">
+                                    Search for "{finalSearchTerm.trim()}" in {selectedSubOption}
+                                  </p>
                                 </div>
-                                <p className="text-sm font-medium text-card-foreground">
-                                  Search for "{finalSearchTerm.trim()}" in {selectedSubOption}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </Card>
-                    )}
+                              )}
+                            </div>
+                          </ScrollArea>
+                        </Card>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Selected Pick Card for Pop Culture */}
                 {selectedPick && (
