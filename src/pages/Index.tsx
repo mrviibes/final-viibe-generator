@@ -3917,7 +3917,7 @@ const Index = () => {
                   <p className="text-sm text-muted-foreground mt-2">Try a different search term</p>
                 </div>;
         })()}
-          </> : <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+          </> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Selected Style Card */}
             <div className="mb-8 selected-card">
               <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
@@ -3944,7 +3944,7 @@ const Index = () => {
             </div>
 
             {/* Celebrations Dropdown - Only show for celebrations style */}
-            {selectedStyle === "celebrations" && !selectedSubOption ? <div className="w-full max-w-md mx-auto mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {selectedStyle === "celebrations" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
                   <p className="text-xl text-muted-foreground">Choose a specific celebration</p>
                 </div>
@@ -4000,7 +4000,7 @@ const Index = () => {
                       </ScrollArea>
                     </Card>}
                 </div>
-              </div> : selectedStyle === "celebrations" && selectedSubOption ? <div className="flex flex-col items-center">
+              </div> : selectedStyle === "celebrations" && selectedSubOption ? <div className="flex flex-col items-stretch">
                  {/* Selected Celebration Card */}
                  <div className="mb-8 selected-card">
                    <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
@@ -4025,7 +4025,7 @@ const Index = () => {
                   </Card>
                 </div>
 
-              </div> : selectedStyle === "sports" && !selectedSubOption ? <div className="w-full max-w-md mx-auto mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              </div> : selectedStyle === "sports" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
                   <p className="text-xl text-muted-foreground">Choose a specific sport</p>
                 </div>
@@ -4081,7 +4081,7 @@ const Index = () => {
                       </ScrollArea>
                     </Card>}
                 </div>
-              </div> : selectedStyle === "daily-life" && !selectedSubOption ? <div className="w-full max-w-md mx-auto mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              </div> : selectedStyle === "daily-life" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
                   <p className="text-xl text-muted-foreground">Choose a specific daily life activity</p>
                 </div>
@@ -4137,7 +4137,7 @@ const Index = () => {
                       </ScrollArea>
                     </Card>}
                 </div>
-              </div> : selectedStyle === "daily-life" && selectedSubOption ? <div className="flex flex-col items-center">
+              </div> : selectedStyle === "daily-life" && selectedSubOption ? <div className="flex flex-col items-stretch">
                  {/* Selected Daily Life Card */}
                  <div className="mb-8 selected-card">
                    <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
@@ -4162,7 +4162,7 @@ const Index = () => {
                   </Card>
                 </div>
 
-              </div> : selectedStyle === "sports" && selectedSubOption ? <div className="flex flex-col items-center">
+              </div> : selectedStyle === "sports" && selectedSubOption ? <div className="flex flex-col items-stretch">
                  {/* Selected Sport Card */}
                  <div className="mb-8 selected-card">
                    <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
@@ -4187,7 +4187,7 @@ const Index = () => {
                   </Card>
                 </div>
 
-              </div> : selectedStyle === "vibes-punchlines" && !selectedSubOption ? <div className="w-full max-w-md mx-auto mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              </div> : selectedStyle === "vibes-punchlines" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
                   <p className="text-xl text-muted-foreground">Choose a specific vibe or punchline style</p>
                 </div>
@@ -4248,7 +4248,7 @@ const Index = () => {
                       </ScrollArea>
                     </Card>}
                 </div>
-              </div> : selectedStyle === "vibes-punchlines" && selectedSubOption ? <div className="flex flex-col items-center">
+              </div> : selectedStyle === "vibes-punchlines" && selectedSubOption ? <div className="flex flex-col items-stretch">
                 {/* Selected Vibe/Punchline Card */}
                 <div className="mb-8 selected-card">
                   <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
@@ -4298,7 +4298,7 @@ const Index = () => {
                         </CardContent>
                       </Card>)}
                   </div>
-                </> : <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+                </> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
                   {/* Selected Text Option Card */}
                   <div className="mb-8 selected-card">
                     <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
