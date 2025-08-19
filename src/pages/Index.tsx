@@ -4708,24 +4708,8 @@ const Index = () => {
                 ))}
               </div>
             ) : (
-              /* Show stacked cards after selection */
+              /* Show selected text style card only */
               <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {/* Text Style Category Card */}
-                <div className="mb-4 selected-card">
-                  <Card className="card-selected w-full">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-semibold text-card-foreground text-center">
-                        Text Style
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-sm text-muted-foreground text-center">
-                        Writing tone and approach
-                      </CardDescription>
-                    </CardContent>
-                  </Card>
-                </div>
-
                 {/* Selected Text Style Card */}
                 <div className="mb-8 selected-card">
                   <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
