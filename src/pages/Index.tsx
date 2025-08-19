@@ -3749,10 +3749,6 @@ const textOptions = [{
   id: "write-myself",
   name: "Option 2 - Write Myself",
   description: "I'll write my own content"
-}, {
-  id: "no-text",
-  name: "Option 3 - I Don't Want Text",
-  description: "Skip text content for now"
 }];
 const Index = () => {
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
@@ -3971,7 +3967,6 @@ const Index = () => {
                       e.stopPropagation();
                       setSelectedSubOption(celebration.name);
                       setIsSearchFocused(false);
-                      setTextOption("no-text");
                       setSubOptionSearchTerm("");
                     }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
                                   <p className="text-sm font-medium text-card-foreground">
@@ -3983,7 +3978,6 @@ const Index = () => {
                       e.stopPropagation();
                       setSelectedSubOption(subOptionSearchTerm.trim());
                       setIsSearchFocused(false);
-                      setTextOption("no-text");
                       setSubOptionSearchTerm("");
                     }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
                                 <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
@@ -4052,7 +4046,6 @@ const Index = () => {
                       e.stopPropagation();
                       setSelectedSubOption(sport.name);
                       setIsSearchFocused(false);
-                      setTextOption("no-text");
                       setSubOptionSearchTerm("");
                     }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
                                   <p className="text-sm font-medium text-card-foreground">
@@ -4064,7 +4057,6 @@ const Index = () => {
                       e.stopPropagation();
                       setSelectedSubOption(subOptionSearchTerm.trim());
                       setIsSearchFocused(false);
-                      setTextOption("no-text");
                       setSubOptionSearchTerm("");
                     }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
                                 <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
@@ -4108,7 +4100,6 @@ const Index = () => {
                       e.stopPropagation();
                       setSelectedSubOption(activity.name);
                       setIsSearchFocused(false);
-                      setTextOption("no-text");
                       setSubOptionSearchTerm("");
                     }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
                                   <p className="text-sm font-medium text-card-foreground">
@@ -4120,7 +4111,6 @@ const Index = () => {
                       e.stopPropagation();
                       setSelectedSubOption(subOptionSearchTerm.trim());
                       setIsSearchFocused(false);
-                      setTextOption("no-text");
                       setSubOptionSearchTerm("");
                     }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
                                 <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
@@ -4216,7 +4206,6 @@ const Index = () => {
                       e.stopPropagation();
                       setSelectedSubOption(vibe.name);
                       setIsSearchFocused(false);
-                      setTextOption("no-text");
                       setSubOptionSearchTerm("");
                     }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
                                   <p className="text-sm font-medium text-card-foreground">
@@ -4231,7 +4220,6 @@ const Index = () => {
                       e.stopPropagation();
                       setSelectedSubOption(subOptionSearchTerm.trim());
                       setIsSearchFocused(false);
-                      setTextOption("no-text");
                       setSubOptionSearchTerm("");
                     }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
                                 <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
@@ -4284,7 +4272,7 @@ const Index = () => {
                   <div className="text-center mb-8">
                     <p className="text-xl text-muted-foreground">Choose your option for completing your text</p>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {textOptions.map(option => <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50" onClick={() => setTextOption(option.id)}>
                         <CardHeader className="pb-3">
                           <CardTitle className="text-lg font-semibold text-card-foreground text-center">
