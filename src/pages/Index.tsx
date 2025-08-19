@@ -26,8 +26,8 @@ const styleOptions = [{
   description: "Movies, music, celebrities, trends"
 }, {
   id: "random",
-  name: "Random",
-  description: "Surprise me with any style"
+  name: "No Category",
+  description: "Build from scratch"
 }];
 const celebrationOptions = [{
   id: "birthday",
