@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -3827,6 +3827,9 @@ const Index = () => {
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchResults, setSearchResults] = useState<OpenAISearchResult[]>([]);
   const [searchError, setSearchError] = useState<string>("");
+  
+  // Add timeout ref for search debouncing
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   const handleApiKeySet = (apiKey: string) => {
     openAIService.setApiKey(apiKey);
@@ -3863,14 +3866,22 @@ const Index = () => {
     setSearchResults([]);
     setSearchError("");
     
-    // Debounced search
-    if (value.trim().length > 2) {
-      const timeoutId = setTimeout(() => {
-        handleSearch(value);
-      }, 500);
-      
-      return () => clearTimeout(timeoutId);
+    // Clear results if search is empty
+    if (!value.trim()) {
+      return;
     }
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Debounced search - trigger after 250ms of no typing (much faster)
+    searchTimeoutRef.current = setTimeout(() => {
+      if (value.trim()) {
+        handleSearch(value);
+      }
+    }, 250);
   };
 
   return <div className="min-h-screen bg-background py-12 px-4">
