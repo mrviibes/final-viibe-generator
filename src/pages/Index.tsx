@@ -3851,12 +3851,27 @@ const textStyleOptions = [{
   description: "Respectful, formal, matter-of-fact"
 }];
 
+const completionOptions = [{
+  id: "ai-assist",
+  name: "Option 1 - AI Assist",
+  description: "Let AI help generate your content"
+}, {
+  id: "write-myself", 
+  name: "Option 2 - Write Myself",
+  description: "I'll write my own content"
+}, {
+  id: "no-text",
+  name: "Option 3 - I Don't Want Text", 
+  description: "Skip text content for now"
+}];
+
 const Index = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [selectedSubOption, setSelectedSubOption] = useState<string | null>(null);
   const [selectedPick, setSelectedPick] = useState<string | null>(null);
   const [selectedTextStyle, setSelectedTextStyle] = useState<string | null>(null);
+  const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -3892,7 +3907,7 @@ const Index = () => {
 
   // Helper function to check if Step 2 is complete
   const isStep2Complete = (): boolean => {
-    return !!selectedTextStyle;
+    return !!(selectedTextStyle && selectedCompletionOption);
   };
 
   const handleApiKeySet = (apiKey: string) => {
@@ -4726,12 +4741,48 @@ const Index = () => {
                       <div className="text-center mt-3">
                         <button onClick={() => {
                           setSelectedTextStyle(null);
+                          setSelectedCompletionOption(null);
                         }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                           Change selection
                         </button>
                       </div>
                     </CardContent>
                   </Card>
+                </div>
+
+                {/* Completion Options */}
+                <div className="text-center mb-6">
+                  <p className="text-xl text-muted-foreground">Choose your option for completing your text</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center max-w-4xl mx-auto">
+                  {completionOptions.map(option => (
+                    <Card 
+                      key={option.id} 
+                      className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full ${
+                        selectedCompletionOption === option.id 
+                          ? 'border-[#0db0de] bg-[#0db0de]/5 shadow-md' 
+                          : 'hover:bg-accent/50'
+                      }`}
+                      onClick={() => setSelectedCompletionOption(option.id)}
+                    >
+                      <CardHeader className="pb-3">
+                        <CardTitle className={`text-lg font-semibold ${
+                          selectedCompletionOption === option.id ? 'text-[#0db0de]' : 'text-card-foreground'
+                        }`}>
+                          {option.name}
+                          {selectedCompletionOption === option.id && (
+                            <span className="ml-2 text-sm">✓</span>
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="text-sm text-muted-foreground">
+                          {option.description}
+                        </CardDescription>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
 
                 {/* TODO: Add additional sub-options here after text style is selected */}
