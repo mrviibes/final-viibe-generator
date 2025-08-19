@@ -3919,8 +3919,8 @@ const Index = () => {
         })()}
           </> : <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Selected Style Card */}
-            <div className="mb-8">
-              <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg max-w-md">
+            <div className="mb-8 w-full max-w-md mx-auto">
+              <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg font-semibold text-card-foreground text-center">
                     {styleOptions.find(s => s.id === selectedStyle)?.name}
