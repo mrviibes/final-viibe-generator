@@ -4799,39 +4799,60 @@ const Index = () => {
                 </div>
 
                 {/* Completion Options */}
-                <div className="text-center mb-6">
-                  <p className="text-xl text-muted-foreground">Choose your option for completing your text</p>
-                </div>
+                {!selectedCompletionOption ? (
+                  <>
+                    <div className="text-center mb-6">
+                      <p className="text-xl text-muted-foreground">Choose your option for completing your text</p>
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center max-w-4xl mx-auto">
-                  {completionOptions.map(option => (
-                    <Card 
-                      key={option.id} 
-                      className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full ${
-                        selectedCompletionOption === option.id 
-                          ? 'border-[#0db0de] bg-[#0db0de]/5 shadow-md' 
-                          : 'hover:bg-accent/50'
-                      }`}
-                      onClick={() => setSelectedCompletionOption(option.id)}
-                    >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center max-w-4xl mx-auto">
+                      {completionOptions.map(option => (
+                        <Card 
+                          key={option.id} 
+                          className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full"
+                          onClick={() => setSelectedCompletionOption(option.id)}
+                        >
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg font-semibold text-card-foreground">
+                              {option.name}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <CardDescription className="text-sm text-muted-foreground">
+                              {option.description}
+                            </CardDescription>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  /* Show selected completion option */
+                  <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
                       <CardHeader className="pb-3">
-                        <CardTitle className={`text-lg font-semibold ${
-                          selectedCompletionOption === option.id ? 'text-[#0db0de]' : 'text-card-foreground'
-                        }`}>
-                          {option.name}
-                          {selectedCompletionOption === option.id && (
-                            <span className="ml-2 text-sm">✓</span>
-                          )}
+                        <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                          {completionOptions.find(opt => opt.id === selectedCompletionOption)?.name}
+                          <span className="text-sm">✓</span>
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <CardDescription className="text-sm text-muted-foreground">
-                          {option.description}
+                        <CardDescription className="text-sm text-muted-foreground text-center">
+                          {completionOptions.find(opt => opt.id === selectedCompletionOption)?.description}
                         </CardDescription>
+                        <div className="text-center mt-3">
+                          <button onClick={() => {
+                            setSelectedCompletionOption(null);
+                            setGeneratedOptions([]);
+                            setSelectedGeneratedOption(null);
+                          }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                            Change selection
+                          </button>
+                        </div>
                       </CardContent>
                     </Card>
-                  ))}
-                </div>
+                  </div>
+                )}
 
                 {/* Show AI Assist form when selected */}
                 {selectedCompletionOption === "ai-assist" && (
