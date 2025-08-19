@@ -3855,18 +3855,11 @@ const Index = () => {
     setApiError("");
     setSelectedTextIndex(null);
   };
-  // Determine current step based on application state
-  const getCurrentStep = () => {
-    if (!selectedStyle) return 1; // Category step
-    if (!textOption) return 2; // Text step
-    // For now, we'll stay on Text step until Visual and Finish are implemented
-    return 2;
-  };
 
   return <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Step Progress Header */}
-        <StepProgress currentStep={getCurrentStep()} />
+        <StepProgress currentStep={1} />
         
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Viibe Category</h1>
