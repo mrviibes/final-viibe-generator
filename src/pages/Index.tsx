@@ -3906,6 +3906,7 @@ const Index = () => {
   const [wordCount, setWordCount] = useState<string>("10");
   const [generatedOptions, setGeneratedOptions] = useState<string[]>([]);
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
+  const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
@@ -4022,6 +4023,9 @@ const Index = () => {
         wordLimit: Number(wordCount)
       });
       
+      // Clear previous selection when generating/regenerating
+      setSelectedGeneratedOption(null);
+      setSelectedGeneratedIndex(null);
       setGeneratedOptions(options);
     } catch (error) {
       console.error('Error generating text:', error);
@@ -4875,33 +4879,34 @@ const Index = () => {
                   </Card>
                 ))}
               </div>
-            ) : (
-              /* Show selected text style card only */
-              <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {/* Selected Text Style Card */}
-                <div className="mb-8 selected-card">
-                  <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                        {textStyleOptions.find(s => s.id === selectedTextStyle)?.name}
-                        <span className="text-sm">✓</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-sm text-muted-foreground text-center">
-                        {textStyleOptions.find(s => s.id === selectedTextStyle)?.description}
-                      </CardDescription>
-                      <div className="text-center mt-3">
-                        <button onClick={() => {
-                          setSelectedTextStyle(null);
-                          setSelectedCompletionOption(null);
-                        }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                          Change selection
-                        </button>
+                ) : (
+                  /* Show selected text style card only when no generated option is selected */
+                  <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {!selectedGeneratedOption && (
+                      <div className="mb-8 selected-card">
+                        <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                              {textStyleOptions.find(s => s.id === selectedTextStyle)?.name}
+                              <span className="text-sm">✓</span>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <CardDescription className="text-sm text-muted-foreground text-center">
+                              {textStyleOptions.find(s => s.id === selectedTextStyle)?.description}
+                            </CardDescription>
+                            <div className="text-center mt-3">
+                              <button onClick={() => {
+                                setSelectedTextStyle(null);
+                                setSelectedCompletionOption(null);
+                              }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                                Change selection
+                              </button>
+                            </div>
+                          </CardContent>
+                        </Card>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                    )}
 
                 {/* Completion Options */}
                 {!selectedCompletionOption ? (
@@ -4932,31 +4937,34 @@ const Index = () => {
                     </div>
                   </>
                 ) : (
-                  /* Show selected completion option */
-                  <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                          {completionOptions.find(opt => opt.id === selectedCompletionOption)?.name}
-                          <span className="text-sm">✓</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <CardDescription className="text-sm text-muted-foreground text-center">
-                          {completionOptions.find(opt => opt.id === selectedCompletionOption)?.description}
-                        </CardDescription>
-                        <div className="text-center mt-3">
-                          <button onClick={() => {
-                            setSelectedCompletionOption(null);
-                            setGeneratedOptions([]);
-                            setSelectedGeneratedOption(null);
-                          }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                            Change selection
-                          </button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                  /* Show selected completion option when no generated option is selected */
+                  !selectedGeneratedOption && (
+                    <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                            {completionOptions.find(opt => opt.id === selectedCompletionOption)?.name}
+                            <span className="text-sm">✓</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <CardDescription className="text-sm text-muted-foreground text-center">
+                            {completionOptions.find(opt => opt.id === selectedCompletionOption)?.description}
+                          </CardDescription>
+                          <div className="text-center mt-3">
+                            <button onClick={() => {
+                              setSelectedCompletionOption(null);
+                              setGeneratedOptions([]);
+                              setSelectedGeneratedOption(null);
+                              setSelectedGeneratedIndex(null);
+                            }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                              Change selection
+                            </button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )
                 )}
 
                 {/* Show AI Assist form when selected and no options generated yet */}
@@ -5051,12 +5059,13 @@ const Index = () => {
                           {wordCount} words max{tags.length > 0 ? `, tags: ${tags.join(", ")}` : ""}
                         </CardDescription>
                         <div className="text-center mt-3">
-                          <button onClick={() => {
-                            setGeneratedOptions([]);
-                            setSelectedGeneratedOption(null);
-                          }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                            Change selection
-                          </button>
+                            <button onClick={() => {
+                              setGeneratedOptions([]);
+                              setSelectedGeneratedOption(null);
+                              setSelectedGeneratedIndex(null);
+                            }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                              Change selection
+                            </button>
                         </div>
                       </CardContent>
                     </Card>
@@ -5123,10 +5132,10 @@ const Index = () => {
                     <div className="selected-card">
                       <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
                         <CardHeader className="pb-3">
-                          <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                            Option {generatedOptions.findIndex(opt => opt === selectedGeneratedOption) + 1}
-                            <span className="text-sm">✓</span>
-                          </CardTitle>
+                        <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                          Option {selectedGeneratedIndex !== null ? selectedGeneratedIndex + 1 : 1}
+                          <span className="text-sm">✓</span>
+                        </CardTitle>
                         </CardHeader>
                         <CardContent>
                           <CardDescription className="text-sm text-muted-foreground text-center">
@@ -5159,7 +5168,10 @@ const Index = () => {
                               ? "border-[#0db0de] bg-[#0db0de]/5 shadow-md" 
                               : "hover:bg-accent/50"
                           }`}
-                          onClick={() => setSelectedGeneratedOption(option)}
+                          onClick={() => {
+                            setSelectedGeneratedOption(option);
+                            setSelectedGeneratedIndex(index);
+                          }}
                         >
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
