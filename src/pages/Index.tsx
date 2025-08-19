@@ -4250,7 +4250,7 @@ const Index = () => {
                 </div>
               </div> : selectedStyle === "vibes-punchlines" && selectedSubOption ? <div className="flex flex-col items-center">
                 {/* Selected Vibe/Punchline Card */}
-                <div className="mb-8 w-full max-w-md mx-auto">
+                <div className="mb-8 selected-card">
                   <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-card-foreground text-center">
@@ -4300,7 +4300,7 @@ const Index = () => {
                   </div>
                 </> : <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
                   {/* Selected Text Option Card */}
-                  <div className="mb-8 w-full max-w-md mx-auto">
+                  <div className="mb-8 selected-card">
                     <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold text-card-foreground text-center">
@@ -4367,7 +4367,7 @@ const Index = () => {
               {/* Stored Cards Section - Show after text generation */}
               {textOption === "ai-assist" && showGeneratedTexts && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   {/* Combined Generation Settings Card */}
-                  <div className="mb-8 w-full max-w-md mx-auto">
+                  <div className="mb-8 selected-card">
                     <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold text-card-foreground text-center">
