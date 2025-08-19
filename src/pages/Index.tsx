@@ -4001,9 +4001,9 @@ const Index = () => {
                     </Card>}
                 </div>
               </div> : selectedStyle === "celebrations" && selectedSubOption ? <div className="flex flex-col items-center">
-                {/* Selected Celebration Card */}
-                <div className="mb-8">
-                  <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg max-w-md">
+                 {/* Selected Celebration Card */}
+                 <div className="mb-8 w-full max-w-md mx-auto">
+                   <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-card-foreground text-center">
                         {selectedSubOption}
