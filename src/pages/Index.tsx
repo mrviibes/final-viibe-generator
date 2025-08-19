@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search } from "lucide-react";
+import { Search, Loader2, AlertCircle } from "lucide-react";
+import { openAIService, OpenAISearchResult } from "@/lib/openai";
+import { ApiKeyDialog } from "@/components/ApiKeyDialog";
 import { StepProgress } from "@/components/StepProgress";
 const styleOptions = [{
   id: "celebrations",
@@ -3821,6 +3823,55 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [finalSearchTerm, setFinalSearchTerm] = useState<string>("");
   const [isFinalSearchFocused, setIsFinalSearchFocused] = useState<boolean>(false);
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState<boolean>(false);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchResults, setSearchResults] = useState<OpenAISearchResult[]>([]);
+  const [searchError, setSearchError] = useState<string>("");
+
+  const handleApiKeySet = (apiKey: string) => {
+    openAIService.setApiKey(apiKey);
+  };
+
+  const handleSearch = async (searchTerm: string) => {
+    if (!searchTerm.trim() || !selectedSubOption) return;
+    
+    if (!openAIService.hasApiKey()) {
+      setShowApiKeyDialog(true);
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchError("");
+    setSearchResults([]);
+
+    try {
+      const results = await openAIService.searchPopCulture(selectedSubOption, searchTerm);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchError(error instanceof Error ? error.message : 'Search failed');
+      if (error instanceof Error && error.message.includes('API key')) {
+        setShowApiKeyDialog(true);
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchInputChange = (value: string) => {
+    setFinalSearchTerm(value);
+    setSearchResults([]);
+    setSearchError("");
+    
+    // Debounced search
+    if (value.trim().length > 2) {
+      const timeoutId = setTimeout(() => {
+        handleSearch(value);
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  };
 
   return <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-6xl mx-auto">
@@ -4331,7 +4382,7 @@ const Index = () => {
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                       <Input 
                         value={finalSearchTerm} 
-                        onChange={e => setFinalSearchTerm(e.target.value)} 
+                        onChange={e => handleSearchInputChange(e.target.value)} 
                         onFocus={() => setIsFinalSearchFocused(true)} 
                         onBlur={() => {
                           // Delay hiding to allow clicks to complete
@@ -4340,30 +4391,89 @@ const Index = () => {
                         placeholder={`Search ${selectedSubOption.toLowerCase()}...`} 
                         className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" 
                       />
+                      {isSearching && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
                     </div>
 
                     {/* Search Results */}
                     {(isFinalSearchFocused || finalSearchTerm.length > 0) && finalSearchTerm.trim() && (
                       <Card className="max-h-96 overflow-hidden bg-card border-border z-50">
-                        <div className="p-4">
-                          <div 
-                            onClick={e => {
-                              console.log('Final search clicked:', finalSearchTerm.trim());
-                              e.preventDefault();
-                              e.stopPropagation();
-                              // Here you would typically proceed to the next step
-                              setIsFinalSearchFocused(false);
-                            }} 
-                            className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2 bg-card"
-                          >
-                            <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
-                              <span className="text-xs font-bold text-muted-foreground">+</span>
-                            </div>
-                            <p className="text-sm font-medium text-card-foreground">
-                              Search for "{finalSearchTerm.trim()}" in {selectedSubOption}
-                            </p>
+                        <ScrollArea className="h-full">
+                          <div className="p-4 space-y-2">
+                            {/* Error State */}
+                            {searchError && (
+                              <div className="p-3 rounded-lg border border-destructive/20 bg-destructive/5 flex items-center gap-2">
+                                <AlertCircle className="h-4 w-4 text-destructive" />
+                                <p className="text-sm text-destructive">{searchError}</p>
+                              </div>
+                            )}
+
+                            {/* Loading State */}
+                            {isSearching && !searchError && (
+                              <div className="p-3 rounded-lg border border-dashed border-border bg-card flex items-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground">
+                                  Searching {selectedSubOption.toLowerCase()}...
+                                </p>
+                              </div>
+                            )}
+
+                            {/* AI Results */}
+                            {searchResults.length > 0 && !isSearching && (
+                              <>
+                                {searchResults.map((result, index) => (
+                                  <div 
+                                    key={index}
+                                    onClick={e => {
+                                      console.log('AI result clicked:', result.title);
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setIsFinalSearchFocused(false);
+                                    }} 
+                                    className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors bg-card"
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <span className="text-xs font-bold text-primary">AI</span>
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-card-foreground mb-1">
+                                          {result.title}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground line-clamp-2">
+                                          {result.description}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </>
+                            )}
+
+                            {/* Manual Search Option */}
+                            {!isSearching && (
+                              <div 
+                                onClick={e => {
+                                  console.log('Manual search clicked:', finalSearchTerm.trim());
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setIsFinalSearchFocused(false);
+                                }} 
+                                className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2 bg-card"
+                              >
+                                <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
+                                  <span className="text-xs font-bold text-muted-foreground">+</span>
+                                </div>
+                                <p className="text-sm font-medium text-card-foreground">
+                                  Search for "{finalSearchTerm.trim()}" in {selectedSubOption}
+                                </p>
+                              </div>
+                            )}
                           </div>
-                        </div>
+                        </ScrollArea>
                       </Card>
                     )}
                   </div>
@@ -4449,6 +4559,13 @@ const Index = () => {
               </div> : null}
 
           </div>}
+
+        {/* API Key Dialog */}
+        <ApiKeyDialog 
+          open={showApiKeyDialog}
+          onOpenChange={setShowApiKeyDialog}
+          onApiKeySet={handleApiKeySet}
+        />
 
       </div>
     </div>;
