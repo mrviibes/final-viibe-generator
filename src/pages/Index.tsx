@@ -4769,8 +4769,41 @@ const Index = () => {
         {currentStep === 2 && (
           <>
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Text Style</h1>
-              <p className="text-xl text-muted-foreground">Select the style that best fits your needs</p>
+              <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Vibe Text</h1>
+              <p className="text-xl text-muted-foreground">
+                {(() => {
+                  let breadcrumb = [];
+                  
+                  // Add main category
+                  const selectedStyleObj = styleOptions.find(s => s.id === selectedStyle);
+                  if (selectedStyleObj) {
+                    breadcrumb.push(selectedStyleObj.name);
+                  }
+                  
+                  // Add subcategory
+                  if (selectedSubOption) {
+                    if (selectedStyle === 'celebrations') {
+                      const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                      breadcrumb.push(celebOption?.name || selectedSubOption);
+                    } else if (selectedStyle === 'pop-culture') {
+                      const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                      breadcrumb.push(popOption?.name || selectedSubOption);
+                    } else {
+                      breadcrumb.push(selectedSubOption);
+                    }
+                  }
+                  
+                  // Add specific pick for pop culture
+                  if (selectedPick && selectedStyle === 'pop-culture') {
+                    breadcrumb.push(selectedPick);
+                  }
+                  
+                  // Add "Your Text" at the end
+                  breadcrumb.push("Your Text");
+                  
+                  return breadcrumb.join(" > ");
+                })()}
+              </p>
             </div>
 
             {/* Show style selection grid when no style is selected */}
