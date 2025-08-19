@@ -109,3 +109,7 @@ All colors MUST be HSL.
   width: 100%;
   margin-inline: auto;
 }
+
+.card-selected {
+  @apply bg-primary/5 border-2 border-primary/20 shadow-lg ring-1 ring-primary/10;
+}

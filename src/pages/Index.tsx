@@ -3920,7 +3920,7 @@ const Index = () => {
           </> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Selected Style Card */}
             <div className="mb-8 selected-card">
-              <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
+              <Card className="card-selected w-full">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg font-semibold text-card-foreground text-center">
                     {styleOptions.find(s => s.id === selectedStyle)?.name}
@@ -4003,7 +4003,7 @@ const Index = () => {
               </div> : selectedStyle === "celebrations" && selectedSubOption ? <div className="flex flex-col items-stretch">
                  {/* Selected Celebration Card */}
                  <div className="mb-8 selected-card">
-                   <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
+                   <Card className="card-selected w-full">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-card-foreground text-center">
                         {selectedSubOption}
@@ -4140,7 +4140,7 @@ const Index = () => {
               </div> : selectedStyle === "daily-life" && selectedSubOption ? <div className="flex flex-col items-stretch">
                  {/* Selected Daily Life Card */}
                  <div className="mb-8 selected-card">
-                   <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
+                   <Card className="card-selected w-full">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-card-foreground text-center">
                         {selectedSubOption}
@@ -4165,7 +4165,7 @@ const Index = () => {
               </div> : selectedStyle === "sports" && selectedSubOption ? <div className="flex flex-col items-stretch">
                  {/* Selected Sport Card */}
                  <div className="mb-8 selected-card">
-                   <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
+                   <Card className="card-selected w-full">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-card-foreground text-center">
                         {selectedSubOption}
@@ -4251,7 +4251,7 @@ const Index = () => {
               </div> : selectedStyle === "vibes-punchlines" && selectedSubOption ? <div className="flex flex-col items-stretch">
                 {/* Selected Vibe/Punchline Card */}
                 <div className="mb-8 selected-card">
-                  <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
+                  <Card className="card-selected w-full">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-card-foreground text-center">
                         {selectedSubOption}
@@ -4301,7 +4301,7 @@ const Index = () => {
                 </> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
                   {/* Selected Text Option Card */}
                   <div className="mb-8 selected-card">
-                    <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
+                    <Card className="card-selected w-full">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold text-card-foreground text-center">
                           {textOptions.find(o => o.id === textOption)?.name}
@@ -4368,7 +4368,7 @@ const Index = () => {
               {textOption === "ai-assist" && showGeneratedTexts && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   {/* Combined Generation Settings Card */}
                   <div className="mb-8 selected-card">
-                    <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
+                    <Card className="card-selected w-full">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold text-card-foreground text-center">
                           Generation Settings
