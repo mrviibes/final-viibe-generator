@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, ArrowLeft } from "lucide-react";
-import { StepProgress } from "@/components/StepProgress";
 const styleOptions = [{
   id: "celebrations",
   name: "Celebrations",
@@ -3773,14 +3772,6 @@ const Index = () => {
   const [apiError, setApiError] = useState<string>("");
   const [selectedTextIndex, setSelectedTextIndex] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
-
-  // Calculate current step for progress header
-  const getCurrentStep = () => {
-    if (!selectedStyle) return 1; // Category step
-    if (!textOption) return 2; // Text step
-    // For now, we'll stay on step 2 until Visual and Finish steps are implemented
-    return 2;
-  };
   const handleAddTag = (tagInput: string) => {
     const tag = tagInput.trim();
     if (tag && !tags.includes(tag)) {
@@ -3865,9 +3856,6 @@ const Index = () => {
   };
   return <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-6xl mx-auto">
-        {/* Step Progress Header */}
-        <StepProgress currentStep={getCurrentStep()} />
-        
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Viibe Category</h1>
           <p className="text-xl text-muted-foreground">Select the Category that best fits your Viibe
