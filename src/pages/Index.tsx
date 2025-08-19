@@ -3818,6 +3818,7 @@ const popCultureOptions = [{
 const Index = () => {
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [selectedSubOption, setSelectedSubOption] = useState<string | null>(null);
+  const [selectedPick, setSelectedPick] = useState<string | null>(null);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -3962,6 +3963,7 @@ const Index = () => {
                     <button onClick={() => {
                   setSelectedStyle(null);
                   setSelectedSubOption(null);
+                  setSelectedPick(null);
                   setSubOptionSearchTerm("");
                 }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                       Change selection
@@ -4042,6 +4044,7 @@ const Index = () => {
                       <div className="text-center mt-3">
                         <button onClick={() => {
                     setSelectedSubOption(null);
+                    setSelectedPick(null);
                     setSubOptionSearchTerm("");
                   }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                           Change celebration
@@ -4372,6 +4375,7 @@ const Index = () => {
                       <div className="text-center mt-3">
                         <button onClick={() => {
                     setSelectedSubOption(null);
+                    setSelectedPick(null);
                     setSubOptionSearchTerm("");
                   }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                           Change topic
@@ -4436,16 +4440,18 @@ const Index = () => {
                             {searchResults.length > 0 && !isSearching && (
                               <>
                                 {searchResults.map((result, index) => (
-                                  <div 
-                                    key={index}
-                                    onClick={e => {
-                                      console.log('AI result clicked:', result.title);
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      setIsFinalSearchFocused(false);
-                                    }} 
-                                    className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors bg-card"
-                                  >
+                                   <div 
+                                     key={index}
+                                     onClick={e => {
+                                       console.log('AI result clicked:', result.title);
+                                       e.preventDefault();
+                                       e.stopPropagation();
+                                       setSelectedPick(result.title);
+                                       setIsFinalSearchFocused(false);
+                                       setFinalSearchTerm("");
+                                     }} 
+                                     className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors bg-card"
+                                   >
                                     <div className="flex items-start gap-3">
                                       <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                                         <span className="text-xs font-bold text-primary">AI</span>
@@ -4471,7 +4477,9 @@ const Index = () => {
                                   console.log('Manual search clicked:', finalSearchTerm.trim());
                                   e.preventDefault();
                                   e.stopPropagation();
+                                  setSelectedPick(finalSearchTerm.trim());
                                   setIsFinalSearchFocused(false);
+                                  setFinalSearchTerm("");
                                 }} 
                                 className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2 bg-card"
                               >
@@ -4489,6 +4497,31 @@ const Index = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Selected Pick Card for Pop Culture */}
+                {selectedPick && (
+                  <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Card className="card-selected w-full">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg font-semibold text-card-foreground text-center">
+                          {selectedPick}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="text-sm text-muted-foreground text-center">
+                          Selected pick from {selectedSubOption}
+                        </CardDescription>
+                        <div className="text-center mt-3">
+                          <button onClick={() => {
+                            setSelectedPick(null);
+                          }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                            Change selection
+                          </button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
 
               </div> : selectedStyle === "random" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
@@ -4559,6 +4592,7 @@ const Index = () => {
                       <div className="text-center mt-3">
                         <button onClick={() => {
                           setSelectedSubOption(null);
+                          setSelectedPick(null);
                           setSubOptionSearchTerm("");
                         }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                           Change topic
