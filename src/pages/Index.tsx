@@ -2,7 +2,9 @@ import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Loader2, AlertCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import { openAIService, OpenAISearchResult } from "@/lib/openai";
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
 import { StepProgress } from "@/components/StepProgress";
@@ -3816,6 +3818,7 @@ const popCultureOptions = [{
 }];
 
 const Index = () => {
+  const [currentStep, setCurrentStep] = useState<number>(1);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [selectedSubOption, setSelectedSubOption] = useState<string | null>(null);
   const [selectedPick, setSelectedPick] = useState<string | null>(null);
@@ -3828,9 +3831,29 @@ const Index = () => {
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchResults, setSearchResults] = useState<OpenAISearchResult[]>([]);
   const [searchError, setSearchError] = useState<string>("");
+  const [stepTwoText, setStepTwoText] = useState<string>("");
   
   // Add timeout ref for search debouncing
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Helper function to check if Step 1 is complete
+  const isStep1Complete = (): boolean => {
+    if (!selectedStyle) return false;
+    
+    switch (selectedStyle) {
+      case "pop-culture":
+        return !!(selectedSubOption && selectedPick);
+      case "random":
+        return !!selectedSubOption; // Custom topic for random
+      case "celebrations":
+      case "sports":
+      case "daily-life":
+      case "vibes-punchlines":
+        return !!selectedSubOption;
+      default:
+        return false;
+    }
+  };
 
   const handleApiKeySet = (apiKey: string) => {
     openAIService.setApiKey(apiKey);
@@ -3885,19 +3908,19 @@ const Index = () => {
     }, 250);
   };
 
-  return <div className="min-h-screen bg-background py-12 px-4">
+  return <div className="min-h-screen bg-background py-12 px-4 pb-32">
       <div className="max-w-6xl mx-auto">
         {/* Step Progress Header */}
-        <StepProgress currentStep={1} />
+        <StepProgress currentStep={currentStep} />
         
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Viibe Category</h1>
-          <p className="text-xl text-muted-foreground">Select the Category that best fits your Viibe
-
-        </p>
-        </div>
-        
-        {/* Show all cards when no style is selected, or only the selected card */}
+        {currentStep === 1 && (
+          <>
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Viibe Category</h1>
+              <p className="text-xl text-muted-foreground">Select the Category that best fits your Viibe</p>
+            </div>
+            
+            {/* Show all cards when no style is selected, or only the selected card */}
         {!selectedStyle ? <>
             {/* Search Bar */}
             <div className="max-w-md mx-auto mb-12">
@@ -4612,6 +4635,48 @@ const Index = () => {
               </div> : null}
 
           </div>}
+          </>
+        )}
+
+        {currentStep === 2 && (
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Add Your Text</h1>
+            <p className="text-xl text-muted-foreground mb-8">Enter the text content for your Viibe</p>
+            
+            <div className="max-w-2xl mx-auto">
+              <Textarea
+                value={stepTwoText}
+                onChange={(e) => setStepTwoText(e.target.value)}
+                placeholder="Enter your text here..."
+                className="min-h-[200px] text-base"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4">
+          <div className="max-w-6xl mx-auto flex justify-between items-center">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
+              className={currentStep === 1 ? "invisible" : ""}
+              disabled={currentStep === 1}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            
+            <Button
+              onClick={() => setCurrentStep(2)}
+              disabled={currentStep === 1 && !isStep1Complete()}
+              className={currentStep === 1 && !isStep1Complete() ? "opacity-50 cursor-not-allowed" : ""}
+            >
+              Continue
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </div>
 
         {/* API Key Dialog */}
         <ApiKeyDialog 
