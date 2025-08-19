@@ -103,3 +103,9 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+.selected-card {
+  max-width: 28rem;
+  width: 100%;
+  margin-inline: auto;
+}

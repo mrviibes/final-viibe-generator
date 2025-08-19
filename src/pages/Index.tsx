@@ -3919,7 +3919,7 @@ const Index = () => {
         })()}
           </> : <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Selected Style Card */}
-            <div className="mb-8 w-full max-w-md mx-auto">
+            <div className="mb-8 selected-card">
               <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg font-semibold text-card-foreground text-center">
@@ -4002,7 +4002,7 @@ const Index = () => {
                 </div>
               </div> : selectedStyle === "celebrations" && selectedSubOption ? <div className="flex flex-col items-center">
                  {/* Selected Celebration Card */}
-                 <div className="mb-8 w-full max-w-md mx-auto">
+                 <div className="mb-8 selected-card">
                    <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-card-foreground text-center">
@@ -4139,7 +4139,7 @@ const Index = () => {
                 </div>
               </div> : selectedStyle === "daily-life" && selectedSubOption ? <div className="flex flex-col items-center">
                  {/* Selected Daily Life Card */}
-                 <div className="mb-8 w-full max-w-md mx-auto">
+                 <div className="mb-8 selected-card">
                    <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-card-foreground text-center">
@@ -4164,7 +4164,7 @@ const Index = () => {
 
               </div> : selectedStyle === "sports" && selectedSubOption ? <div className="flex flex-col items-center">
                  {/* Selected Sport Card */}
-                 <div className="mb-8 w-full max-w-md mx-auto">
+                 <div className="mb-8 selected-card">
                    <Card className="bg-primary/5 border-2 border-primary/20 shadow-lg w-full">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-card-foreground text-center">
