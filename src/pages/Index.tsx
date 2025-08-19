@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X } from "lucide-react";
 import { openAIService, OpenAISearchResult } from "@/lib/openai";
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
 import { StepProgress } from "@/components/StepProgress";
@@ -3872,6 +3874,9 @@ const Index = () => {
   const [selectedPick, setSelectedPick] = useState<string | null>(null);
   const [selectedTextStyle, setSelectedTextStyle] = useState<string | null>(null);
   const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState<string>("");
+  const [wordCount, setWordCount] = useState<string>("5");
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -3908,6 +3913,26 @@ const Index = () => {
   // Helper function to check if Step 2 is complete
   const isStep2Complete = (): boolean => {
     return !!(selectedTextStyle && selectedCompletionOption);
+  };
+
+  // Handle adding tags
+  const handleAddTag = (tag: string) => {
+    const trimmedTag = tag.trim();
+    if (trimmedTag && !tags.includes(trimmedTag)) {
+      setTags([...tags, trimmedTag]);
+    }
+    setTagInput("");
+  };
+
+  const handleTagInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      handleAddTag(tagInput);
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
   const handleApiKeySet = (apiKey: string) => {
@@ -4784,6 +4809,80 @@ const Index = () => {
                     </Card>
                   ))}
                 </div>
+
+                {/* Show AI Assist form when selected */}
+                {selectedCompletionOption === "ai-assist" && (
+                  <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="text-center mb-6">
+                      <p className="text-xl text-muted-foreground">Add relevant tags for content generation</p>
+                    </div>
+
+                    <div className="max-w-md mx-auto space-y-6">
+                      {/* Tags Input */}
+                      <div className="space-y-3">
+                        <Input
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={handleTagInputKeyDown}
+                          placeholder="Enter tags (press Enter or comma to add)"
+                          className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg"
+                        />
+                        
+                        {/* Display Tags */}
+                        {tags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 justify-center">
+                            {tags.map((tag, index) => (
+                              <Badge 
+                                key={index} 
+                                variant="secondary" 
+                                className="px-3 py-1 text-sm flex items-center gap-1"
+                              >
+                                {tag}
+                                <X 
+                                  className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                                  onClick={() => removeTag(tag)}
+                                />
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Word Count Selection */}
+                      <div className="flex items-center justify-center gap-4">
+                        <label className="text-sm font-medium text-card-foreground">
+                          # of words
+                        </label>
+                        <Select value={wordCount} onValueChange={setWordCount}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="5">5 Words</SelectItem>
+                            <SelectItem value="10">10 Words</SelectItem>
+                            <SelectItem value="25">25 Words</SelectItem>
+                            <SelectItem value="50">50 Words</SelectItem>
+                            <SelectItem value="100">100 Words</SelectItem>
+                            <SelectItem value="200">200 Words</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Generate Button */}
+                      <div className="text-center">
+                        <Button 
+                          className="bg-slate-800 hover:bg-slate-700 text-white px-8 py-3 text-base font-medium rounded-lg"
+                          onClick={() => {
+                            // TODO: Implement text generation
+                            console.log('Generate text with:', { tags, wordCount, selectedTextStyle });
+                          }}
+                        >
+                          Generate Text Now
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* TODO: Add additional sub-options here after text style is selected */}
               </div>
