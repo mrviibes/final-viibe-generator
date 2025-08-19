@@ -4679,47 +4679,81 @@ const Index = () => {
         )}
 
         {currentStep === 2 && (
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Text Style</h1>
-            <p className="text-xl text-muted-foreground mb-8">Select the style that best fits your needs</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center max-w-6xl mx-auto">
-              {textStyleOptions.map(style => (
-                <Card 
-                  key={style.id} 
-                  className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full max-w-sm ${
-                    selectedTextStyle === style.id 
-                      ? 'border-[#0db0de] bg-[#0db0de]/5 shadow-md' 
-                      : 'hover:bg-accent/50'
-                  }`}
-                  onClick={() => setSelectedTextStyle(style.id)}
-                >
-                  <CardHeader className="pb-3">
-                    <CardTitle className={`text-lg font-semibold ${
-                      selectedTextStyle === style.id ? 'text-[#0db0de]' : 'text-card-foreground'
-                    }`}>
-                      {style.name}
-                      {selectedTextStyle === style.id && (
-                        <span className="ml-2 text-sm">✓</span>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-sm text-muted-foreground">
-                      {style.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              ))}
+          <>
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Text Style</h1>
+              <p className="text-xl text-muted-foreground">Select the style that best fits your needs</p>
             </div>
 
-            {/* TODO: Add additional sub-options here after text style is selected */}
-            {selectedTextStyle && (
-              <div className="mt-8 text-sm text-muted-foreground">
-                {/* Placeholder for future sub-options that will "build up" like Step 1 */}
+            {/* Show style selection grid when no style is selected */}
+            {!selectedTextStyle ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center max-w-6xl mx-auto">
+                {textStyleOptions.map(style => (
+                  <Card 
+                    key={style.id} 
+                    className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm"
+                    onClick={() => setSelectedTextStyle(style.id)}
+                  >
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-semibold text-card-foreground">
+                        {style.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-sm text-muted-foreground">
+                        {style.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              /* Show stacked cards after selection */
+              <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* Text Style Category Card */}
+                <div className="mb-4 selected-card">
+                  <Card className="card-selected w-full">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-semibold text-card-foreground text-center">
+                        Text Style
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-sm text-muted-foreground text-center">
+                        Writing tone and approach
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Selected Text Style Card */}
+                <div className="mb-8 selected-card">
+                  <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                        {textStyleOptions.find(s => s.id === selectedTextStyle)?.name}
+                        <span className="text-sm">✓</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-sm text-muted-foreground text-center">
+                        {textStyleOptions.find(s => s.id === selectedTextStyle)?.description}
+                      </CardDescription>
+                      <div className="text-center mt-3">
+                        <button onClick={() => {
+                          setSelectedTextStyle(null);
+                        }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                          Change selection
+                        </button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* TODO: Add additional sub-options here after text style is selected */}
               </div>
             )}
-          </div>
+          </>
         )}
 
         {/* Bottom Navigation */}
