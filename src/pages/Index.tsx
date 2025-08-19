@@ -3817,11 +3817,46 @@ const popCultureOptions = [{
   subtitle: "Stand-up, skits, talk shows"
 }];
 
+const textStyleOptions = [{
+  id: "humorous",
+  name: "Humorous",
+  description: "Jokes, puns, lighthearted entertainment"
+}, {
+  id: "savage",
+  name: "Savage",
+  description: "Sarcastic, bold, unapologetic wit"
+}, {
+  id: "sentimental",
+  name: "Sentimental",
+  description: "Warm, heartfelt, sincere emotion"
+}, {
+  id: "nostalgic",
+  name: "Nostalgic",
+  description: "Fond, wistful memories of past"
+}, {
+  id: "romantic",
+  name: "Romantic",
+  description: "Love, affection, sweet admiration"
+}, {
+  id: "inspirational",
+  name: "Inspirational",
+  description: "Uplifting, motivating, positive encouragement"
+}, {
+  id: "playful",
+  name: "Playful",
+  description: "Cheerful, lively, mischievous fun"
+}, {
+  id: "serious",
+  name: "Serious",
+  description: "Respectful, formal, matter-of-fact"
+}];
+
 const Index = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [selectedSubOption, setSelectedSubOption] = useState<string | null>(null);
   const [selectedPick, setSelectedPick] = useState<string | null>(null);
+  const [selectedTextStyle, setSelectedTextStyle] = useState<string | null>(null);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -3853,6 +3888,11 @@ const Index = () => {
       default:
         return false;
     }
+  };
+
+  // Helper function to check if Step 2 is complete
+  const isStep2Complete = (): boolean => {
+    return !!selectedTextStyle;
   };
 
   const handleApiKeySet = (apiKey: string) => {
@@ -4640,17 +4680,45 @@ const Index = () => {
 
         {currentStep === 2 && (
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Add Your Text</h1>
-            <p className="text-xl text-muted-foreground mb-8">Enter the text content for your Viibe</p>
+            <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Text Style</h1>
+            <p className="text-xl text-muted-foreground mb-8">Select the style that best fits your needs</p>
             
-            <div className="max-w-2xl mx-auto">
-              <Textarea
-                value={stepTwoText}
-                onChange={(e) => setStepTwoText(e.target.value)}
-                placeholder="Enter your text here..."
-                className="min-h-[200px] text-base"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center max-w-6xl mx-auto">
+              {textStyleOptions.map(style => (
+                <Card 
+                  key={style.id} 
+                  className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full max-w-sm ${
+                    selectedTextStyle === style.id 
+                      ? 'border-[#0db0de] bg-[#0db0de]/5 shadow-md' 
+                      : 'hover:bg-accent/50'
+                  }`}
+                  onClick={() => setSelectedTextStyle(style.id)}
+                >
+                  <CardHeader className="pb-3">
+                    <CardTitle className={`text-lg font-semibold ${
+                      selectedTextStyle === style.id ? 'text-[#0db0de]' : 'text-card-foreground'
+                    }`}>
+                      {style.name}
+                      {selectedTextStyle === style.id && (
+                        <span className="ml-2 text-sm">✓</span>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-sm text-muted-foreground">
+                      {style.description}
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+
+            {/* TODO: Add additional sub-options here after text style is selected */}
+            {selectedTextStyle && (
+              <div className="mt-8 text-sm text-muted-foreground">
+                {/* Placeholder for future sub-options that will "build up" like Step 1 */}
+              </div>
+            )}
           </div>
         )}
 
@@ -4668,9 +4736,15 @@ const Index = () => {
             </Button>
             
             <Button
-              variant={currentStep === 1 && !isStep1Complete() ? "outline" : "brand"}
-              onClick={() => setCurrentStep(2)}
-              disabled={currentStep === 1 && !isStep1Complete()}
+              variant={
+                (currentStep === 1 && !isStep1Complete()) || 
+                (currentStep === 2 && !isStep2Complete()) ? "outline" : "brand"
+              }
+              onClick={() => setCurrentStep(prev => prev + 1)}
+              disabled={
+                (currentStep === 1 && !isStep1Complete()) || 
+                (currentStep === 2 && !isStep2Complete())
+              }
             >
               Continue
               <ArrowRight className="h-4 w-4 ml-2" />
