@@ -3942,7 +3942,22 @@ const Index = () => {
 
   // Helper function to check if Step 2 is complete
   const isStep2Complete = (): boolean => {
-    return !!(selectedTextStyle && selectedCompletionOption);
+    if (!selectedTextStyle || !selectedCompletionOption) {
+      return false;
+    }
+    
+    // If completion option is AI assist, require a generated option to be selected
+    if (selectedCompletionOption === "ai-assist") {
+      return !!selectedGeneratedOption;
+    }
+    
+    // If completion option is write myself, require some text (for future use)
+    if (selectedCompletionOption === "write-myself") {
+      return stepTwoText.trim().length > 0;
+    }
+    
+    // For "no-text" option, just need style and completion
+    return true;
   };
 
   // Helper function to check if Step 3 is complete
@@ -4944,8 +4959,8 @@ const Index = () => {
                   </div>
                 )}
 
-                {/* Show AI Assist form when selected */}
-                {selectedCompletionOption === "ai-assist" && (
+                {/* Show AI Assist form when selected and no options generated yet */}
+                {selectedCompletionOption === "ai-assist" && generatedOptions.length === 0 && (
                   <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">Add relevant tags for content generation</p>
@@ -5018,6 +5033,33 @@ const Index = () => {
                         </Button>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Show generated options box when options exist but no selection made yet */}
+                {selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption && (
+                  <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                          Text options generated
+                          <span className="text-sm">✓</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="text-sm text-muted-foreground text-center">
+                          {wordCount} words max{tags.length > 0 ? `, tags: ${tags.join(", ")}` : ""}
+                        </CardDescription>
+                        <div className="text-center mt-3">
+                          <button onClick={() => {
+                            setGeneratedOptions([]);
+                            setSelectedGeneratedOption(null);
+                          }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                            Change selection
+                          </button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 )}
 
