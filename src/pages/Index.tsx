@@ -3472,10 +3472,6 @@ const vibesPunchlinesOptions = [{
   name: "Sports & Fitness",
   subtitle: "Exercise, fan banter"
 }, {
-  id: "music-humor",
-  name: "Music Humor",
-  subtitle: "Songs and musicians"
-}, {
   id: "nostalgia-humor",
   name: "Nostalgia Humor",
   subtitle: "Childhood retro laughs"
