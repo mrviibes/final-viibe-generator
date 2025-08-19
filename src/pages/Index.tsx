@@ -3867,6 +3867,32 @@ const completionOptions = [{
   description: "Skip text content for now"
 }];
 
+const visualStyleOptions = [{
+  id: "realistic",
+  name: "Realistic", 
+  description: "True-to-life photo style"
+}, {
+  id: "caricature",
+  name: "Caricature",
+  description: "Exaggerated comedic features"
+}, {
+  id: "anime", 
+  name: "Anime",
+  description: "Japanese cartoon aesthetic"
+}, {
+  id: "3d-animated",
+  name: "3D Animated",
+  description: "Pixar-style CGI look"
+}, {
+  id: "illustrated",
+  name: "Illustrated", 
+  description: "Hand-drawn artistic design"
+}, {
+  id: "pop-art",
+  name: "Pop Art",
+  description: "Bold retro comic style"
+}];
+
 const Index = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
@@ -3874,6 +3900,7 @@ const Index = () => {
   const [selectedPick, setSelectedPick] = useState<string | null>(null);
   const [selectedTextStyle, setSelectedTextStyle] = useState<string | null>(null);
   const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
+  const [selectedVisualStyle, setSelectedVisualStyle] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState<string>("");
   const [wordCount, setWordCount] = useState<string>("10");
@@ -3916,6 +3943,11 @@ const Index = () => {
   // Helper function to check if Step 2 is complete
   const isStep2Complete = (): boolean => {
     return !!(selectedTextStyle && selectedCompletionOption);
+  };
+
+  // Helper function to check if Step 3 is complete
+  const isStep3Complete = (): boolean => {
+    return !!selectedVisualStyle;
   };
 
   // Handle adding tags
@@ -5052,6 +5084,63 @@ const Index = () => {
           </>
         )}
 
+        {currentStep === 3 && (
+          <>
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Visual Style</h1>
+              <p className="text-xl text-muted-foreground">Select the visual style for your content</p>
+            </div>
+
+            {/* Show visual style selection grid when no style is selected */}
+            {!selectedVisualStyle ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center max-w-6xl mx-auto">
+                {visualStyleOptions.map(style => (
+                  <Card 
+                    key={style.id} 
+                    className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm"
+                    onClick={() => setSelectedVisualStyle(style.id)}
+                  >
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-semibold text-card-foreground">
+                        {style.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-sm text-muted-foreground">
+                        {style.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              /* Show selected visual style card only */
+              <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="mb-8 selected-card">
+                  <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                        {visualStyleOptions.find(s => s.id === selectedVisualStyle)?.name}
+                        <span className="text-sm">✓</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-sm text-muted-foreground text-center">
+                        {visualStyleOptions.find(s => s.id === selectedVisualStyle)?.description}
+                      </CardDescription>
+                      <div className="text-center mt-3">
+                        <button onClick={() => setSelectedVisualStyle(null)} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                          Change selection
+                        </button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
         {/* Bottom Navigation */}
         <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4">
           <div className="max-w-6xl mx-auto flex justify-between items-center">
@@ -5068,12 +5157,14 @@ const Index = () => {
             <Button
               variant={
                 (currentStep === 1 && !isStep1Complete()) || 
-                (currentStep === 2 && !isStep2Complete()) ? "outline" : "brand"
+                (currentStep === 2 && !isStep2Complete()) ||
+                (currentStep === 3 && !isStep3Complete()) ? "outline" : "brand"
               }
               onClick={() => setCurrentStep(prev => prev + 1)}
               disabled={
                 (currentStep === 1 && !isStep1Complete()) || 
-                (currentStep === 2 && !isStep2Complete())
+                (currentStep === 2 && !isStep2Complete()) ||
+                (currentStep === 3 && !isStep3Complete())
               }
             >
               Continue
