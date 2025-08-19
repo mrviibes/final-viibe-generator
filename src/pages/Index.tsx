@@ -3819,6 +3819,8 @@ const Index = () => {
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [finalSearchTerm, setFinalSearchTerm] = useState<string>("");
+  const [isFinalSearchFocused, setIsFinalSearchFocused] = useState<boolean>(false);
 
   return <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-6xl mx-auto">
@@ -4315,6 +4317,56 @@ const Index = () => {
                       </div>
                     </CardContent>
                   </Card>
+                </div>
+
+                {/* Search Box for Pop Culture */}
+                <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="text-center mb-6">
+                    <p className="text-xl text-muted-foreground">Search within {selectedSubOption}</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {/* Search Input */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input 
+                        value={finalSearchTerm} 
+                        onChange={e => setFinalSearchTerm(e.target.value)} 
+                        onFocus={() => setIsFinalSearchFocused(true)} 
+                        onBlur={() => {
+                          // Delay hiding to allow clicks to complete
+                          setTimeout(() => setIsFinalSearchFocused(false), 150);
+                        }} 
+                        placeholder={`Search ${selectedSubOption.toLowerCase()}...`} 
+                        className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" 
+                      />
+                    </div>
+
+                    {/* Search Results */}
+                    {(isFinalSearchFocused || finalSearchTerm.length > 0) && finalSearchTerm.trim() && (
+                      <Card className="max-h-96 overflow-hidden bg-card border-border z-50">
+                        <div className="p-4">
+                          <div 
+                            onClick={e => {
+                              console.log('Final search clicked:', finalSearchTerm.trim());
+                              e.preventDefault();
+                              e.stopPropagation();
+                              // Here you would typically proceed to the next step
+                              setIsFinalSearchFocused(false);
+                            }} 
+                            className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2 bg-card"
+                          >
+                            <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
+                              <span className="text-xs font-bold text-muted-foreground">+</span>
+                            </div>
+                            <p className="text-sm font-medium text-card-foreground">
+                              Search for "{finalSearchTerm.trim()}" in {selectedSubOption}
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+                    )}
+                  </div>
                 </div>
 
               </div> : selectedStyle === "random" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
