@@ -3876,7 +3876,10 @@ const Index = () => {
   const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState<string>("");
-  const [wordCount, setWordCount] = useState<string>("5");
+  const [wordCount, setWordCount] = useState<string>("10");
+  const [generatedOptions, setGeneratedOptions] = useState<string[]>([]);
+  const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -3933,6 +3936,26 @@ const Index = () => {
 
   const removeTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  // Generate text using OpenAI
+  const handleGenerateText = async () => {
+    setIsGenerating(true);
+    try {
+      // TODO: Implement actual text generation using OpenAI API
+      // For now, mock some results
+      const mockResults = [
+        "You're such a mess, honestly. Who even asked for your opinion? You need a reality check. Get over yourself, seriously.",
+        "Why are you so clueless? Stop talking nonsense and think before you speak.",
+        "Savage text variation 3 about general topics",
+        "Savage text variation 4 about general topics"
+      ];
+      setGeneratedOptions(mockResults);
+    } catch (error) {
+      console.error('Text generation error:', error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleApiKeySet = (apiKey: string) => {
@@ -4860,10 +4883,7 @@ const Index = () => {
                           <SelectContent>
                             <SelectItem value="5">5 Words</SelectItem>
                             <SelectItem value="10">10 Words</SelectItem>
-                            <SelectItem value="25">25 Words</SelectItem>
-                            <SelectItem value="50">50 Words</SelectItem>
-                            <SelectItem value="100">100 Words</SelectItem>
-                            <SelectItem value="200">200 Words</SelectItem>
+                            <SelectItem value="15">15 Words</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -4871,15 +4891,78 @@ const Index = () => {
                       {/* Generate Button */}
                       <div className="text-center">
                         <Button 
-                          className="bg-slate-800 hover:bg-slate-700 text-white px-8 py-3 text-base font-medium rounded-lg"
-                          onClick={() => {
-                            // TODO: Implement text generation
-                            console.log('Generate text with:', { tags, wordCount, selectedTextStyle });
-                          }}
+                          variant="brand"
+                          className="px-8 py-3 text-base font-medium rounded-lg"
+                          onClick={handleGenerateText}
+                          disabled={isGenerating}
                         >
-                          Generate Text Now
+                          {isGenerating ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            "Generate Text Now"
+                          )}
                         </Button>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Generated Text Options */}
+                {generatedOptions.length > 0 && selectedCompletionOption === "ai-assist" && (
+                  <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="text-center mb-6">
+                      <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
+                      {generatedOptions.map((option, index) => (
+                        <Card 
+                          key={index}
+                          className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 ${
+                            selectedGeneratedOption === option 
+                              ? 'border-[#0db0de] bg-[#0db0de]/5 shadow-md' 
+                              : 'hover:bg-accent/50'
+                          }`}
+                          onClick={() => setSelectedGeneratedOption(option)}
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className={`text-sm font-medium ${
+                                selectedGeneratedOption === option ? 'text-[#0db0de]' : 'text-muted-foreground'
+                              }`}>
+                                Option {index + 1}
+                              </span>
+                              {selectedGeneratedOption === option && (
+                                <span className="text-[#0db0de] text-sm">✓</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-card-foreground leading-relaxed">
+                              {option}
+                            </p>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+
+                    <div className="text-center">
+                      <Button 
+                        variant="outline"
+                        onClick={handleGenerateText}
+                        disabled={isGenerating}
+                        className="px-6 py-2"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Regenerating...
+                          </>
+                        ) : (
+                          "Regenerate Text"
+                        )}
+                      </Button>
                     </div>
                   </div>
                 )}
