@@ -3940,19 +3940,44 @@ const Index = () => {
 
   // Generate text using OpenAI
   const handleGenerateText = async () => {
+    if (!openAIService.hasApiKey()) {
+      setShowApiKeyDialog(true);
+      return;
+    }
+
     setIsGenerating(true);
     try {
-      // TODO: Implement actual text generation using OpenAI API
-      // For now, mock some results
-      const mockResults = [
-        "You're such a mess, honestly. Who even asked for your opinion? You need a reality check. Get over yourself, seriously.",
-        "Why are you so clueless? Stop talking nonsense and think before you speak.",
-        "Savage text variation 3 about general topics",
-        "Savage text variation 4 about general topics"
-      ];
-      setGeneratedOptions(mockResults);
+      // Map selected IDs to human-readable labels
+      const selectedStyleObj = styleOptions.find(s => s.id === selectedStyle);
+      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+      
+      let subtopic = '';
+      let pick = '';
+      
+      // Get subtopic based on category
+      if (selectedStyle === 'celebrations' && selectedSubOption) {
+        const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+        subtopic = celebOption?.name || selectedSubOption;
+      } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+        const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+        subtopic = popOption?.name || selectedSubOption;
+        pick = selectedPick || '';
+      } else if (selectedSubOption) {
+        subtopic = selectedSubOption;
+      }
+
+      const options = await openAIService.generateShortTexts({
+        tone: selectedTextStyleObj?.name || selectedTextStyle || 'Casual',
+        category: selectedStyleObj?.name || selectedStyle,
+        subtopic,
+        pick,
+        tags,
+        wordLimit: Number(wordCount)
+      });
+      
+      setGeneratedOptions(options);
     } catch (error) {
-      console.error('Text generation error:', error);
+      console.error('Error generating text:', error);
     } finally {
       setIsGenerating(false);
     }

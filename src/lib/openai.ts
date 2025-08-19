@@ -5,6 +5,15 @@ export interface OpenAISearchResult {
   description: string;
 }
 
+export interface GenerateTextParams {
+  tone: string;
+  category?: string;
+  subtopic?: string;
+  pick?: string;
+  tags?: string[];
+  wordLimit: number;
+}
+
 // Helper to safely parse JSON arrays from API responses
 function safeParseArray(content: string): OpenAISearchResult[] {
   try {
@@ -137,6 +146,88 @@ export class OpenAIService {
           // Ignore fallback errors
         }
       }
+      throw error;
+    }
+  }
+
+  async generateShortTexts(params: GenerateTextParams): Promise<string[]> {
+    if (!this.apiKey) {
+      throw new Error('OpenAI API key not set');
+    }
+
+    const { tone, category, subtopic, pick, tags = [], wordLimit } = params;
+    
+    let contextParts = [];
+    if (category) contextParts.push(`Category: ${category}`);
+    if (subtopic) contextParts.push(`Topic: ${subtopic}`);
+    if (pick) contextParts.push(`Specific focus: ${pick}`);
+    if (tags.length > 0) contextParts.push(`Tags: ${tags.join(', ')}`);
+    
+    const context = contextParts.join(', ');
+    const prompt = `Generate exactly 4 short ${tone.toLowerCase()} text options for: ${context}. Each option must be ${wordLimit} words or fewer (including any provided tags). Be creative and engaging. Return as a JSON array of strings.`;
+
+    try {
+      const response = await fetch(OPENAI_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 400,
+          temperature: 0.8,
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "text_options",
+              schema: {
+                type: "object",
+                properties: {
+                  options: {
+                    type: "array",
+                    items: { type: "string" },
+                    minItems: 4,
+                    maxItems: 4
+                  }
+                },
+                required: ["options"]
+              }
+            }
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'OpenAI API request failed');
+      }
+
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('No content received from OpenAI');
+      }
+
+      const parsed = JSON.parse(content);
+      const options = parsed.options || [];
+      
+      // Enforce word limit on client side as final guard
+      return options.map((option: string) => {
+        const cleaned = option.replace(/^["']|["']$/g, '').trim();
+        const words = cleaned.split(/\s+/);
+        return words.length > wordLimit ? words.slice(0, wordLimit).join(' ') : cleaned;
+      }).slice(0, 4); // Ensure exactly 4 options
+      
+    } catch (error) {
+      console.error('OpenAI text generation error:', error);
       throw error;
     }
   }
