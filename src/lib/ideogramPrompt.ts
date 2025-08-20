@@ -46,16 +46,16 @@ export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
   return parts.join(', ');
 }
 
-export function getAspectRatioForIdeogram(aspectRatio: string): '10:16' | '16:10' | '9:16' | '16:9' | '3:2' | '2:3' | '4:3' | '3:4' | '1:1' {
-  const ratioMap: Record<string, '10:16' | '16:10' | '9:16' | '16:9' | '3:2' | '2:3' | '4:3' | '3:4' | '1:1'> = {
-    'Portrait': '9:16',
-    'Landscape': '16:9',
-    'Square': '1:1',
-    'Tall': '10:16',
-    'Wide': '16:10'
+export function getAspectRatioForIdeogram(aspectRatio: string): 'ASPECT_10_16' | 'ASPECT_16_10' | 'ASPECT_9_16' | 'ASPECT_16_9' | 'ASPECT_3_2' | 'ASPECT_2_3' | 'ASPECT_4_3' | 'ASPECT_3_4' | 'ASPECT_1_1' | 'ASPECT_1_3' | 'ASPECT_3_1' {
+  const ratioMap: Record<string, 'ASPECT_10_16' | 'ASPECT_16_10' | 'ASPECT_9_16' | 'ASPECT_16_9' | 'ASPECT_3_2' | 'ASPECT_2_3' | 'ASPECT_4_3' | 'ASPECT_3_4' | 'ASPECT_1_1' | 'ASPECT_1_3' | 'ASPECT_3_1'> = {
+    'Portrait': 'ASPECT_9_16',
+    'Landscape': 'ASPECT_16_9',
+    'Square': 'ASPECT_1_1',
+    'Tall': 'ASPECT_10_16',
+    'Wide': 'ASPECT_16_10'
   };
   
-  return ratioMap[aspectRatio] || '16:9';
+  return ratioMap[aspectRatio] || 'ASPECT_16_9';
 }
 
 export function getStyleTypeForIdeogram(visualStyle: string): 'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME' {

@@ -12,7 +12,7 @@ const PROXY_CONFIGS = {
 
 export interface IdeogramGenerateRequest {
   prompt: string;
-  aspect_ratio: '10:16' | '16:10' | '9:16' | '16:9' | '3:2' | '2:3' | '4:3' | '3:4' | '1:1';
+  aspect_ratio: 'ASPECT_10_16' | 'ASPECT_16_10' | 'ASPECT_9_16' | 'ASPECT_16_9' | 'ASPECT_3_2' | 'ASPECT_2_3' | 'ASPECT_4_3' | 'ASPECT_3_4' | 'ASPECT_1_1' | 'ASPECT_1_3' | 'ASPECT_3_1';
   model: 'V_3_TURBO';
   magic_prompt_option: 'AUTO';
   seed?: number;
