@@ -4534,41 +4534,144 @@ const Index = () => {
             </div>
 
             {(() => {
-          const filteredStyles = styleOptions.filter(style => style.name.toLowerCase().includes(searchTerm.toLowerCase()) || style.description.toLowerCase().includes(searchTerm.toLowerCase()));
-          return filteredStyles.length > 0 ? <div className="space-y-6">
-                  {/* Top row - First 3 items */}
-                  {filteredStyles.length > 0 && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
-                      {filteredStyles.slice(0, 3).map(style => <Card key={style.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm" onClick={() => setSelectedStyle(style.id)}>
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-lg font-semibold text-card-foreground">
-                              {style.name}
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <CardDescription className="text-sm text-muted-foreground">
-                              {style.description}
-                            </CardDescription>
-                          </CardContent>
-                        </Card>)}
-                    </div>}
+          // Enhanced search that includes subcategories
+          const searchTermLower = searchTerm.toLowerCase();
+          
+          // Search main categories
+          const filteredStyles = styleOptions.filter(style => 
+            style.name.toLowerCase().includes(searchTermLower) || 
+            style.description.toLowerCase().includes(searchTermLower)
+          );
+          
+          // Search subcategories and create hierarchical results
+          const subcategoryResults = [];
+          
+          if (searchTermLower) {
+            // Search celebrations
+            celebrationOptions.forEach(option => {
+              if (option.name.toLowerCase().includes(searchTermLower)) {
+                subcategoryResults.push({
+                  category: 'celebrations',
+                  categoryName: 'Celebrations',
+                  subcategory: option,
+                  type: 'subcategory'
+                });
+              }
+            });
+            
+            // Search sports
+            sportsOptions.forEach(option => {
+              if (option.name.toLowerCase().includes(searchTermLower)) {
+                subcategoryResults.push({
+                  category: 'sports',
+                  categoryName: 'Sports',
+                  subcategory: option,
+                  type: 'subcategory'
+                });
+              }
+            });
+            
+            // Search daily life
+            dailyLifeOptions.forEach(option => {
+              if (option.name.toLowerCase().includes(searchTermLower)) {
+                subcategoryResults.push({
+                  category: 'daily-life',
+                  categoryName: 'Daily Life',
+                  subcategory: option,
+                  type: 'subcategory'
+                });
+              }
+            });
+            
+            // Search vibes & punchlines
+            vibesPunchlinesOptions.forEach(option => {
+              if (option.name.toLowerCase().includes(searchTermLower) || 
+                  option.subtitle.toLowerCase().includes(searchTermLower)) {
+                subcategoryResults.push({
+                  category: 'vibes-punchlines',
+                  categoryName: 'Vibes & Punchlines',
+                  subcategory: option,
+                  type: 'subcategory'
+                });
+              }
+            });
+            
+            // Search pop culture
+            popCultureOptions.forEach(option => {
+              if (option.name.toLowerCase().includes(searchTermLower) || 
+                  option.subtitle.toLowerCase().includes(searchTermLower)) {
+                subcategoryResults.push({
+                  category: 'pop-culture',
+                  categoryName: 'Pop Culture',
+                  subcategory: option,
+                  type: 'subcategory'
+                });
+              }
+            });
+          }
+          
+          const hasResults = filteredStyles.length > 0 || subcategoryResults.length > 0;
+          
+          return hasResults ? <div className="space-y-6">
+                  {/* Main Categories Results */}
+                  {filteredStyles.length > 0 && (
+                    <div className="space-y-4">
+                      {searchTerm && <h3 className="text-lg font-medium text-foreground text-center">Categories</h3>}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center">
+                        {filteredStyles.map(style => (
+                          <Card key={style.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm" onClick={() => setSelectedStyle(style.id)}>
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-lg font-semibold text-card-foreground">
+                                {style.name}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <CardDescription className="text-sm text-muted-foreground">
+                                {style.description}
+                              </CardDescription>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
-                  {/* Bottom row - Last 3 items */}
-                  {filteredStyles.length > 3 && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
-                      {filteredStyles.slice(3, 6).map(style => <Card key={style.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm" onClick={() => setSelectedStyle(style.id)}>
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-lg font-semibold text-card-foreground">
-                              {style.name}
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <CardDescription className="text-sm text-muted-foreground">
-                              {style.description}
-                            </CardDescription>
-                          </CardContent>
-                        </Card>)}
-                    </div>}
+                  {/* Subcategories Results */}
+                  {subcategoryResults.length > 0 && (
+                    <div className="space-y-4">
+                      {searchTerm && <h3 className="text-lg font-medium text-foreground text-center">Specific Topics</h3>}
+                      <div className="max-w-2xl mx-auto space-y-2">
+                        {subcategoryResults.map((result, index) => (
+                          <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:bg-accent/50" 
+                                onClick={() => {
+                                  setSelectedStyle(result.category);
+                                  setSelectedSubOption(result.subcategory.name);
+                                }}>
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                  {result.categoryName}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-medium text-card-foreground">
+                                    {result.subcategory.name}
+                                  </p>
+                                  {result.subcategory.subtitle && (
+                                    <p className="text-sm text-muted-foreground">
+                                      {result.subcategory.subtitle}
+                                    </p>
+                                  )}
+                                </div>
+                                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div> : <div className="text-center py-12">
-                  <p className="text-lg text-muted-foreground">No styles match your search</p>
+                  <p className="text-lg text-muted-foreground">No matches found</p>
                   <p className="text-sm text-muted-foreground mt-2">Try a different search term</p>
                 </div>;
         })()}
