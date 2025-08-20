@@ -107,23 +107,26 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
   const settings = getProxySettings();
   
   const makeRequest = async (proxyType: ProxySettings['type']): Promise<Response> => {
-    const formData = new FormData();
-    formData.append('prompt', request.prompt);
-    formData.append('aspect_ratio', request.aspect_ratio);
-    formData.append('model', request.model);
-    formData.append('magic_prompt_option', request.magic_prompt_option);
+    // Create JSON payload instead of FormData
+    const payload: any = {
+      prompt: request.prompt,
+      aspect_ratio: request.aspect_ratio,
+      model: request.model,
+      magic_prompt_option: request.magic_prompt_option,
+    };
     
     if (request.seed !== undefined) {
-      formData.append('seed', request.seed.toString());
+      payload.seed = request.seed;
     }
     
     if (request.style_type) {
-      formData.append('style_type', request.style_type);
+      payload.style_type = request.style_type;
     }
 
     let url = IDEOGRAM_API_BASE;
     const headers: Record<string, string> = {
       'Api-Key': key,
+      'Content-Type': 'application/json',
     };
 
     if (proxyType === 'cors-anywhere') {
@@ -139,7 +142,7 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
     return fetch(url, {
       method: 'POST',
       headers,
-      body: formData,
+      body: JSON.stringify(payload),
     });
   };
 
