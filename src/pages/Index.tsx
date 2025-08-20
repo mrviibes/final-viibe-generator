@@ -5216,6 +5216,22 @@ const Index = () => {
                         </div>
                       </div>
                     </Card>}
+                    
+                  {/* Continue Button for No Category */}
+                  <div className="text-center mt-8">
+                    <Button 
+                      onClick={() => setCurrentStep(2)}
+                      variant="brand" 
+                      size="lg"
+                      className="px-8 py-6 text-lg"
+                    >
+                      Continue to Text
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Skip topic selection and proceed to text creation
+                    </p>
+                  </div>
                 </div>
               </div> : selectedStyle === "random" && selectedSubOption ? <div className="flex flex-col items-stretch">
                 {/* Selected Custom Topic Card */}
