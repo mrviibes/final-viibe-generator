@@ -3,48 +3,41 @@ import { IdeogramHandoff } from './ideogram';
 export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
   const parts: string[] = [];
   
-  // Use this exact text: [ACTUAL TEXT THEY CHOSE]
+  // Auto-style text to match tone, visual, size and placement on image.
+  parts.push("Auto-style text to match tone, visual, size and placement on image.");
+  
+  // Use this exact text: [Final Text].
   if (handoff.key_line) {
     parts.push(`Use this exact text: ${handoff.key_line}.`);
   }
   
-  // This content is for [SUBCATEGORY], with focus on [SECOND SUBCATEGORY]
+  // This content is for [SUBCATEGORY] with a [tone]
   let contentLine = `This content is for ${handoff.subcategory_primary}`;
-  if (handoff.subcategory_secondary) {
-    contentLine += `, with focus on ${handoff.subcategory_secondary}`;
+  if (handoff.tone) {
+    contentLine += ` with a ${handoff.tone}`;
   }
-  contentLine += '.';
   parts.push(contentLine);
   
-  // The overall tone is [TONE]
-  if (handoff.tone) {
-    parts.push(`The overall tone is ${handoff.tone}.`);
-  }
-  
-  // Apply these text tags as guides: [TEXT TAGS]
-  const textTags = handoff.text_tags_csv && handoff.text_tags_csv !== "None" ? handoff.text_tags_csv : "none";
+  // Apply these text tags as guides: [Final Text].
+  const textTags = handoff.text_tags_csv && handoff.text_tags_csv !== "None" ? handoff.text_tags_csv : handoff.key_line || "none";
   parts.push(`Apply these text tags as guides: ${textTags}.`);
   
-  // Render the scene in [VISUAL LOOK] style
+  // Render the scene in [VISUAL LOOK] style.
   if (handoff.visual_style) {
     parts.push(`Render the scene in ${handoff.visual_style} style.`);
   }
   
-  // Include these visual tags: [VISUAL TAGS] (only if present)
+  // Include these visual tags: [Visual AI Recommendations].
   if (handoff.visual_tags_csv) {
     parts.push(`Include these visual tags: ${handoff.visual_tags_csv}.`);
   }
   
-  // Background should be [AI GENERATED BACKGROUND]
-  let background = handoff.rec_background || handoff.chosen_visual || "a clean, contextually appropriate background";
-  parts.push(`Background should be ${background}.`);
-  
-  // Output format should use aspect ratio [ASPECT RATIO]
+  // Output format should use aspect ratio [ASPECT RATIO].
   if (handoff.aspect_ratio) {
     parts.push(`Output format should use aspect ratio ${handoff.aspect_ratio}.`);
   }
   
-  // Keep the style consistent with the chosen tone and tags
+  // Keep the style consistent with the chosen tone and tags.
   parts.push("Keep the style consistent with the chosen tone and tags.");
   
   return parts.join(' ');
