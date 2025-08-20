@@ -4257,11 +4257,7 @@ const Index = () => {
       setSelectedGeneratedIndex(null);
       setGeneratedOptions(vibeResult.candidates);
       
-      // Auto-select the picked candidate (shortest safe one)
-      if (vibeResult.candidates.length > 0) {
-        setSelectedGeneratedOption(vibeResult.picked);
-        setSelectedGeneratedIndex(0);
-      }
+      // Don't auto-select any option - let user choose
       
       // Log audit info for debugging
       console.log('Vibe generation audit:', vibeResult.audit);
