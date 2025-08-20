@@ -107,28 +107,12 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
   const settings = getProxySettings();
   
   const makeRequest = async (proxyType: ProxySettings['type']): Promise<Response> => {
-    // Create JSON payload wrapped in image_request object
-    const payload: any = {
-      prompt: request.prompt,
-      aspect_ratio: request.aspect_ratio,
-      model: request.model,
-      magic_prompt_option: request.magic_prompt_option,
-    };
+    // For V3 models, use multipart form data instead of JSON
+    const isV3Model = request.model === 'V_3';
     
-    if (request.seed !== undefined) {
-      payload.seed = request.seed;
-    }
-    
-    if (request.style_type) {
-      payload.style_type = request.style_type;
-    }
-
-    const requestBody = { image_request: payload };
-
     let url = IDEOGRAM_API_BASE;
     const headers: Record<string, string> = {
       'Api-Key': key,
-      'Content-Type': 'application/json',
     };
 
     if (proxyType === 'cors-anywhere') {
@@ -141,13 +125,58 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
       }
     }
 
+    let requestBody: FormData | string;
+    
+    if (isV3Model) {
+      // Use multipart form data for V3 models
+      const formData = new FormData();
+      formData.append('prompt', request.prompt);
+      formData.append('aspect_ratio', request.aspect_ratio);
+      formData.append('model', request.model);
+      formData.append('magic_prompt_option', request.magic_prompt_option);
+      
+      if (request.seed !== undefined) {
+        formData.append('seed', request.seed.toString());
+      }
+      
+      if (request.style_type) {
+        formData.append('style_type', request.style_type);
+      }
+      
+      requestBody = formData;
+    } else {
+      // Use JSON for older models
+      headers['Content-Type'] = 'application/json';
+      
+      const payload: any = {
+        prompt: request.prompt,
+        aspect_ratio: request.aspect_ratio,
+        model: request.model,
+        magic_prompt_option: request.magic_prompt_option,
+      };
+      
+      if (request.seed !== undefined) {
+        payload.seed = request.seed;
+      }
+      
+      if (request.style_type) {
+        payload.style_type = request.style_type;
+      }
+
+      requestBody = JSON.stringify({ image_request: payload });
+    }
+
     // Debug log the request structure (without sensitive headers)
-    console.log('Ideogram API request:', { url: url.replace(key, '[REDACTED]'), body: requestBody });
+    console.log('Ideogram API request:', { 
+      url: url.replace(key, '[REDACTED]'), 
+      isV3Model,
+      requestType: isV3Model ? 'multipart/form-data' : 'application/json'
+    });
 
     return fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(requestBody),
+      body: requestBody,
     });
   };
 
@@ -189,10 +218,10 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
         );
       }
       
-      // Check for specific 400 error related to image_request structure
-      if (response.status === 400 && errorText.includes('image_request')) {
+      // Check for specific 400 error related to V3 model
+      if (response.status === 400 && errorText.includes('legacy generate endpoint')) {
         throw new IdeogramAPIError(
-          'Request format error: The payload must be wrapped as { image_request: {...} }. This has been corrected automatically.',
+          'V3 model requires multipart form data instead of JSON. This has been corrected automatically.',
           400
         );
       }
