@@ -20,7 +20,7 @@ import { generateVisualRecommendations, VisualOption } from "@/lib/visualModel";
 import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { useToast } from "@/hooks/use-toast";
-import { toast } from "sonner";
+import { toast as sonnerToast } from "sonner";
 const styleOptions = [{
   id: "celebrations",
   name: "Celebrations",
@@ -4095,12 +4095,17 @@ const Index = () => {
       const visualStyle = visualStyleOptions.find(s => s.id === selectedVisualStyle);
       selections.push({
         title: `Visual Style: ${visualStyle?.name}`,
-        description: visualStyle?.description,
+        subtitle: visualStyle?.description,
         onChangeSelection: () => {
           setSelectedVisualStyle(null);
           setSelectedSubjectOption(null);
           setIsSubjectDescriptionConfirmed(false);
           setSubjectDescription("");
+          setVisualOptions([]);
+          setSelectedVisualIndex(null);
+          setSelectedDimension(null);
+          setCustomWidth("");
+          setCustomHeight("");
         }
       });
     }
@@ -4110,7 +4115,7 @@ const Index = () => {
       const subjectOption = subjectOptions.find(s => s.id === selectedSubjectOption);
       selections.push({
         title: `Subject Option: ${subjectOption?.name}`,
-        description: subjectOption?.description,
+        subtitle: subjectOption?.description,
         onChangeSelection: () => {
           setSelectedSubjectOption(null);
           setSubjectTags([]);
@@ -4119,6 +4124,9 @@ const Index = () => {
           setIsSubjectDescriptionConfirmed(false);
           setVisualOptions([]);
           setSelectedVisualIndex(null);
+          setSelectedDimension(null);
+          setCustomWidth("");
+          setCustomHeight("");
         }
       });
     }
@@ -4130,7 +4138,26 @@ const Index = () => {
         title: `Visual AI Recommendation: Option ${selectedVisualIndex + 1}`,
         subtitle: truncateWords(option.subject, 5),
         description: truncateWords(option.background, 10),
-        onChangeSelection: () => setSelectedVisualIndex(null)
+        onChangeSelection: () => {
+          setSelectedVisualIndex(null);
+          setSelectedDimension(null);
+          setCustomWidth("");
+          setCustomHeight("");
+        }
+      });
+    }
+
+    // Custom Visual Description selection (for design-myself)
+    if (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed) {
+      selections.push({
+        title: "Custom Visual Description",
+        subtitle: `"${subjectDescription}"`,
+        onChangeSelection: () => {
+          setIsSubjectDescriptionConfirmed(false);
+          setSelectedDimension(null);
+          setCustomWidth("");
+          setCustomHeight("");
+        }
       });
     }
 
@@ -4142,7 +4169,7 @@ const Index = () => {
         : `Dimensions: ${dimension?.name}`;
       selections.push({
         title,
-        description: dimension?.description,
+        subtitle: dimension?.description,
         onChangeSelection: () => {
           setSelectedDimension(null);
           setCustomWidth("");
@@ -5567,7 +5594,7 @@ const Index = () => {
                 ))}
               </div>
             ) : (
-              /* Show StackedSelectionCard and subject options */
+              /* Show StackedSelectionCard with all selections */
               <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <StackedSelectionCard selections={buildSelections()} />
 
@@ -6347,10 +6374,102 @@ const Index = () => {
                 (currentStep === 3 && !isStep3Complete()) ||
                 (currentStep === 4 && !isStep4Complete()) ? "outline" : "brand"
               }
-              onClick={() => {
+              onClick={async () => {
                 if (currentStep === 3 && isStep3Complete() && selectedDimension) {
-                  // Move to Step 4 (Finished Design page)
+                  // Move to Step 4 and automatically start generating the image
                   setCurrentStep(4);
+                  
+                  // Start automatic image generation
+                  setIsGeneratingImage(true);
+                  
+                  try {
+                    const finalText = selectedGeneratedOption || stepTwoText || "";
+                    const visualStyle = selectedVisualStyle || "";
+                    const subcategory = (() => {
+                      if (selectedStyle === 'celebrations' && selectedSubOption) {
+                        const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                        return celebOption?.name || selectedSubOption;
+                      } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                        const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                        return popOption?.name || selectedSubOption;
+                      }
+                      return selectedSubOption || 'general';
+                    })();
+                    const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+                    const tone = selectedTextStyleObj?.name || 'Humorous';
+                    const allTags = [...tags, ...subjectTags];
+                    
+                    // Get chosen visual concept if selected
+                    const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
+                      ? visualOptions[selectedVisualIndex].prompt 
+                      : undefined;
+                    
+                    // Build comprehensive Ideogram handoff payload
+                    const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+                    const aspectRatio = selectedDimension === "custom" 
+                      ? `${customWidth}x${customHeight}` 
+                      : (dimensionOptions.find(d => d.id === selectedDimension)?.name || "");
+                    
+                    // Get secondary subcategory for pop culture
+                    const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
+                    
+                    const ideogramPayload = buildIdeogramHandoff({
+                      // Core parameters
+                      visual_style: visualStyle,
+                      subcategory: subcategory,
+                      tone: tone.toLowerCase(),
+                      final_line: finalText,
+                      tags_csv: allTags.join(', '),
+                      chosen_visual: chosenVisual,
+                      
+                      // Extended parameters
+                      category: categoryName,
+                      subcategory_secondary: subcategorySecondary,
+                      aspect_ratio: aspectRatio,
+                      text_tags_csv: tags.join(', '),
+                      visual_tags_csv: subjectTags.join(', '),
+                      ai_text_assist_used: selectedCompletionOption === "ai-assist",
+                      ai_visual_assist_used: selectedSubjectOption === "ai-assist",
+                      
+                      // Visual AI Recommendations
+                      rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
+                        ? visualOptions[selectedVisualIndex].subject 
+                        : (selectedSubjectOption === "design-myself" ? subjectDescription : undefined),
+                      rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
+                        ? visualOptions[selectedVisualIndex].background 
+                        : undefined
+                    });
+                    
+                    // Generate the Ideogram prompt
+                    const promptText = buildIdeogramPrompt(ideogramPayload);
+                    const aspectRatioKey = getAspectRatioForIdeogram(selectedDimension === "custom" 
+                      ? `${customWidth}x${customHeight}` 
+                      : (dimensionOptions.find(d => d.id === selectedDimension)?.name || ""));
+                    const styleType = getStyleTypeForIdeogram(visualStyle);
+                    
+                    // Generate the image
+                    const result = await generateIdeogramImage({
+                      prompt: promptText,
+                      aspect_ratio: aspectRatioKey,
+                      style_type: styleType,
+                      model: 'V_2_TURBO',
+                      magic_prompt_option: 'AUTO'
+                    });
+                    
+                    if (result.data?.[0]?.url) {
+                      setGeneratedImageUrl(result.data[0].url);
+                      sonnerToast.success("Your VIIBE has been generated successfully!");
+                    } else {
+                      sonnerToast.error("Failed to generate your VIIBE. Please try again.");
+                    }
+                    
+                  } catch (error) {
+                    console.error("Error generating image:", error);
+                    sonnerToast.error("Failed to generate your VIIBE. Please try again.");
+                  } finally {
+                    setIsGeneratingImage(false);
+                  }
+                  
                 } else if (currentStep === 4 && isStep4Complete()) {
                   // Generate VIIBE with Ideogram handoff
                   const finalText = selectedGeneratedOption || stepTwoText || "";
