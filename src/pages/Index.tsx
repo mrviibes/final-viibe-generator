@@ -4138,7 +4138,7 @@ const Index = () => {
         subcategory,
         tone: tone.toLowerCase(),
         tags: finalTags
-      }, 3);
+      }, 4);
       
       // Clear previous selection when generating/regenerating
       setSelectedGeneratedOption(null);

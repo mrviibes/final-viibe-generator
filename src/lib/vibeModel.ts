@@ -113,7 +113,7 @@ export async function generateCandidates(inputs: VibeInputs, n: number = 3): Pro
   if (validCandidates.length > 0) {
     // Sort by length (shortest first) and take unique lines
     const uniqueLines = Array.from(new Set(validCandidates.map(c => c.line)));
-    finalCandidates = uniqueLines.sort((a, b) => a.length - b.length).slice(0, 3);
+    finalCandidates = uniqueLines.sort((a, b) => a.length - b.length).slice(0, 4);
     picked = finalCandidates[0]; // Shortest safe candidate
   } else {
     // All blocked, use fallback
