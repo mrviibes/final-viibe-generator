@@ -4229,10 +4229,11 @@ const Index = () => {
           </> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Selected Style Card */}
             <div className="mb-8 selected-card">
-              <Card className="card-selected w-full">
+              <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-semibold text-card-foreground text-center">
+                  <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
                     {styleOptions.find(s => s.id === selectedStyle)?.name}
+                    <span className="text-sm">✓</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -4311,10 +4312,11 @@ const Index = () => {
               </div> : selectedStyle === "celebrations" && selectedSubOption ? <div className="flex flex-col items-stretch">
                  {/* Selected Celebration Card */}
                  <div className="mb-8 selected-card">
-                   <Card className="card-selected w-full">
+                   <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-semibold text-card-foreground text-center">
-                        {selectedSubOption}
+                       <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                         {selectedSubOption}
+                         <span className="text-sm">✓</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -4445,10 +4447,11 @@ const Index = () => {
               </div> : selectedStyle === "daily-life" && selectedSubOption ? <div className="flex flex-col items-stretch">
                  {/* Selected Daily Life Card */}
                  <div className="mb-8 selected-card">
-                   <Card className="card-selected w-full">
+                   <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-semibold text-card-foreground text-center">
-                        {selectedSubOption}
+                       <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                         {selectedSubOption}
+                         <span className="text-sm">✓</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -4470,10 +4473,11 @@ const Index = () => {
               </div> : selectedStyle === "sports" && selectedSubOption ? <div className="flex flex-col items-stretch">
                  {/* Selected Sport Card */}
                  <div className="mb-8 selected-card">
-                   <Card className="card-selected w-full">
+                   <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-semibold text-card-foreground text-center">
-                        {selectedSubOption}
+                       <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                         {selectedSubOption}
+                         <span className="text-sm">✓</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -4554,10 +4558,11 @@ const Index = () => {
               </div> : selectedStyle === "vibes-punchlines" && selectedSubOption ? <div className="flex flex-col items-stretch">
                 {/* Selected Vibe/Punchline Card */}
                 <div className="mb-8 selected-card">
-                  <Card className="card-selected w-full">
+                  <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-semibold text-card-foreground text-center">
-                        {selectedSubOption}
+                     <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                       {selectedSubOption}
+                       <span className="text-sm">✓</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -4639,10 +4644,11 @@ const Index = () => {
               </div> : selectedStyle === "pop-culture" && selectedSubOption ? <div className="flex flex-col items-stretch">
                 {/* Selected Pop Culture Card */}
                 <div className="mb-8 selected-card">
-                  <Card className="card-selected w-full">
+                  <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-semibold text-card-foreground text-center">
-                        {selectedSubOption}
+                     <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                       {selectedSubOption}
+                       <span className="text-sm">✓</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -4789,10 +4795,11 @@ const Index = () => {
                 {/* Selected Pick Card for Pop Culture */}
                 {selectedPick && (
                   <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <Card className="card-selected w-full">
+                    <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-semibold text-card-foreground text-center">
+                        <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
                           {selectedPick}
+                          <span className="text-sm">✓</span>
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -4867,10 +4874,11 @@ const Index = () => {
               </div> : selectedStyle === "random" && selectedSubOption ? <div className="flex flex-col items-stretch">
                 {/* Selected Custom Topic Card */}
                 <div className="mb-8 selected-card">
-                  <Card className="card-selected w-full">
+                  <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-semibold text-card-foreground text-center">
-                        {selectedSubOption}
+                     <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                       {selectedSubOption}
+                       <span className="text-sm">✓</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
