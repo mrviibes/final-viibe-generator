@@ -5761,10 +5761,10 @@ const Index = () => {
                                    </CardHeader>
                                    <CardContent className="space-y-2">
                                      <div>
-                                       <p className="text-sm font-medium text-foreground">{option.suggestion}</p>
+                                       <p className="text-sm font-medium text-foreground">{option.subject}</p>
                                      </div>
                                      <div>
-                                       <p className="text-sm text-muted-foreground">{option.slot}</p>
+                                       <p className="text-sm text-muted-foreground">{option.background}</p>
                                      </div>
                                    </CardContent>
                                  </Card>

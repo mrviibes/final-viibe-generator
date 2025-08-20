@@ -10,8 +10,9 @@ export interface VisualInputs {
 }
 
 export interface VisualOption {
-  suggestion: string;
-  slot: string;
+  subject: string;
+  background: string;
+  prompt: string;
 }
 
 export interface VisualResult {
@@ -27,32 +28,32 @@ export async function generateVisualRecommendations(
 ): Promise<VisualResult> {
   const { category, subcategory, tone, tags, visualStyle, finalLine } = inputs;
   
-  const systemPrompt = `You are the Vibe Maker Visual Stylist.
-Given the event, tone, final text, and tags, generate 4 different visual prompts.
-Each prompt must match the chosen visual style and one of these slots:
-1. Background-only
-2. Subject + background
-3. Object-focused
-4. Tone twist / exaggeration
-Keep each suggestion under 120 characters.
-Return JSON only: {"visuals":["...","...","...","..."]}`;
+  const systemPrompt = `You are a visual concept recommender for posters and social graphics. 
+Propose safe, family-friendly, logo-free visual concepts that work well for social media sharing.
+Each concept should have a clear subject and appropriate background that matches the context.
+Keep concepts visually appealing and culturally appropriate.`;
 
-  const userPrompt = `Context:
-Category: ${category} > ${subcategory}
+  const userPrompt = `Generate ${n} visual concept options for a graphic with these details:
+
+Category: ${category}
+Subcategory: ${subcategory}
 Tone: ${tone}
-Chosen text: "${finalLine || ''}"
-Visual style: ${visualStyle || 'realistic'}
+Visual Style: ${visualStyle || 'Not specified'}
+${finalLine ? `Text Content: "${finalLine}"` : ''}
 Tags: ${tags.join(', ')}
 
-Task:
-Produce 4 distinct visual suggestions:
-1) Background-only
-2) Subject + background
-3) Object-focused
-4) Tone twist / exaggeration
-All must fit the chosen visual style.
-Each suggestion under 120 characters.
-Output JSON only: {"visuals":["...","...","...","..."]}`;
+Return exactly ${n} options as a JSON object with this structure:
+{
+  "options": [
+    {
+      "subject": "Brief description of the main subject/focus",
+      "background": "Brief description of the background/setting", 
+      "prompt": "Complete compact prompt combining subject + background for image generation"
+    }
+  ]
+}
+
+Each option should be distinct and appropriate for the context. Make the prompt field concise but descriptive enough for image generation.`;
 
   try {
     const result = await openAIService.chatJSON([
@@ -65,19 +66,14 @@ Output JSON only: {"visuals":["...","...","...","..."]}`;
     });
 
     // Validate the response structure
-    if (!result?.visuals || !Array.isArray(result.visuals)) {
+    if (!result?.options || !Array.isArray(result.options)) {
       throw new Error('Invalid response format from AI');
     }
 
-    // Ensure we have exactly 4 options and map to slot framework
-    const slots = ['Background-only', 'Subject + background', 'Object-focused', 'Tone twist / exaggeration'];
-    const validOptions = result.visuals
-      .filter((visual: string) => visual && visual.trim().length > 0)
-      .slice(0, 4)
-      .map((visual: string, index: number) => ({
-        suggestion: visual.trim(),
-        slot: slots[index] || 'Creative'
-      }));
+    // Ensure we have the requested number of options
+    const validOptions = result.options
+      .filter((opt: any) => opt.subject && opt.background && opt.prompt)
+      .slice(0, n);
 
     if (validOptions.length === 0) {
       throw new Error('No valid visual options generated');
@@ -93,20 +89,24 @@ Output JSON only: {"visuals":["...","...","...","..."]}`;
     // Fallback options
     const fallbackOptions: VisualOption[] = [
       {
-        suggestion: "Clean gradient background with subtle texture",
-        slot: "Background-only"
+        subject: "Simple centered composition",
+        background: "Clean gradient background",
+        prompt: "Simple centered composition with clean gradient background, minimalist design"
       },
       {
-        suggestion: "Character in celebratory scene with party elements",
-        slot: "Subject + background"
+        subject: "Geometric patterns",
+        background: "Solid color backdrop",
+        prompt: "Geometric patterns on solid color backdrop, modern abstract design"
       },
       {
-        suggestion: "Close-up of decorative object matching the occasion",
-        slot: "Object-focused"
+        subject: "Nature elements",
+        background: "Soft blurred scenery",
+        prompt: "Nature elements with soft blurred scenery background, organic feel"
       },
       {
-        suggestion: "Playful visual metaphor reflecting the chosen tone",
-        slot: "Tone twist / exaggeration"
+        subject: "Typography focus",
+        background: "Textured surface",
+        prompt: "Typography focused design on textured surface background, clean layout"
       }
     ];
 
