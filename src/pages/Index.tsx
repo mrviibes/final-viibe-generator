@@ -4184,8 +4184,8 @@ const Index = () => {
       const option = visualOptions[selectedVisualIndex];
       selections.push({
         title: `Visual AI Recommendation: Option ${selectedVisualIndex + 1}`,
-        subtitle: truncateWords(option.subject, 5),
-        description: truncateWords(option.background, 10),
+        subtitle: option.subject,
+        description: option.background,
         onChangeSelection: () => {
           setSelectedVisualIndex(null);
           setSelectedDimension(null);

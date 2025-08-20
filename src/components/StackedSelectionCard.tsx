@@ -12,12 +12,7 @@ interface StackedSelectionCardProps {
   selections: SelectionItem[];
 }
 
-const truncateWords = (text: string, maxWords: number): string => {
-  if (!text || typeof text !== 'string') return '';
-  const words = text.split(' ');
-  if (words.length <= maxWords) return text;
-  return words.slice(0, maxWords).join(' ') + '...';
-};
+// Removed truncation - show full text always
 
 export function StackedSelectionCard({ selections }: StackedSelectionCardProps) {
   return (
@@ -42,12 +37,12 @@ export function StackedSelectionCard({ selections }: StackedSelectionCardProps) 
               </div>
               {selection.subtitle && (
                 <p className="text-sm text-muted-foreground mb-1">
-                  {truncateWords(selection.subtitle, 10)}
+                  {selection.subtitle}
                 </p>
               )}
               {selection.description && (
                 <p className="text-sm text-muted-foreground">
-                  {truncateWords(selection.description, 15)}
+                  {selection.description}
                 </p>
               )}
             </div>

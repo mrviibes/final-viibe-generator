@@ -126,6 +126,8 @@ ${finalLine ? `Text Content: "${finalLine}"` : 'No text content - create visual-
 ${specificEntity ? `Specific Entity/Person: ${specificEntity}` : ''}
 Tags: ${tags.join(', ')}
 
+CRITICAL REQUIREMENT: You MUST use the exact tags provided (${tags.join(', ')}) verbatim in your visual concepts. Do not paraphrase, substitute, or interpret these tags - use them exactly as written. If the tags include specific terms like "joints", "marijuana", "butts", "shattered", etc., you must incorporate these exact words into your visual descriptions.
+
 PEOPLE & SUBJECT REQUIREMENTS:
 - If tags mention "person", "people", "man", "woman", or "group", include those specific demographics in your concepts
 - For "group" tags, specify 2-4 people interacting
