@@ -4018,8 +4018,8 @@ const subjectOptions = [{
   description: "I will create my own subject"
 }, {
   id: "multiple-people",
-  name: "Group of 2-4 people interacting",
-  description: "Group of 2-4 people interacting"
+  name: "No Visuals - I don't want any visuals",
+  description: "No Visuals - I don't want any visuals"
 }];
 
 const dimensionOptions = [{

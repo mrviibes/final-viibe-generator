@@ -137,11 +137,13 @@ export class OpenAIService {
       [tokenParameter]: tokenLimit
     };
 
-    // GPT-5 models: omit temperature and response_format initially for better compatibility
+    // Always add response_format for JSON, and temperature for non-GPT5 models
+    requestBody.response_format = { type: "json_object" };
     if (!isGPT5Model) {
       requestBody.temperature = temperature;
-      requestBody.response_format = { type: "json_object" };
     }
+
+    console.log(`Attempting API call with model: ${model}, tokens: ${tokenLimit}`);
 
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
@@ -162,26 +164,33 @@ export class OpenAIService {
     const finishReason = data.choices?.[0]?.finish_reason;
     
     console.log(`API Response Debug - Model: ${model}, Finish Reason: ${finishReason}, Content Length: ${content?.length || 0}`);
+    console.log(`Raw content preview: ${content?.substring(0, 200) || 'NO CONTENT'}`);
     
     if (!content || content.trim() === '') {
       throw new Error(`No content received from OpenAI (finish_reason: ${finishReason})`);
     }
 
-    // For GPT-5 models, try to extract JSON even if it's not in response_format
+    // Try to parse JSON
     try {
-      return JSON.parse(content);
+      const parsed = JSON.parse(content);
+      console.log('Successfully parsed JSON:', parsed);
+      return parsed;
     } catch (parseError) {
-      // For GPT-5, try to extract JSON from the response
+      console.error('JSON parse error:', parseError);
+      console.error('Raw content that failed to parse:', content);
+      
+      // For any model, try to extract JSON from the response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
-          return JSON.parse(jsonMatch[0]);
+          const extracted = JSON.parse(jsonMatch[0]);
+          console.log('Successfully extracted JSON from response:', extracted);
+          return extracted;
         } catch (e) {
-          // Fall through to error
+          console.error('Failed to parse extracted JSON:', e);
         }
       }
       
-      console.error('Failed to parse OpenAI response as JSON:', content);
       throw new Error(`Invalid JSON response from OpenAI (model: ${model})`);
     }
   }
