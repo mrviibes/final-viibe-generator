@@ -10,6 +10,7 @@ import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X } from "lucide-r
 import { openAIService, OpenAISearchResult } from "@/lib/openai";
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
 import { StepProgress } from "@/components/StepProgress";
+import { useNavigate } from "react-router-dom";
 const styleOptions = [{
   id: "celebrations",
   name: "Celebrations",
@@ -3959,6 +3960,7 @@ const Index = () => {
   const [searchError, setSearchError] = useState<string>("");
   const [stepTwoText, setStepTwoText] = useState<string>("");
   const [isCustomTextConfirmed, setIsCustomTextConfirmed] = useState<boolean>(false);
+  const navigate = useNavigate();
   
   // Add timeout ref for search debouncing
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
@@ -4175,13 +4177,18 @@ const Index = () => {
 
   return <div className="min-h-screen bg-background py-12 px-4 pb-32">
       <div className="max-w-6xl mx-auto">
+        {/* Main Title */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">YOUR VIIBE</h1>
+        </div>
+        
         {/* Step Progress Header */}
         <StepProgress currentStep={currentStep} />
         
         {currentStep === 1 && (
           <>
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Viibe Category</h1>
+              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Category</h2>
               <p className="text-xl text-muted-foreground">Select the Category that best fits your Viibe</p>
             </div>
             
@@ -4914,7 +4921,7 @@ const Index = () => {
         {currentStep === 2 && (
           <>
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Vibe Text</h1>
+              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Text Style</h2>
               <p className="text-xl italic">
                 {(() => {
                   let breadcrumb = [];
@@ -5390,7 +5397,7 @@ const Index = () => {
         {currentStep === 3 && (
           <>
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Describe your subject</h1>
+              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Visual Style</h2>
               <p className="text-xl text-muted-foreground">
                 {selectedCompletionOption === "no-text" 
                   ? "(you have chosen no text on your Viibe)"
@@ -5649,7 +5656,7 @@ const Index = () => {
         {currentStep === 4 && (
           <>
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">What dimensions do you want your image to be?</h1>
+              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Dimensions</h2>
               <p className="text-xl text-muted-foreground">Choose the aspect ratio for your image</p>
             </div>
 
@@ -5759,8 +5766,24 @@ const Index = () => {
               }
               onClick={() => {
                 if (currentStep === 4 && isStep4Complete()) {
-                  // TODO: Generate the image/viibe
-                  console.log("Generate VIIBE!");
+                  // Navigate to finished page with all the data
+                  const viibeData = {
+                    category: selectedStyle || "",
+                    subcategory: selectedSubOption || "",
+                    pick: selectedPick || "",
+                    textStyle: selectedTextStyle || "",
+                    completionOption: selectedCompletionOption || "",
+                    customText: stepTwoText || "",
+                    visualStyle: selectedVisualStyle || "",
+                    subjectOption: selectedSubjectOption || "",
+                    subjectDescription: subjectDescription || "",
+                    dimensions: selectedDimension || "",
+                    customWidth: customWidth || "",
+                    customHeight: customHeight || "",
+                    tags: tags.join(", "),
+                    subjectTags: subjectTags.join(", ")
+                  };
+                  navigate('/finished', { state: viibeData });
                 } else {
                   setCurrentStep(prev => prev + 1);
                 }
@@ -5773,7 +5796,7 @@ const Index = () => {
               }
             >
               {currentStep === 4 && isStep4Complete() ? (
-                "GENERATE VIIBE"
+                "GENERATE VIIBE NOW"
               ) : (
                 <>
                   Continue
