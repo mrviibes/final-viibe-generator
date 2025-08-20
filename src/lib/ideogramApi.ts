@@ -1,4 +1,5 @@
 const IDEOGRAM_API_BASE = 'https://api.ideogram.ai/generate';
+const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
 export interface IdeogramGenerateRequest {
   prompt: string;
@@ -56,28 +57,71 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
     throw new IdeogramAPIError('No API key provided');
   }
 
-  const formData = new FormData();
-  formData.append('prompt', request.prompt);
-  formData.append('aspect_ratio', request.aspect_ratio);
-  formData.append('model', request.model);
-  formData.append('magic_prompt_option', request.magic_prompt_option);
-  
-  if (request.seed !== undefined) {
-    formData.append('seed', request.seed.toString());
-  }
-  
-  if (request.style_type) {
-    formData.append('style_type', request.style_type);
-  }
+  // Try direct request first, fallback to CORS proxy if needed
+  const tryDirectRequest = async (): Promise<Response> => {
+    const formData = new FormData();
+    formData.append('prompt', request.prompt);
+    formData.append('aspect_ratio', request.aspect_ratio);
+    formData.append('model', request.model);
+    formData.append('magic_prompt_option', request.magic_prompt_option);
+    
+    if (request.seed !== undefined) {
+      formData.append('seed', request.seed.toString());
+    }
+    
+    if (request.style_type) {
+      formData.append('style_type', request.style_type);
+    }
 
-  try {
-    const response = await fetch(IDEOGRAM_API_BASE, {
+    return fetch(IDEOGRAM_API_BASE, {
       method: 'POST',
       headers: {
         'Api-Key': key,
       },
       body: formData,
     });
+  };
+
+  // Fallback: use CORS proxy
+  const tryProxyRequest = async (): Promise<Response> => {
+    // Create a request object that the proxy can forward
+    const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + IDEOGRAM_API_BASE;
+    
+    const formData = new FormData();
+    formData.append('prompt', request.prompt);
+    formData.append('aspect_ratio', request.aspect_ratio);
+    formData.append('model', request.model);
+    formData.append('magic_prompt_option', request.magic_prompt_option);
+    
+    if (request.seed !== undefined) {
+      formData.append('seed', request.seed.toString());
+    }
+    
+    if (request.style_type) {
+      formData.append('style_type', request.style_type);
+    }
+
+    return fetch(proxyUrl, {
+      method: 'POST',
+      headers: {
+        'Api-Key': key,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: formData,
+    });
+  };
+
+  try {
+    let response: Response;
+    
+    try {
+      // Try direct request first
+      response = await tryDirectRequest();
+    } catch (corsError) {
+      console.log('Direct request failed, trying CORS proxy...', corsError);
+      // If direct request fails, try proxy
+      response = await tryProxyRequest();
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
