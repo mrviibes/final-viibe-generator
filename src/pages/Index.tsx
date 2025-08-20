@@ -5509,10 +5509,18 @@ const Index = () => {
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Visual Style</h2>
               <p className="text-xl text-muted-foreground">
-                {selectedCompletionOption === "no-text" 
-                  ? "(you have chosen no text on your Viibe)"
-                  : "Choose what will be the focus of your image"
-                }
+                {(() => {
+                  // Show the actual text they chose, or indicate no text
+                  if (selectedCompletionOption === "no-text") {
+                    return "Your Viibe doesn't have any text";
+                  } else if (selectedGeneratedOption) {
+                    return `"${selectedGeneratedOption}"`;
+                  } else if (stepTwoText && isCustomTextConfirmed) {
+                    return `"${stepTwoText}"`;
+                  } else {
+                    return "Your Viibe doesn't have any text";
+                  }
+                })()}
               </p>
             </div>
 
