@@ -107,7 +107,7 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
   const settings = getProxySettings();
   
   const makeRequest = async (proxyType: ProxySettings['type']): Promise<Response> => {
-    // Create JSON payload instead of FormData
+    // Create JSON payload wrapped in image_request object
     const payload: any = {
       prompt: request.prompt,
       aspect_ratio: request.aspect_ratio,
@@ -122,6 +122,8 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
     if (request.style_type) {
       payload.style_type = request.style_type;
     }
+
+    const requestBody = { image_request: payload };
 
     let url = IDEOGRAM_API_BASE;
     const headers: Record<string, string> = {
@@ -139,10 +141,13 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
       }
     }
 
+    // Debug log the request structure (without sensitive headers)
+    console.log('Ideogram API request:', { url: url.replace(key, '[REDACTED]'), body: requestBody });
+
     return fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(payload),
+      body: JSON.stringify(requestBody),
     });
   };
 
@@ -181,6 +186,14 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
         throw new IdeogramAPIError(
           'CORS proxy requires activation. Please visit https://cors-anywhere.herokuapp.com/corsdemo and enable temporary access, then try again.',
           403
+        );
+      }
+      
+      // Check for specific 400 error related to image_request structure
+      if (response.status === 400 && errorText.includes('image_request')) {
+        throw new IdeogramAPIError(
+          'Request format error: The payload must be wrapped as { image_request: {...} }. This has been corrected automatically.',
+          400
         );
       }
       
