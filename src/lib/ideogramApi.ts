@@ -114,6 +114,8 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
     const headers: Record<string, string> = {
       'Api-Key': key,
     };
+    
+    // Don't set Content-Type for multipart form data - let browser set it with boundary
 
     if (proxyType === 'cors-anywhere') {
       url = PROXY_CONFIGS['cors-anywhere'] + IDEOGRAM_API_BASE;
