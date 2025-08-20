@@ -1,5 +1,14 @@
 const IDEOGRAM_API_BASE = 'https://api.ideogram.ai/generate';
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+
+export interface ProxySettings {
+  type: 'direct' | 'cors-anywhere' | 'proxy-cors-sh';
+  apiKey?: string; // For proxy.cors.sh
+}
+
+const PROXY_CONFIGS = {
+  'cors-anywhere': 'https://cors-anywhere.herokuapp.com/',
+  'proxy-cors-sh': 'https://proxy.cors.sh/'
+};
 
 export interface IdeogramGenerateRequest {
   prompt: string;
@@ -28,6 +37,7 @@ export class IdeogramAPIError extends Error {
 }
 
 let apiKey: string | null = null;
+let proxySettings: ProxySettings = { type: 'direct' };
 
 export function setIdeogramApiKey(key: string) {
   apiKey = key;
@@ -51,14 +61,52 @@ export function clearIdeogramApiKey() {
   localStorage.removeItem('ideogram_api_key');
 }
 
+export function setProxySettings(settings: ProxySettings) {
+  proxySettings = settings;
+  localStorage.setItem('ideogram_proxy_settings', JSON.stringify(settings));
+}
+
+export function getProxySettings(): ProxySettings {
+  const stored = localStorage.getItem('ideogram_proxy_settings');
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      proxySettings = parsed;
+      return parsed;
+    } catch {
+      // Invalid JSON, fallback to default
+    }
+  }
+  return proxySettings;
+}
+
+export async function testProxyConnection(proxyType: ProxySettings['type']): Promise<boolean> {
+  try {
+    const testUrl = proxyType === 'direct' 
+      ? 'https://httpbin.org/status/200'
+      : proxyType === 'cors-anywhere'
+      ? 'https://cors-anywhere.herokuapp.com/https://httpbin.org/status/200'
+      : 'https://proxy.cors.sh/https://httpbin.org/status/200';
+    
+    const response = await fetch(testUrl, { 
+      method: 'GET',
+      headers: proxyType === 'cors-anywhere' ? { 'X-Requested-With': 'XMLHttpRequest' } : {}
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function generateIdeogramImage(request: IdeogramGenerateRequest): Promise<IdeogramGenerateResponse> {
   const key = getIdeogramApiKey();
   if (!key) {
     throw new IdeogramAPIError('No API key provided');
   }
 
-  // Try direct request first, fallback to CORS proxy if needed
-  const tryDirectRequest = async (): Promise<Response> => {
+  const settings = getProxySettings();
+  
+  const makeRequest = async (proxyType: ProxySettings['type']): Promise<Response> => {
     const formData = new FormData();
     formData.append('prompt', request.prompt);
     formData.append('aspect_ratio', request.aspect_ratio);
@@ -73,59 +121,65 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
       formData.append('style_type', request.style_type);
     }
 
-    return fetch(IDEOGRAM_API_BASE, {
-      method: 'POST',
-      headers: {
-        'Api-Key': key,
-      },
-      body: formData,
-    });
-  };
+    let url = IDEOGRAM_API_BASE;
+    const headers: Record<string, string> = {
+      'Api-Key': key,
+    };
 
-  // Fallback: use CORS proxy
-  const tryProxyRequest = async (): Promise<Response> => {
-    // Create a request object that the proxy can forward
-    const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + IDEOGRAM_API_BASE;
-    
-    const formData = new FormData();
-    formData.append('prompt', request.prompt);
-    formData.append('aspect_ratio', request.aspect_ratio);
-    formData.append('model', request.model);
-    formData.append('magic_prompt_option', request.magic_prompt_option);
-    
-    if (request.seed !== undefined) {
-      formData.append('seed', request.seed.toString());
-    }
-    
-    if (request.style_type) {
-      formData.append('style_type', request.style_type);
+    if (proxyType === 'cors-anywhere') {
+      url = PROXY_CONFIGS['cors-anywhere'] + IDEOGRAM_API_BASE;
+      headers['X-Requested-With'] = 'XMLHttpRequest';
+    } else if (proxyType === 'proxy-cors-sh') {
+      url = PROXY_CONFIGS['proxy-cors-sh'] + IDEOGRAM_API_BASE;
+      if (settings.apiKey) {
+        headers['x-cors-api-key'] = settings.apiKey;
+      }
     }
 
-    return fetch(proxyUrl, {
+    return fetch(url, {
       method: 'POST',
-      headers: {
-        'Api-Key': key,
-        'X-Requested-With': 'XMLHttpRequest',
-      },
+      headers,
       body: formData,
     });
   };
 
   try {
     let response: Response;
+    let lastError: Error | null = null;
     
+    // Try the configured proxy method first
     try {
-      // Try direct request first
-      response = await tryDirectRequest();
-    } catch (corsError) {
-      console.log('Direct request failed, trying CORS proxy...', corsError);
-      // If direct request fails, try proxy
-      response = await tryProxyRequest();
+      response = await makeRequest(settings.type);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Unknown error');
+      
+      // If the configured method fails, try fallback strategies
+      if (settings.type === 'direct') {
+        console.log('Direct request failed, trying CORS proxy fallback...');
+        try {
+          response = await makeRequest('cors-anywhere');
+        } catch (fallbackError) {
+          console.log('CORS proxy also failed, trying proxy.cors.sh...');
+          response = await makeRequest('proxy-cors-sh');
+        }
+      } else {
+        // If proxy failed, try direct as fallback
+        console.log(`${settings.type} proxy failed, trying direct request...`);
+        response = await makeRequest('direct');
+      }
     }
 
     if (!response.ok) {
       const errorText = await response.text();
       let errorMessage = `HTTP ${response.status}`;
+      
+      // Check for specific CORS demo error
+      if (response.status === 403 && errorText.includes('corsdemo')) {
+        throw new IdeogramAPIError(
+          'CORS proxy requires activation. Please visit https://cors-anywhere.herokuapp.com/corsdemo and enable temporary access, then try again.',
+          403
+        );
+      }
       
       try {
         const errorData = JSON.parse(errorText);
@@ -142,6 +196,14 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
   } catch (error) {
     if (error instanceof IdeogramAPIError) {
       throw error;
+    }
+    
+    // Check if it's a CORS error
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new IdeogramAPIError(
+        'CORS error: Unable to connect to Ideogram API directly. Please enable CORS proxy in settings.',
+        0
+      );
     }
     
     throw new IdeogramAPIError(
