@@ -5636,144 +5636,104 @@ const Index = () => {
                       </Card>
                     </div>
 
-                     {/* Subject generation form for AI Assist */}
-                     {selectedSubjectOption === "ai-assist" && (
-                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                         {/* Show text generation section in box format when visual options exist */}
-                         {visualOptions.length > 0 && (
-                           <div className="mb-8 selected-card">
-                             <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                               <CardHeader className="pb-3">
-                                 <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                                   Text Generation Complete
-                                   <span className="text-sm">✓</span>
-                                 </CardTitle>
-                               </CardHeader>
-                               <CardContent>
-                                 <CardDescription className="text-sm text-muted-foreground text-center">
-                                   {(() => {
-                                     if (selectedGeneratedOption) {
-                                       return `"${selectedGeneratedOption}"`;
-                                     } else if (stepTwoText && isCustomTextConfirmed) {
-                                       return `"${stepTwoText}"`;
-                                     } else {
-                                       return "Text ready for visual generation";
-                                     }
-                                   })()}
-                                 </CardDescription>
-                                 <div className="text-center mt-3">
-                                   <button onClick={() => {
-                                     setVisualOptions([]);
-                                     setSelectedVisualIndex(null);
-                                   }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                                     Regenerate visuals
-                                   </button>
-                                 </div>
-                               </CardContent>
-                             </Card>
-                           </div>
-                         )}
+                    {/* Subject generation form for AI Assist */}
+                    {selectedSubjectOption === "ai-assist" && (
+                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="text-center mb-8">
+                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for subject generation</h2>
+                        </div>
 
-                         {/* Show input form only when no visual options exist */}
-                         {visualOptions.length === 0 && (
-                           <>
-                             <div className="text-center mb-8">
-                               <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for subject generation</h2>
-                             </div>
+                        <div className="max-w-lg mx-auto space-y-6">
+                          {/* Tag Input */}
+                          <div className="space-y-2">
+                            <Input
+                              value={subjectTagInput}
+                              onChange={(e) => setSubjectTagInput(e.target.value)}
+                              onKeyDown={handleSubjectTagInputKeyDown}
+                              placeholder="Enter tags (press Enter or comma to add)"
+                              className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg"
+                            />
+                            
+                            {/* Display tags */}
+                            {subjectTags.length > 0 && (
+                              <div className="flex flex-wrap gap-2 justify-center">
+                                {subjectTags.map((tag, index) => (
+                                  <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
+                                    {tag}
+                                    <X 
+                                      className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" 
+                                      onClick={() => removeSubjectTag(tag)}
+                                    />
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
 
-                             <div className="max-w-lg mx-auto space-y-6">
-                               {/* Tag Input */}
-                               <div className="space-y-2">
-                                 <Input
-                                   value={subjectTagInput}
-                                   onChange={(e) => setSubjectTagInput(e.target.value)}
-                                   onKeyDown={handleSubjectTagInputKeyDown}
-                                   placeholder="Enter tags (press Enter or comma to add)"
-                                   className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg"
-                                 />
-                                 
-                                 {/* Display tags */}
-                                 {subjectTags.length > 0 && (
-                                   <div className="flex flex-wrap gap-2 justify-center">
-                                     {subjectTags.map((tag, index) => (
-                                       <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
-                                         {tag}
-                                         <X 
-                                           className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" 
-                                           onClick={() => removeSubjectTag(tag)}
-                                         />
-                                       </Badge>
-                                     ))}
-                                   </div>
-                                 )}
-                               </div>
+                          {/* Generate Button */}
+                          <div className="text-center">
+                            <Button 
+                              variant="brand"
+                              className="px-8 py-3 text-base font-medium rounded-lg"
+                              onClick={handleGenerateSubject}
+                              disabled={isGeneratingSubject}
+                            >
+                              {isGeneratingSubject ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Generating...
+                                </>
+                              ) : (
+                                "Generate Subject Now"
+                              )}
+                            </Button>
+                          </div>
 
-                               {/* Generate Button */}
-                               <div className="text-center">
-                                 <Button 
-                                   variant="brand"
-                                   className="px-8 py-3 text-base font-medium rounded-lg"
-                                   onClick={handleGenerateSubject}
-                                   disabled={isGeneratingSubject}
-                                 >
-                                   {isGeneratingSubject ? (
-                                     <>
-                                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                       Generating...
-                                     </>
-                                   ) : (
-                                     "Generate Subject Now"
-                                   )}
-                                 </Button>
-                               </div>
-                             </div>
-                           </>
-                         )}
-
-                         {/* Visual AI recommendations */}
-                         {visualOptions.length > 0 && (
-                           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                             <div className="text-center mb-6">
-                               <h3 className="text-xl font-semibold text-foreground mb-2">Visual AI recommendations</h3>
-                               <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
-                             </div>
-                             
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
-                               {visualOptions.map((option, index) => (
-                                 <Card 
-                                   key={index}
-                                   className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full ${
-                                     selectedVisualIndex === index 
-                                       ? 'border-[#0db0de] bg-[#0db0de]/5 shadow-md' 
-                                       : 'hover:bg-accent/50'
-                                   }`}
-                                   onClick={() => setSelectedVisualIndex(index)}
-                                 >
-                                   <CardHeader className="pb-3">
-                                     <CardTitle className={`text-base font-semibold flex items-center justify-between ${
-                                       selectedVisualIndex === index ? 'text-[#0db0de]' : 'text-card-foreground'
-                                     }`}>
-                                       <span>Option {index + 1}</span>
-                                       {selectedVisualIndex === index && (
-                                         <span className="text-sm">✓</span>
-                                       )}
-                                     </CardTitle>
-                                   </CardHeader>
-                                   <CardContent className="space-y-2">
-                                     <div>
-                                       <p className="text-sm font-medium text-foreground">{option.subject}</p>
-                                     </div>
-                                     <div>
-                                       <p className="text-sm text-muted-foreground">{option.background}</p>
-                                     </div>
-                                   </CardContent>
-                                 </Card>
-                               ))}
-                             </div>
-                           </div>
-                         )}
-                       </div>
-                     )}
+                          {/* Visual AI recommendations */}
+                          {visualOptions.length > 0 && (
+                            <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              <div className="text-center mb-6">
+                                <h3 className="text-xl font-semibold text-foreground mb-2">Visual AI recommendations</h3>
+                                <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                                {visualOptions.map((option, index) => (
+                                  <Card 
+                                    key={index}
+                                    className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full ${
+                                      selectedVisualIndex === index 
+                                        ? 'border-[#0db0de] bg-[#0db0de]/5 shadow-md' 
+                                        : 'hover:bg-accent/50'
+                                    }`}
+                                    onClick={() => setSelectedVisualIndex(index)}
+                                  >
+                                    <CardHeader className="pb-3">
+                                      <CardTitle className={`text-base font-semibold flex items-center justify-between ${
+                                        selectedVisualIndex === index ? 'text-[#0db0de]' : 'text-card-foreground'
+                                      }`}>
+                                        <span>Option {index + 1}</span>
+                                        {selectedVisualIndex === index && (
+                                          <span className="text-sm">✓</span>
+                                        )}
+                                      </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-2">
+                                      <div>
+                                        <p className="text-sm font-medium text-foreground">{option.subject}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-sm text-muted-foreground">{option.background}</p>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Show confirmed subject description when saved */}
                     {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && (
@@ -6255,7 +6215,7 @@ const Index = () => {
               }
             >
               {(currentStep === 3 && isStep3Complete() && selectedDimension) ? (
-                "GENERATE VIIBE"
+                "GENERATE YOUR VIIBE"
               ) : currentStep === 4 && isStep4Complete() ? (
                 "GENERATE VIIBE NOW"
               ) : (
