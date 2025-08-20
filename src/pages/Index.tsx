@@ -10,6 +10,7 @@ import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X, Download } from
 import { openAIService, OpenAISearchResult } from "@/lib/openai";
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
 import { IdeogramKeyDialog } from "@/components/IdeogramKeyDialog";
+import { ProxySettingsDialog } from "@/components/ProxySettingsDialog";
 import { StepProgress } from "@/components/StepProgress";
 import { useNavigate } from "react-router-dom";
 import { generateCandidates, VibeResult } from "@/lib/vibeModel";
@@ -3970,6 +3971,7 @@ const Index = () => {
   const [stepTwoText, setStepTwoText] = useState<string>("");
   const [isCustomTextConfirmed, setIsCustomTextConfirmed] = useState<boolean>(false);
   const [showIdeogramKeyDialog, setShowIdeogramKeyDialog] = useState<boolean>(false);
+  const [showProxySettingsDialog, setShowProxySettingsDialog] = useState<boolean>(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageGenerationError, setImageGenerationError] = useState<string>("");
@@ -6175,7 +6177,7 @@ const Index = () => {
                     {!isGeneratingImage && !generatedImageUrl && (
                       <>
                         <Button 
-                          onClick={() => setShowProxySettings(!showProxySettings)}
+                          onClick={() => setShowProxySettingsDialog(true)}
                           variant="outline" 
                           size="sm"
                           className="flex items-center gap-2"
@@ -6630,6 +6632,12 @@ const Index = () => {
           open={showIdeogramKeyDialog}
           onOpenChange={setShowIdeogramKeyDialog}
           onApiKeySet={handleIdeogramApiKeySet}
+        />
+
+        {/* Proxy Settings Dialog */}
+        <ProxySettingsDialog 
+          open={showProxySettingsDialog}
+          onOpenChange={setShowProxySettingsDialog}
         />
 
       </div>

@@ -106,16 +106,12 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
 
   const settings = getProxySettings();
   
-  const makeRequest = async (proxyType: ProxySettings['type']): Promise<Response> => {
-    // For V3 models, use multipart form data instead of JSON
-    const isV3Model = request.model === 'V_3';
-    
+  const makeRequest = async (proxyType: ProxySettings['type'], currentModel: string): Promise<Response> => {
     let url = IDEOGRAM_API_BASE;
     const headers: Record<string, string> = {
       'Api-Key': key,
+      'Content-Type': 'application/json',
     };
-    
-    // Don't set Content-Type for multipart form data - let browser set it with boundary
 
     if (proxyType === 'cors-anywhere') {
       url = PROXY_CONFIGS['cors-anywhere'] + IDEOGRAM_API_BASE;
@@ -127,52 +123,29 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
       }
     }
 
-    let requestBody: FormData | string;
+    // Always use JSON format wrapped in image_request
+    const payload: any = {
+      prompt: request.prompt,
+      aspect_ratio: request.aspect_ratio,
+      model: currentModel,
+      magic_prompt_option: request.magic_prompt_option,
+    };
     
-    if (isV3Model) {
-      // Use multipart form data for V3 models
-      const formData = new FormData();
-      formData.append('prompt', request.prompt);
-      formData.append('aspect_ratio', request.aspect_ratio);
-      formData.append('model', request.model);
-      formData.append('magic_prompt_option', request.magic_prompt_option);
-      
-      if (request.seed !== undefined) {
-        formData.append('seed', request.seed.toString());
-      }
-      
-      if (request.style_type) {
-        formData.append('style_type', request.style_type);
-      }
-      
-      requestBody = formData;
-    } else {
-      // Use JSON for older models
-      headers['Content-Type'] = 'application/json';
-      
-      const payload: any = {
-        prompt: request.prompt,
-        aspect_ratio: request.aspect_ratio,
-        model: request.model,
-        magic_prompt_option: request.magic_prompt_option,
-      };
-      
-      if (request.seed !== undefined) {
-        payload.seed = request.seed;
-      }
-      
-      if (request.style_type) {
-        payload.style_type = request.style_type;
-      }
-
-      requestBody = JSON.stringify({ image_request: payload });
+    if (request.seed !== undefined) {
+      payload.seed = request.seed;
     }
+    
+    if (request.style_type) {
+      payload.style_type = request.style_type;
+    }
+
+    const requestBody = JSON.stringify({ image_request: payload });
 
     // Debug log the request structure (without sensitive headers)
     console.log('Ideogram API request:', { 
       url: url.replace(key, '[REDACTED]'), 
-      isV3Model,
-      requestType: isV3Model ? 'multipart/form-data' : 'application/json'
+      model: currentModel,
+      payload: { ...payload, prompt: payload.prompt.substring(0, 50) + '...' }
     });
 
     return fetch(url, {
@@ -182,79 +155,94 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
     });
   };
 
-  try {
-    let response: Response;
-    let lastError: Error | null = null;
-    
-    // Try the configured proxy method first
+  let currentModel = request.model;
+  let lastError: Error | null = null;
+
+  // Auto-retry logic with model downgrade
+  const tryRequest = async (proxyType: ProxySettings['type'], model: string): Promise<IdeogramGenerateResponse> => {
     try {
-      response = await makeRequest(settings.type);
+      const response = await makeRequest(proxyType, model);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`Request failed with ${response.status}:`, errorText);
+        
+        let errorMessage = `HTTP ${response.status}`;
+        
+        // Check for specific CORS demo error
+        if (response.status === 403 && errorText.includes('corsdemo')) {
+          throw new IdeogramAPIError(
+            'CORS proxy requires activation. Please visit https://cors-anywhere.herokuapp.com/corsdemo and enable temporary access, then try again.',
+            403
+          );
+        }
+        
+        // Check for 415 errors (common with proxy issues)
+        if (response.status === 415) {
+          throw new IdeogramAPIError(
+            'Media type error (415). This may be a proxy configuration issue.',
+            415
+          );
+        }
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error?.message || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        
+        throw new IdeogramAPIError(errorMessage, response.status);
+      }
+
+      const data = await response.json();
+      return data as IdeogramGenerateResponse;
+    } catch (error) {
+      if (error instanceof IdeogramAPIError) {
+        throw error;
+      }
+      throw new Error(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  // Try different proxy methods and model downgrades
+  const proxyMethods: ProxySettings['type'][] = [settings.type];
+  if (settings.type !== 'proxy-cors-sh') proxyMethods.push('proxy-cors-sh');
+  if (settings.type !== 'cors-anywhere') proxyMethods.push('cors-anywhere');
+  if (settings.type !== 'direct') proxyMethods.push('direct');
+
+  for (const proxyType of proxyMethods) {
+    try {
+      return await tryRequest(proxyType, currentModel);
     } catch (error) {
       lastError = error instanceof Error ? error : new Error('Unknown error');
+      console.log(`${proxyType} failed with model ${currentModel}:`, lastError.message);
       
-      // If the configured method fails, try fallback strategies
-      if (settings.type === 'direct') {
-        console.log('Direct request failed, trying CORS proxy fallback...');
+      // If V3 failed and we haven't tried V2A_TURBO yet, try downgrading
+      if (currentModel === 'V_3' && (error as any).status !== 403) {
         try {
-          response = await makeRequest('cors-anywhere');
-        } catch (fallbackError) {
-          console.log('CORS proxy also failed, trying proxy.cors.sh...');
-          response = await makeRequest('proxy-cors-sh');
+          console.log('Retrying with V_2A_TURBO model...');
+          return await tryRequest(proxyType, 'V_2A_TURBO');
+        } catch (downgradeError) {
+          console.log(`${proxyType} also failed with V_2A_TURBO:`, downgradeError);
         }
-      } else {
-        // If proxy failed, try direct as fallback
-        console.log(`${settings.type} proxy failed, trying direct request...`);
-        response = await makeRequest('direct');
       }
     }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = `HTTP ${response.status}`;
-      
-      // Check for specific CORS demo error
-      if (response.status === 403 && errorText.includes('corsdemo')) {
-        throw new IdeogramAPIError(
-          'CORS proxy requires activation. Please visit https://cors-anywhere.herokuapp.com/corsdemo and enable temporary access, then try again.',
-          403
-        );
-      }
-      
-      // Check for specific 400 error related to V3 model
-      if (response.status === 400 && errorText.includes('legacy generate endpoint')) {
-        throw new IdeogramAPIError(
-          'V3 model requires multipart form data instead of JSON. This has been corrected automatically.',
-          400
-        );
-      }
-      
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage = errorData.error?.message || errorMessage;
-      } catch {
-        errorMessage = errorText || errorMessage;
-      }
-      
-      throw new IdeogramAPIError(errorMessage, response.status);
-    }
-
-    const data = await response.json();
-    return data as IdeogramGenerateResponse;
-  } catch (error) {
-    if (error instanceof IdeogramAPIError) {
-      throw error;
-    }
-    
-    // Check if it's a CORS error
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      throw new IdeogramAPIError(
-        'CORS error: Unable to connect to Ideogram API directly. Please enable CORS proxy in settings.',
-        0
-      );
-    }
-    
+  }
+  // If all methods failed, throw the last error
+  if (lastError instanceof IdeogramAPIError) {
+    throw lastError;
+  }
+  
+  // Check if it's a CORS error
+  if (lastError instanceof TypeError && lastError.message.includes('Failed to fetch')) {
     throw new IdeogramAPIError(
-      `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      'CORS error: Unable to connect to Ideogram API directly. Try enabling a CORS proxy in settings.',
+      0
     );
   }
+  
+  throw new IdeogramAPIError(
+    `All connection methods failed. Last error: ${lastError?.message || 'Unknown error'}`
+  );
 }
