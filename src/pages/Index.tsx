@@ -4437,6 +4437,10 @@ const Index = () => {
       setSelectedVisualIndex(null);
       setVisualOptions(visualResult.options);
       
+      // Clear subject tags and input after successful generation
+      setSubjectTags([]);
+      setSubjectTagInput("");
+      
       // Log audit info for debugging
       console.log('Visual generation result:', { 
         model: visualResult.model, 
