@@ -5401,7 +5401,12 @@ const Index = () => {
           <>
             <div className="text-center mb-12">
               <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Describe your subject</h1>
-              <p className="text-xl text-muted-foreground">Choose what will be the focus of your image</p>
+              <p className="text-xl text-muted-foreground">
+                {selectedCompletionOption === "no-text" 
+                  ? "(you have chosen no text on your Viibe)"
+                  : "Choose what will be the focus of your image"
+                }
+              </p>
             </div>
 
             {/* Show visual style selection grid when no style is selected */}
