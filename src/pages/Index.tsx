@@ -5859,38 +5859,133 @@ const Index = () => {
 
         {currentStep === 4 && (
           <>
-            <div className="text-center mb-12">
-              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">YOUR VIIBE</h2>
-              <p className="text-xl text-muted-foreground">Review your selections and generate your VIIBE</p>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Finished Design</h2>
+              <p className="text-xl text-muted-foreground">Your viibe is ready! Review the details and download your creation.</p>
             </div>
-            <div className="max-w-4xl mx-auto">
-              <div className="text-center">
-                <Button
-                  onClick={() => {
-                    // Show success message or reset to beginning
-                    console.log("VIIBE Generated!", {
-                      category: selectedStyle || "",
-                      subcategory: selectedSubOption || "",
-                      pick: selectedPick || "",
-                      textStyle: selectedTextStyle || "",
-                      completionOption: selectedCompletionOption || "",
-                      customText: stepTwoText || "",
-                      visualStyle: selectedVisualStyle || "",
-                      subjectOption: selectedSubjectOption || "",
-                      subjectDescription: subjectDescription || "",
-                      dimensions: selectedDimension || "",
-                      customWidth: customWidth || "",
-                      customHeight: customHeight || "",
-                      tags: tags.join(", "),
-                      subjectTags: subjectTags.join(", ")
-                    });
-                    // You can add your VIIBE generation logic here
-                    alert("VIIBE Generated Successfully!");
-                  }}
-                  className="bg-[#0db0de] hover:bg-[#0db0de]/90 text-white px-8 py-3 text-lg"
-                >
-                  GENERATE VIIBE NOW
-                </Button>
+            
+            <div className="max-w-4xl mx-auto space-y-8">
+              {/* Preview Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-foreground">Preview</h3>
+                <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
+                  <p className="text-muted-foreground text-lg">No image generated</p>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-4 justify-center">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download Image
+                  </Button>
+                  <Button variant="brand" className="flex items-center gap-2">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Generate Again
+                  </Button>
+                  <Button variant="outline" onClick={() => setCurrentStep(1)}>
+                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                    </svg>
+                    Start Over
+                  </Button>
+                </div>
+              </div>
+
+              {/* Design Summary */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-foreground">Design Summary</h3>
+                <div className="bg-muted/30 rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-muted/50 border-b border-border">
+                        <th className="text-left p-3 font-medium text-muted-foreground">Parameter</th>
+                        <th className="text-left p-3 font-medium text-muted-foreground">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      <tr>
+                        <td className="p-3 text-sm">Design Option</td>
+                        <td className="p-3 text-sm">{selectedSubjectOption === "design-myself" ? "Custom Subject" : selectedVisualStyle || "Not selected"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Category</td>
+                        <td className="p-3 text-sm">{selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name : "Not selected"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Subcategory</td>
+                        <td className="p-3 text-sm">{selectedSubOption || "Not selected"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Content Type</td>
+                        <td className="p-3 text-sm">{selectedPick || "Not selected"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Tone</td>
+                        <td className="p-3 text-sm">{selectedTextStyle || "Not selected"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Text Input Method</td>
+                        <td className="p-3 text-sm">{selectedCompletionOption || "Not selected"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Generated Text</td>
+                        <td className="p-3 text-sm">{stepTwoText || "Not generated"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Word Count</td>
+                        <td className="p-3 text-sm">{stepTwoText ? stepTwoText.split(' ').length : "0"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Text Placement</td>
+                        <td className="p-3 text-sm">Auto</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Text Size</td>
+                        <td className="p-3 text-sm">Medium</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Font Choice</td>
+                        <td className="p-3 text-sm">Arial</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Text Color</td>
+                        <td className="p-3 text-sm">Auto</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Background Method</td>
+                        <td className="p-3 text-sm">{selectedSubjectOption === "design-myself" ? "Custom Description" : "Generated"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Background Details</td>
+                        <td className="p-3 text-sm">{selectedSubjectOption === "design-myself" ? subjectDescription || "Not provided" : "Auto-generated"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Keywords</td>
+                        <td className="p-3 text-sm">{tags.length > 0 ? tags.join(", ") : "No keywords added"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Image Style</td>
+                        <td className="p-3 text-sm">{selectedVisualStyle || "Not selected"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Aspect Ratio</td>
+                        <td className="p-3 text-sm">{selectedDimension || "Not selected"}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Generated Prompt */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-foreground">Generated Prompt</h3>
+                <div className="bg-muted/30 rounded-lg p-6">
+                  <p className="text-muted-foreground italic">No prompt available</p>
+                </div>
               </div>
             </div>
           </>
@@ -5917,8 +6012,11 @@ const Index = () => {
                 (currentStep === 4 && !isStep4Complete()) ? "outline" : "brand"
               }
               onClick={() => {
-                if ((currentStep === 3 && isStep3Complete() && selectedDimension) || (currentStep === 4 && isStep4Complete())) {
-                  // Show success message or reset to beginning
+                if (currentStep === 3 && isStep3Complete() && selectedDimension) {
+                  // Move to Step 4 (Finished Design page)
+                  setCurrentStep(4);
+                } else if (currentStep === 4 && isStep4Complete()) {
+                  // Generate VIIBE logic or reset
                   console.log("VIIBE Generated!", {
                     category: selectedStyle || "",
                     subcategory: selectedSubOption || "",
