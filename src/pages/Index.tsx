@@ -5058,9 +5058,11 @@ const Index = () => {
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <CardDescription className="text-sm text-card-foreground text-center">
-                            {completionOptions.find(opt => opt.id === selectedCompletionOption)?.description}
-                          </CardDescription>
+                          {selectedCompletionOption !== "write-myself" && (
+                            <CardDescription className="text-sm text-card-foreground text-center">
+                              {completionOptions.find(opt => opt.id === selectedCompletionOption)?.description}
+                            </CardDescription>
+                          )}
                           <div className="text-center mt-3">
                             <button onClick={() => {
                            setSelectedCompletionOption(null);
@@ -5211,9 +5213,11 @@ const Index = () => {
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <CardDescription className="text-sm text-card-foreground text-center">
-                            {completionOptions.find(opt => opt.id === selectedCompletionOption)?.description}
-                          </CardDescription>
+                          {selectedCompletionOption !== "write-myself" && (
+                            <CardDescription className="text-sm text-card-foreground text-center">
+                              {completionOptions.find(opt => opt.id === selectedCompletionOption)?.description}
+                            </CardDescription>
+                          )}
                           <div className="text-center mt-3">
                             <button onClick={() => {
                                setSelectedCompletionOption(null);
