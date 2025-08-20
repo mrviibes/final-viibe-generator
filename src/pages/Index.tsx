@@ -3990,24 +3990,14 @@ const Index = () => {
       return false;
     }
     
-    // If completion option is AI assist, require a generated option and dimensions to be selected
+    // If completion option is AI assist, require a generated option to be selected
     if (selectedCompletionOption === "ai-assist") {
-      if (!selectedGeneratedOption || !selectedDimension) return false;
-      // For custom dimensions, require width and height
-      if (selectedDimension === "custom") {
-        return !!(customWidth && customHeight);
-      }
-      return true;
+      return !!selectedGeneratedOption;
     }
     
-    // If completion option is write myself, require confirmed text and dimensions
+    // If completion option is write myself, require confirmed text
     if (selectedCompletionOption === "write-myself") {
-      if (!stepTwoText.trim().length || !isCustomTextConfirmed || !selectedDimension) return false;
-      // For custom dimensions, require width and height
-      if (selectedDimension === "custom") {
-        return !!(customWidth && customHeight);
-      }
-      return true;
+      return stepTwoText.trim().length > 0 && isCustomTextConfirmed;
     }
     
     // For "no-text" option, just need style and completion
@@ -4018,12 +4008,19 @@ const Index = () => {
   const isStep3Complete = (): boolean => {
     if (!selectedVisualStyle || !selectedSubjectOption) return false;
     
-    // If Design Myself is selected, require confirmed description
+    // If Design Myself is selected, require confirmed description and dimensions
     if (selectedSubjectOption === "design-myself") {
-      return subjectDescription.trim().length > 0 && isSubjectDescriptionConfirmed;
+      const hasConfirmedDescription = subjectDescription.trim().length > 0 && isSubjectDescriptionConfirmed;
+      const hasDimensions = selectedDimension && (selectedDimension !== "custom" || (customWidth && customHeight));
+      return hasConfirmedDescription && hasDimensions;
     }
     
     return true;
+  };
+
+  // Helper function to check if Step 4 is complete
+  const isStep4Complete = (): boolean => {
+    return true; // Step 4 is just the final confirmation page
   };
 
   // Handle adding tags
@@ -4176,7 +4173,8 @@ const Index = () => {
     }, 250);
   };
 
-  return <div className="min-h-screen bg-background py-12 px-4 pb-32">
+  return (
+    <div className="min-h-screen bg-background py-12 px-4 pb-32">
       <div className="max-w-6xl mx-auto">
         {/* Main Title */}
         <div className="text-center mb-8">
@@ -5758,14 +5756,100 @@ const Index = () => {
                         </div>
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
 
-        {/* Bottom Navigation */}
+                    {/* Dimensions Selection - Show when custom description is confirmed */}
+                    {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && (
+                      <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="text-center mb-6">
+                          <p className="text-xl text-muted-foreground">Choose the aspect ratio for your image</p>
+                        </div>
+
+                        {/* Show dimension selection grid when no dimension is selected */}
+                        {!selectedDimension ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
+                            {dimensionOptions.map(dimension => (
+                              <Card 
+                                key={dimension.id}
+                                className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md"
+                                onClick={() => setSelectedDimension(dimension.id)}
+                              >
+                                <CardHeader className="pb-3 text-center">
+                                  <CardTitle className="text-lg font-semibold text-card-foreground">
+                                    {dimension.name}
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <CardDescription className="text-sm text-muted-foreground text-center">
+                                    {dimension.description}
+                                  </CardDescription>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="mb-8 selected-card">
+                              <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                                    {dimensionOptions.find(d => d.id === selectedDimension)?.name}
+                                    <span className="text-sm">✓</span>
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <CardDescription className="text-sm text-muted-foreground text-center">
+                                    {dimensionOptions.find(d => d.id === selectedDimension)?.description}
+                                  </CardDescription>
+                                  <div className="text-center mt-3">
+                                    <button onClick={() => {
+                                      setSelectedDimension(null);
+                                      setCustomWidth("");
+                                      setCustomHeight("");
+                                    }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                                      Change selection
+                                    </button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
+
+                            {/* Custom dimension inputs */}
+                            {selectedDimension === "custom" && (
+                              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="text-center mb-8">
+                                  <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
+                                </div>
+                                <div className="max-w-md mx-auto flex gap-4 items-center">
+                                  <div className="flex-1">
+                                    <Input
+                                      type="number"
+                                      value={customWidth}
+                                      onChange={(e) => setCustomWidth(e.target.value)}
+                                      placeholder="Width"
+                                      className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg"
+                                    />
+                                  </div>
+                                  <span className="text-muted-foreground">×</span>
+                                  <div className="flex-1">
+                                    <Input
+                                      type="number"
+                                      value={customHeight}
+                                      onChange={(e) => setCustomHeight(e.target.value)}
+                                      placeholder="Height"
+                                      className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+        {currentStep === 4 && (
+          <YourViibe />
+        )}
         <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4">
           <div className="max-w-6xl mx-auto flex justify-between items-center">
             <Button
@@ -5782,10 +5866,11 @@ const Index = () => {
               variant={
                 (currentStep === 1 && !isStep1Complete()) || 
                 (currentStep === 2 && !isStep2Complete()) ||
-                (currentStep === 3 && !isStep3Complete()) ? "outline" : "brand"
+                (currentStep === 3 && !isStep3Complete()) ||
+                (currentStep === 4 && !isStep4Complete()) ? "outline" : "brand"
               }
               onClick={() => {
-                if (currentStep === 3 && isStep3Complete()) {
+                if (currentStep === 4 && isStep4Complete()) {
                   // Navigate to finished page with all the data
                   const viibeData = {
                     category: selectedStyle || "",
@@ -5811,10 +5896,11 @@ const Index = () => {
               disabled={
                 (currentStep === 1 && !isStep1Complete()) || 
                 (currentStep === 2 && !isStep2Complete()) ||
-                (currentStep === 3 && !isStep3Complete())
+                (currentStep === 3 && !isStep3Complete()) ||
+                (currentStep === 4 && !isStep4Complete())
               }
             >
-              {currentStep === 3 && isStep3Complete() ? (
+              {currentStep === 4 && isStep4Complete() ? (
                 "GENERATE VIIBE NOW"
               ) : (
                 <>
@@ -5834,6 +5920,4 @@ const Index = () => {
         />
 
       </div>
-    </div>;
-};
 export default Index;
