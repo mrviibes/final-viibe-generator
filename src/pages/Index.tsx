@@ -4011,7 +4011,7 @@ const Index = () => {
     // If Design Myself is selected, require confirmed description and dimensions
     if (selectedSubjectOption === "design-myself") {
       const hasConfirmedDescription = subjectDescription.trim().length > 0 && isSubjectDescriptionConfirmed;
-      const hasDimensions = selectedDimension && (selectedDimension !== "custom" || (customWidth && customHeight));
+      const hasDimensions = !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
       return hasConfirmedDescription && hasDimensions;
     }
     
@@ -5846,10 +5846,52 @@ const Index = () => {
                         )}
                       </div>
                     )}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
 
         {currentStep === 4 && (
-          <YourViibe />
+          <>
+            <div className="text-center mb-12">
+              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">YOUR VIIBE</h2>
+              <p className="text-xl text-muted-foreground">Review your selections and generate your VIIBE</p>
+            </div>
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center">
+                <Button
+                  onClick={() => {
+                    // Navigate to finished page with all the data
+                    const viibeData = {
+                      category: selectedStyle || "",
+                      subcategory: selectedSubOption || "",
+                      pick: selectedPick || "",
+                      textStyle: selectedTextStyle || "",
+                      completionOption: selectedCompletionOption || "",
+                      customText: stepTwoText || "",
+                      visualStyle: selectedVisualStyle || "",
+                      subjectOption: selectedSubjectOption || "",
+                      subjectDescription: subjectDescription || "",
+                      dimensions: selectedDimension || "",
+                      customWidth: customWidth || "",
+                      customHeight: customHeight || "",
+                      tags: tags.join(", "),
+                      subjectTags: subjectTags.join(", ")
+                    };
+                    navigate('/finished', { state: viibeData });
+                  }}
+                  className="bg-[#0db0de] hover:bg-[#0db0de]/90 text-white px-8 py-3 text-lg"
+                >
+                  GENERATE VIIBE NOW
+                </Button>
+              </div>
+            </div>
+          </>
         )}
+
+        {/* Bottom Navigation */}
         <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4">
           <div className="max-w-6xl mx-auto flex justify-between items-center">
             <Button
@@ -5920,4 +5962,8 @@ const Index = () => {
         />
 
       </div>
+    </div>
+  );
+};
+
 export default Index;
