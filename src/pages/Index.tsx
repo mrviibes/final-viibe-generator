@@ -5777,7 +5777,7 @@ const Index = () => {
                                 <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
                               </div>
                               
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                              <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
                                 {visualOptions.map((option, index) => (
                                   <Card 
                                     key={index}
