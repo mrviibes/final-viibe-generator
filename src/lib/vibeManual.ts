@@ -24,6 +24,19 @@ export function buildDeveloperPrompt(inputs: VibeInputs): string {
   } = inputs;
 
   const tagsCSV = tags.join(', ');
+  
+  // Enhanced instructions for movie/pop culture + quotes
+  const isMovie = category === "pop culture" && subcategory?.toLowerCase().includes("movie");
+  const hasQuotes = tags.some(tag => tag.toLowerCase().includes("quote"));
+  const hasPersonalRoast = tags.some(tag => tag.toLowerCase().includes("making fun") || tag.toLowerCase().includes("bald") || tag.toLowerCase().includes("roast"));
+
+  let specialInstructions = "";
+  if (isMovie && hasQuotes) {
+    specialInstructions = " When creating content about a specific movie with quote tags, reference the movie's iconic characters, themes, or memorable elements. Make it sound like it could be dialogue or a reference from that movie's universe.";
+  }
+  if (hasPersonalRoast && recipient_name !== "-") {
+    specialInstructions += ` Incorporate ${recipient_name} naturally into the movie context while maintaining the roasting tone.`;
+  }
 
   return `Context
 Category: ${category} > ${subcategory}
@@ -35,7 +48,7 @@ Tags: ${tagsCSV}
 HardLimit: 100 characters
 
 Instructions
-Write ONE original line for the subcategory above in the selected tone. Stay under 100 characters including spaces. Use plain text. No emojis, hashtags, quotes, or newlines. Use tags as content hints. Do not list the tags. If any tag is unsafe, ignore it and continue. Return JSON only.`;
+Write ONE original line for the subcategory above in the selected tone. Stay under 100 characters including spaces. Use plain text. No emojis, hashtags, quotes, or newlines. Use tags as content hints. Do not list the tags. If any tag is unsafe, ignore it and continue.${specialInstructions} Return JSON only.`;
 }
 
 export const fewShotAnchors = `
@@ -46,7 +59,9 @@ Birthday, Humorous: {"line":"Happy birthday, Alex. Your warranty expired years a
 Birthday, Playful: {"line":"Happy birthday, Alex. Cake speedrun starts now."}
 Birthday, Sentimental: {"line":"Happy birthday, Alex. Grateful for every laugh this year."}
 Sports, Humorous: {"line":"Congrats on the W. Your victory lap was longer than cardio day."}
-Daily life, Serious: {"line":"Proud of your grind. Small steps, better habits, steady wins."}`;
+Daily life, Serious: {"line":"Proud of your grind. Small steps, better habits, steady wins."}
+Pop Culture Movies, Savage: {"line":"Jesse's head shinier than Zohan's silky smooth moves."}
+Pop Culture Movies, Humorous: {"line":"Even Zohan couldn't save Jesse's hairline from retirement."}`;
 
 export const fallbackByTone: Record<string, string> = {
   humorous: "Happy birthday. New level unlocked.",

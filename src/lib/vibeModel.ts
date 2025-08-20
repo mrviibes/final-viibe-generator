@@ -87,11 +87,25 @@ async function generateMultipleCandidates(inputs: VibeInputs): Promise<VibeCandi
 Your task is to write 4 distinct options that vary in length and approach while maintaining the specified tone.
 Always output valid JSON only.`;
 
+    // Enhanced instructions for movie/pop culture + quotes
+    const isMovie = inputs.category === "pop culture" && inputs.subcategory?.toLowerCase().includes("movie");
+    const hasQuotes = inputs.tags?.some(tag => tag.toLowerCase().includes("quote")) || false;
+    const hasPersonalRoast = inputs.tags?.some(tag => tag.toLowerCase().includes("making fun") || tag.toLowerCase().includes("bald") || tag.toLowerCase().includes("roast")) || false;
+
+    let specialInstructions = "";
+    if (isMovie && hasQuotes) {
+      specialInstructions = "\n• When creating content about a specific movie with quote tags, reference the movie's iconic characters, themes, or memorable elements\n• Make it sound like it could be dialogue or a reference from that movie's universe";
+    }
+    if (hasPersonalRoast && inputs.recipient_name && inputs.recipient_name !== "-") {
+      specialInstructions += `\n• Incorporate ${inputs.recipient_name} naturally into the movie context while maintaining the roasting tone`;
+    }
+
     const userPrompt = `Write 4 different lines for this context:
 
 Category: ${inputs.category} > ${inputs.subcategory}
 Tone: ${inputs.tone}
-Tags: ${inputs.tags.join(', ')}
+Tags: ${inputs.tags?.join(', ') || ''}
+${inputs.recipient_name && inputs.recipient_name !== "-" ? `Recipient: ${inputs.recipient_name}` : ''}
 
 Requirements:
 • Each line must be under 100 characters
@@ -99,7 +113,7 @@ Requirements:
 • Make at least 1 longer option (80-100 characters)
 • All 4 must be genuinely different - varied wording, not just punctuation
 • Match the ${inputs.tone} tone consistently across all options
-• No emojis, hashtags, or quotes
+• No emojis, hashtags, or quotes${specialInstructions}
 
 Output only this JSON format:
 {"lines":["option1","option2","option3","option4"]}`;
