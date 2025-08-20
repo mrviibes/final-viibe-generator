@@ -51,25 +51,25 @@ function getSlotBasedFallbacks(inputs: VisualInputs): VisualOption[] {
         slot: "background-only",
         subject: "Prison bars texture overlay",
         background: `Dark jail cell background with dramatic ${tone} lighting`,
-        prompt: `Dark jail cell background with prison bars, dramatic ${tone} lighting, no text or typography`
+        prompt: `Dark jail cell background with prison bars, dramatic ${tone} lighting, no text or typography [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: dark] [NEGATIVE_PROMPT: busy patterns, high-frequency texture, harsh shadows in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text]`
       },
       {
         slot: "subject+background",
         subject: `${entity}${needsPeople ? ` ${peopleContext}` : ''} silhouette behind bars`,
         background: `Prison setting with atmospheric lighting`,
-        prompt: `${entity}${needsPeople ? ` ${peopleContext}` : ''} silhouette behind prison bars, dramatic jail setting, ${tone} mood lighting, no text overlays`
+        prompt: `${entity}${needsPeople ? ` ${peopleContext}` : ''} silhouette behind prison bars positioned on left third, dramatic jail setting, ${tone} mood lighting [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: faces crossing center, busy patterns in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text]`
       },
       {
         slot: "object",
         subject: "Handcuffs and judge gavel symbols",
         background: `Minimal courtroom or legal backdrop`,
-        prompt: `Legal symbols like handcuffs and gavel, minimal courtroom backdrop, ${tone} style, no text`
+        prompt: `Legal symbols like handcuffs and gavel anchored bottom third, minimal courtroom backdrop, ${tone} style [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: busy patterns, reflective glare in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: dark text]`
       },
       {
         slot: "tone-twist",
         subject: `${entity}${needsPeople ? ` ${peopleContext}` : ''} iconic moment reimagined`,
         background: `Stylized setting reflecting personality`,
-        prompt: `${entity}${needsPeople ? ` ${peopleContext}` : ''} iconic moment with ${tone} interpretation, stylized background reflecting their known traits, no text overlays`
+        prompt: `${entity}${needsPeople ? ` ${peopleContext}` : ''} iconic moment with ${tone} interpretation positioned off-center, stylized background reflecting their known traits [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: limbs crossing center, harsh shadows in safe zone] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text]`
       }
     ];
   }
@@ -79,25 +79,25 @@ function getSlotBasedFallbacks(inputs: VisualInputs): VisualOption[] {
       slot: "background-only",
       subject: "Clean visual composition",
       background: `${tone} ${visualStyle || 'modern'} background with ${primaryTags} elements`,
-      prompt: `${tone} ${visualStyle || 'modern'} background with ${primaryTags} elements, clean composition without text or typography`
+      prompt: `${tone} ${visualStyle || 'modern'} background with ${primaryTags} elements, clean composition without text or typography [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: busy patterns, high-frequency texture, harsh shadows in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: dark text]`
     },
     {
       slot: "subject+background", 
       subject: `${needsPeople ? `${peopleContext} in ` : ''}Central ${occasion} themed composition`,
       background: `Complementary ${tone} environment with ${primaryTags}`,
-      prompt: `${needsPeople ? `${peopleContext} in ` : ''}Central ${occasion} themed composition in complementary ${tone} environment with ${primaryTags}, no text overlays`
+      prompt: `${needsPeople ? `${peopleContext} in ` : ''}Central ${occasion} themed composition positioned on right third in complementary ${tone} environment with ${primaryTags} [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: faces crossing center, busy patterns in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text]`
     },
     {
       slot: "object",
       subject: `Featured ${occasion} objects or symbols`,
       background: `Minimal ${tone} backdrop`,
-      prompt: `Featured ${occasion} objects or symbols on minimal ${tone} backdrop, ${primaryTags} style, no text`
+      prompt: `Featured ${occasion} objects or symbols anchored bottom third on minimal ${tone} backdrop, ${primaryTags} style [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: reflective glare in center, busy patterns] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: dark text]`
     },
     {
       slot: "tone-twist",
       subject: `${needsPeople ? `${peopleContext} with ` : ''}${tone.charAt(0).toUpperCase() + tone.slice(1)} interpretation of ${occasion}`,
       background: `Creative ${visualStyle || 'artistic'} setting`,
-      prompt: `${needsPeople ? `${peopleContext} with ` : ''}${tone.charAt(0).toUpperCase() + tone.slice(1)} interpretation of ${occasion} in creative ${visualStyle || 'artistic'} setting, no text overlays`
+      prompt: `${needsPeople ? `${peopleContext} with ` : ''}${tone.charAt(0).toUpperCase() + tone.slice(1)} interpretation of ${occasion} positioned off-center in creative ${visualStyle || 'artistic'} setting [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: limbs crossing center, harsh shadows in safe zone] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text]`
     }
   ];
 }
@@ -108,13 +108,41 @@ export async function generateVisualRecommendations(
 ): Promise<VisualResult> {
   const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity } = inputs;
   
-const systemPrompt = `You are a visual concept recommender for memes and social graphics who understands pop culture references and specific personalities. 
-Use the 4-slot framework: background-only, subject+background, object, tone-twist.
-When a specific entity/person is mentioned, create contextually aware concepts that reference their known traits, catchphrases, or iconic moments.
-For controversial topics, create tasteful but edgy concepts that capture the essence without being offensive.
-Incorporate ALL provided inputs: category, subcategory, tone, visual style, final text line, tags, and specific entity.
-Make concepts shareable and culturally relevant.
-When specifying people as subjects, be clear about demographics (man, woman, group of people, etc.) and include details about number of people, poses, and interactions.`;
+const systemPrompt = `You are a visual concept recommender for memes and social graphics with pop-culture knowledge.
+
+Core rules:
+• Use the 4-slot framework: background-only, subject+background, object, tone-twist.
+• Incorporate ALL inputs: category, subcategory, tone, visual style, text content, tags, entity/person.
+• Use ALL provided {tags} verbatim. Do not paraphrase, change plurality, or translate them.
+• Do NOT include any rendered typography in the image itself unless "Text Content" explicitly instructs it. Assume text will be overlaid later.
+
+Readability and layout:
+• Text alignment default: center.
+• Reserve a TEXT_SAFE_ZONE centered at 60% width by 35% height. Keep it low-detail, low-contrast.
+• CONTRAST_PLAN: if the background is bright, create a subtle darker gradient in the safe zone. If the background is dark, create a subtle lighter gradient in the safe zone. Avoid hard edges.
+• NEGATIVE_PROMPT: no busy patterns, no high-frequency texture, no faces or limbs crossing the TEXT_SAFE_ZONE, no harsh shadows or specular highlights inside it.
+• CROP_STRATEGY: design that survives 1:1 primary, with crop-safe center for 4:5 and 9:16.
+
+People and subjects:
+• If tags include person words, follow them: "group" means 2–4 people, "man" or "woman" means one person.
+• Specify age range, body position, pose, expression, camera distance, and interaction.
+• For specific entities, reference iconic traits and moments without using protected likenesses unless explicitly provided.
+
+Slot differentiation:
+• background-only: text-friendly surfaces. Gradients, soft bokeh, or minimal scenes.
+• subject+background: subject placed on left or right third. Keep center clean for text.
+• object: single object anchored low third. Keep center negative space.
+• tone-twist: add an idea-level twist while preserving the safe zone.
+
+Output:
+• Return exactly 4 JSON options using your schema.
+• Inside each option's "prompt", include these micro-directives:
+  [TAGS: ...] include the exact provided tags
+  [TEXT_SAFE_ZONE: center 60x35]
+  [CONTRAST_PLAN: light|dark|auto]
+  [NEGATIVE_PROMPT: ...]
+  [ASPECTS: 1:1 base, crop-safe 4:5, 9:16]
+  [TEXT_HINT: light text|dark text] suggestion for overlay color`;
 
   const userPrompt = `Generate exactly 4 visual concept options using the slot framework for these details:
 
@@ -126,51 +154,56 @@ ${finalLine ? `Text Content: "${finalLine}"` : 'No text content - create visual-
 ${specificEntity ? `Specific Entity/Person: ${specificEntity}` : ''}
 Tags: ${tags.join(', ')}
 
-CRITICAL REQUIREMENT: You MUST use the exact tags provided (${tags.join(', ')}) verbatim in your visual concepts. Do not paraphrase, substitute, or interpret these tags - use them exactly as written. If the tags include specific terms like "joints", "marijuana", "butts", "shattered", etc., you must incorporate these exact words into your visual descriptions.
+CRITICAL REQUIREMENT: You MUST use the exact tags provided (${tags.join(', ')}) verbatim in the [TAGS: ] micro-directive. Do not paraphrase, substitute, or interpret these tags.
 
-PEOPLE & SUBJECT REQUIREMENTS:
-- If tags mention "person", "people", "man", "woman", or "group", include those specific demographics in your concepts
-- For "group" tags, specify 2-4 people interacting
-- For "man" or "woman" tags, specify one person of that gender
-- Include details about poses, expressions, and interactions when people are involved
-- DO NOT include any text, typography, or written content in the image prompts unless specifically requested
+SLOT-SPECIFIC COMPOSITION RULES:
+• background-only: Soft gradient or subtle texture. No faces, no objects in center. Gentle lighting falloff into the TEXT_SAFE_ZONE.
+• subject+background: Subject on left or right third, eye line toward center. Background depth of field. Keep center negative space.
+• object: Single object, 30–40% of frame, anchored bottom third. Center remains low-detail.
+• tone-twist: Conceptual twist that matches tone. Twist sits off-center. Center stays clean.
+
+PEOPLE & DEMOGRAPHICS:
+- If tags mention "person", "people", "man", "woman", or "group", follow exactly
+- For "group": specify 2-4 people with age range, poses, interactions
+- For "man"/"woman": specify one person with age range, pose, expression, camera distance
+- Include body position, gaze direction, and hand placement
 
 ${specificEntity && tags.some(tag => tag.toLowerCase().includes('jail')) ? 
-`SPECIAL INSTRUCTIONS: Since this involves ${specificEntity} and jail-related tags, create 2 options directly related to jail/prison themes (bars, cells, courthouse) and 2 options that reference other iconic aspects of ${specificEntity} that fans would recognize. All options should avoid text overlays.` : 
+`SPECIAL INSTRUCTIONS: Since this involves ${specificEntity} and jail-related tags, create 2 options directly related to jail/prison themes (bars, cells, courthouse) and 2 options that reference other iconic aspects of ${specificEntity} that fans would recognize.` : 
 specificEntity ? 
-`SPECIAL INSTRUCTIONS: Since this involves ${specificEntity}, make sure to reference their known personality traits, catchphrases, or iconic moments that fans would immediately recognize. Focus on visual elements only, no text.` : 'Focus on creating clean visual compositions without text or typography overlays.'}
+`SPECIAL INSTRUCTIONS: Since this involves ${specificEntity}, reference their iconic traits and moments without using protected likenesses unless explicitly provided.` : ''}
 
-Return exactly this JSON structure with 4 options:
+Return exactly this JSON structure with 4 options, each prompt MUST include all micro-directives:
 {
   "options": [
     {
       "slot": "background-only",
-      "subject": "Brief description focusing on text-friendly background",
-      "background": "Background that complements the text and context",
-      "prompt": "Complete prompt for background-focused image generation"
+      "subject": "Text-friendly background description",
+      "background": "Background details",
+      "prompt": "Complete visual description + [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: light|dark|auto] [NEGATIVE_PROMPT: busy patterns, strong shadows, limbs crossing center, reflective glare in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text|dark text]"
     },
     {
       "slot": "subject+background", 
-      "subject": "Central subject that relates to subcategory and tags",
-      "background": "Background that enhances the main subject",
-      "prompt": "Complete prompt combining subject and background"
+      "subject": "Subject positioned on third, demographics if applicable",
+      "background": "Background with depth of field",
+      "prompt": "Complete visual description + [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: light|dark|auto] [NEGATIVE_PROMPT: busy patterns, strong shadows, limbs crossing center, reflective glare in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text|dark text]"
     },
     {
       "slot": "object",
-      "subject": "Key objects or symbols relevant to the context",
-      "background": "Simple backdrop that doesn't compete with objects", 
-      "prompt": "Complete prompt focusing on key objects and symbols"
+      "subject": "Single key object anchored bottom third",
+      "background": "Minimal backdrop", 
+      "prompt": "Complete visual description + [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: light|dark|auto] [NEGATIVE_PROMPT: busy patterns, strong shadows, limbs crossing center, reflective glare in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text|dark text]"
     },
     {
       "slot": "tone-twist",
-      "subject": "Creative interpretation reflecting the specified tone",
-      "background": "Setting that amplifies the tone and mood",
-      "prompt": "Complete prompt with tone-driven creative approach"
+      "subject": "Creative ${tone} interpretation with twist off-center",
+      "background": "Setting that amplifies mood while preserving safe zone",
+      "prompt": "Complete visual description + [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: light|dark|auto] [NEGATIVE_PROMPT: busy patterns, strong shadows, limbs crossing center, reflective glare in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text|dark text]"
     }
   ]
 }
 
-Ensure each option incorporates the subcategory, tone, visual style, final text content, and at least 2 tags. Make prompts concise but descriptive for image generation.`;
+Each prompt must be descriptive for image generation and include ALL required micro-directives.`;
 
   try {
     const result = await openAIService.chatJSON([
