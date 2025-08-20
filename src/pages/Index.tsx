@@ -4907,7 +4907,7 @@ const Index = () => {
           <>
             <div className="text-center mb-12">
               <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Vibe Text</h1>
-              <p className="text-xl text-[#0db0de] italic">
+              <p className="text-xl italic">
                 {(() => {
                   let breadcrumb = [];
                   
@@ -4935,10 +4935,18 @@ const Index = () => {
                     breadcrumb.push(selectedPick);
                   }
                   
-                  // Add "Your Text" at the end
-                  breadcrumb.push("Your Text");
-                  
-                  return breadcrumb.join(" > ");
+                  // Render breadcrumb with dynamic colors
+                  return (
+                    <>
+                      {breadcrumb.map((item, index) => (
+                        <span key={index}>
+                          <span className="text-muted-foreground">{item}</span>
+                          {index < breadcrumb.length && <span className="text-muted-foreground"> &gt; </span>}
+                        </span>
+                      ))}
+                      <span className="text-[#0db0de]">Your Text</span>
+                    </>
+                  );
                 })()}
               </p>
             </div>
