@@ -5651,7 +5651,8 @@ const Index = () => {
                     {selectedSubjectOption === "ai-assist" && (
                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-8">
-                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for subject generation</h2>
+                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">tags will help guide your Viibe</h2>
+                          <p className="text-sm text-muted-foreground/70">(female endorser, tight blue jeans, sneakers, busy park)</p>
                         </div>
 
                         <div className="max-w-lg mx-auto space-y-6">
