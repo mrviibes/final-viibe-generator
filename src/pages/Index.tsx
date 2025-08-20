@@ -5269,72 +5269,22 @@ const Index = () => {
 
               </div> : selectedStyle === "random" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
-                  <p className="text-xl text-muted-foreground">Enter your custom topic</p>
+                  <p className="text-xl text-muted-foreground">Ready to create your text</p>
                 </div>
                 
-                <div className="space-y-4">
-                  {/* Search Input */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input 
-                      value={subOptionSearchTerm} 
-                      onChange={e => setSubOptionSearchTerm(e.target.value)} 
-                      onFocus={() => setIsSearchFocused(true)} 
-                      onBlur={() => {
-                        // Delay hiding the list to allow clicks to complete
-                        setTimeout(() => setIsSearchFocused(false), 150);
-                      }} 
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && subOptionSearchTerm.trim()) {
-                          setSelectedSubOption(subOptionSearchTerm.trim());
-                          setIsSearchFocused(false);
-                          setSubOptionSearchTerm("");
-                        }
-                      }}
-                      placeholder="Type any topic..." 
-                      className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" 
-                    />
-                  </div>
-
-                  {/* Custom Topic Option */}
-                  {subOptionSearchTerm.trim() && <Card className="max-h-96 overflow-hidden">
-                      <div className="p-4">
-                        <div 
-                          onClick={e => {
-                            console.log('Custom topic clicked:', subOptionSearchTerm.trim());
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setSelectedSubOption(subOptionSearchTerm.trim());
-                            setIsSearchFocused(false);
-                            setSubOptionSearchTerm("");
-                          }} 
-                          className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2"
-                        >
-                          <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
-                            <span className="text-xs font-bold text-muted-foreground">+</span>
-                          </div>
-                          <p className="text-sm font-medium text-card-foreground">
-                            Use "{subOptionSearchTerm.trim()}" as your topic
-                          </p>
-                        </div>
-                      </div>
-                    </Card>}
-                    
-                  {/* Continue Button for No Category */}
-                  <div className="text-center mt-8">
-                    <Button 
-                      onClick={() => setCurrentStep(2)}
-                      variant="brand" 
-                      size="lg"
-                      className="px-8 py-6 text-lg"
-                    >
-                      Continue to Text
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Button>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Skip topic selection and proceed to text creation
-                    </p>
-                  </div>
+                <div className="text-center">
+                  <Button 
+                    onClick={() => setCurrentStep(2)}
+                    variant="brand" 
+                    size="lg"
+                    className="px-8 py-6 text-lg"
+                  >
+                    Continue to Text
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                  <p className="text-sm text-muted-foreground mt-4">
+                    No specific category selected - let's create your text
+                  </p>
                 </div>
               </div> : selectedStyle === "random" && selectedSubOption ? <div className="flex flex-col items-stretch">
                 {/* Selected Custom Topic Card */}
