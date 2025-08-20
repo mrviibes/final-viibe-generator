@@ -4517,13 +4517,9 @@ const Index = () => {
       const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
       const tone = selectedTextStyleObj?.name || 'Humorous';
       
-      // Add subject-specific tags
-      let finalTagsForGeneration = [...finalTags];
-      if (selectedSubjectOption === "single-person") {
-        finalTagsForGeneration.push("person");
-      } else if (selectedSubjectOption === "multiple-people") {
-        finalTagsForGeneration.push("group", "people");
-      }
+      // Filter out visual-only tags for text generation
+      // Only use the original text tags, not subject tags or visual-only tags
+      let finalTagsForGeneration = [...tags]; // Only use text tags, not subjectTags
       
       console.log('📋 Final parameters for text generation:', {
         category,

@@ -40,7 +40,7 @@ function getFallbackVariants(tone: string, category: string, subcategory: string
   return variations;
 }
 
-function postProcess(line: string, tone: string): VibeCandidate {
+function postProcess(line: string, tone: string, requiredTags?: string[]): VibeCandidate {
   // Trim spaces
   let cleaned = line.trim();
   
@@ -75,6 +75,29 @@ function postProcess(line: string, tone: string): VibeCandidate {
     };
   }
   
+  // Check tag coverage for important tags (skip visual-only tags)
+  if (requiredTags && requiredTags.length > 0) {
+    const visualOnlyTags = ['person', 'people', 'group', 'man', 'woman', 'male', 'female'];
+    const contentTags = requiredTags.filter(tag => !visualOnlyTags.includes(tag.toLowerCase()));
+    
+    if (contentTags.length > 0) {
+      const hasAnyTag = contentTags.some(tag => 
+        lowerCleaned.includes(tag.toLowerCase()) || 
+        // Check for partial matches or related terms
+        (tag.toLowerCase().includes('work') && lowerCleaned.includes('job')) ||
+        (tag.toLowerCase().includes('career') && lowerCleaned.includes('work'))
+      );
+      
+      if (!hasAnyTag) {
+        return {
+          line: cleaned,
+          blocked: true,
+          reason: `Missing key tags: ${contentTags.join(', ')}`
+        };
+      }
+    }
+  }
+  
   return {
     line: cleaned,
     blocked: false
@@ -100,11 +123,15 @@ Always output valid JSON only.`;
       specialInstructions += `\n• Incorporate ${inputs.recipient_name} naturally into the movie context while maintaining the roasting tone`;
     }
 
+    const tagRequirement = inputs.tags && inputs.tags.length > 0 
+      ? `\n• MUST include or reference these tags naturally: ${inputs.tags.join(', ')}`
+      : '';
+
     const userPrompt = `Write 4 different lines for this context:
 
 Category: ${inputs.category} > ${inputs.subcategory}
 Tone: ${inputs.tone}
-Tags: ${inputs.tags?.join(', ') || ''}
+Tags: ${inputs.tags?.join(', ') || 'none specified'}
 ${inputs.recipient_name && inputs.recipient_name !== "-" ? `Recipient: ${inputs.recipient_name}` : ''}
 
 Requirements:
@@ -113,7 +140,7 @@ Requirements:
 • Make at least 1 longer option (80-100 characters)
 • All 4 must be genuinely different - varied wording, not just punctuation
 • Match the ${inputs.tone} tone consistently across all options
-• No emojis, hashtags, or quotes${specialInstructions}
+• No emojis, hashtags, or quotes${tagRequirement}${specialInstructions}
 
 Output only this JSON format:
 {"lines":["option1","option2","option3","option4"]}`;
@@ -126,7 +153,7 @@ Output only this JSON format:
     const result = await openAIService.chatJSON(messages, {
       temperature: 0.8,
       max_tokens: 300,
-      model: 'gpt-4o-mini'
+      model: 'gpt-5-mini-2025-08-07'
     });
     
     // Extract lines from JSON response
@@ -135,8 +162,8 @@ Output only this JSON format:
       throw new Error('Invalid response format - no lines array');
     }
     
-    // Post-process each line
-    const candidates = lines.map((line: string) => postProcess(line, inputs.tone));
+    // Post-process each line with tag validation
+    const candidates = lines.map((line: string) => postProcess(line, inputs.tone, inputs.tags));
     
     return candidates;
   } catch (error) {
@@ -202,7 +229,7 @@ export async function generateCandidates(inputs: VibeInputs, n: number = 4): Pro
     candidates: finalCandidates,
     picked,
     audit: {
-      model: 'gpt-4o-mini',
+      model: 'gpt-5-mini-2025-08-07',
       usedFallback,
       blockedCount,
       reason
