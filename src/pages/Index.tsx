@@ -5557,16 +5557,34 @@ const Index = () => {
                     {selectedSubjectOption === "design-myself" && (
                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-8">
-                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Describe your subject</h2>
+                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Describe the visuals of your Viibe (100 characters max)</h2>
                         </div>
 
                         <div className="max-w-lg mx-auto">
-                          <Textarea
-                            value={subjectDescription}
-                            onChange={(e) => setSubjectDescription(e.target.value)}
-                            placeholder="Describe what you want as the subject of your image..."
-                            className="min-h-[150px] text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 text-base font-medium rounded-lg resize-none"
-                          />
+                          <div className="relative">
+                            <Textarea
+                              value={subjectDescription}
+                              onChange={(e) => {
+                                if (e.target.value.length <= 100) {
+                                  setSubjectDescription(e.target.value);
+                                }
+                              }}
+                              placeholder="Describe your subject and background of your visual"
+                              className="min-h-[100px] text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 text-base font-medium rounded-lg resize-none"
+                              maxLength={100}
+                            />
+                            
+                            {/* Character counter */}
+                            <div className="absolute bottom-3 left-3 text-xs text-muted-foreground">
+                              {subjectDescription.length}/100
+                            </div>
+                            
+                            {subjectDescription.length >= 100 && (
+                              <div className="absolute -bottom-6 left-0 right-0 text-center">
+                                <span className="text-xs text-destructive">You have hit your max characters</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}
