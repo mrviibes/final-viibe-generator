@@ -5768,10 +5768,6 @@ const Index = () => {
                     {/* Dimensions Selection - Show when custom description is confirmed */}
                     {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && (
                       <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="text-center mb-6">
-                          <p className="text-xl text-muted-foreground">Choose the aspect ratio for your image</p>
-                        </div>
-
                         {/* Show dimension selection grid when no dimension is selected */}
                         {!selectedDimension ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
@@ -5921,7 +5917,7 @@ const Index = () => {
                 (currentStep === 4 && !isStep4Complete()) ? "outline" : "brand"
               }
               onClick={() => {
-                if (currentStep === 4 && isStep4Complete()) {
+                if ((currentStep === 3 && isStep3Complete() && selectedDimension) || (currentStep === 4 && isStep4Complete())) {
                   // Show success message or reset to beginning
                   console.log("VIIBE Generated!", {
                     category: selectedStyle || "",
@@ -5952,7 +5948,9 @@ const Index = () => {
                 (currentStep === 4 && !isStep4Complete())
               }
             >
-              {currentStep === 4 && isStep4Complete() ? (
+              {(currentStep === 3 && isStep3Complete() && selectedDimension) ? (
+                "GENERATE YOUR VIIBE"
+              ) : currentStep === 4 && isStep4Complete() ? (
                 "GENERATE VIIBE NOW"
               ) : (
                 <>
