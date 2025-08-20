@@ -4563,6 +4563,13 @@ const Index = () => {
       // Log audit info for debugging
       console.log('🔍 Vibe generation audit:', vibeResult.audit);
       
+      // Show success toast with model information if retry occurred
+      if (vibeResult.audit.retryAttempt && vibeResult.audit.retryAttempt > 0) {
+        sonnerToast.success("Generated text with model fallback", {
+          description: `Switched from ${vibeResult.audit.originalModel} to ${vibeResult.audit.model} for better results.`
+        });
+      }
+      
       // Warn if fallbacks were used
       if (vibeResult.audit.usedFallback) {
         console.warn('⚠️ Text generation used fallback variants. API may be unavailable or having issues.');

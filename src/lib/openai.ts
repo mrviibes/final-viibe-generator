@@ -64,27 +64,83 @@ export class OpenAIService {
 
     const {
       temperature = 0.8,
-      max_tokens = 60,
+      max_tokens = 1536,
       max_completion_tokens,
       model = 'gpt-4o-mini'
     } = options;
 
-    // For GPT-5 models, always use max_completion_tokens; for older models, use max_tokens
-    const isGPT5Model = model?.includes('gpt-5');
+    // Retry strategy: try current model, then fallback models
+    const retryModels = [
+      model,
+      model.startsWith('gpt-5-mini') ? 'gpt-5-2025-08-07' : model,
+      'gpt-4.1-2025-04-14'
+    ].filter((m, i, arr) => arr.indexOf(m) === i); // Remove duplicates
+
+    let lastError: Error | null = null;
+    let retryAttempt = 0;
+
+    for (const tryModel of retryModels) {
+      try {
+        const result = await this.attemptChatJSON(messages, {
+          temperature,
+          max_tokens,
+          max_completion_tokens,
+          model: tryModel
+        });
+        
+        // Add metadata about the API call
+        if (result && typeof result === 'object') {
+          result._apiMeta = {
+            modelUsed: tryModel,
+            retryAttempt,
+            originalModel: model
+          };
+        }
+        
+        return result;
+      } catch (error) {
+        console.warn(`Model ${tryModel} failed:`, error);
+        lastError = error as Error;
+        retryAttempt++;
+        
+        // Don't retry if it's an auth error
+        if (error instanceof Error && error.message.includes('401')) {
+          throw error;
+        }
+      }
+    }
+
+    throw lastError || new Error('All model attempts failed');
+  }
+
+  private async attemptChatJSON(messages: Array<{role: string; content: string}>, options: {
+    temperature?: number;
+    max_tokens?: number;
+    max_completion_tokens?: number;
+    model?: string;
+  }): Promise<any> {
+    const {
+      temperature = 0.8,
+      max_tokens = 1536,
+      max_completion_tokens,
+      model = 'gpt-4o-mini'
+    } = options;
+
+    const isGPT5Model = model?.startsWith('gpt-5');
     const tokenLimit = max_completion_tokens || max_tokens;
     const tokenParameter = isGPT5Model ? 'max_completion_tokens' : 'max_tokens';
 
-    // Build request body - GPT-5 models don't accept temperature parameter
+    // Build request body
     const requestBody: any = {
       model,
       messages,
-      [tokenParameter]: tokenLimit,
-      response_format: { type: "json_object" }
+      [tokenParameter]: tokenLimit
     };
 
-    // Only add temperature for non-GPT-5 models
+    // GPT-5 models: omit temperature and response_format initially for better compatibility
     if (!isGPT5Model) {
       requestBody.temperature = temperature;
+      requestBody.response_format = { type: "json_object" };
     }
 
     const response = await fetch(OPENAI_API_URL, {
@@ -102,13 +158,32 @@ export class OpenAIService {
     }
 
     const data = await response.json();
-    const content = data.choices[0]?.message?.content;
+    const content = data.choices?.[0]?.message?.content;
+    const finishReason = data.choices?.[0]?.finish_reason;
     
-    if (!content) {
-      throw new Error('No content received from OpenAI');
+    console.log(`API Response Debug - Model: ${model}, Finish Reason: ${finishReason}, Content Length: ${content?.length || 0}`);
+    
+    if (!content || content.trim() === '') {
+      throw new Error(`No content received from OpenAI (finish_reason: ${finishReason})`);
     }
 
-    return JSON.parse(content);
+    // For GPT-5 models, try to extract JSON even if it's not in response_format
+    try {
+      return JSON.parse(content);
+    } catch (parseError) {
+      // For GPT-5, try to extract JSON from the response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          // Fall through to error
+        }
+      }
+      
+      console.error('Failed to parse OpenAI response as JSON:', content);
+      throw new Error(`Invalid JSON response from OpenAI (model: ${model})`);
+    }
   }
 
   async searchPopCulture(category: string, searchTerm: string): Promise<OpenAISearchResult[]> {

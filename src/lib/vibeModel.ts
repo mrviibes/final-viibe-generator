@@ -23,6 +23,8 @@ export interface VibeResult {
     usedFallback: boolean;
     blockedCount: number;
     reason?: string;
+    retryAttempt?: number;
+    originalModel?: string;
   };
 }
 
@@ -179,9 +181,12 @@ Output only this JSON format:
     ];
     
     const result = await openAIService.chatJSON(messages, {
-      max_completion_tokens: 300,
+      max_completion_tokens: 1024,
       model: 'gpt-5-mini-2025-08-07'
     });
+    
+    // Store the API metadata for later use
+    const apiMeta = result._apiMeta;
     
     // Extract lines from JSON response
     const lines = result.lines || [];
@@ -191,6 +196,11 @@ Output only this JSON format:
     
     // Post-process each line with tag validation
     const candidates = lines.map((line: string) => postProcess(line, inputs.tone, inputs.tags));
+    
+    // Add API metadata to candidates for later extraction
+    if (apiMeta && candidates.length > 0) {
+      (candidates as any)._apiMeta = apiMeta;
+    }
     
     return candidates;
   } catch (error) {
@@ -207,6 +217,9 @@ Output only this JSON format:
 
 export async function generateCandidates(inputs: VibeInputs, n: number = 4): Promise<VibeResult> {
   const candidateResults = await generateMultipleCandidates(inputs);
+  
+  // Extract API metadata if available
+  const apiMeta = (candidateResults as any)._apiMeta || null;
   
   // Filter out blocked candidates and remove duplicates
   const validCandidates = candidateResults.filter(c => !c.blocked);
@@ -280,10 +293,12 @@ export async function generateCandidates(inputs: VibeInputs, n: number = 4): Pro
     candidates: finalCandidates,
     picked,
     audit: {
-      model: 'gpt-5-mini-2025-08-07',
+      model: apiMeta?.modelUsed || 'gpt-5-mini-2025-08-07',
       usedFallback,
       blockedCount,
-      reason
+      reason,
+      retryAttempt: apiMeta?.retryAttempt || 0,
+      originalModel: apiMeta?.originalModel
     }
   };
 }
