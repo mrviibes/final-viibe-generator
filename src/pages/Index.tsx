@@ -3975,6 +3975,7 @@ const Index = () => {
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageGenerationError, setImageGenerationError] = useState<string>("");
+  const [directPrompt, setDirectPrompt] = useState<string>("");
   const [showProxySettings, setShowProxySettings] = useState(false);
   const [proxySettings, setLocalProxySettings] = useState(() => getProxySettings());
   const [proxyApiKey, setProxyApiKey] = useState('');
@@ -4341,12 +4342,14 @@ const Index = () => {
         ai_visual_assist_used: selectedSubjectOption === "ai-assist"
       });
 
-      const prompt = buildIdeogramPrompt(ideogramPayload);
+      // Use direct prompt if provided, otherwise build from structured inputs
+      const prompt = directPrompt.trim() || buildIdeogramPrompt(ideogramPayload);
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
       const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
 
       console.log('=== Ideogram Generation Debug ===');
-      console.log('Generated prompt:', prompt);
+      console.log('Direct prompt provided:', !!directPrompt.trim());
+      console.log('Final prompt:', prompt);
       console.log('Aspect ratio:', aspectForIdeogram);
       console.log('Style type:', styleForIdeogram);
       console.log('Final payload:', { prompt, aspect_ratio: aspectForIdeogram, model: 'V_3', magic_prompt_option: 'AUTO', style_type: styleForIdeogram });
@@ -6171,6 +6174,22 @@ const Index = () => {
             <div className="max-w-4xl mx-auto space-y-8">
               {/* Preview Section */}
               <div className="space-y-4">
+                {/* Direct Prompt Input */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium text-foreground">Custom Prompt (Optional)</h3>
+                  <div className="space-y-2">
+                    <Textarea
+                      value={directPrompt}
+                      onChange={(e) => setDirectPrompt(e.target.value)}
+                      placeholder="Enter your own prompt here to override the generated one (e.g., 'Generate an image of a focused linebacker in mid-action, set against a vibrant stadium filled with cheering fans, emphasizing the excitement of American football')"
+                      className="min-h-[100px] resize-none border-2 border-border bg-card hover:bg-accent/50 transition-colors"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Leave empty to use the automatically generated prompt based on your selections above.
+                    </p>
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium text-foreground">Preview</h3>
                   <div className="flex items-center gap-2">
