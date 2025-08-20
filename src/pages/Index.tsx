@@ -3916,6 +3916,9 @@ const Index = () => {
   const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
   const [selectedVisualStyle, setSelectedVisualStyle] = useState<string | null>(null);
   const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>(null);
+  const [subjectTags, setSubjectTags] = useState<string[]>([]);
+  const [subjectTagInput, setSubjectTagInput] = useState<string>("");
+  const [isGeneratingSubject, setIsGeneratingSubject] = useState<boolean>(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState<string>("");
   const [wordCount, setWordCount] = useState<string>("10");
@@ -3999,6 +4002,35 @@ const Index = () => {
 
   const removeTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  // Handle adding subject tags
+  const handleAddSubjectTag = (tag: string) => {
+    const trimmedTag = tag.trim();
+    if (trimmedTag && !subjectTags.includes(trimmedTag)) {
+      setSubjectTags([...subjectTags, trimmedTag]);
+    }
+    setSubjectTagInput("");
+  };
+
+  const handleSubjectTagInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      handleAddSubjectTag(subjectTagInput);
+    }
+  };
+
+  const removeSubjectTag = (tagToRemove: string) => {
+    setSubjectTags(subjectTags.filter(tag => tag !== tagToRemove));
+  };
+
+  // Generate subject using AI
+  const handleGenerateSubject = async () => {
+    setIsGeneratingSubject(true);
+    // TODO: Implement subject generation logic
+    setTimeout(() => {
+      setIsGeneratingSubject(false);
+    }, 2000);
   };
 
   // Generate text using OpenAI
@@ -5315,26 +5347,89 @@ const Index = () => {
                     </div>
                   </div>
                 ) : (
-                  /* Show selected subject option */
-                  <div className="selected-card">
-                    <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                          {subjectOptions.find(s => s.id === selectedSubjectOption)?.name}
-                          <span className="text-sm">✓</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <CardDescription className="text-sm text-muted-foreground text-center">
-                          {subjectOptions.find(s => s.id === selectedSubjectOption)?.description}
-                        </CardDescription>
-                        <div className="text-center mt-3">
-                          <button onClick={() => setSelectedSubjectOption(null)} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                            Change selection
-                          </button>
+                  /* Show selected subject option and subject generation form if AI Assist */
+                  <div className="space-y-6">
+                    {/* Selected subject option card */}
+                    <div className="selected-card">
+                      <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                            {subjectOptions.find(s => s.id === selectedSubjectOption)?.name}
+                            <span className="text-sm">✓</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <CardDescription className="text-sm text-muted-foreground text-center">
+                            {subjectOptions.find(s => s.id === selectedSubjectOption)?.description}
+                          </CardDescription>
+                          <div className="text-center mt-3">
+                            <button onClick={() => {
+                              setSelectedSubjectOption(null);
+                              setSubjectTags([]);
+                              setSubjectTagInput("");
+                            }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                              Change selection
+                            </button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Subject generation form for AI Assist */}
+                    {selectedSubjectOption === "ai-assist" && (
+                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="text-center mb-8">
+                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for subject generation</h2>
                         </div>
-                      </CardContent>
-                    </Card>
+
+                        <div className="max-w-lg mx-auto space-y-6">
+                          {/* Tag Input */}
+                          <div className="space-y-2">
+                            <Input
+                              value={subjectTagInput}
+                              onChange={(e) => setSubjectTagInput(e.target.value)}
+                              onKeyDown={handleSubjectTagInputKeyDown}
+                              placeholder="Enter tags (press Enter or comma to add)"
+                              className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg"
+                            />
+                            
+                            {/* Display tags */}
+                            {subjectTags.length > 0 && (
+                              <div className="flex flex-wrap gap-2 justify-center">
+                                {subjectTags.map((tag, index) => (
+                                  <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
+                                    {tag}
+                                    <X 
+                                      className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" 
+                                      onClick={() => removeSubjectTag(tag)}
+                                    />
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Generate Button */}
+                          <div className="text-center">
+                            <Button 
+                              variant="brand"
+                              className="px-8 py-3 text-base font-medium rounded-lg"
+                              onClick={handleGenerateSubject}
+                              disabled={isGeneratingSubject}
+                            >
+                              {isGeneratingSubject ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Generating...
+                                </>
+                              ) : (
+                                "Generate Subject Now"
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
