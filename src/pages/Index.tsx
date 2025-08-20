@@ -4543,6 +4543,14 @@ const Index = () => {
         tags: finalTagsForGeneration
       }, 4);
       
+      // Check for partial tag coverage and show notification
+      if (vibeResult.audit.reason?.includes('tag coverage') || vibeResult.audit.reason?.includes('partial tag coverage')) {
+        sonnerToast.info("Generated text with partial keyword match", {
+          description: "The AI created content that may not exactly match all your keywords but fits the tone and context."
+        });
+      }
+
+      console.log('Vibe generation audit:', vibeResult.audit);
       console.log('✅ Generated text options:', vibeResult.candidates);
       
       // Clear previous selection when generating/regenerating

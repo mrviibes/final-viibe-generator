@@ -75,24 +75,52 @@ function postProcess(line: string, tone: string, requiredTags?: string[]): VibeC
     };
   }
   
-  // Check tag coverage for important tags (skip visual-only tags)
+  // Check tag coverage for important tags (skip visual-only tags) - relaxed approach
   if (requiredTags && requiredTags.length > 0) {
     const visualOnlyTags = ['person', 'people', 'group', 'man', 'woman', 'male', 'female'];
     const contentTags = requiredTags.filter(tag => !visualOnlyTags.includes(tag.toLowerCase()));
     
     if (contentTags.length > 0) {
-      const hasAnyTag = contentTags.some(tag => 
-        lowerCleaned.includes(tag.toLowerCase()) || 
-        // Check for partial matches or related terms
-        (tag.toLowerCase().includes('work') && lowerCleaned.includes('job')) ||
-        (tag.toLowerCase().includes('career') && lowerCleaned.includes('work'))
-      );
+      // Create a simple synonyms map for common terms
+      const synonymsMap: Record<string, string[]> = {
+        'work': ['job', 'career', 'office', 'workplace', 'employment'],
+        'job': ['work', 'career', 'employment', 'position'],
+        'career': ['work', 'job', 'profession', 'employment'],
+        'birthday': ['bday', 'birth', 'celebration', 'party'],
+        'party': ['celebration', 'bash', 'gathering', 'event'],
+        'funny': ['hilarious', 'comedy', 'humor', 'joke', 'laughter'],
+        'movie': ['film', 'cinema', 'flick'],
+        'music': ['song', 'album', 'band', 'artist'],
+        'love': ['romance', 'relationship', 'dating', 'crush'],
+        'food': ['eat', 'meal', 'cooking', 'restaurant', 'dining']
+      };
       
-      if (!hasAnyTag) {
+      // Extract keywords from tags and check for matches with synonyms
+      const hasTagCoverage = contentTags.some(tag => {
+        const lowerTag = tag.toLowerCase();
+        
+        // Direct match
+        if (lowerCleaned.includes(lowerTag)) return true;
+        
+        // Check for synonyms
+        const synonyms = synonymsMap[lowerTag] || [];
+        if (synonyms.some(synonym => lowerCleaned.includes(synonym))) return true;
+        
+        // Check for partial word matches (e.g., "birthday" matches "birth")
+        if (lowerTag.length > 4) {
+          const rootWord = lowerTag.slice(0, -2); // Remove last 2 chars for partial match
+          if (lowerCleaned.includes(rootWord)) return true;
+        }
+        
+        return false;
+      });
+      
+      if (!hasTagCoverage) {
+        // Don't block for tag issues - just mark it
         return {
           line: cleaned,
-          blocked: true,
-          reason: `Missing key tags: ${contentTags.join(', ')}`
+          blocked: false,
+          reason: `Partial tag coverage: ${contentTags.join(', ')}`
         };
       }
     }
@@ -124,7 +152,7 @@ Always output valid JSON only.`;
     }
 
     const tagRequirement = inputs.tags && inputs.tags.length > 0 
-      ? `\n• MUST include or reference these tags naturally: ${inputs.tags.join(', ')}`
+      ? `\n• Aim to include or reference these tags naturally (paraphrasing is fine): ${inputs.tags.join(', ')}`
       : '';
 
     const userPrompt = `Write 4 different lines for this context:
@@ -206,23 +234,47 @@ export async function generateCandidates(inputs: VibeInputs, n: number = 4): Pro
   } else if (uniqueValidLines.length > 0) {
     // We have some valid lines but need to pad with fallbacks
     finalCandidates = [...uniqueValidLines];
-    const fallback = fallbackByTone[inputs.tone.toLowerCase()] || fallbackByTone.humorous;
     
-    // Pad to 4 with slight variations of fallback
+    // Check if we have any lines that were blocked only for tag coverage
+    const tagOnlyBlocked = candidateResults.filter(c => 
+      c.blocked && c.reason?.includes('tag coverage')
+    );
+    
+    // If we have tag-only blocked lines, use them instead of generic fallbacks
+    if (tagOnlyBlocked.length > 0) {
+      const tagBlockedLines = tagOnlyBlocked.map(c => c.line);
+      finalCandidates.push(...tagBlockedLines);
+    }
+    
+    // Only use generic fallback as last resort
+    const fallback = fallbackByTone[inputs.tone.toLowerCase()] || fallbackByTone.humorous;
     while (finalCandidates.length < 4) {
       finalCandidates.push(fallback);
     }
     
     picked = finalCandidates[0];
-    usedFallback = true;
-    reason = 'Padded with fallbacks due to insufficient unique candidates';
+    usedFallback = tagOnlyBlocked.length === 0; // Only mark as fallback if we used generic ones
+    reason = tagOnlyBlocked.length > 0 ? 'Used lines with partial tag coverage' : 'Padded with fallbacks due to insufficient unique candidates';
   } else {
-    // All blocked, use fallback variants
-    const fallbackVariants = getFallbackVariants(inputs.tone, inputs.category, inputs.subcategory);
-    finalCandidates = fallbackVariants;
-    picked = fallbackVariants[0];
-    usedFallback = true;
-    reason = candidateResults.find(c => c.reason)?.reason || 'All candidates blocked';
+    // Check if all were blocked only for tag coverage
+    const allTagOnlyBlocked = candidateResults.every(c => 
+      c.blocked && c.reason?.includes('tag coverage')
+    );
+    
+    if (allTagOnlyBlocked && candidateResults.length > 0) {
+      // Use the model's original lines since they were only blocked for tags
+      finalCandidates = candidateResults.map(c => c.line);
+      picked = finalCandidates[0];
+      usedFallback = false;
+      reason = 'Used model output with partial tag coverage';
+    } else {
+      // Genuine blocks (banned words, etc.) - use tone-based fallbacks
+      const fallback = fallbackByTone[inputs.tone.toLowerCase()] || fallbackByTone.humorous;
+      finalCandidates = [fallback, `${fallback} today`, `${fallback} vibes`, `${fallback} energy`];
+      picked = finalCandidates[0];
+      usedFallback = true;
+      reason = candidateResults.find(c => c.reason)?.reason || 'All candidates blocked';
+    }
   }
   
   return {
