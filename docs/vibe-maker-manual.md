@@ -113,15 +113,58 @@ pop culture → only public works or public figures in generic terms
 ## 12. Language hints
 If language tag present, write in that language. Keep name order and punctuation local to that language. Same 100 character rule.
 
-## 13. Ideogram handoff template
+## 13. Step 3 - Visual Recommendations
+
+**Purpose**: After text generation, provide 4 unique visual suggestions matching the event, tone, text, and visual style.
+
+**Inputs**:
+- Visual Style: `realistic | anime | 3D animated | illustrated | pop art | caricature`
+- Final Text Line (from Step 2)
+- Tone, Category, Subcategory
+- Tags (optional hints)
+
+**Output**: JSON format: `{"visuals":["...","...","...","..."]}`
+
+**4-Slot Framework** (ensures variety):
+1. **Background-only**: Focus on scenery/setting, no characters
+2. **Subject + background**: Character/person in scene interaction
+3. **Object-focused**: Close-up of key prop (cake, trophy, etc.)
+4. **Tone twist / exaggeration**: Visual gag/metaphor matching tone
+
+**System Prompt**: "You are the Vibe Maker Visual Stylist. Generate 4 different visual prompts matching the chosen visual style and slot framework. Keep each under 120 characters. Return JSON only: {"visuals":["...","...","...","..."]}"
+
+**User Prompt Template**:
+```
+Context:
+Category: {{category}} > {{subcategory}}
+Tone: {{tone}}
+Chosen text: "{{final_line}}"
+Visual style: {{visual_style}}
+Tags: {{tags_csv}}
+
+Task:
+Produce 4 distinct visual suggestions:
+1) Background-only
+2) Subject + background
+3) Object-focused
+4) Tone twist / exaggeration
+Output JSON only: {"visuals":["...","...","...","..."]}
+```
+
+**Visual Examples**:
+- Birthday, Savage, Realistic: ["Realistic party room with streamers, no people", "Latecomer sneaking in, guests staring at cake", "Close-up birthday cake shaped like clock", "Friends laughing with empty plates, sarcastic banner"]
+
+**Safety Rules**: Same as text generation - no harmful content, ignore unsafe tags silently, always return 4 options.
+
+## 14. Ideogram handoff template
 Style: {{visual_style}}
 Occasion: {{subcategory}}
 Tone: {{tone}}
 Key line: "{{final_line}}"
-Design notes: high contrast, clean layout, social safe margins, no logos
+Design notes: high contrast, clean layout, social safe margins, no logos, visual concept: {{chosen_visual}}
 Reference tags: {{tags_csv}}
 
-## 14. Minimal API spec you store beside this doc
+## 15. Minimal API spec you store beside this doc
 Inputs
 category string
 subcategory string
@@ -135,7 +178,7 @@ line string, max 100 characters
 Audit
 model, tokens, filter flags, pass or fallback
 
-## 15. Speed tips
+## 16. Speed tips
 Use a small fast model for first pass. Temperature 0.8 to 1. Max output tokens 60. Request JSON mode. Generate up to 3 candidates. Pick the shortest that passes safety.
 
 Done. Paste sections 1 to 15 into Lovable as the "Vibe Maker Model Operating Manual." Wire your middleware to feed the Developer template with live selections, run the post processor, then send the final line to Ideogram with the handoff template.
