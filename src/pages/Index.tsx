@@ -4240,6 +4240,11 @@ const Index = () => {
       
       // Log audit info for debugging
       console.log('Vibe generation audit:', vibeResult.audit);
+      
+      // Warn if fallbacks were used
+      if (vibeResult.audit.usedFallback) {
+        console.warn('⚠️ Text generation used fallback variants. API may be unavailable or having issues.');
+      }
     } catch (error) {
       console.error('Error generating text:', error);
     } finally {

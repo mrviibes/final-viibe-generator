@@ -26,6 +26,20 @@ export interface VibeResult {
   };
 }
 
+function getFallbackVariants(tone: string, category: string, subcategory: string): string[] {
+  const baseFallback = fallbackByTone[tone.toLowerCase()] || fallbackByTone.humorous;
+  
+  // Create 4 distinct variations based on tone and context
+  const variations = [
+    baseFallback,
+    `${baseFallback} today`,
+    `${baseFallback} vibes`,
+    `${baseFallback} energy`
+  ];
+  
+  return variations;
+}
+
 function postProcess(line: string, tone: string): VibeCandidate {
   // Trim spaces
   let cleaned = line.trim();
@@ -97,8 +111,8 @@ Output only this JSON format:
     
     const result = await openAIService.chatJSON(messages, {
       temperature: 0.8,
-      max_completion_tokens: 300,
-      model: 'gpt-5-2025-08-07'
+      max_tokens: 300,
+      model: 'gpt-4o-mini'
     });
     
     // Extract lines from JSON response
@@ -113,14 +127,13 @@ Output only this JSON format:
     return candidates;
   } catch (error) {
     console.error('Failed to generate multiple candidates:', error);
-    // Return fallback candidates
-    const fallback = fallbackByTone[inputs.tone.toLowerCase()] || fallbackByTone.humorous;
-    return [
-      { line: fallback, blocked: true, reason: `API Error: ${error instanceof Error ? error.message : 'Unknown error'}` },
-      { line: fallback, blocked: true, reason: 'Fallback duplicate 1' },
-      { line: fallback, blocked: true, reason: 'Fallback duplicate 2' },
-      { line: fallback, blocked: true, reason: 'Fallback duplicate 3' }
-    ];
+    // Return fallback variants instead of duplicates
+    const fallbackVariants = getFallbackVariants(inputs.tone, inputs.category, inputs.subcategory);
+    return fallbackVariants.map((line, index) => ({
+      line,
+      blocked: true,
+      reason: index === 0 ? `API Error: ${error instanceof Error ? error.message : 'Unknown error'}` : 'Fallback variant'
+    }));
   }
 }
 
@@ -163,10 +176,10 @@ export async function generateCandidates(inputs: VibeInputs, n: number = 4): Pro
     usedFallback = true;
     reason = 'Padded with fallbacks due to insufficient unique candidates';
   } else {
-    // All blocked, use fallback
-    const fallback = fallbackByTone[inputs.tone.toLowerCase()] || fallbackByTone.humorous;
-    finalCandidates = [fallback, fallback, fallback, fallback];
-    picked = fallback;
+    // All blocked, use fallback variants
+    const fallbackVariants = getFallbackVariants(inputs.tone, inputs.category, inputs.subcategory);
+    finalCandidates = fallbackVariants;
+    picked = fallbackVariants[0];
     usedFallback = true;
     reason = candidateResults.find(c => c.reason)?.reason || 'All candidates blocked';
   }
@@ -175,7 +188,7 @@ export async function generateCandidates(inputs: VibeInputs, n: number = 4): Pro
     candidates: finalCandidates,
     picked,
     audit: {
-      model: 'gpt-5-2025-08-07',
+      model: 'gpt-4o-mini',
       usedFallback,
       blockedCount,
       reason
