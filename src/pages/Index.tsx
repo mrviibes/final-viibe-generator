@@ -3893,6 +3893,20 @@ const visualStyleOptions = [{
   description: "Bold retro comic style"
 }];
 
+const subjectOptions = [{
+  id: "ai-assist",
+  name: "Option 1 - AI Assist",
+  description: "Let AI help generate your subject"
+}, {
+  id: "design-myself",
+  name: "Option 2 - Design Myself", 
+  description: "I will create my own subject"
+}, {
+  id: "no-subject",
+  name: "Option 3 - I Don't Want a Subject",
+  description: "I just want a simple background"
+}];
+
 const Index = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
@@ -3901,6 +3915,7 @@ const Index = () => {
   const [selectedTextStyle, setSelectedTextStyle] = useState<string | null>(null);
   const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
   const [selectedVisualStyle, setSelectedVisualStyle] = useState<string | null>(null);
+  const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState<string>("");
   const [wordCount, setWordCount] = useState<string>("10");
@@ -3963,7 +3978,7 @@ const Index = () => {
 
   // Helper function to check if Step 3 is complete
   const isStep3Complete = (): boolean => {
-    return !!selectedVisualStyle;
+    return !!(selectedVisualStyle && selectedSubjectOption);
   };
 
   // Handle adding tags
@@ -5246,7 +5261,7 @@ const Index = () => {
                 ))}
               </div>
             ) : (
-              /* Show selected visual style card only */
+              /* Show selected visual style card and subject options */
               <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="mb-8 selected-card">
                   <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
@@ -5261,13 +5276,67 @@ const Index = () => {
                         {visualStyleOptions.find(s => s.id === selectedVisualStyle)?.description}
                       </CardDescription>
                       <div className="text-center mt-3">
-                        <button onClick={() => setSelectedVisualStyle(null)} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                        <button onClick={() => {
+                          setSelectedVisualStyle(null);
+                          setSelectedSubjectOption(null);
+                        }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                           Change selection
                         </button>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* Subject options selection */}
+                {!selectedSubjectOption ? (
+                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="text-center mb-8">
+                      <p className="text-xl text-muted-foreground">Choose your option for your subject (what's the focus of image)</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                      {subjectOptions.map(option => (
+                        <Card 
+                          key={option.id}
+                          className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full"
+                          onClick={() => setSelectedSubjectOption(option.id)}
+                        >
+                          <CardHeader className="pb-3 text-center">
+                            <CardTitle className="text-lg font-semibold text-card-foreground">
+                              {option.name}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <CardDescription className="text-sm text-muted-foreground text-center">
+                              {option.description}
+                            </CardDescription>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  /* Show selected subject option */
+                  <div className="selected-card">
+                    <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                          {subjectOptions.find(s => s.id === selectedSubjectOption)?.name}
+                          <span className="text-sm">✓</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="text-sm text-muted-foreground text-center">
+                          {subjectOptions.find(s => s.id === selectedSubjectOption)?.description}
+                        </CardDescription>
+                        <div className="text-center mt-3">
+                          <button onClick={() => setSelectedSubjectOption(null)} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                            Change selection
+                          </button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
               </div>
             )}
           </>
