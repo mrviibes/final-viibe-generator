@@ -5272,6 +5272,99 @@ const Index = () => {
                       </ScrollArea>
                     </Card>}
                 </div>
+              </div> : selectedStyle === "pop-culture" && selectedSubOption && !selectedPick ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-6">
+                  <p className="text-xl text-muted-foreground">Search for specific {selectedSubOption}</p>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Celebrity Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input 
+                      value={searchTerm} 
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchTerm)}
+                      placeholder={`Search ${selectedSubOption}...`} 
+                      className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" 
+                    />
+                  </div>
+
+                  {/* Search Button */}
+                  <div className="text-center">
+                    <Button 
+                      onClick={() => handleSearch(searchTerm)}
+                      disabled={!searchTerm.trim() || isSearching}
+                      variant="brand"
+                      size="lg"
+                      className="px-8 py-4"
+                    >
+                      {isSearching ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Searching...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="mr-2 h-4 w-4" />
+                          Search {selectedSubOption}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Search Results */}
+                  {searchResults.length > 0 && (
+                    <Card className="max-h-96 overflow-hidden">
+                      <ScrollArea className="h-96">
+                        <div className="p-4 space-y-2">
+                          {searchResults.map((result, index) => (
+                            <div 
+                              key={index}
+                              onClick={() => {
+                                setSelectedPick(result.title);
+                                setSearchResults([]);
+                                setSearchTerm("");
+                              }}
+                              className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors"
+                            >
+                              <p className="text-sm font-medium text-card-foreground">
+                                {result.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {result.description}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </Card>
+                  )}
+
+                  {/* Search Error */}
+                  {searchError && (
+                    <div className="text-center p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+                      <p className="text-sm text-destructive">{searchError}</p>
+                    </div>
+                  )}
+
+                  {/* Custom Entry Option */}
+                  {searchTerm.trim() && searchResults.length === 0 && !isSearching && !searchError && (
+                    <div className="text-center">
+                      <Button
+                        onClick={() => {
+                          setSelectedPick(searchTerm.trim());
+                          setSearchTerm("");
+                        }}
+                        variant="outline"
+                        size="lg"
+                        className="px-6 py-3"
+                      >
+                        Use "{searchTerm.trim()}" as custom {selectedSubOption.toLowerCase()}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div> : selectedStyle === "random" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
                   <p className="text-xl text-muted-foreground">Ready to create your text</p>
