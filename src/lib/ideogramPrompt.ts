@@ -3,12 +3,13 @@ import { IdeogramHandoff } from './ideogram';
 export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
   const parts: string[] = [];
   
-  // Auto-style and display text prominently, matching tone, visual look, size, color, and placement on the image.
-  parts.push("Auto-style and display text prominently, matching tone, visual look, size, color, and placement on the image.");
-  
-  // Use this exact text: [FINAL TEXT].
-  if (handoff.key_line) {
+  // Only add text styling instructions if there's actual text content to display
+  if (handoff.key_line && handoff.key_line.trim()) {
+    parts.push("Style and display text prominently, matching tone, visual look, size, color, and placement on the image.");
     parts.push(`Use this exact text: ${handoff.key_line}.`);
+  } else {
+    // For images without text, focus on visual elements only
+    parts.push("Create a visual composition without any text or typography overlays.");
   }
   
   // This content is for [CATEGORY], specifically [SUBCATEGORY][ (SECOND SUBCATEGORY if Pop Culture) ].
@@ -47,8 +48,12 @@ export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
     parts.push(`Output format should use aspect ratio ${handoff.aspect_ratio}.`);
   }
   
-  // Ensure the text is clearly visible, balanced with the artwork, and styled to fit the chosen tone and tags.
-  parts.push("Ensure the text is clearly visible, balanced with the artwork, and styled to fit the chosen tone and tags.");
+  // Only add text visibility instructions if there's actual text content
+  if (handoff.key_line && handoff.key_line.trim()) {
+    parts.push("Ensure the text is clearly visible, balanced with the artwork, and styled to fit the chosen tone and tags.");
+  } else {
+    parts.push("Focus on creating a balanced visual composition that fits the chosen tone and tags.");
+  }
   
   return parts.join(' ');
 }

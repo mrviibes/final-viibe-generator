@@ -30,6 +30,20 @@ function getSlotBasedFallbacks(inputs: VisualInputs): VisualOption[] {
   const occasion = subcategory || 'general';
   const entity = specificEntity || 'subject';
   
+  // Determine if we need people in the image based on tags or context
+  const needsPeople = tags.some(tag => 
+    tag.toLowerCase().includes('person') || 
+    tag.toLowerCase().includes('people') || 
+    tag.toLowerCase().includes('man') || 
+    tag.toLowerCase().includes('woman') ||
+    tag.toLowerCase().includes('group')
+  );
+  
+  const peopleContext = needsPeople ? 
+    (tags.find(tag => tag.toLowerCase().includes('group')) ? 'group of people' : 
+     tags.find(tag => tag.toLowerCase().includes('woman')) ? 'woman' :
+     tags.find(tag => tag.toLowerCase().includes('man')) ? 'man' : 'person') : '';
+  
   // Create entity-aware fallbacks
   if (specificEntity && tags.some(tag => tag.toLowerCase().includes('jail'))) {
     return [
@@ -37,25 +51,25 @@ function getSlotBasedFallbacks(inputs: VisualInputs): VisualOption[] {
         slot: "background-only",
         subject: "Prison bars texture overlay",
         background: `Dark jail cell background with dramatic ${tone} lighting`,
-        prompt: `Dark jail cell background with prison bars, dramatic ${tone} lighting, space for text overlay`
+        prompt: `Dark jail cell background with prison bars, dramatic ${tone} lighting, no text or typography`
       },
       {
         slot: "subject+background",
-        subject: `${entity} silhouette behind bars`,
+        subject: `${entity}${needsPeople ? ` ${peopleContext}` : ''} silhouette behind bars`,
         background: `Prison setting with atmospheric lighting`,
-        prompt: `${entity} silhouette behind prison bars, dramatic jail setting, ${tone} mood lighting`
+        prompt: `${entity}${needsPeople ? ` ${peopleContext}` : ''} silhouette behind prison bars, dramatic jail setting, ${tone} mood lighting, no text overlays`
       },
       {
         slot: "object",
         subject: "Handcuffs and judge gavel symbols",
         background: `Minimal courtroom or legal backdrop`,
-        prompt: `Legal symbols like handcuffs and gavel, minimal courtroom backdrop, ${tone} style`
+        prompt: `Legal symbols like handcuffs and gavel, minimal courtroom backdrop, ${tone} style, no text`
       },
       {
         slot: "tone-twist",
-        subject: `${entity} iconic moment reimagined`,
+        subject: `${entity}${needsPeople ? ` ${peopleContext}` : ''} iconic moment reimagined`,
         background: `Stylized setting reflecting personality`,
-        prompt: `${entity} iconic moment with ${tone} interpretation, stylized background reflecting their known traits`
+        prompt: `${entity}${needsPeople ? ` ${peopleContext}` : ''} iconic moment with ${tone} interpretation, stylized background reflecting their known traits, no text overlays`
       }
     ];
   }
@@ -63,27 +77,27 @@ function getSlotBasedFallbacks(inputs: VisualInputs): VisualOption[] {
   return [
     {
       slot: "background-only",
-      subject: "Simple text overlay",
+      subject: "Clean visual composition",
       background: `${tone} ${visualStyle || 'modern'} background with ${primaryTags} elements`,
-      prompt: `${tone} ${visualStyle || 'modern'} background with ${primaryTags} elements, clean typography space`
+      prompt: `${tone} ${visualStyle || 'modern'} background with ${primaryTags} elements, clean composition without text or typography`
     },
     {
       slot: "subject+background", 
-      subject: `Central ${occasion} themed composition`,
+      subject: `${needsPeople ? `${peopleContext} in ` : ''}Central ${occasion} themed composition`,
       background: `Complementary ${tone} environment with ${primaryTags}`,
-      prompt: `Central ${occasion} themed composition in complementary ${tone} environment with ${primaryTags}`
+      prompt: `${needsPeople ? `${peopleContext} in ` : ''}Central ${occasion} themed composition in complementary ${tone} environment with ${primaryTags}, no text overlays`
     },
     {
       slot: "object",
       subject: `Featured ${occasion} objects or symbols`,
       background: `Minimal ${tone} backdrop`,
-      prompt: `Featured ${occasion} objects or symbols on minimal ${tone} backdrop, ${primaryTags} style`
+      prompt: `Featured ${occasion} objects or symbols on minimal ${tone} backdrop, ${primaryTags} style, no text`
     },
     {
       slot: "tone-twist",
-      subject: `${tone.charAt(0).toUpperCase() + tone.slice(1)} interpretation of ${occasion}`,
+      subject: `${needsPeople ? `${peopleContext} with ` : ''}${tone.charAt(0).toUpperCase() + tone.slice(1)} interpretation of ${occasion}`,
       background: `Creative ${visualStyle || 'artistic'} setting`,
-      prompt: `${tone.charAt(0).toUpperCase() + tone.slice(1)} interpretation of ${occasion} in creative ${visualStyle || 'artistic'} setting`
+      prompt: `${needsPeople ? `${peopleContext} with ` : ''}${tone.charAt(0).toUpperCase() + tone.slice(1)} interpretation of ${occasion} in creative ${visualStyle || 'artistic'} setting, no text overlays`
     }
   ];
 }
@@ -94,12 +108,13 @@ export async function generateVisualRecommendations(
 ): Promise<VisualResult> {
   const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity } = inputs;
   
-  const systemPrompt = `You are a visual concept recommender for memes and social graphics who understands pop culture references and specific personalities. 
+const systemPrompt = `You are a visual concept recommender for memes and social graphics who understands pop culture references and specific personalities. 
 Use the 4-slot framework: background-only, subject+background, object, tone-twist.
 When a specific entity/person is mentioned, create contextually aware concepts that reference their known traits, catchphrases, or iconic moments.
 For controversial topics, create tasteful but edgy concepts that capture the essence without being offensive.
 Incorporate ALL provided inputs: category, subcategory, tone, visual style, final text line, tags, and specific entity.
-Make concepts shareable and culturally relevant.`;
+Make concepts shareable and culturally relevant.
+When specifying people as subjects, be clear about demographics (man, woman, group of people, etc.) and include details about number of people, poses, and interactions.`;
 
   const userPrompt = `Generate exactly 4 visual concept options using the slot framework for these details:
 
@@ -107,14 +122,21 @@ Category: ${category}
 Subcategory: ${subcategory}  
 Tone: ${tone}
 Visual Style: ${visualStyle || 'Not specified'}
-${finalLine ? `Text Content: "${finalLine}"` : ''}
+${finalLine ? `Text Content: "${finalLine}"` : 'No text content - create visual-only images'}
 ${specificEntity ? `Specific Entity/Person: ${specificEntity}` : ''}
 Tags: ${tags.join(', ')}
 
+PEOPLE & SUBJECT REQUIREMENTS:
+- If tags mention "person", "people", "man", "woman", or "group", include those specific demographics in your concepts
+- For "group" tags, specify 2-4 people interacting
+- For "man" or "woman" tags, specify one person of that gender
+- Include details about poses, expressions, and interactions when people are involved
+- DO NOT include any text, typography, or written content in the image prompts unless specifically requested
+
 ${specificEntity && tags.some(tag => tag.toLowerCase().includes('jail')) ? 
-`SPECIAL INSTRUCTIONS: Since this involves ${specificEntity} and jail-related tags, create 2 options directly related to jail/prison themes (bars, cells, courthouse) and 2 options that reference other iconic aspects of ${specificEntity} that fans would recognize.` : 
+`SPECIAL INSTRUCTIONS: Since this involves ${specificEntity} and jail-related tags, create 2 options directly related to jail/prison themes (bars, cells, courthouse) and 2 options that reference other iconic aspects of ${specificEntity} that fans would recognize. All options should avoid text overlays.` : 
 specificEntity ? 
-`SPECIAL INSTRUCTIONS: Since this involves ${specificEntity}, make sure to reference their known personality traits, catchphrases, or iconic moments that fans would immediately recognize.` : ''}
+`SPECIAL INSTRUCTIONS: Since this involves ${specificEntity}, make sure to reference their known personality traits, catchphrases, or iconic moments that fans would immediately recognize. Focus on visual elements only, no text.` : 'Focus on creating clean visual compositions without text or typography overlays.'}
 
 Return exactly this JSON structure with 4 options:
 {

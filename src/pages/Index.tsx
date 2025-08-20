@@ -3961,8 +3961,16 @@ const subjectOptions = [{
   name: "Option 2 - Design Myself", 
   description: "I will create my own subject"
 }, {
+  id: "single-person",
+  name: "Option 3 - Single Person",
+  description: "One man or woman as the main subject"
+}, {
+  id: "multiple-people",
+  name: "Option 4 - Multiple People",
+  description: "Group of 2-4 people interacting"
+}, {
   id: "no-subject",
-  name: "Option 3 - I Don't Want a Subject",
+  name: "Option 5 - I Don't Want a Subject",
   description: "I just want a simple background"
 }];
 
@@ -4206,6 +4214,11 @@ const Index = () => {
       return hasConfirmedDescription && hasDimensions;
     }
     
+    // For single-person and multiple-people, just need dimensions
+    if (selectedSubjectOption === "single-person" || selectedSubjectOption === "multiple-people") {
+      return !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
+    }
+    
     // For "no-subject", just need dimensions
     if (selectedSubjectOption === "no-subject") {
       return !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
@@ -4411,11 +4424,19 @@ const Index = () => {
       const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
       const tone = selectedTextStyleObj?.name || 'Humorous';
       
+      // Add subject-specific tags
+      let finalTagsForGeneration = [...finalTags];
+      if (selectedSubjectOption === "single-person") {
+        finalTagsForGeneration.push("person");
+      } else if (selectedSubjectOption === "multiple-people") {
+        finalTagsForGeneration.push("group", "people");
+      }
+      
       const vibeResult: VibeResult = await generateCandidates({
         category,
         subcategory,
         tone: tone.toLowerCase(),
-        tags: finalTags
+        tags: finalTagsForGeneration
       }, 4);
       
       // Clear previous selection when generating/regenerating
@@ -6261,7 +6282,9 @@ const Index = () => {
                 {selectedSubjectOption && (
                   (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed) ||
                   (selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null) ||
-                  selectedSubjectOption === "no-subject"
+                  selectedSubjectOption === "no-subject" ||
+                  selectedSubjectOption === "single-person" ||
+                  selectedSubjectOption === "multiple-people"
                 ) && (
                   <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
