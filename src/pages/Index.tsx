@@ -3599,6 +3599,46 @@ const vibesPunchlinesOptions = [{
   name: "Late Night Thoughts",
   subtitle: "Overtired musings"
 }, {
+  id: "instagram-ads",
+  name: "Instagram Ads",
+  subtitle: "Advertising, promotion, sponsored content"
+}, {
+  id: "facebook-marketing",
+  name: "Facebook Marketing",
+  subtitle: "Social media campaigns, business posts"
+}, {
+  id: "youtube-content",
+  name: "YouTube Content",
+  subtitle: "Video creation, channel growth"
+}, {
+  id: "tiktok-trends",
+  name: "TikTok Trends",
+  subtitle: "Viral videos, challenges, dances"
+}, {
+  id: "linkedin-professional",
+  name: "LinkedIn Professional",
+  subtitle: "Career posts, networking, business"
+}, {
+  id: "twitter-threads",
+  name: "Twitter Threads",
+  subtitle: "Tweet storms, viral takes"
+}, {
+  id: "brand-promotion",
+  name: "Brand Promotion",
+  subtitle: "Product marketing, endorsements"
+}, {
+  id: "influencer-content",
+  name: "Influencer Content",
+  subtitle: "Sponsored posts, collaborations"
+}, {
+  id: "e-commerce-sales",
+  name: "E-commerce Sales",
+  subtitle: "Online shopping, product launches"
+}, {
+  id: "digital-marketing",
+  name: "Digital Marketing",
+  subtitle: "Online campaigns, SEO, ads"
+}, {
   id: "annoying-questions",
   name: "Annoying Questions",
   subtitle: "Nosy silly prods"
