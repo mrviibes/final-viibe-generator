@@ -5296,6 +5296,24 @@ const Index = () => {
                   </div>
                 )}
 
+                {/* Show write myself form when write-myself is selected */}
+                {selectedCompletionOption === "write-myself" && (
+                  <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="text-center mb-6">
+                      <p className="text-xl text-muted-foreground">Write your own content</p>
+                    </div>
+
+                    <div className="max-w-lg mx-auto">
+                      <Textarea
+                        value={stepTwoText}
+                        onChange={(e) => setStepTwoText(e.target.value)}
+                        placeholder="Start writing your content here..."
+                        className="min-h-[150px] text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 text-base font-medium rounded-lg resize-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* TODO: Add additional sub-options here after text style is selected */}
               </div>
             )}
@@ -5305,8 +5323,8 @@ const Index = () => {
         {currentStep === 3 && (
           <>
             <div className="text-center mb-12">
-              <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Visual Style</h1>
-              <p className="text-xl text-muted-foreground">Select the visual style for your content</p>
+              <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Describe your subject</h1>
+              <p className="text-xl text-muted-foreground">Choose what will be the focus of your image</p>
             </div>
 
             {/* Show visual style selection grid when no style is selected */}
@@ -5475,14 +5493,14 @@ const Index = () => {
                     {selectedSubjectOption === "design-myself" && (
                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-8">
-                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Write your own content</h2>
+                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Describe your subject</h2>
                         </div>
 
                         <div className="max-w-lg mx-auto">
                           <Textarea
                             value={subjectDescription}
                             onChange={(e) => setSubjectDescription(e.target.value)}
-                            placeholder="Start writing your content here..."
+                            placeholder="Describe what you want as the subject of your image..."
                             className="min-h-[150px] text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 text-base font-medium rounded-lg resize-none"
                           />
                         </div>
