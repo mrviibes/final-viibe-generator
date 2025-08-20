@@ -5058,7 +5058,7 @@ const Index = () => {
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <CardDescription className="text-sm text-muted-foreground text-center">
+                          <CardDescription className="text-sm text-card-foreground text-center">
                             {completionOptions.find(opt => opt.id === selectedCompletionOption)?.description}
                           </CardDescription>
                           <div className="text-center mt-3">
@@ -5211,7 +5211,7 @@ const Index = () => {
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <CardDescription className="text-sm text-muted-foreground text-center">
+                          <CardDescription className="text-sm text-card-foreground text-center">
                             {completionOptions.find(opt => opt.id === selectedCompletionOption)?.description}
                           </CardDescription>
                           <div className="text-center mt-3">
