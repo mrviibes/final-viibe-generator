@@ -6072,72 +6072,66 @@ const Index = () => {
                     </thead>
                     <tbody className="divide-y divide-border">
                       <tr>
-                        <td className="p-3 text-sm">Design Option</td>
-                        <td className="p-3 text-sm">{selectedSubjectOption === "design-myself" ? "Custom Subject" : selectedVisualStyle || "Not selected"}</td>
-                      </tr>
-                      <tr>
                         <td className="p-3 text-sm">Category</td>
                         <td className="p-3 text-sm">{selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name : "Not selected"}</td>
                       </tr>
                       <tr>
                         <td className="p-3 text-sm">Subcategory</td>
-                        <td className="p-3 text-sm">{selectedSubOption || "Not selected"}</td>
+                        <td className="p-3 text-sm">
+                          {(() => {
+                            if (selectedStyle === 'celebrations' && selectedSubOption) {
+                              const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                              return celebOption?.name || selectedSubOption;
+                            } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                              const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                              return popOption?.name || selectedSubOption;
+                            }
+                            return selectedSubOption || "Not selected";
+                          })()}
+                        </td>
                       </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Content Type</td>
-                        <td className="p-3 text-sm">{selectedPick || "Not selected"}</td>
-                      </tr>
+                      {selectedStyle === 'pop-culture' && selectedPick && (
+                        <tr>
+                          <td className="p-3 text-sm">Pop Culture Pick</td>
+                          <td className="p-3 text-sm">{selectedPick}</td>
+                        </tr>
+                      )}
                       <tr>
                         <td className="p-3 text-sm">Tone</td>
-                        <td className="p-3 text-sm">{selectedTextStyle || "Not selected"}</td>
+                        <td className="p-3 text-sm">{selectedTextStyle ? textStyleOptions.find(ts => ts.id === selectedTextStyle)?.name : "Not selected"}</td>
                       </tr>
                       <tr>
-                        <td className="p-3 text-sm">Text Input Method</td>
-                        <td className="p-3 text-sm">{selectedCompletionOption || "Not selected"}</td>
+                        <td className="p-3 text-sm">Final Text</td>
+                        <td className="p-3 text-sm">{selectedGeneratedOption || stepTwoText || "Not generated"}</td>
                       </tr>
                       <tr>
-                        <td className="p-3 text-sm">Generated Text</td>
-                        <td className="p-3 text-sm">{stepTwoText || "Not generated"}</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Word Count</td>
-                        <td className="p-3 text-sm">{stepTwoText ? stepTwoText.split(' ').length : "0"}</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Text Placement</td>
-                        <td className="p-3 text-sm">Auto</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Text Size</td>
-                        <td className="p-3 text-sm">Medium</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Font Choice</td>
-                        <td className="p-3 text-sm">Arial</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Text Color</td>
-                        <td className="p-3 text-sm">Auto</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Background Method</td>
-                        <td className="p-3 text-sm">{selectedSubjectOption === "design-myself" ? "Custom Description" : "Generated"}</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Background Details</td>
-                        <td className="p-3 text-sm">{selectedSubjectOption === "design-myself" ? subjectDescription || "Not provided" : "Auto-generated"}</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Keywords</td>
-                        <td className="p-3 text-sm">{tags.length > 0 ? tags.join(", ") : "No keywords added"}</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Image Style</td>
+                        <td className="p-3 text-sm">Visual Style</td>
                         <td className="p-3 text-sm">{selectedVisualStyle || "Not selected"}</td>
                       </tr>
                       <tr>
                         <td className="p-3 text-sm">Aspect Ratio</td>
-                        <td className="p-3 text-sm">{selectedDimension || "Not selected"}</td>
+                        <td className="p-3 text-sm">
+                          {selectedDimension === "custom" 
+                            ? `${customWidth}x${customHeight}` 
+                            : (dimensionOptions.find(d => d.id === selectedDimension)?.name || "Not selected")
+                          }
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Text Tags</td>
+                        <td className="p-3 text-sm">{tags.length > 0 ? tags.join(", ") : "None"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Visual Tags</td>
+                        <td className="p-3 text-sm">{subjectTags.length > 0 ? subjectTags.join(", ") : "None"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">AI Text Assist</td>
+                        <td className="p-3 text-sm">{selectedCompletionOption === "ai-assist" ? "Yes" : "No"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">AI Visual Assist</td>
+                        <td className="p-3 text-sm">{selectedSubjectOption === "ai-assist" ? "Yes" : "No"}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -6148,7 +6142,17 @@ const Index = () => {
               <div className="space-y-4">
                 <h3 className="text-lg font-medium text-foreground">Generated Prompt</h3>
                 <div className="bg-muted/30 rounded-lg p-6">
-                  <p className="text-muted-foreground italic">No prompt available</p>
+                  {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? (
+                    <p className="text-sm text-foreground font-mono leading-relaxed">
+                      {visualOptions[selectedVisualIndex].prompt}
+                    </p>
+                  ) : selectedSubjectOption === "design-myself" && subjectDescription ? (
+                    <p className="text-sm text-foreground font-mono leading-relaxed">
+                      {subjectDescription}
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground italic">No prompt available</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -6202,14 +6206,32 @@ const Index = () => {
                     ? visualOptions[selectedVisualIndex].prompt 
                     : undefined;
                   
-                  // Build Ideogram handoff payload
+                  // Build comprehensive Ideogram handoff payload
+                  const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+                  const aspectRatio = selectedDimension === "custom" 
+                    ? `${customWidth}x${customHeight}` 
+                    : (dimensionOptions.find(d => d.id === selectedDimension)?.name || "");
+                  
+                  // Get secondary subcategory for pop culture
+                  const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
+                  
                   const ideogramPayload = buildIdeogramHandoff({
+                    // Core parameters
                     visual_style: visualStyle,
                     subcategory: subcategory,
                     tone: tone.toLowerCase(),
                     final_line: finalText,
                     tags_csv: allTags.join(', '),
-                    chosen_visual: chosenVisual
+                    chosen_visual: chosenVisual,
+                    
+                    // Extended parameters
+                    category: categoryName,
+                    subcategory_secondary: subcategorySecondary,
+                    aspect_ratio: aspectRatio,
+                    text_tags_csv: tags.join(', '),
+                    visual_tags_csv: subjectTags.join(', '),
+                    ai_text_assist_used: selectedCompletionOption === "ai-assist",
+                    ai_visual_assist_used: selectedSubjectOption === "ai-assist"
                   });
                   
                   console.log("VIIBE Generated!", {

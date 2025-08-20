@@ -213,4 +213,62 @@ If API fails, use contextual fallbacks that incorporate:
 - Pass selected visual prompt to Ideogram handoff
 - Include visual concept in design_notes field
 
-Done. Paste sections 1 to 16 into Lovable as the "Vibe Maker Model Operating Manual." Wire your middleware to feed the Developer template with live selections, run the post processor, then send the final line to Ideogram with the handoff template.
+## 17. Step 4 Design Summary & Extended Ideogram Handoff
+
+### 17.1 Design Summary Parameters
+The Step 4 Design Summary captures comprehensive parameters for enhanced Ideogram handoff:
+
+**Core Parameters:**
+- **Category**: Main category (Celebrations, Sports, Daily Life, etc.)
+- **Subcategory**: Specific subcategory within chosen category
+- **Pop Culture Pick**: Secondary subcategory (only for pop culture selections)
+- **Tone**: Text style (Humorous, Sarcastic, etc.)
+- **Final Text**: The chosen text content
+- **Visual Style**: Selected visual style (Realistic, Cartoonish, etc.)
+- **Aspect Ratio**: Dimensions or custom size
+
+**Tag Management:**
+- **Text Tags**: User-added tags for text content
+- **Visual Tags**: User-added tags for visual content
+- Combined for overall tags CSV in handoff
+
+**AI Assistance Tracking:**
+- **AI Text Assist**: Whether AI generated text options
+- **AI Visual Assist**: Whether AI generated visual recommendations
+
+### 17.2 Extended Ideogram Handoff Structure
+```typescript
+interface IdeogramHandoff {
+  // Core fields (legacy compatibility)
+  style: string;            // visual_style
+  occasion: string;         // subcategory_primary
+  tone: string;             // tone
+  key_line: string;         // final_line
+  design_notes: string;     // Enhanced with chosen visual and tags
+  reference_tags: string;   // tags_csv
+
+  // Extended fields
+  category: string;
+  subcategory_primary: string;
+  subcategory_secondary?: string;    // Only for pop-culture
+  visual_style: string;
+  aspect_ratio: string;
+  text_tags_csv: string;
+  visual_tags_csv: string;
+  ai_text_assist_used: boolean;
+  ai_visual_assist_used: boolean;
+  chosen_visual?: string;
+}
+```
+
+### 17.3 Enhanced Generated Prompt Display
+- Shows selected visual's prompt for AI-assisted visuals
+- Shows custom description for self-designed visuals
+- Displays "No prompt available" as fallback
+
+### 17.4 Error Handling
+- Console warnings for API fallback usage
+- Graceful degradation with contextual fallbacks
+- Safe handling of missing or invalid selections
+
+Done. Use this comprehensive manual for Vibe Maker implementation with full parameter tracking and enhanced Ideogram integration.
