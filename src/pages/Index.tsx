@@ -4899,7 +4899,7 @@ const Index = () => {
           <>
             <div className="text-center mb-12">
               <h1 className="text-4xl font-bold mb-4 text-[#0db0de]">Choose Your Vibe Text</h1>
-              <p className="text-xl text-muted-foreground">
+              <p className="text-xl text-[#0db0de] italic">
                 {(() => {
                   let breadcrumb = [];
                   
