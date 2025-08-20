@@ -3371,6 +3371,10 @@ const vibesPunchlinesOptions = [{
   name: "Comebacks",
   subtitle: "Witty fast retorts"
 }, {
+  id: "career-jokes",
+  name: "Career Jokes",
+  subtitle: "Work & office humor"
+}, {
   id: "knock-knock-jokes",
   name: "Knock-Knock Jokes",
   subtitle: "Classic \"Who's there\""
