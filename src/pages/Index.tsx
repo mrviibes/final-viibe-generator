@@ -6673,6 +6673,15 @@ const Index = () => {
                         <td className="p-3 text-sm">{selectedVisualStyle || "Not selected"}</td>
                       </tr>
                       <tr>
+                        <td className="p-3 text-sm">Visual Recommendations</td>
+                        <td className="p-3 text-sm">
+                          {selectedRecommendation !== null && visualRecommendations 
+                            ? `Option ${selectedRecommendation + 1}: ${visualRecommendations.options[selectedRecommendation].subject}`
+                            : "Not selected"
+                          }
+                        </td>
+                      </tr>
+                      <tr>
                         <td className="p-3 text-sm">Aspect Ratio</td>
                         <td className="p-3 text-sm">
                           {selectedDimension === "custom" 
