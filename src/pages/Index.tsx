@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,6 +19,7 @@ import { generateVisualRecommendations, VisualOption } from "@/lib/visualModel";
 import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 const styleOptions = [{
   id: "celebrations",
   name: "Celebrations",
@@ -3979,6 +3980,44 @@ const Index = () => {
   const [showProxySettings, setShowProxySettings] = useState(false);
   const [proxySettings, setLocalProxySettings] = useState(() => getProxySettings());
   const [proxyApiKey, setProxyApiKey] = useState('');
+  
+  // Visual AI recommendations state
+  const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<number | null>(null);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+
+  // Generate visual recommendations when reaching step 4
+  useEffect(() => {
+    const generateRecommendations = async () => {
+      if (currentStep === 4 && !visualRecommendations && !isLoadingRecommendations) {
+        setIsLoadingRecommendations(true);
+        try {
+          const recommendations = await generateVisualRecommendations({
+            category: selectedStyle || 'general',
+            subcategory: selectedSubOption || '',
+            tone: selectedTextStyle || 'humorous',
+            tags: tags,
+            visualStyle: selectedVisualStyle || undefined,
+            finalLine: selectedGeneratedOption || undefined
+          });
+          setVisualRecommendations(recommendations);
+        } catch (error) {
+          console.error('Failed to generate visual recommendations:', error);
+          const { toast } = useToast();
+          toast({
+            title: "Error",
+            description: "Failed to generate visual recommendations",
+            variant: "destructive"
+          });
+        }
+        setIsLoadingRecommendations(false);
+      }
+    };
+
+    generateRecommendations();
+  }, [currentStep, visualRecommendations, isLoadingRecommendations, selectedStyle, selectedSubOption, selectedTextStyle, tags, selectedVisualStyle, selectedGeneratedOption]);
+  
+  // Visual AI recommendations state
   const [isTestingProxy, setIsTestingProxy] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -4342,8 +4381,14 @@ const Index = () => {
         ai_visual_assist_used: selectedSubjectOption === "ai-assist"
       });
 
-      // Use direct prompt if provided, otherwise build from structured inputs
-      const prompt = directPrompt.trim() || buildIdeogramPrompt(ideogramPayload);
+      // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
+      let prompt = directPrompt.trim();
+      if (!prompt && selectedRecommendation !== null && visualRecommendations) {
+        prompt = visualRecommendations.options[selectedRecommendation].prompt;
+      }
+      if (!prompt) {
+        prompt = buildIdeogramPrompt(ideogramPayload);
+      }
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
       const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
 
@@ -6172,6 +6217,97 @@ const Index = () => {
             </div>
             
             <div className="max-w-4xl mx-auto space-y-8">
+              {/* Visual AI Recommendations Section */}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <h3 className="text-xl font-medium text-foreground mb-2">Visual AI recommendations</h3>
+                  <p className="text-muted-foreground">Choose one of these AI-generated concepts</p>
+                </div>
+
+                {isLoadingRecommendations ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="flex flex-col items-center gap-4">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <p className="text-muted-foreground">Generating visual recommendations...</p>
+                    </div>
+                  </div>
+                ) : visualRecommendations ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {visualRecommendations.options.map((option: any, index: number) => (
+                      <Card 
+                        key={index}
+                        className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 ${
+                          selectedRecommendation === index 
+                            ? 'border-primary bg-primary/5 shadow-md' 
+                            : 'hover:bg-accent/50'
+                        }`}
+                        onClick={() => setSelectedRecommendation(index)}
+                      >
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                              Option {index + 1}
+                              {selectedRecommendation === index && (
+                                <span className="text-primary">✓</span>
+                              )}
+                            </CardTitle>
+                            <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                              {option.slot?.replace('-', '+') || 'Unknown'}
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div>
+                            <h4 className="font-medium text-sm text-foreground mb-1">
+                              {option.subject}
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {option.background}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Unable to generate visual recommendations</p>
+                  </div>
+                )}
+
+                {/* Selected Recommendation Display */}
+                {selectedRecommendation !== null && visualRecommendations && (
+                  <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Card className="border-primary bg-primary/5">
+                      <CardHeader>
+                        <CardTitle className="text-lg text-primary flex items-center gap-2">
+                          Selected Concept
+                          <span className="text-sm">✓</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <p className="font-medium text-foreground">
+                            {visualRecommendations.options[selectedRecommendation].subject}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {visualRecommendations.options[selectedRecommendation].background}
+                          </p>
+                          <div className="text-center mt-3">
+                            <button 
+                              onClick={() => setSelectedRecommendation(null)}
+                              className="text-xs text-primary hover:text-primary/80 underline transition-colors"
+                            >
+                              Change selection
+                            </button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </div>
+
               {/* Preview Section */}
               <div className="space-y-4">
                 {/* Direct Prompt Input */}
