@@ -4182,10 +4182,12 @@ const Index = () => {
     // Visual AI Recommendation selection
     if (selectedVisualIndex !== null && visualOptions[selectedVisualIndex]) {
       const option = visualOptions[selectedVisualIndex];
+      const optionTitle = `Option ${selectedVisualIndex + 1} (${option.slot?.replace('-', ' ') || 'Visual'})`;
+      const compactDescription = `${option.subject} - ${option.background}`;
+      
       selections.push({
-        title: `Visual AI Recommendation: Option ${selectedVisualIndex + 1}`,
-        subtitle: option.subject,
-        description: option.background,
+        title: optionTitle,
+        subtitle: compactDescription,
         onChangeSelection: () => {
           setSelectedVisualIndex(null);
           setSelectedDimension(null);
@@ -5788,32 +5790,22 @@ const Index = () => {
                                 <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
                               </div>
                               
-                              <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
+                                <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
                                 {visualOptions.map((option, index) => (
                                   <Card 
                                     key={index}
                                     className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50"
                                     onClick={() => setSelectedVisualIndex(index)}
                                   >
-                                     <CardHeader className="pb-3">
-                                       <CardTitle className="text-base font-semibold flex items-center justify-between text-card-foreground">
-                                         <div className="flex flex-col items-start">
-                                           <span>Option {index + 1}</span>
-                                           {option.slot && (
-                                             <span className="text-xs font-normal text-muted-foreground capitalize">
-                                               {option.slot.replace('-', ' ')}
-                                             </span>
-                                           )}
-                                         </div>
+                                     <CardHeader className="pb-2">
+                                       <CardTitle className="text-base font-semibold text-card-foreground">
+                                         Option {index + 1} ({option.slot?.replace('-', ' ') || 'Visual'})
                                        </CardTitle>
                                      </CardHeader>
-                                    <CardContent className="space-y-2">
-                                      <div>
-                                        <p className="text-sm font-medium text-foreground">{truncateWords(option.subject, 5)}</p>
-                                      </div>
-                                      <div>
-                                        <p className="text-sm text-muted-foreground">{truncateWords(option.background, 10)}</p>
-                                      </div>
+                                    <CardContent className="pt-0">
+                                      <p className="text-sm text-muted-foreground line-clamp-2">
+                                        {option.subject} - {option.background}
+                                      </p>
                                     </CardContent>
                                   </Card>
                                 ))}
