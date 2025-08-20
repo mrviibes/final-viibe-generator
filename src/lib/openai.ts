@@ -55,6 +55,7 @@ export class OpenAIService {
   async chatJSON(messages: Array<{role: string; content: string}>, options: {
     temperature?: number;
     max_tokens?: number;
+    max_completion_tokens?: number;
     model?: string;
   } = {}): Promise<any> {
     if (!this.apiKey) {
@@ -64,8 +65,13 @@ export class OpenAIService {
     const {
       temperature = 0.8,
       max_tokens = 60,
+      max_completion_tokens,
       model = 'gpt-4o-mini'
     } = options;
+
+    // Use max_completion_tokens if provided, otherwise use max_tokens
+    const tokenLimit = max_completion_tokens || max_tokens;
+    const tokenParameter = max_completion_tokens ? 'max_completion_tokens' : 'max_tokens';
 
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
@@ -76,7 +82,7 @@ export class OpenAIService {
       body: JSON.stringify({
         model,
         messages,
-        max_tokens,
+        [tokenParameter]: tokenLimit,
         temperature,
         response_format: { type: "json_object" }
       }),

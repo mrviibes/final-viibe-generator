@@ -97,7 +97,7 @@ Output only this JSON format:
     
     const result = await openAIService.chatJSON(messages, {
       temperature: 0.8,
-      max_tokens: 300,
+      max_completion_tokens: 300,
       model: 'gpt-5-2025-08-07'
     });
     
