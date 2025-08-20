@@ -4834,32 +4834,39 @@ const Index = () => {
                 </div>;
         })()}
           </> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Selected Style Card */}
-            <div className="mb-8 selected-card">
-              <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                    {styleOptions.find(s => s.id === selectedStyle)?.name}
-                    <span className="text-sm">✓</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm text-muted-foreground text-center">
-                    {styleOptions.find(s => s.id === selectedStyle)?.description}
-                  </CardDescription>
-                  <div className="text-center mt-3">
-                    <button onClick={() => {
+            {/* Combined Category and Subcategory Selection Card */}
+            {(() => {
+              const selectedStyleData = styleOptions.find(s => s.id === selectedStyle);
+              const selections = [{
+                title: selectedStyleData?.name || '',
+                subtitle: selectedStyleData?.description || '',
+                onChangeSelection: () => {
                   setSelectedStyle(null);
                   setSelectedSubOption(null);
                   setSelectedPick(null);
                   setSubOptionSearchTerm("");
-                }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                      Change selection
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                }
+              }];
+              
+              // Add subcategory selection if it exists
+              if (selectedSubOption) {
+                selections.push({
+                  title: selectedSubOption,
+                  subtitle: selectedStyle === 'celebrations' ? 'Selected celebration' :
+                           selectedStyle === 'sports' ? 'Selected sport' :
+                           selectedStyle === 'daily-life' ? 'Selected daily life activity' :
+                           selectedStyle === 'vibes-punchlines' ? 'Selected vibe' :
+                           selectedStyle === 'pop-culture' ? 'Selected pop culture' : 'Selected option',
+                  onChangeSelection: () => {
+                    setSelectedSubOption(null);
+                    setSelectedPick(null);
+                    setSubOptionSearchTerm("");
+                  }
+                });
+              }
+              
+              return <StackedSelectionCard selections={selections} />;
+            })()}
 
             {/* Celebrations Dropdown - Only show for celebrations style */}
             {selectedStyle === "celebrations" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -4916,34 +4923,7 @@ const Index = () => {
                       </ScrollArea>
                     </Card>}
                 </div>
-              </div> : selectedStyle === "celebrations" && selectedSubOption ? <div className="flex flex-col items-stretch">
-                 {/* Selected Celebration Card */}
-                 <div className="mb-8 selected-card">
-                   <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                    <CardHeader className="pb-3">
-                       <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                         {selectedSubOption}
-                         <span className="text-sm">✓</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-sm text-muted-foreground text-center">
-                        Selected celebration
-                      </CardDescription>
-                      <div className="text-center mt-3">
-                        <button onClick={() => {
-                    setSelectedSubOption(null);
-                    setSelectedPick(null);
-                    setSubOptionSearchTerm("");
-                  }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                          Change celebration
-                        </button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-              </div> : selectedStyle === "sports" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               </div> : selectedStyle === "sports" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
                   <p className="text-xl text-muted-foreground">Choose a specific sport</p>
                 </div>
@@ -5051,58 +5031,6 @@ const Index = () => {
                       </ScrollArea>
                     </Card>}
                 </div>
-              </div> : selectedStyle === "daily-life" && selectedSubOption ? <div className="flex flex-col items-stretch">
-                 {/* Selected Daily Life Card */}
-                 <div className="mb-8 selected-card">
-                   <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                    <CardHeader className="pb-3">
-                       <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                         {selectedSubOption}
-                         <span className="text-sm">✓</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-sm text-muted-foreground text-center">
-                        Selected daily life activity
-                      </CardDescription>
-                      <div className="text-center mt-3">
-                        <button onClick={() => {
-                    setSelectedSubOption(null);
-                    setSubOptionSearchTerm("");
-                  }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                          Change activity
-                        </button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-              </div> : selectedStyle === "sports" && selectedSubOption ? <div className="flex flex-col items-stretch">
-                 {/* Selected Sport Card */}
-                 <div className="mb-8 selected-card">
-                   <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                    <CardHeader className="pb-3">
-                       <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                         {selectedSubOption}
-                         <span className="text-sm">✓</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-sm text-muted-foreground text-center">
-                        Selected sport
-                      </CardDescription>
-                      <div className="text-center mt-3">
-                        <button onClick={() => {
-                    setSelectedSubOption(null);
-                    setSubOptionSearchTerm("");
-                  }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                          Change sport
-                        </button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
               </div> : selectedStyle === "vibes-punchlines" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
                   <p className="text-xl text-muted-foreground">Choose a specific vibe or punchline style</p>
@@ -5162,35 +5090,6 @@ const Index = () => {
                       </ScrollArea>
                     </Card>}
                 </div>
-              </div> : selectedStyle === "vibes-punchlines" && selectedSubOption ? <div className="flex flex-col items-stretch">
-                {/* Selected Vibe/Punchline Card */}
-                <div className="mb-8 selected-card">
-                  <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                    <CardHeader className="pb-3">
-                     <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                       {selectedSubOption}
-                       <span className="text-sm">✓</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-sm text-muted-foreground text-center">
-                        {(() => {
-                          const selectedVibe = vibesPunchlinesOptions.find(vibe => vibe.name === selectedSubOption);
-                          return selectedVibe ? selectedVibe.subtitle : "Selected vibe/punchline";
-                        })()}
-                      </CardDescription>
-                      <div className="text-center mt-3">
-                        <button onClick={() => {
-                    setSelectedSubOption(null);
-                    setSubOptionSearchTerm("");
-                  }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                          Change
-                        </button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
               </div> : selectedStyle === "pop-culture" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
                   <p className="text-xl text-muted-foreground">Choose a specific pop culture topic</p>
@@ -5248,183 +5147,6 @@ const Index = () => {
                       </ScrollArea>
                     </Card>}
                 </div>
-              </div> : selectedStyle === "pop-culture" && selectedSubOption ? <div className="flex flex-col items-stretch">
-                {/* Selected Pop Culture Card */}
-                <div className="mb-8 selected-card">
-                  <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                    <CardHeader className="pb-3">
-                     <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                       {selectedSubOption}
-                       <span className="text-sm">✓</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-sm text-muted-foreground text-center">
-                        {(() => {
-                          const selectedPopCulture = popCultureOptions.find(item => item.name === selectedSubOption);
-                          return selectedPopCulture ? selectedPopCulture.subtitle : "Selected pop culture topic";
-                        })()}
-                      </CardDescription>
-                      <div className="text-center mt-3">
-                        <button onClick={() => {
-                    setSelectedSubOption(null);
-                    setSelectedPick(null);
-                    setSubOptionSearchTerm("");
-                  }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                          Change topic
-                        </button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Search Box for Pop Culture - Only show when no selection is made */}
-                {!selectedPick && (
-                  <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="text-center mb-6">
-                      <p className="text-xl text-muted-foreground">Search within {selectedSubOption}</p>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {/* Search Input */}
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input 
-                          value={finalSearchTerm} 
-                          onChange={e => handleSearchInputChange(e.target.value)} 
-                          onFocus={() => setIsFinalSearchFocused(true)} 
-                          onBlur={() => {
-                            // Delay hiding to allow clicks to complete
-                            setTimeout(() => setIsFinalSearchFocused(false), 150);
-                          }} 
-                          placeholder={`Search ${selectedSubOption.toLowerCase()}...`} 
-                          className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" 
-                        />
-                        {isSearching && (
-                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Search Results */}
-                      {(isFinalSearchFocused || finalSearchTerm.length > 0) && finalSearchTerm.trim() && (
-                        <Card className="max-h-96 overflow-hidden bg-card border-border z-50">
-                          <ScrollArea className="h-full">
-                            <div className="p-4 space-y-2">
-                              {/* Error State */}
-                              {searchError && (
-                                <div className="p-3 rounded-lg border border-destructive/20 bg-destructive/5 flex items-center gap-2">
-                                  <AlertCircle className="h-4 w-4 text-destructive" />
-                                  <p className="text-sm text-destructive">{searchError}</p>
-                                </div>
-                              )}
-
-                              {/* Loading State */}
-                              {isSearching && !searchError && (
-                                <div className="p-3 rounded-lg border border-dashed border-border bg-card flex items-center gap-2">
-                                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                                  <p className="text-sm text-muted-foreground">
-                                    Searching {selectedSubOption.toLowerCase()}...
-                                  </p>
-                                </div>
-                              )}
-
-                              {/* AI Results */}
-                              {searchResults.length > 0 && !isSearching && (
-                                <>
-                                  {searchResults.map((result, index) => (
-                                     <div 
-                                       key={index}
-                                       onClick={e => {
-                                         console.log('AI result clicked:', result.title);
-                                         e.preventDefault();
-                                         e.stopPropagation();
-                                         setSelectedPick(result.title);
-                                         setIsFinalSearchFocused(false);
-                                         setFinalSearchTerm("");
-                                         setSearchResults([]);
-                                         setIsSearching(false);
-                                         setSearchError(null);
-                                       }} 
-                                       className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors bg-card"
-                                     >
-                                      <div className="flex items-start gap-3">
-                                        <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                          <span className="text-xs font-bold text-primary">AI</span>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-sm font-medium text-card-foreground mb-1">
-                                            {result.title}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground line-clamp-2">
-                                            {result.description}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </>
-                              )}
-
-                              {/* Manual Search Option */}
-                              {!isSearching && (
-                                <div 
-                                  onClick={e => {
-                                    console.log('Manual search clicked:', finalSearchTerm.trim());
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setSelectedPick(finalSearchTerm.trim());
-                                    setIsFinalSearchFocused(false);
-                                    setFinalSearchTerm("");
-                                    setSearchResults([]);
-                                    setIsSearching(false);
-                                    setSearchError(null);
-                                  }} 
-                                  className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2 bg-card"
-                                >
-                                  <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
-                                    <span className="text-xs font-bold text-muted-foreground">+</span>
-                                  </div>
-                                  <p className="text-sm font-medium text-card-foreground">
-                                    Search for "{finalSearchTerm.trim()}" in {selectedSubOption}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </ScrollArea>
-                        </Card>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Selected Pick Card for Pop Culture */}
-                {selectedPick && (
-                  <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                          {selectedPick}
-                          <span className="text-sm">✓</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <CardDescription className="text-sm text-muted-foreground text-center">
-                          Selected pick from {selectedSubOption}
-                        </CardDescription>
-                        <div className="text-center mt-3">
-                          <button onClick={() => {
-                            setSelectedPick(null);
-                          }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                            Change selection
-                          </button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-
               </div> : selectedStyle === "random" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
                   <p className="text-xl text-muted-foreground">Ready to create your text</p>
@@ -5443,32 +5165,6 @@ const Index = () => {
                   <p className="text-sm text-muted-foreground mt-4">
                     No specific category selected - let's create your text
                   </p>
-                </div>
-              </div> : selectedStyle === "random" && selectedSubOption ? <div className="flex flex-col items-stretch">
-                {/* Selected Custom Topic Card */}
-                <div className="mb-8 selected-card">
-                  <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                    <CardHeader className="pb-3">
-                     <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                       {selectedSubOption}
-                       <span className="text-sm">✓</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-sm text-muted-foreground text-center">
-                        Selected custom topic
-                      </CardDescription>
-                      <div className="text-center mt-3">
-                        <button onClick={() => {
-                          setSelectedSubOption(null);
-                          setSelectedPick(null);
-                          setSubOptionSearchTerm("");
-                        }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                          Change topic
-                        </button>
-                      </div>
-                    </CardContent>
-                  </Card>
                 </div>
               </div> : null}
 
