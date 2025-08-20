@@ -64,14 +64,14 @@ Pop Culture Movies, Savage: {"line":"Jesse's head shinier than Zohan's silky smo
 Pop Culture Movies, Humorous: {"line":"Even Zohan couldn't save Jesse's hairline from retirement."}`;
 
 export const fallbackByTone: Record<string, string> = {
-  humorous: "Happy birthday. New level unlocked.",
-  savage: "Another year older. Still late to cake.",
-  sentimental: "Happy birthday. You matter to me.",
-  nostalgic: "Happy birthday. Remember when we were young?",
-  romantic: "Happy birthday. You make every day better.",
-  inspirational: "Happy birthday. Another year of greatness ahead.",
-  playful: "Happy birthday. Cake speedrun now.",
-  serious: "Happy birthday. Wishing you a strong year."
+  humorous: "Short and witty like you asked",
+  savage: "Bold and direct as requested",
+  sentimental: "Heartfelt message coming right up",
+  nostalgic: "Memory lane vibes activated",
+  romantic: "Sweet words in progress",
+  inspirational: "Motivational mode engaged",
+  playful: "Fun and light as ordered",
+  serious: "Thoughtful message loading"
 };
 
 // Banned patterns and words

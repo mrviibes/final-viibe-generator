@@ -74,19 +74,26 @@ export class OpenAIService {
     const tokenLimit = max_completion_tokens || max_tokens;
     const tokenParameter = isGPT5Model ? 'max_completion_tokens' : 'max_tokens';
 
+    // Build request body - GPT-5 models don't accept temperature parameter
+    const requestBody: any = {
+      model,
+      messages,
+      [tokenParameter]: tokenLimit,
+      response_format: { type: "json_object" }
+    };
+
+    // Only add temperature for non-GPT-5 models
+    if (!isGPT5Model) {
+      requestBody.temperature = temperature;
+    }
+
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify({
-        model,
-        messages,
-        [tokenParameter]: tokenLimit,
-        temperature,
-        response_format: { type: "json_object" }
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
