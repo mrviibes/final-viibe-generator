@@ -4297,31 +4297,46 @@ const Index = () => {
     setGeneratedImageUrl(null);
 
     try {
-      // Build the handoff data with parameters you provided
-      const finalText = "Birthdays are not just milestones; theyre the canvas for your dreams to paint the future ahead.";
-      const categoryName = "Celebrations";
-      const subcategory = "Birthday";
-      const tone = "Inspirational";
-      const visualStyle = "realistic";
-      const aspectRatio = "Landscape";
-      const textTags = "";
-      const visualTags = "amazing balloons";
-      const chosenVisual = "put final visual image here";
+      // Build the handoff data using actual form values
+      const finalText = selectedGeneratedOption || stepTwoText || "";
+      const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+      const subcategory = (() => {
+        if (selectedStyle === 'celebrations' && selectedSubOption) {
+          const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+          return celebOption?.name || selectedSubOption;
+        } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+          const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+          return popOption?.name || selectedSubOption;
+        }
+        return selectedSubOption || 'general';
+      })();
+      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+      const tone = selectedTextStyleObj?.name || 'Humorous';
+      const visualStyle = selectedVisualStyle || "realistic";
+      const aspectRatio = selectedDimension === "custom" 
+        ? `${customWidth}x${customHeight}` 
+        : (dimensionOptions.find(d => d.id === selectedDimension)?.name || "Landscape");
+      const textTagsStr = tags.join(', ') || "None";
+      const visualTagsStr = subjectTags.join(', ') || "None";
+      const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
+        ? visualOptions[selectedVisualIndex].prompt 
+        : (selectedSubjectOption === "design-myself" && subjectDescription ? subjectDescription : "");
+      const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
 
       const ideogramPayload = buildIdeogramHandoff({
         visual_style: visualStyle,
         subcategory: subcategory,
         tone: tone.toLowerCase(),
         final_line: finalText,
-        tags_csv: [textTags, visualTags].filter(Boolean).join(', '),
+        tags_csv: [textTagsStr, visualTagsStr].filter(tag => tag !== "None").join(', '),
         chosen_visual: chosenVisual,
         category: categoryName,
-        subcategory_secondary: undefined,
+        subcategory_secondary: subcategorySecondary,
         aspect_ratio: aspectRatio,
-        text_tags_csv: textTags || "None",
-        visual_tags_csv: visualTags,
-        ai_text_assist_used: true,
-        ai_visual_assist_used: true
+        text_tags_csv: textTagsStr,
+        visual_tags_csv: visualTagsStr,
+        ai_text_assist_used: selectedCompletionOption === "ai-assist",
+        ai_visual_assist_used: selectedSubjectOption === "ai-assist"
       });
 
       const prompt = buildIdeogramPrompt(ideogramPayload);
