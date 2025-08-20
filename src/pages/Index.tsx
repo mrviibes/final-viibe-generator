@@ -3938,6 +3938,7 @@ const Index = () => {
   const [subjectTagInput, setSubjectTagInput] = useState<string>("");
   const [isGeneratingSubject, setIsGeneratingSubject] = useState<boolean>(false);
   const [subjectDescription, setSubjectDescription] = useState<string>("");
+  const [isSubjectDescriptionConfirmed, setIsSubjectDescriptionConfirmed] = useState<boolean>(false);
   const [selectedDimension, setSelectedDimension] = useState<string | null>(null);
   const [customWidth, setCustomWidth] = useState<string>("");
   const [customHeight, setCustomHeight] = useState<string>("");
@@ -4003,7 +4004,14 @@ const Index = () => {
 
   // Helper function to check if Step 3 is complete
   const isStep3Complete = (): boolean => {
-    return !!(selectedVisualStyle && selectedSubjectOption);
+    if (!selectedVisualStyle || !selectedSubjectOption) return false;
+    
+    // If Design Myself is selected, require confirmed description
+    if (selectedSubjectOption === "design-myself") {
+      return subjectDescription.trim().length > 0 && isSubjectDescriptionConfirmed;
+    }
+    
+    return true;
   };
 
   // Helper function to check if Step 4 is complete
@@ -5432,6 +5440,8 @@ const Index = () => {
                         <button onClick={() => {
                           setSelectedVisualStyle(null);
                           setSelectedSubjectOption(null);
+                          setIsSubjectDescriptionConfirmed(false);
+                          setSubjectDescription("");
                         }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                           Change selection
                         </button>
@@ -5489,6 +5499,7 @@ const Index = () => {
                               setSubjectTags([]);
                               setSubjectTagInput("");
                               setSubjectDescription("");
+                              setIsSubjectDescriptionConfirmed(false);
                             }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                               Change selection
                             </button>
@@ -5553,8 +5564,33 @@ const Index = () => {
                       </div>
                     )}
 
+                    {/* Show confirmed subject description when saved */}
+                    {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && (
+                      <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                              Custom Visual Description ✓
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <CardDescription className="text-sm text-muted-foreground text-center">
+                              "{subjectDescription}"
+                            </CardDescription>
+                            <div className="text-center mt-3">
+                              <button onClick={() => {
+                                setIsSubjectDescriptionConfirmed(false);
+                              }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                                Change description
+                              </button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    )}
+
                     {/* Subject description form for Design Myself */}
-                    {selectedSubjectOption === "design-myself" && (
+                    {selectedSubjectOption === "design-myself" && !isSubjectDescriptionConfirmed && (
                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-8">
                           <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Describe the visuals of your Viibe (100 characters max)</h2>
@@ -5585,6 +5621,21 @@ const Index = () => {
                               </div>
                             )}
                           </div>
+                          
+                          {/* Use this text button */}
+                          {subjectDescription.trim().length > 0 && (
+                            <div className="flex justify-end mt-4">
+                              <Button 
+                                variant="brand"
+                                className="px-6 py-2 text-sm font-medium rounded-lg"
+                                onClick={() => {
+                                  setIsSubjectDescriptionConfirmed(true);
+                                }}
+                              >
+                                Use this text
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
