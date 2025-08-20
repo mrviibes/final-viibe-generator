@@ -3919,6 +3919,7 @@ const Index = () => {
   const [subjectTags, setSubjectTags] = useState<string[]>([]);
   const [subjectTagInput, setSubjectTagInput] = useState<string>("");
   const [isGeneratingSubject, setIsGeneratingSubject] = useState<boolean>(false);
+  const [subjectDescription, setSubjectDescription] = useState<string>("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState<string>("");
   const [wordCount, setWordCount] = useState<string>("10");
@@ -5367,6 +5368,7 @@ const Index = () => {
                               setSelectedSubjectOption(null);
                               setSubjectTags([]);
                               setSubjectTagInput("");
+                              setSubjectDescription("");
                             }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                               Change selection
                             </button>
@@ -5427,6 +5429,24 @@ const Index = () => {
                               )}
                             </Button>
                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Subject description form for Design Myself */}
+                    {selectedSubjectOption === "design-myself" && (
+                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="text-center mb-8">
+                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Write your own subject description</h2>
+                        </div>
+
+                        <div className="max-w-lg mx-auto">
+                          <Textarea
+                            value={subjectDescription}
+                            onChange={(e) => setSubjectDescription(e.target.value)}
+                            placeholder="Describe what you want to see in your image..."
+                            className="min-h-[150px] text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 text-base font-medium rounded-lg resize-none"
+                          />
                         </div>
                       </div>
                     )}
