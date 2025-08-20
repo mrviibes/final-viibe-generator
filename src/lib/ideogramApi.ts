@@ -242,6 +242,19 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
     );
   }
   
+  // Check for common content filtering keywords that might cause issues
+  const contentFilteringKeywords = ['marijuana', 'cannabis', 'weed', 'joint', 'drug', 'smoking'];
+  const hasFilteredContent = contentFilteringKeywords.some(keyword => 
+    request.prompt.toLowerCase().includes(keyword)
+  );
+  
+  if (hasFilteredContent) {
+    throw new IdeogramAPIError(
+      'Content may have been flagged by content filters. Try using different words or themes to test if the API is working.',
+      400
+    );
+  }
+  
   throw new IdeogramAPIError(
     `All connection methods failed. Last error: ${lastError?.message || 'Unknown error'}`
   );
