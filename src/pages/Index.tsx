@@ -12,6 +12,7 @@ import { ApiKeyDialog } from "@/components/ApiKeyDialog";
 import { IdeogramKeyDialog } from "@/components/IdeogramKeyDialog";
 import { ProxySettingsDialog } from "@/components/ProxySettingsDialog";
 import { StepProgress } from "@/components/StepProgress";
+import { StackedSelectionCard } from "@/components/StackedSelectionCard";
 import { useNavigate } from "react-router-dom";
 import { generateCandidates, VibeResult } from "@/lib/vibeModel";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
@@ -4076,6 +4077,74 @@ const Index = () => {
     if (words.length <= maxWords) return text;
     return words.slice(0, maxWords).join(' ') + '...';
   };
+
+  // Helper function to build selections for StackedSelectionCard
+  const buildSelections = () => {
+    const selections = [];
+
+    // Visual Style selection
+    if (selectedVisualStyle) {
+      const visualStyle = visualStyleOptions.find(s => s.id === selectedVisualStyle);
+      selections.push({
+        title: `Visual Style: ${visualStyle?.name}`,
+        description: visualStyle?.description,
+        onChangeSelection: () => {
+          setSelectedVisualStyle(null);
+          setSelectedSubjectOption(null);
+          setIsSubjectDescriptionConfirmed(false);
+          setSubjectDescription("");
+        }
+      });
+    }
+
+    // Subject Option selection
+    if (selectedSubjectOption) {
+      const subjectOption = subjectOptions.find(s => s.id === selectedSubjectOption);
+      selections.push({
+        title: `Subject Option: ${subjectOption?.name}`,
+        description: subjectOption?.description,
+        onChangeSelection: () => {
+          setSelectedSubjectOption(null);
+          setSubjectTags([]);
+          setSubjectTagInput("");
+          setSubjectDescription("");
+          setIsSubjectDescriptionConfirmed(false);
+          setVisualOptions([]);
+          setSelectedVisualIndex(null);
+        }
+      });
+    }
+
+    // Visual AI Recommendation selection
+    if (selectedVisualIndex !== null && visualOptions[selectedVisualIndex]) {
+      const option = visualOptions[selectedVisualIndex];
+      selections.push({
+        title: `Visual AI Recommendation: Option ${selectedVisualIndex + 1}`,
+        subtitle: truncateWords(option.subject, 5),
+        description: truncateWords(option.background, 10),
+        onChangeSelection: () => setSelectedVisualIndex(null)
+      });
+    }
+
+    // Dimensions selection
+    if (selectedDimension) {
+      const dimension = dimensionOptions.find(d => d.id === selectedDimension);
+      const title = selectedDimension === "custom" 
+        ? `Dimensions: ${customWidth}x${customHeight}`
+        : `Dimensions: ${dimension?.name}`;
+      selections.push({
+        title,
+        description: dimension?.description,
+        onChangeSelection: () => {
+          setSelectedDimension(null);
+          setCustomWidth("");
+          setCustomHeight("");
+        }
+      });
+    }
+
+    return selections;
+  };
   
   // Add timeout ref for search debouncing
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
@@ -5890,33 +5959,9 @@ const Index = () => {
                 ))}
               </div>
             ) : (
-              /* Show selected visual style card and subject options */
+              /* Show StackedSelectionCard and subject options */
               <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="mb-8 selected-card">
-                  <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                        {visualStyleOptions.find(s => s.id === selectedVisualStyle)?.name}
-                        <span className="text-sm">✓</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-sm text-muted-foreground text-center">
-                        {visualStyleOptions.find(s => s.id === selectedVisualStyle)?.description}
-                      </CardDescription>
-                      <div className="text-center mt-3">
-                        <button onClick={() => {
-                          setSelectedVisualStyle(null);
-                          setSelectedSubjectOption(null);
-                          setIsSubjectDescriptionConfirmed(false);
-                          setSubjectDescription("");
-                        }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                          Change selection
-                        </button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                <StackedSelectionCard selections={buildSelections()} />
 
                 {/* Subject options selection */}
                 {!selectedSubjectOption ? (
@@ -5946,37 +5991,8 @@ const Index = () => {
                     </div>
                   </div>
                 ) : (
-                  /* Show selected subject option and subject generation form if AI Assist */
+                  /* Show subject generation form if AI Assist */
                   <div className="space-y-6">
-                    {/* Selected subject option card */}
-                    <div className="selected-card">
-                      <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                            {subjectOptions.find(s => s.id === selectedSubjectOption)?.name}
-                            <span className="text-sm">✓</span>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <CardDescription className="text-sm text-muted-foreground text-center">
-                            {subjectOptions.find(s => s.id === selectedSubjectOption)?.description}
-                          </CardDescription>
-                          <div className="text-center mt-3">
-                            <button onClick={() => {
-                              setSelectedSubjectOption(null);
-                              setSubjectTags([]);
-                              setSubjectTagInput("");
-                              setSubjectDescription("");
-                              setIsSubjectDescriptionConfirmed(false);
-                              setVisualOptions([]);
-                              setSelectedVisualIndex(null);
-                            }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">,
-                              Change selection
-                            </button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
 
                     {/* Subject generation form for AI Assist */}
                     {selectedSubjectOption === "ai-assist" && (
@@ -6072,50 +6088,7 @@ const Index = () => {
                             </div>
                           )}
 
-                          {/* Selected Visual Option Display */}
-                          {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] && (
-                            <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              <div className="text-center mb-6">
-                                <h3 className="text-xl font-semibold text-foreground mb-2">Selected Visual Concept</h3>
-                                <p className="text-sm text-muted-foreground">Your chosen AI-generated concept</p>
-                              </div>
-                              
-                              <div className="max-w-md mx-auto">
-                                <Card className="border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                                  <CardHeader className="pb-3">
-                                    <CardTitle className="text-base font-semibold flex items-center justify-between text-[#0db0de]">
-                                      <div className="flex flex-col items-start">
-                                        <span>Option {selectedVisualIndex + 1}</span>
-                                        {visualOptions[selectedVisualIndex].slot && (
-                                          <span className="text-xs font-normal text-muted-foreground capitalize">
-                                            {visualOptions[selectedVisualIndex].slot.replace('-', ' ')}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <span className="text-sm">✓</span>
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2">
-                                    <div>
-                                      <p className="text-sm font-medium text-foreground">{truncateWords(visualOptions[selectedVisualIndex].subject, 5)}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-sm text-muted-foreground">{truncateWords(visualOptions[selectedVisualIndex].background, 10)}</p>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                                
-                                <div className="mt-4 text-center">
-                                  <button 
-                                    onClick={() => setSelectedVisualIndex(null)} 
-                                    className="text-xs text-primary hover:text-primary/80 underline transition-colors"
-                                  >
-                                    Change selection
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
+                          {/* Visual AI recommendations are handled by StackedSelectionCard */}
                         </div>
                       </div>
                     )}
@@ -6319,31 +6292,6 @@ const Index = () => {
                       </div>
                     ) : (
                       <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="mb-8 selected-card">
-                          <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                                {dimensionOptions.find(d => d.id === selectedDimension)?.name}
-                                <span className="text-sm">✓</span>
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <CardDescription className="text-sm text-muted-foreground text-center">
-                                {dimensionOptions.find(d => d.id === selectedDimension)?.description}
-                              </CardDescription>
-                              <div className="text-center mt-3">
-                                <button onClick={() => {
-                                  setSelectedDimension(null);
-                                  setCustomWidth("");
-                                  setCustomHeight("");
-                                }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                                  Change selection
-                                </button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-
                         {/* Custom dimension inputs */}
                         {selectedDimension === "custom" && (
                           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
