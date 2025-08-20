@@ -5863,8 +5863,8 @@ const Index = () => {
               <div className="text-center">
                 <Button
                   onClick={() => {
-                    // Navigate to finished page with all the data
-                    const viibeData = {
+                    // Show success message or reset to beginning
+                    console.log("VIIBE Generated!", {
                       category: selectedStyle || "",
                       subcategory: selectedSubOption || "",
                       pick: selectedPick || "",
@@ -5879,8 +5879,9 @@ const Index = () => {
                       customHeight: customHeight || "",
                       tags: tags.join(", "),
                       subjectTags: subjectTags.join(", ")
-                    };
-                    navigate('/finished', { state: viibeData });
+                    });
+                    // You can add your VIIBE generation logic here
+                    alert("VIIBE Generated Successfully!");
                   }}
                   className="bg-[#0db0de] hover:bg-[#0db0de]/90 text-white px-8 py-3 text-lg"
                 >
@@ -5913,8 +5914,8 @@ const Index = () => {
               }
               onClick={() => {
                 if (currentStep === 4 && isStep4Complete()) {
-                  // Navigate to finished page with all the data
-                  const viibeData = {
+                  // Show success message or reset to beginning
+                  console.log("VIIBE Generated!", {
                     category: selectedStyle || "",
                     subcategory: selectedSubOption || "",
                     pick: selectedPick || "",
@@ -5929,8 +5930,9 @@ const Index = () => {
                     customHeight: customHeight || "",
                     tags: tags.join(", "),
                     subjectTags: subjectTags.join(", ")
-                  };
-                  navigate('/finished', { state: viibeData });
+                  });
+                  // You can add your VIIBE generation logic here
+                  alert("VIIBE Generated Successfully!");
                 } else {
                   setCurrentStep(prev => prev + 1);
                 }
