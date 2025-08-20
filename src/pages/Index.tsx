@@ -4347,12 +4347,12 @@ const Index = () => {
       console.log('Generated prompt:', prompt);
       console.log('Aspect ratio:', aspectForIdeogram);
       console.log('Style type:', styleForIdeogram);
-      console.log('Final payload:', { prompt, aspect_ratio: aspectForIdeogram, model: 'V_3_TURBO', magic_prompt_option: 'AUTO', style_type: styleForIdeogram });
+      console.log('Final payload:', { prompt, aspect_ratio: aspectForIdeogram, model: 'V_3', magic_prompt_option: 'AUTO', style_type: styleForIdeogram });
 
       const response = await generateIdeogramImage({
         prompt,
         aspect_ratio: aspectForIdeogram,
-        model: 'V_3_TURBO',
+        model: 'V_3',
         magic_prompt_option: 'AUTO',
         style_type: styleForIdeogram,
       });
