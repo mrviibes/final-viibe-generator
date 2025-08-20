@@ -6,14 +6,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X } from "lucide-react";
+import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X, Download } from "lucide-react";
 import { openAIService, OpenAISearchResult } from "@/lib/openai";
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
+import { IdeogramKeyDialog } from "@/components/IdeogramKeyDialog";
 import { StepProgress } from "@/components/StepProgress";
 import { useNavigate } from "react-router-dom";
 import { generateCandidates, VibeResult } from "@/lib/vibeModel";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
 import { generateVisualRecommendations, VisualOption } from "@/lib/visualModel";
+import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError } from "@/lib/ideogramApi";
+import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
+import { useToast } from "@/hooks/use-toast";
 const styleOptions = [{
   id: "celebrations",
   name: "Celebrations",
@@ -3965,7 +3969,12 @@ const Index = () => {
   const [searchError, setSearchError] = useState<string>("");
   const [stepTwoText, setStepTwoText] = useState<string>("");
   const [isCustomTextConfirmed, setIsCustomTextConfirmed] = useState<boolean>(false);
+  const [showIdeogramKeyDialog, setShowIdeogramKeyDialog] = useState<boolean>(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [imageGenerationError, setImageGenerationError] = useState<string>("");
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Add timeout ref for search debouncing
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
@@ -4266,6 +4275,106 @@ const Index = () => {
 
   const handleApiKeySet = (apiKey: string) => {
     openAIService.setApiKey(apiKey);
+  };
+
+  const handleIdeogramApiKeySet = (apiKey: string) => {
+    setIdeogramApiKey(apiKey);
+    toast({
+      title: "API Key Saved",
+      description: "Your Ideogram API key has been saved securely.",
+    });
+  };
+
+  const handleGenerateImage = async () => {
+    const apiKey = getIdeogramApiKey();
+    if (!apiKey) {
+      setShowIdeogramKeyDialog(true);
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    setImageGenerationError("");
+    setGeneratedImageUrl(null);
+
+    try {
+      // Build the handoff data with parameters you provided
+      const finalText = "Birthdays are not just milestones; theyre the canvas for your dreams to paint the future ahead.";
+      const categoryName = "Celebrations";
+      const subcategory = "Birthday";
+      const tone = "Inspirational";
+      const visualStyle = "realistic";
+      const aspectRatio = "Landscape";
+      const textTags = "";
+      const visualTags = "amazing balloons";
+      const chosenVisual = "put final visual image here";
+
+      const ideogramPayload = buildIdeogramHandoff({
+        visual_style: visualStyle,
+        subcategory: subcategory,
+        tone: tone.toLowerCase(),
+        final_line: finalText,
+        tags_csv: [textTags, visualTags].filter(Boolean).join(', '),
+        chosen_visual: chosenVisual,
+        category: categoryName,
+        subcategory_secondary: undefined,
+        aspect_ratio: aspectRatio,
+        text_tags_csv: textTags || "None",
+        visual_tags_csv: visualTags,
+        ai_text_assist_used: true,
+        ai_visual_assist_used: true
+      });
+
+      const prompt = buildIdeogramPrompt(ideogramPayload);
+      const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
+      const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
+
+      const response = await generateIdeogramImage({
+        prompt,
+        aspect_ratio: aspectForIdeogram,
+        model: 'V_3_TURBO',
+        magic_prompt_option: 'AUTO',
+        style_type: styleForIdeogram,
+      });
+
+      if (response.data && response.data.length > 0) {
+        setGeneratedImageUrl(response.data[0].url);
+        toast({
+          title: "Image Generated!",
+          description: "Your VIIBE has been successfully created with Ideogram Turbo.",
+        });
+      } else {
+        throw new Error("No image data received from Ideogram API");
+      }
+    } catch (error) {
+      const errorMessage = error instanceof IdeogramAPIError 
+        ? error.message 
+        : "Failed to generate image. Please try again.";
+      
+      setImageGenerationError(errorMessage);
+      toast({
+        title: "Generation Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  const handleDownloadImage = () => {
+    if (!generatedImageUrl) return;
+    
+    const link = document.createElement('a');
+    link.href = generatedImageUrl;
+    link.download = 'viibe-image.jpg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Download Started",
+      description: "Your VIIBE image is being downloaded.",
+    });
   };
 
   const handleSearch = async (searchTerm: string) => {
@@ -6031,32 +6140,84 @@ const Index = () => {
             <div className="max-w-4xl mx-auto space-y-8">
               {/* Preview Section */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-foreground">Preview</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-foreground">Preview</h3>
+                  {!isGeneratingImage && !generatedImageUrl && (
+                    <Button 
+                      onClick={handleGenerateImage}
+                      variant="brand" 
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Generate with Ideogram
+                    </Button>
+                  )}
+                </div>
+                
                 <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
-                  <p className="text-muted-foreground text-lg">No image generated</p>
+                  {isGeneratingImage ? (
+                    <div className="flex flex-col items-center gap-4">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <p className="text-muted-foreground text-lg">Generating image with Ideogram Turbo...</p>
+                    </div>
+                  ) : generatedImageUrl ? (
+                    <div className="max-w-full max-h-full">
+                      <img 
+                        src={generatedImageUrl} 
+                        alt="Generated VIIBE" 
+                        className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                      />
+                    </div>
+                  ) : imageGenerationError ? (
+                    <div className="flex flex-col items-center gap-4 text-center">
+                      <AlertCircle className="h-8 w-8 text-destructive" />
+                      <div>
+                        <p className="text-destructive text-lg font-medium">Generation Failed</p>
+                        <p className="text-muted-foreground text-sm mt-1">{imageGenerationError}</p>
+                      </div>
+                      <Button onClick={handleGenerateImage} variant="outline" size="sm">
+                        Try Again
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>
+                  )}
                 </div>
                 
                 {/* Action Buttons */}
-                <div className="flex flex-wrap gap-4 justify-center">
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Download Image
-                  </Button>
-                  <Button variant="brand" className="flex items-center gap-2">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Generate Again
-                  </Button>
-                  <Button variant="outline" onClick={() => setCurrentStep(1)}>
-                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                    </svg>
-                    Start Over
-                  </Button>
-                </div>
+                {generatedImageUrl && (
+                  <div className="flex flex-wrap gap-4 justify-center">
+                    <Button 
+                      variant="outline" 
+                      className="flex items-center gap-2"
+                      onClick={handleDownloadImage}
+                    >
+                      <Download className="h-4 w-4" />
+                      Download Image
+                    </Button>
+                    <Button 
+                      variant="brand" 
+                      className="flex items-center gap-2"
+                      onClick={handleGenerateImage}
+                      disabled={isGeneratingImage}
+                    >
+                      {isGeneratingImage ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      )}
+                      Generate Again
+                    </Button>
+                    <Button variant="outline" onClick={() => setCurrentStep(1)}>
+                      <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                      </svg>
+                      Start Over
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Design Summary */}
@@ -6285,6 +6446,13 @@ const Index = () => {
           open={showApiKeyDialog}
           onOpenChange={setShowApiKeyDialog}
           onApiKeySet={handleApiKeySet}
+        />
+
+        {/* Ideogram API Key Dialog */}
+        <IdeogramKeyDialog 
+          open={showIdeogramKeyDialog}
+          onOpenChange={setShowIdeogramKeyDialog}
+          onApiKeySet={handleIdeogramApiKeySet}
         />
 
       </div>
