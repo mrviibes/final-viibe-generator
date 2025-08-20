@@ -3943,7 +3943,6 @@ const Index = () => {
   const [customHeight, setCustomHeight] = useState<string>("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState<string>("");
-  const [wordCount, setWordCount] = useState<string>("10");
   const [generatedOptions, setGeneratedOptions] = useState<string[]>([]);
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
@@ -4099,7 +4098,7 @@ const Index = () => {
         subtopic,
         pick,
         tags,
-        wordLimit: Number(wordCount)
+        characterLimit: 100
       });
       
       // Clear previous selection when generating/regenerating
@@ -5104,23 +5103,6 @@ const Index = () => {
                         )}
                       </div>
 
-                      {/* Word Count Selection */}
-                      <div className="flex items-center justify-center gap-4">
-                        <label className="text-sm font-medium text-card-foreground">
-                          # of words
-                        </label>
-                        <Select value={wordCount} onValueChange={setWordCount}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="5">5 Words</SelectItem>
-                            <SelectItem value="10">10 Words</SelectItem>
-                            <SelectItem value="15">15 Words</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
                       {/* Generate Button */}
                       <div className="text-center">
                         <Button 
@@ -5155,7 +5137,7 @@ const Index = () => {
                       </CardHeader>
                       <CardContent>
                         <CardDescription className="text-sm text-muted-foreground text-center">
-                          {wordCount} words max{tags.length > 0 ? `, tags: ${tags.join(", ")}` : ""}
+                          100 characters max{tags.length > 0 ? `, tags: ${tags.join(", ")}` : ""}
                         </CardDescription>
                         <div className="text-center mt-3">
                             <button onClick={() => {

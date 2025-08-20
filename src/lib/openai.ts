@@ -11,7 +11,7 @@ export interface GenerateTextParams {
   subtopic?: string;
   pick?: string;
   tags?: string[];
-  wordLimit: number;
+  characterLimit: number;
 }
 
 // Helper to safely parse JSON arrays from API responses
@@ -155,7 +155,7 @@ export class OpenAIService {
       throw new Error('OpenAI API key not set');
     }
 
-    const { tone, category, subtopic, pick, tags = [], wordLimit } = params;
+    const { tone, category, subtopic, pick, tags = [], characterLimit } = params;
     
     let contextParts = [];
     if (category) contextParts.push(`Category: ${category}`);
@@ -170,7 +170,7 @@ export class OpenAIService {
       prompt += ` IMPORTANT: Each option MUST include ALL of these exact words/tags: ${tags.join(', ')}.`;
     }
     
-    prompt += ` Each option must be ${wordLimit} words or fewer. Be creative and engaging. Return as a JSON array of strings.`;
+    prompt += ` Each option must be ${characterLimit} characters or fewer. Be creative and engaging. Return as a JSON array of strings.`;
 
     try {
       const response = await fetch(OPENAI_API_URL, {
@@ -225,11 +225,10 @@ export class OpenAIService {
       const parsed = JSON.parse(content);
       const options = parsed.options || [];
       
-      // Enforce word limit on client side as final guard
+      // Enforce character limit on client side as final guard
       return options.map((option: string) => {
         const cleaned = option.replace(/^["']|["']$/g, '').trim();
-        const words = cleaned.split(/\s+/);
-        return words.length > wordLimit ? words.slice(0, wordLimit).join(' ') : cleaned;
+        return cleaned.length > characterLimit ? cleaned.slice(0, characterLimit) : cleaned;
       }).slice(0, 4); // Ensure exactly 4 options
       
     } catch (error) {
