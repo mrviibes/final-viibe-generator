@@ -4073,6 +4073,13 @@ const Index = () => {
   // Add timeout ref for search debouncing
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
+  // Helper function to truncate text to max words
+  const truncateWords = (text: string, maxWords: number): string => {
+    const words = text.split(' ');
+    if (words.length <= maxWords) return text;
+    return words.slice(0, maxWords).join(' ') + '...';
+  };
+
   // Helper function to check if Step 1 is complete
   const isStep1Complete = (): boolean => {
     if (!selectedStyle) return false;
@@ -6025,7 +6032,7 @@ const Index = () => {
                           </div>
 
                           {/* Visual AI recommendations */}
-                          {visualOptions.length > 0 && (
+                          {visualOptions.length > 0 && selectedVisualIndex === null && (
                             <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                               <div className="text-center mb-6">
                                 <h3 className="text-xl font-semibold text-foreground mb-2">Visual AI recommendations</h3>
@@ -6036,17 +6043,11 @@ const Index = () => {
                                 {visualOptions.map((option, index) => (
                                   <Card 
                                     key={index}
-                                    className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full ${
-                                      selectedVisualIndex === index 
-                                        ? 'border-[#0db0de] bg-[#0db0de]/5 shadow-md' 
-                                        : 'hover:bg-accent/50'
-                                    }`}
+                                    className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50"
                                     onClick={() => setSelectedVisualIndex(index)}
                                   >
                                      <CardHeader className="pb-3">
-                                       <CardTitle className={`text-base font-semibold flex items-center justify-between ${
-                                         selectedVisualIndex === index ? 'text-[#0db0de]' : 'text-card-foreground'
-                                       }`}>
+                                       <CardTitle className="text-base font-semibold flex items-center justify-between text-card-foreground">
                                          <div className="flex flex-col items-start">
                                            <span>Option {index + 1}</span>
                                            {option.slot && (
@@ -6055,21 +6056,63 @@ const Index = () => {
                                              </span>
                                            )}
                                          </div>
-                                         {selectedVisualIndex === index && (
-                                           <span className="text-sm">✓</span>
-                                         )}
                                        </CardTitle>
                                      </CardHeader>
                                     <CardContent className="space-y-2">
                                       <div>
-                                        <p className="text-sm font-medium text-foreground">{option.subject}</p>
+                                        <p className="text-sm font-medium text-foreground">{truncateWords(option.subject, 5)}</p>
                                       </div>
                                       <div>
-                                        <p className="text-sm text-muted-foreground">{option.background}</p>
+                                        <p className="text-sm text-muted-foreground">{truncateWords(option.background, 10)}</p>
                                       </div>
                                     </CardContent>
                                   </Card>
                                 ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Selected Visual Option Display */}
+                          {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] && (
+                            <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              <div className="text-center mb-6">
+                                <h3 className="text-xl font-semibold text-foreground mb-2">Selected Visual Concept</h3>
+                                <p className="text-sm text-muted-foreground">Your chosen AI-generated concept</p>
+                              </div>
+                              
+                              <div className="max-w-md mx-auto">
+                                <Card className="border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                                  <CardHeader className="pb-3">
+                                    <CardTitle className="text-base font-semibold flex items-center justify-between text-[#0db0de]">
+                                      <div className="flex flex-col items-start">
+                                        <span>Option {selectedVisualIndex + 1}</span>
+                                        {visualOptions[selectedVisualIndex].slot && (
+                                          <span className="text-xs font-normal text-muted-foreground capitalize">
+                                            {visualOptions[selectedVisualIndex].slot.replace('-', ' ')}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-sm">✓</span>
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="space-y-2">
+                                    <div>
+                                      <p className="text-sm font-medium text-foreground">{truncateWords(visualOptions[selectedVisualIndex].subject, 5)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">{truncateWords(visualOptions[selectedVisualIndex].background, 10)}</p>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                                
+                                <div className="mt-4 text-center">
+                                  <button 
+                                    onClick={() => setSelectedVisualIndex(null)} 
+                                    className="text-xs text-primary hover:text-primary/80 underline transition-colors"
+                                  >
+                                    Change selection
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -6629,8 +6672,8 @@ const Index = () => {
                       <tr>
                         <td className="p-3 text-sm">Visual AI Recommendations</td>
                         <td className="p-3 text-sm">
-                          {selectedRecommendation !== null && visualRecommendations 
-                            ? `Option ${selectedRecommendation + 1}: ${visualRecommendations.options[selectedRecommendation].subject}`
+                          {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
+                            ? `Option ${selectedVisualIndex + 1}: ${truncateWords(visualOptions[selectedVisualIndex].subject, 5)}`
                             : "Not selected"
                           }
                         </td>
