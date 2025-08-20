@@ -4005,17 +4005,9 @@ const subjectOptions = [{
   name: "Option 2 - Design Myself", 
   description: "I will create my own subject"
 }, {
-  id: "single-person",
-  name: "Option 3 - Single Person",
-  description: "One man or woman as the main subject"
-}, {
   id: "multiple-people",
-  name: "Option 4 - Multiple People",
+  name: "Group of 2-4 people interacting",
   description: "Group of 2-4 people interacting"
-}, {
-  id: "no-subject",
-  name: "Option 5 - I Don't Want a Subject",
-  description: "I just want a simple background"
 }];
 
 const dimensionOptions = [{
