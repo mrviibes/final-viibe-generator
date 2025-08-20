@@ -7,6 +7,7 @@ export interface VisualInputs {
   tags: string[];
   visualStyle?: string;
   finalLine?: string;
+  specificEntity?: string; // For personas like "Teresa Giudice"
 }
 
 export interface VisualOption {
@@ -24,9 +25,40 @@ export interface VisualResult {
 const VISUAL_OPTIONS_COUNT = 4;
 
 function getSlotBasedFallbacks(inputs: VisualInputs): VisualOption[] {
-  const { category, subcategory, tone, tags, visualStyle, finalLine } = inputs;
+  const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity } = inputs;
   const primaryTags = tags.slice(0, 2).join(', ') || 'simple design';
   const occasion = subcategory || 'general';
+  const entity = specificEntity || 'subject';
+  
+  // Create entity-aware fallbacks
+  if (specificEntity && tags.some(tag => tag.toLowerCase().includes('jail'))) {
+    return [
+      {
+        slot: "background-only",
+        subject: "Prison bars texture overlay",
+        background: `Dark jail cell background with dramatic ${tone} lighting`,
+        prompt: `Dark jail cell background with prison bars, dramatic ${tone} lighting, space for text overlay`
+      },
+      {
+        slot: "subject+background",
+        subject: `${entity} silhouette behind bars`,
+        background: `Prison setting with atmospheric lighting`,
+        prompt: `${entity} silhouette behind prison bars, dramatic jail setting, ${tone} mood lighting`
+      },
+      {
+        slot: "object",
+        subject: "Handcuffs and judge gavel symbols",
+        background: `Minimal courtroom or legal backdrop`,
+        prompt: `Legal symbols like handcuffs and gavel, minimal courtroom backdrop, ${tone} style`
+      },
+      {
+        slot: "tone-twist",
+        subject: `${entity} iconic moment reimagined`,
+        background: `Stylized setting reflecting personality`,
+        prompt: `${entity} iconic moment with ${tone} interpretation, stylized background reflecting their known traits`
+      }
+    ];
+  }
   
   return [
     {
@@ -60,13 +92,14 @@ export async function generateVisualRecommendations(
   inputs: VisualInputs,
   n: number = VISUAL_OPTIONS_COUNT
 ): Promise<VisualResult> {
-  const { category, subcategory, tone, tags, visualStyle, finalLine } = inputs;
+  const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity } = inputs;
   
-  const systemPrompt = `You are a visual concept recommender for posters and social graphics. 
+  const systemPrompt = `You are a visual concept recommender for memes and social graphics who understands pop culture references and specific personalities. 
 Use the 4-slot framework: background-only, subject+background, object, tone-twist.
-Propose safe, family-friendly, logo-free visual concepts that work well for social media sharing.
-Incorporate ALL provided inputs: category, subcategory, tone, visual style, final text line, and tags.
-Keep concepts visually appealing and culturally appropriate.`;
+When a specific entity/person is mentioned, create contextually aware concepts that reference their known traits, catchphrases, or iconic moments.
+For controversial topics, create tasteful but edgy concepts that capture the essence without being offensive.
+Incorporate ALL provided inputs: category, subcategory, tone, visual style, final text line, tags, and specific entity.
+Make concepts shareable and culturally relevant.`;
 
   const userPrompt = `Generate exactly 4 visual concept options using the slot framework for these details:
 
@@ -75,7 +108,13 @@ Subcategory: ${subcategory}
 Tone: ${tone}
 Visual Style: ${visualStyle || 'Not specified'}
 ${finalLine ? `Text Content: "${finalLine}"` : ''}
+${specificEntity ? `Specific Entity/Person: ${specificEntity}` : ''}
 Tags: ${tags.join(', ')}
+
+${specificEntity && tags.some(tag => tag.toLowerCase().includes('jail')) ? 
+`SPECIAL INSTRUCTIONS: Since this involves ${specificEntity} and jail-related tags, create 2 options directly related to jail/prison themes (bars, cells, courthouse) and 2 options that reference other iconic aspects of ${specificEntity} that fans would recognize.` : 
+specificEntity ? 
+`SPECIAL INSTRUCTIONS: Since this involves ${specificEntity}, make sure to reference their known personality traits, catchphrases, or iconic moments that fans would immediately recognize.` : ''}
 
 Return exactly this JSON structure with 4 options:
 {

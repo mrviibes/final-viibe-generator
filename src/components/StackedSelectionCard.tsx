@@ -13,6 +13,7 @@ interface StackedSelectionCardProps {
 }
 
 const truncateWords = (text: string, maxWords: number): string => {
+  if (!text || typeof text !== 'string') return '';
   const words = text.split(' ');
   if (words.length <= maxWords) return text;
   return words.slice(0, maxWords).join(' ') + '...';
