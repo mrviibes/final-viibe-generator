@@ -64,9 +64,9 @@ export class OpenAIService {
 
     const {
       temperature = 0.8,
-      max_tokens = 1536,
+      max_tokens = 2500,
       max_completion_tokens,
-      model = 'gpt-4o-mini'
+      model = 'gpt-5-mini-2025-08-07'
     } = options;
 
     // Retry strategy: try current model, then fallback models
@@ -121,9 +121,9 @@ export class OpenAIService {
   }): Promise<any> {
     const {
       temperature = 0.8,
-      max_tokens = 1536,
+      max_tokens = 2500,
       max_completion_tokens,
-      model = 'gpt-4o-mini'
+      model = 'gpt-5-mini-2025-08-07'
     } = options;
 
     const isGPT5Model = model?.startsWith('gpt-5');
@@ -210,14 +210,14 @@ export class OpenAIService {
           'Authorization': `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-5-mini-2025-08-07',
           messages: [
             {
               role: 'user',
               content: prompt
             }
           ],
-          max_tokens: 600,
+          max_tokens: 800,
           temperature: 0.7,
           response_format: {
             type: "json_schema",
@@ -272,14 +272,14 @@ export class OpenAIService {
               'Authorization': `Bearer ${this.apiKey}`,
             },
             body: JSON.stringify({
-              model: 'gpt-4o-mini',
+              model: 'gpt-5-mini-2025-08-07',
               messages: [
                 {
                   role: 'user',
                   content: `${prompt} Return as valid JSON array: [{"title": "...", "description": "..."}]`
                 }
               ],
-              max_tokens: 600,
+              max_tokens: 800,
               temperature: 0.7,
             }),
           });
@@ -327,14 +327,14 @@ export class OpenAIService {
           'Authorization': `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-5-mini-2025-08-07',
           messages: [
             {
               role: 'user',
               content: prompt
             }
           ],
-          max_tokens: 400,
+          max_tokens: 600,
           temperature: 0.8,
           response_format: {
             type: "json_schema",

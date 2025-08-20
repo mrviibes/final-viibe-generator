@@ -206,14 +206,28 @@ Return exactly this JSON structure with 4 options, each prompt MUST include all 
 Each prompt must be descriptive for image generation and include ALL required micro-directives.`;
 
   try {
-    const result = await openAIService.chatJSON([
+    const startTime = Date.now();
+    console.log('🚀 Starting visual generation with optimized settings...');
+    
+    // Create a timeout promise for fast fallback
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Visual generation timeout - using fallback')), 7000);
+    });
+
+    // Race between AI generation and timeout
+    const aiPromise = openAIService.chatJSON([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
     ], {
       temperature: 0.8,
-      max_tokens: 600,
-      model: 'gpt-4o-mini'
+      max_completion_tokens: 1200,
+      model: 'gpt-5-mini-2025-08-07'
     });
+
+    const result = await Promise.race([aiPromise, timeoutPromise]);
+    
+    const duration = Date.now() - startTime;
+    console.log(`✅ Visual generation completed in ${duration}ms`);
 
     // Validate the response structure and slots
     if (!result?.options || !Array.isArray(result.options) || result.options.length !== 4) {
@@ -234,7 +248,7 @@ Each prompt must be descriptive for image generation and include ALL required mi
 
     return {
       options: validOptions,
-      model: 'gpt-4o-mini'
+      model: result._apiMeta?.modelUsed || 'gpt-5-mini-2025-08-07'
     };
   } catch (error) {
     console.error('Error generating visual recommendations:', error);
