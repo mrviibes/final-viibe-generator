@@ -24,9 +24,6 @@ export function StackedSelectionCard({ selections }: StackedSelectionCardProps) 
     <div className="mb-8 selected-card">
       <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold text-[#0db0de] text-center">
-            Combined Selections
-          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {selections.map((selection, index) => (
