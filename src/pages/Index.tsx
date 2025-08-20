@@ -3433,7 +3433,11 @@ const vibesPunchlinesOptions = [{
 }, {
   id: "tech-humor",
   name: "Tech Humor",
-  subtitle: "Gadgets, glitches, online"
+  subtitle: "Gadgets, glitches, online" 
+}, {
+  id: "social-media",
+  name: "Social Media",
+  subtitle: "TikTok, Instagram, viral content"
 }, {
   id: "pop-culture",
   name: "Pop Culture",
