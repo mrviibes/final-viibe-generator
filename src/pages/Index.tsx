@@ -3958,6 +3958,7 @@ const Index = () => {
   const [searchResults, setSearchResults] = useState<OpenAISearchResult[]>([]);
   const [searchError, setSearchError] = useState<string>("");
   const [stepTwoText, setStepTwoText] = useState<string>("");
+  const [isCustomTextConfirmed, setIsCustomTextConfirmed] = useState<boolean>(false);
   
   // Add timeout ref for search debouncing
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
@@ -3992,9 +3993,9 @@ const Index = () => {
       return !!selectedGeneratedOption;
     }
     
-    // If completion option is write myself, require some text (for future use)
+    // If completion option is write myself, require confirmed text
     if (selectedCompletionOption === "write-myself") {
-      return stepTwoText.trim().length > 0;
+      return stepTwoText.trim().length > 0 && isCustomTextConfirmed;
     }
     
     // For "no-text" option, just need style and completion
@@ -4991,8 +4992,10 @@ const Index = () => {
                             </CardDescription>
                             <div className="text-center mt-3">
                               <button onClick={() => {
-                                setSelectedTextStyle(null);
-                                setSelectedCompletionOption(null);
+                               setSelectedTextStyle(null);
+                               setSelectedCompletionOption(null);
+                               setIsCustomTextConfirmed(false);
+                               setStepTwoText("");
                               }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                                 Change selection
                               </button>
@@ -5047,10 +5050,12 @@ const Index = () => {
                           </CardDescription>
                           <div className="text-center mt-3">
                             <button onClick={() => {
-                              setSelectedCompletionOption(null);
-                              setGeneratedOptions([]);
-                              setSelectedGeneratedOption(null);
-                              setSelectedGeneratedIndex(null);
+                           setSelectedCompletionOption(null);
+                               setGeneratedOptions([]);
+                               setSelectedGeneratedOption(null);
+                               setSelectedGeneratedIndex(null);
+                               setIsCustomTextConfirmed(false);
+                               setStepTwoText("");
                             }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                               Change selection
                             </button>
@@ -5184,10 +5189,14 @@ const Index = () => {
                           </CardDescription>
                           <div className="text-center mt-3">
                             <button onClick={() => {
-                              setSelectedTextStyle(null);
-                              setSelectedCompletionOption(null);
-                              setGeneratedOptions([]);
-                              setSelectedGeneratedOption(null);
+                               setSelectedTextStyle(null);
+                               setSelectedCompletionOption(null);
+                               setGeneratedOptions([]);
+                               setSelectedGeneratedOption(null);
+                               setIsCustomTextConfirmed(false);
+                               setStepTwoText("");
+                               setIsCustomTextConfirmed(false);
+                               setStepTwoText("");
                             }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                               Change selection
                             </button>
@@ -5211,9 +5220,11 @@ const Index = () => {
                           </CardDescription>
                           <div className="text-center mt-3">
                             <button onClick={() => {
-                              setSelectedCompletionOption(null);
-                              setGeneratedOptions([]);
-                              setSelectedGeneratedOption(null);
+                               setSelectedCompletionOption(null);
+                               setGeneratedOptions([]);
+                               setSelectedGeneratedOption(null);
+                               setIsCustomTextConfirmed(false);
+                               setStepTwoText("");
                             }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                               Change selection
                             </button>
@@ -5304,8 +5315,33 @@ const Index = () => {
                   </div>
                 )}
 
-                {/* Show write myself form when write-myself is selected */}
-                {selectedCompletionOption === "write-myself" && (
+                {/* Show confirmed custom text when saved */}
+                {selectedCompletionOption === "write-myself" && isCustomTextConfirmed && (
+                  <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                          Custom Text ✓
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <CardDescription className="text-sm text-muted-foreground text-center">
+                          "{stepTwoText}"
+                        </CardDescription>
+                        <div className="text-center mt-3">
+                          <button onClick={() => {
+                            setIsCustomTextConfirmed(false);
+                          }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                            Change text
+                          </button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {/* Show write myself form when write-myself is selected but not yet confirmed */}
+                {selectedCompletionOption === "write-myself" && !isCustomTextConfirmed && (
                   <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">Write your own text here (max 100 characters)</p>
@@ -5344,8 +5380,7 @@ const Index = () => {
                             variant="brand"
                             className="px-6 py-2 text-sm font-medium rounded-lg"
                             onClick={() => {
-                              // This will trigger the completion validation in isStep2Complete
-                              // No additional state needed as stepTwoText is already stored
+                              setIsCustomTextConfirmed(true);
                             }}
                           >
                             Use this text
