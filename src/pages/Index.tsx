@@ -11,6 +11,8 @@ import { openAIService, OpenAISearchResult } from "@/lib/openai";
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
 import { StepProgress } from "@/components/StepProgress";
 import { useNavigate } from "react-router-dom";
+import { generateCandidates, VibeResult } from "@/lib/vibeModel";
+import { buildIdeogramHandoff } from "@/lib/ideogram";
 const styleOptions = [{
   id: "celebrations",
   name: "Celebrations",
@@ -4072,7 +4074,7 @@ const Index = () => {
     }, 2000);
   };
 
-  // Generate text using OpenAI
+  // Generate text using Vibe Model
   const handleGenerateText = async () => {
     if (!openAIService.hasApiKey()) {
       setShowApiKeyDialog(true);
@@ -4081,38 +4083,76 @@ const Index = () => {
 
     setIsGenerating(true);
     try {
-      // Map selected IDs to human-readable labels
-      const selectedStyleObj = styleOptions.find(s => s.id === selectedStyle);
-      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+      // Map UI selections to vibe model inputs
+      let category = '';
+      let subcategory = '';
+      let finalTags = [...tags];
       
-      let subtopic = '';
-      let pick = '';
+      // Map category
+      switch (selectedStyle) {
+        case 'celebrations':
+          category = 'celebrations';
+          break;
+        case 'sports':
+          category = 'sports';
+          break;
+        case 'daily-life':
+          category = 'daily life';
+          break;
+        case 'vibes-punchlines':
+          category = 'vibes and punchlines';
+          break;
+        case 'pop-culture':
+          category = 'pop culture';
+          break;
+        case 'random':
+          category = 'no category';
+          break;
+        default:
+          category = 'no category';
+      }
       
-      // Get subtopic based on category
+      // Get subcategory based on selected option
       if (selectedStyle === 'celebrations' && selectedSubOption) {
         const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
-        subtopic = celebOption?.name || selectedSubOption;
+        subcategory = celebOption?.name || selectedSubOption;
       } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
         const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
-        subtopic = popOption?.name || selectedSubOption;
-        pick = selectedPick || '';
+        subcategory = popOption?.name || selectedSubOption;
+        // Add specific pick to tags for pop culture
+        if (selectedPick) {
+          finalTags.push(selectedPick);
+        }
       } else if (selectedSubOption) {
-        subtopic = selectedSubOption;
+        subcategory = selectedSubOption;
+      } else {
+        subcategory = 'general';
       }
-
-      const options = await openAIService.generateShortTexts({
-        tone: selectedTextStyleObj?.name || selectedTextStyle || 'Casual',
-        category: selectedStyleObj?.name || selectedStyle,
-        subtopic,
-        pick,
-        tags,
-        characterLimit: 100
-      });
+      
+      // Get tone from text style
+      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+      const tone = selectedTextStyleObj?.name || 'Humorous';
+      
+      const vibeResult: VibeResult = await generateCandidates({
+        category,
+        subcategory,
+        tone: tone.toLowerCase(),
+        tags: finalTags
+      }, 3);
       
       // Clear previous selection when generating/regenerating
       setSelectedGeneratedOption(null);
       setSelectedGeneratedIndex(null);
-      setGeneratedOptions(options);
+      setGeneratedOptions(vibeResult.candidates);
+      
+      // Auto-select the picked candidate (shortest safe one)
+      if (vibeResult.candidates.length > 0) {
+        setSelectedGeneratedOption(vibeResult.picked);
+        setSelectedGeneratedIndex(0);
+      }
+      
+      // Log audit info for debugging
+      console.log('Vibe generation audit:', vibeResult.audit);
     } catch (error) {
       console.error('Error generating text:', error);
     } finally {
@@ -5983,7 +6023,32 @@ const Index = () => {
                   // Move to Step 4 (Finished Design page)
                   setCurrentStep(4);
                 } else if (currentStep === 4 && isStep4Complete()) {
-                  // Generate VIIBE logic or reset
+                  // Generate VIIBE with Ideogram handoff
+                  const finalText = selectedGeneratedOption || stepTwoText || "";
+                  const visualStyle = selectedVisualStyle || "";
+                  const subcategory = (() => {
+                    if (selectedStyle === 'celebrations' && selectedSubOption) {
+                      const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                      return celebOption?.name || selectedSubOption;
+                    } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                      const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                      return popOption?.name || selectedSubOption;
+                    }
+                    return selectedSubOption || 'general';
+                  })();
+                  const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+                  const tone = selectedTextStyleObj?.name || 'Humorous';
+                  const allTags = [...tags, ...subjectTags];
+                  
+                  // Build Ideogram handoff payload
+                  const ideogramPayload = buildIdeogramHandoff({
+                    visual_style: visualStyle,
+                    subcategory: subcategory,
+                    tone: tone.toLowerCase(),
+                    final_line: finalText,
+                    tags_csv: allTags.join(', ')
+                  });
+                  
                   console.log("VIIBE Generated!", {
                     category: selectedStyle || "",
                     subcategory: selectedSubOption || "",
@@ -5991,6 +6056,7 @@ const Index = () => {
                     textStyle: selectedTextStyle || "",
                     completionOption: selectedCompletionOption || "",
                     customText: stepTwoText || "",
+                    finalText: finalText,
                     visualStyle: selectedVisualStyle || "",
                     subjectOption: selectedSubjectOption || "",
                     subjectDescription: subjectDescription || "",
@@ -5998,10 +6064,12 @@ const Index = () => {
                     customWidth: customWidth || "",
                     customHeight: customHeight || "",
                     tags: tags.join(", "),
-                    subjectTags: subjectTags.join(", ")
+                    subjectTags: subjectTags.join(", "),
+                    ideogramHandoff: ideogramPayload
                   });
+                  
                   // You can add your VIIBE generation logic here
-                  alert("VIIBE Generated Successfully!");
+                  alert("VIIBE Generated Successfully! Check console for Ideogram handoff payload.");
                 } else {
                   setCurrentStep(prev => prev + 1);
                 }

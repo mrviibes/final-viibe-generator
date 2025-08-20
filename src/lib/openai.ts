@@ -43,9 +43,58 @@ export class OpenAIService {
     return !!this.apiKey;
   }
 
+  getApiKey(): string | null {
+    return this.apiKey;
+  }
+
   clearApiKey() {
     this.apiKey = null;
     localStorage.removeItem('openai_api_key');
+  }
+
+  async chatJSON(messages: Array<{role: string; content: string}>, options: {
+    temperature?: number;
+    max_tokens?: number;
+    model?: string;
+  } = {}): Promise<any> {
+    if (!this.apiKey) {
+      throw new Error('OpenAI API key not set');
+    }
+
+    const {
+      temperature = 0.8,
+      max_tokens = 60,
+      model = 'gpt-4o-mini'
+    } = options;
+
+    const response = await fetch(OPENAI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        max_tokens,
+        temperature,
+        response_format: { type: "json_object" }
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'OpenAI API request failed');
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('No content received from OpenAI');
+    }
+
+    return JSON.parse(content);
   }
 
   async searchPopCulture(category: string, searchTerm: string): Promise<OpenAISearchResult[]> {
