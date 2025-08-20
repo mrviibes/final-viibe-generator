@@ -5387,6 +5387,54 @@ const Index = () => {
                   </div>
                 )}
 
+                {/* Show Write Myself input panel when selected but not confirmed */}
+                {selectedCompletionOption === "write-myself" && !isCustomTextConfirmed && (
+                  <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="text-center mb-6">
+                      <p className="text-xl text-muted-foreground">Write your custom text</p>
+                    </div>
+
+                    <div className="max-w-md mx-auto space-y-6">
+                      {/* Custom Text Input */}
+                      <div className="space-y-3">
+                        <Textarea
+                          value={stepTwoText}
+                          onChange={(e) => {
+                            if (e.target.value.length <= 100) {
+                              setStepTwoText(e.target.value);
+                            }
+                          }}
+                          placeholder="Enter your custom text (100 characters max)"
+                          className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 min-h-[120px] text-base font-medium rounded-lg resize-none"
+                        />
+                        
+                        {/* Character Counter */}
+                        <div className="text-center">
+                          <span className={`text-sm ${stepTwoText.length >= 90 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                            {stepTwoText.length}/100 characters
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Save Button */}
+                      <div className="text-center">
+                        <Button 
+                          variant="brand"
+                          className="px-8 py-3 text-base font-medium rounded-lg"
+                          onClick={() => {
+                            if (stepTwoText.trim()) {
+                              setIsCustomTextConfirmed(true);
+                            }
+                          }}
+                          disabled={!stepTwoText.trim()}
+                        >
+                          Save text
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Show confirmed custom text when saved */}
                 {selectedCompletionOption === "write-myself" && isCustomTextConfirmed && (
                   <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
