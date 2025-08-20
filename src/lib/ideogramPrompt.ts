@@ -3,47 +3,51 @@ import { IdeogramHandoff } from './ideogram';
 export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
   const parts: string[] = [];
   
-  // Start with the chosen text/key line
+  // Use this exact text: [ACTUAL TEXT THEY CHOSE]
   if (handoff.key_line) {
-    parts.push(`"${handoff.key_line}"`);
+    parts.push(`Use this exact text: ${handoff.key_line}.`);
   }
   
-  // Add chosen visual concept if available
-  if (handoff.chosen_visual && handoff.chosen_visual !== "put final visual image here") {
-    parts.push(`Visual concept: ${handoff.chosen_visual}`);
+  // This content is for [SUBCATEGORY], with focus on [SECOND SUBCATEGORY]
+  let contentLine = `This content is for ${handoff.subcategory_primary}`;
+  if (handoff.subcategory_secondary) {
+    contentLine += `, with focus on ${handoff.subcategory_secondary}`;
   }
+  contentLine += '.';
+  parts.push(contentLine);
   
-  // Add visual style
-  if (handoff.visual_style) {
-    parts.push(`Style: ${handoff.visual_style}`);
-  }
-  
-  // Add visual tags
-  if (handoff.visual_tags_csv) {
-    parts.push(`Visual elements: ${handoff.visual_tags_csv}`);
-  }
-  
-  // Add text tags if they provide context
-  if (handoff.text_tags_csv && handoff.text_tags_csv !== "None") {
-    parts.push(`Context: ${handoff.text_tags_csv}`);
-  }
-  
-  // Add category/occasion context
-  if (handoff.category && handoff.occasion) {
-    parts.push(`Occasion: ${handoff.category} - ${handoff.occasion}`);
-  }
-  
-  // Add tone
+  // The overall tone is [TONE]
   if (handoff.tone) {
-    parts.push(`Tone: ${handoff.tone}`);
+    parts.push(`The overall tone is ${handoff.tone}.`);
   }
   
-  // Add design notes (always includes no logos, clean layout, etc.)
-  if (handoff.design_notes) {
-    parts.push(handoff.design_notes);
+  // Apply these text tags as guides: [TEXT TAGS]
+  const textTags = handoff.text_tags_csv && handoff.text_tags_csv !== "None" ? handoff.text_tags_csv : "none";
+  parts.push(`Apply these text tags as guides: ${textTags}.`);
+  
+  // Render the scene in [VISUAL LOOK] style
+  if (handoff.visual_style) {
+    parts.push(`Render the scene in ${handoff.visual_style} style.`);
   }
   
-  return parts.join(', ');
+  // Include these visual tags: [VISUAL TAGS] (only if present)
+  if (handoff.visual_tags_csv) {
+    parts.push(`Include these visual tags: ${handoff.visual_tags_csv}.`);
+  }
+  
+  // Background should be [AI GENERATED BACKGROUND]
+  let background = handoff.rec_background || handoff.chosen_visual || "a clean, contextually appropriate background";
+  parts.push(`Background should be ${background}.`);
+  
+  // Output format should use aspect ratio [ASPECT RATIO]
+  if (handoff.aspect_ratio) {
+    parts.push(`Output format should use aspect ratio ${handoff.aspect_ratio}.`);
+  }
+  
+  // Keep the style consistent with the chosen tone and tags
+  parts.push("Keep the style consistent with the chosen tone and tags.");
+  
+  return parts.join(' ');
 }
 
 export function getAspectRatioForIdeogram(aspectRatio: string): 'ASPECT_10_16' | 'ASPECT_16_10' | 'ASPECT_9_16' | 'ASPECT_16_9' | 'ASPECT_3_2' | 'ASPECT_2_3' | 'ASPECT_4_3' | 'ASPECT_3_4' | 'ASPECT_1_1' | 'ASPECT_1_3' | 'ASPECT_3_1' {

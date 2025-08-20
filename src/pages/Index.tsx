@@ -6665,23 +6665,63 @@ const Index = () => {
                 </div>
               </div>
 
-              {/* Generated Prompt */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-foreground">Generated Prompt</h3>
-                <div className="bg-muted/30 rounded-lg p-6">
-                  {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? (
-                    <p className="text-sm text-foreground font-mono leading-relaxed">
-                      {visualOptions[selectedVisualIndex].prompt}
-                    </p>
-                  ) : selectedSubjectOption === "design-myself" && subjectDescription ? (
-                    <p className="text-sm text-foreground font-mono leading-relaxed">
-                      {subjectDescription}
-                    </p>
-                  ) : (
-                    <p className="text-muted-foreground italic">No prompt available</p>
-                  )}
+                {/* Generated Prompt */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-foreground">Generated Prompt</h3>
+                  <div className="bg-muted/30 rounded-lg p-6">
+                    {(() => {
+                      // Build the same handoff structure we use for generation
+                      const finalText = selectedGeneratedOption || stepTwoText || "";
+                      const visualStyle = selectedVisualStyle || "";
+                      const subcategory = (() => {
+                        if (selectedStyle === 'celebrations' && selectedSubOption) {
+                          const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                          return celebOption?.name || selectedSubOption;
+                        } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                          const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                          return popOption?.name || selectedSubOption;
+                        }
+                        return selectedSubOption || 'general';
+                      })();
+                      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+                      const tone = selectedTextStyleObj?.name || 'Humorous';
+                      const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+                      const aspectRatio = selectedDimension === "custom" 
+                        ? `${customWidth}x${customHeight}` 
+                        : (dimensionOptions.find(d => d.id === selectedDimension)?.name || "");
+                      const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
+                      
+                      const tempHandoff = buildIdeogramHandoff({
+                        visual_style: visualStyle,
+                        subcategory: subcategory,
+                        tone: tone.toLowerCase(),
+                        final_line: finalText,
+                        tags_csv: [...tags, ...subjectTags].join(', '),
+                        category: categoryName,
+                        subcategory_secondary: subcategorySecondary,
+                        aspect_ratio: aspectRatio,
+                        text_tags_csv: tags.join(', '),
+                        visual_tags_csv: subjectTags.join(', '),
+                        ai_text_assist_used: selectedCompletionOption === "ai-assist",
+                        ai_visual_assist_used: selectedSubjectOption === "ai-assist",
+                        rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
+                          ? visualOptions[selectedVisualIndex].subject 
+                          : (selectedSubjectOption === "design-myself" ? subjectDescription : undefined),
+                        rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
+                          ? visualOptions[selectedVisualIndex].background 
+                          : undefined
+                      });
+                      
+                      const promptText = buildIdeogramPrompt(tempHandoff);
+                      
+                      return (
+                        <p className="text-sm text-foreground font-mono leading-relaxed">
+                          {promptText || "No prompt available"}
+                        </p>
+                      );
+                    })()}
+                  </div>
                 </div>
-              </div>
             </div>
           </>
         )}
@@ -6758,7 +6798,15 @@ const Index = () => {
                     text_tags_csv: tags.join(', '),
                     visual_tags_csv: subjectTags.join(', '),
                     ai_text_assist_used: selectedCompletionOption === "ai-assist",
-                    ai_visual_assist_used: selectedSubjectOption === "ai-assist"
+                    ai_visual_assist_used: selectedSubjectOption === "ai-assist",
+                    
+                    // Visual AI Recommendations
+                    rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
+                      ? visualOptions[selectedVisualIndex].subject 
+                      : (selectedSubjectOption === "design-myself" ? subjectDescription : undefined),
+                    rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
+                      ? visualOptions[selectedVisualIndex].background 
+                      : undefined
                   });
                   
                   console.log("VIIBE Generated!", {
