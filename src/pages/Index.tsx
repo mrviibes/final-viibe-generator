@@ -5308,16 +5308,50 @@ const Index = () => {
                 {selectedCompletionOption === "write-myself" && (
                   <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
-                      <p className="text-xl text-muted-foreground">Write your own content</p>
+                      <p className="text-xl text-muted-foreground">Write your own text here (max 100 characters)</p>
                     </div>
 
-                    <div className="max-w-lg mx-auto">
-                      <Textarea
-                        value={stepTwoText}
-                        onChange={(e) => setStepTwoText(e.target.value)}
-                        placeholder="Start writing your content here..."
-                        className="min-h-[150px] text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 text-base font-medium rounded-lg resize-none"
-                      />
+                    <div className="max-w-lg mx-auto space-y-4">
+                      <div className="relative">
+                        <Textarea
+                          value={stepTwoText}
+                          onChange={(e) => {
+                            if (e.target.value.length <= 100) {
+                              setStepTwoText(e.target.value);
+                            }
+                          }}
+                          placeholder="Start writing your text here..."
+                          className="min-h-[100px] text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 text-base font-medium rounded-lg resize-none"
+                          maxLength={100}
+                        />
+                        
+                        {/* Character counter */}
+                        <div className="absolute bottom-3 left-3 text-xs text-muted-foreground">
+                          {stepTwoText.length}/100
+                        </div>
+                        
+                        {stepTwoText.length >= 100 && (
+                          <div className="absolute -bottom-6 left-0 right-0 text-center">
+                            <span className="text-xs text-destructive">You have hit your max characters</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Use this text button */}
+                      {stepTwoText.trim().length > 0 && (
+                        <div className="flex justify-end">
+                          <Button 
+                            variant="brand"
+                            className="px-6 py-2 text-sm font-medium rounded-lg"
+                            onClick={() => {
+                              // This will trigger the completion validation in isStep2Complete
+                              // No additional state needed as stepTwoText is already stored
+                            }}
+                          >
+                            Use this text
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
