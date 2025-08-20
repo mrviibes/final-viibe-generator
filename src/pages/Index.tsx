@@ -4154,6 +4154,18 @@ const Index = () => {
       setSelectedVisualIndex(null);
       setVisualOptions(visualResult.options);
       
+      // Log audit info for debugging
+      console.log('Visual generation result:', { 
+        model: visualResult.model, 
+        optionsCount: visualResult.options.length,
+        slots: visualResult.options.map(opt => opt.slot)
+      });
+      
+      // Warn if fallbacks were used
+      if (visualResult.model === 'fallback') {
+        console.warn('⚠️ Visual generation used fallback options. API may be unavailable or having issues.');
+      }
+      
     } catch (error) {
       console.error('Error generating visual recommendations:', error);
     } finally {
@@ -5713,16 +5725,23 @@ const Index = () => {
                                     }`}
                                     onClick={() => setSelectedVisualIndex(index)}
                                   >
-                                    <CardHeader className="pb-3">
-                                      <CardTitle className={`text-base font-semibold flex items-center justify-between ${
-                                        selectedVisualIndex === index ? 'text-[#0db0de]' : 'text-card-foreground'
-                                      }`}>
-                                        <span>Option {index + 1}</span>
-                                        {selectedVisualIndex === index && (
-                                          <span className="text-sm">✓</span>
-                                        )}
-                                      </CardTitle>
-                                    </CardHeader>
+                                     <CardHeader className="pb-3">
+                                       <CardTitle className={`text-base font-semibold flex items-center justify-between ${
+                                         selectedVisualIndex === index ? 'text-[#0db0de]' : 'text-card-foreground'
+                                       }`}>
+                                         <div className="flex flex-col items-start">
+                                           <span>Option {index + 1}</span>
+                                           {option.slot && (
+                                             <span className="text-xs font-normal text-muted-foreground capitalize">
+                                               {option.slot.replace('-', ' ')}
+                                             </span>
+                                           )}
+                                         </div>
+                                         {selectedVisualIndex === index && (
+                                           <span className="text-sm">✓</span>
+                                         )}
+                                       </CardTitle>
+                                     </CardHeader>
                                     <CardContent className="space-y-2">
                                       <div>
                                         <p className="text-sm font-medium text-foreground">{option.subject}</p>
@@ -6178,13 +6197,19 @@ const Index = () => {
                   const tone = selectedTextStyleObj?.name || 'Humorous';
                   const allTags = [...tags, ...subjectTags];
                   
+                  // Get chosen visual concept if selected
+                  const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
+                    ? visualOptions[selectedVisualIndex].prompt 
+                    : undefined;
+                  
                   // Build Ideogram handoff payload
                   const ideogramPayload = buildIdeogramHandoff({
                     visual_style: visualStyle,
                     subcategory: subcategory,
                     tone: tone.toLowerCase(),
                     final_line: finalText,
-                    tags_csv: allTags.join(', ')
+                    tags_csv: allTags.join(', '),
+                    chosen_visual: chosenVisual
                   });
                   
                   console.log("VIIBE Generated!", {

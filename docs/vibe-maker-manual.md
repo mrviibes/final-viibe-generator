@@ -138,4 +138,79 @@ model, tokens, filter flags, pass or fallback
 ## 15. Speed tips
 Use a small fast model for first pass. Temperature 0.8 to 1. Max output tokens 60. Request JSON mode. Generate up to 3 candidates. Pick the shortest that passes safety.
 
-Done. Paste sections 1 to 15 into Lovable as the "Vibe Maker Model Operating Manual." Wire your middleware to feed the Developer template with live selections, run the post processor, then send the final line to Ideogram with the handoff template.
+## 16. Step 3 Visual Generation Spec
+
+### 16.1 4-Slot Framework
+The AI generates exactly 4 visual concepts using this framework:
+- **background-only**: Text-friendly background design
+- **subject+background**: Central subject with complementary environment  
+- **object**: Key objects/symbols with minimal backdrop
+- **tone-twist**: Creative interpretation emphasizing the specified tone
+
+### 16.2 Input Integration
+All inputs must be incorporated:
+- Category & Subcategory: Define context and occasion
+- Tone: Influences mood and creative approach
+- Visual Style: Guides aesthetic direction
+- Final Text Line: Informs composition and text placement
+- Tags: Provide specific elements and themes (use at least 2 tags per concept)
+
+### 16.3 API Specification
+**Request:**
+```json
+{
+  "category": "celebrations",
+  "subcategory": "birthday", 
+  "tone": "humorous",
+  "tags": ["cake", "candles", "party"],
+  "visualStyle": "modern",
+  "finalLine": "Jesse aging backwards"
+}
+```
+
+**Response:**
+```json
+{
+  "options": [
+    {
+      "slot": "background-only",
+      "subject": "Clean party background",
+      "background": "Festive birthday backdrop with cake elements",
+      "prompt": "Festive birthday backdrop with cake elements, space for text overlay"
+    },
+    {
+      "slot": "subject+background", 
+      "subject": "Jesse with reverse-aging cake",
+      "background": "Humorous party setting with candles",
+      "prompt": "Jesse with reverse-aging cake in humorous party setting"
+    },
+    {
+      "slot": "object",
+      "subject": "Birthday cake with backward candles",
+      "background": "Simple modern backdrop",
+      "prompt": "Birthday cake with backward-counting candles on simple modern backdrop"
+    },
+    {
+      "slot": "tone-twist",
+      "subject": "Time-reversal birthday concept",
+      "background": "Playful modern environment",
+      "prompt": "Time-reversal birthday concept in playful modern environment"
+    }
+  ]
+}
+```
+
+### 16.4 Fallback System
+If API fails, use contextual fallbacks that incorporate:
+- Subcategory-specific subjects
+- Tone-appropriate backgrounds  
+- Visual style preferences
+- Primary tags (first 2)
+
+### 16.5 UI Integration
+- Display slot labels ("Background Only", "Subject + Background", etc.)
+- Show all 4 options in grid layout
+- Pass selected visual prompt to Ideogram handoff
+- Include visual concept in design_notes field
+
+Done. Paste sections 1 to 16 into Lovable as the "Vibe Maker Model Operating Manual." Wire your middleware to feed the Developer template with live selections, run the post processor, then send the final line to Ideogram with the handoff template.
