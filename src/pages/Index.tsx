@@ -4342,6 +4342,12 @@ const Index = () => {
       return;
     }
 
+    // Auto-commit pending tag input before generating
+    if (subjectTagInput.trim()) {
+      setSubjectTags([...subjectTags, subjectTagInput.trim()]);
+      setSubjectTagInput("");
+    }
+
     setIsGeneratingSubject(true);
     try {
       // Build inputs using the same mapping logic as text generation
@@ -5774,7 +5780,35 @@ const Index = () => {
                             </div>
                           )}
 
-                          {/* Visual AI recommendations are handled by StackedSelectionCard */}
+                          {/* Selected visual concept confirmation */}
+                          {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] && (
+                            <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                                    Selected concept ✓
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="space-y-2">
+                                    <div>
+                                      <p className="text-sm font-medium text-foreground">{visualOptions[selectedVisualIndex].subject}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">{visualOptions[selectedVisualIndex].background}</p>
+                                    </div>
+                                  </div>
+                                  <div className="text-center mt-3">
+                                    <button onClick={() => {
+                                      setSelectedVisualIndex(null);
+                                    }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                                      Change selection
+                                    </button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
