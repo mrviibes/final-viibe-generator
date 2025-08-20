@@ -4667,12 +4667,12 @@ const Index = () => {
       console.log('Final prompt:', prompt);
       console.log('Aspect ratio:', aspectForIdeogram);
       console.log('Style type:', styleForIdeogram);
-      console.log('Final payload:', { prompt, aspect_ratio: aspectForIdeogram, model: 'V_3', magic_prompt_option: 'AUTO', style_type: styleForIdeogram });
+      console.log('Final payload:', { prompt, aspect_ratio: aspectForIdeogram, model: 'V_2A_TURBO', magic_prompt_option: 'AUTO', style_type: styleForIdeogram });
 
       const response = await generateIdeogramImage({
         prompt,
         aspect_ratio: aspectForIdeogram,
-        model: 'V_3',
+        model: 'V_2A_TURBO',
         magic_prompt_option: 'AUTO',
         style_type: styleForIdeogram,
       });
@@ -5674,8 +5674,8 @@ const Index = () => {
                 )}
 
 
-                {/* Generated Text Options Grid - Show when options exist */}
-                {generatedOptions.length > 0 && selectedCompletionOption === "ai-assist" && (
+                {/* Generated Text Options Grid - Show when options exist but no selection made */}
+                {generatedOptions.length > 0 && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && (
                   <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
@@ -5685,11 +5685,7 @@ const Index = () => {
                       {generatedOptions.slice(0, 4).map((option, index) => (
                         <Card 
                           key={index}
-                          className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 ${
-                            selectedGeneratedOption === option 
-                              ? "border-[#0db0de] bg-[#0db0de]/5 shadow-md" 
-                              : "hover:bg-accent/50"
-                          }`}
+                          className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50"
                           onClick={() => {
                             setSelectedGeneratedOption(option);
                             setSelectedGeneratedIndex(index);
@@ -5700,9 +5696,6 @@ const Index = () => {
                               <span className="text-sm font-medium text-muted-foreground">
                                 Option {index + 1}
                               </span>
-                              {selectedGeneratedOption === option && (
-                                <span className="text-[#0db0de] text-sm">✓</span>
-                              )}
                             </div>
                             <p className="text-sm text-card-foreground leading-relaxed">
                               {option}
