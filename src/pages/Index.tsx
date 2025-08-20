@@ -4406,6 +4406,8 @@ const Index = () => {
       let subcategory = '';
       let finalTags = [...tags];
       
+      console.log('🏷️ Text generation started with tags:', tags);
+      
       // Map category
       switch (selectedStyle) {
         case 'celebrations':
@@ -4459,6 +4461,13 @@ const Index = () => {
         finalTagsForGeneration.push("group", "people");
       }
       
+      console.log('📋 Final parameters for text generation:', {
+        category,
+        subcategory,
+        tone: tone.toLowerCase(),
+        tags: finalTagsForGeneration
+      });
+      
       const vibeResult: VibeResult = await generateCandidates({
         category,
         subcategory,
@@ -4466,22 +4475,26 @@ const Index = () => {
         tags: finalTagsForGeneration
       }, 4);
       
+      console.log('✅ Generated text options:', vibeResult.candidates);
+      
       // Clear previous selection when generating/regenerating
       setSelectedGeneratedOption(null);
-      setSelectedGeneratedIndex(null);
+      setSelectedGeneratedIndex(null);  
       setGeneratedOptions(vibeResult.candidates);
       
       // Don't auto-select any option - let user choose
       
       // Log audit info for debugging
-      console.log('Vibe generation audit:', vibeResult.audit);
+      console.log('🔍 Vibe generation audit:', vibeResult.audit);
       
       // Warn if fallbacks were used
       if (vibeResult.audit.usedFallback) {
         console.warn('⚠️ Text generation used fallback variants. API may be unavailable or having issues.');
+        sonnerToast.warning('Text generation used fallback. Results may be less relevant to your tags.');
       }
     } catch (error) {
-      console.error('Error generating text:', error);
+      console.error('❌ Error generating text:', error);
+      sonnerToast.error('Failed to generate text options. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -5336,9 +5349,10 @@ const Index = () => {
                           
                           // Add generated options available notice (when options generated but none selected)
                           if (selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption) {
+                            const tagDisplay = tags.length > 0 ? `, tags: ${tags.join(", ")}` : " (no tags added)";
                             selections.push({
                               title: "Text options generated",
-                              subtitle: `100 characters max${tags.length > 0 ? `, tags: ${tags.join(", ")}` : ""}`,
+                              subtitle: `100 characters max${tagDisplay}`,
                               onChangeSelection: () => {
                                 setGeneratedOptions([]);
                                 setSelectedGeneratedOption(null);
