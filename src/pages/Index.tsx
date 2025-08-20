@@ -4363,6 +4363,8 @@ const Index = () => {
       let subcategory = '';
       let finalTags = [...tags, ...subjectTags];
       
+      console.log('🎨 Visual generation started with tags:', { tags, subjectTags, finalTags });
+      
       // Map category
       switch (selectedStyle) {
         case 'celebrations':
@@ -4419,6 +4421,12 @@ const Index = () => {
         finalLine
       }, 4);
       
+      console.log('🎨 Visual generation completed with result:', { 
+        optionsCount: visualResult.options.length, 
+        model: visualResult.model,
+        tags: finalTags 
+      });
+      
       // Clear previous selection and set new options
       setSelectedVisualIndex(null);
       setVisualOptions(visualResult.options);
@@ -4457,6 +4465,8 @@ const Index = () => {
       let finalTags = [...tags];
       
       console.log('🏷️ Text generation started with tags:', tags);
+      console.log('🏷️ Current tags state:', { tags, tagsLength: tags.length });
+      console.log('🏷️ Final tags for processing:', finalTags);
       
       // Map category
       switch (selectedStyle) {
@@ -4515,8 +4525,16 @@ const Index = () => {
         category,
         subcategory,
         tone: tone.toLowerCase(),
-        tags: finalTagsForGeneration
+        tags: finalTagsForGeneration,
+        originalTags: tags,
+        tagCount: finalTagsForGeneration.length
       });
+      
+      // Ensure we have at least the basic tags
+      if (finalTagsForGeneration.length === 0 && tags.length > 0) {
+        console.warn('⚠️ finalTagsForGeneration is empty but original tags exist, using original tags');
+        finalTagsForGeneration = [...tags];
+      }
       
       const vibeResult: VibeResult = await generateCandidates({
         category,
