@@ -5243,33 +5243,85 @@ const Index = () => {
                 ))}
               </div>
                 ) : (
-                  /* Show selected text style card only when no generated option is selected */
+                  /* Show StackedSelectionCard when any selection is made */
                   <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    {!selectedGeneratedOption && (
-                      <div className="mb-8 selected-card">
-                        <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                              {textStyleOptions.find(s => s.id === selectedTextStyle)?.name}
-                              <span className="text-sm">✓</span>
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <CardDescription className="text-sm text-muted-foreground text-center">
-                              {textStyleOptions.find(s => s.id === selectedTextStyle)?.description}
-                            </CardDescription>
-                            <div className="text-center mt-3">
-                              <button onClick={() => {
-                               setSelectedTextStyle(null);
-                               setSelectedCompletionOption(null);
-                               setIsCustomTextConfirmed(false);
-                               setStepTwoText("");
-                              }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                                Change selection
-                              </button>
-                            </div>
-                          </CardContent>
-                        </Card>
+                    {/* Show stacked selections when any selection is made */}
+                    {(selectedTextStyle || selectedCompletionOption || selectedGeneratedOption || isCustomTextConfirmed) && (
+                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <StackedSelectionCard selections={(() => {
+                          const selections = [];
+                          
+                          // Add text style selection
+                          if (selectedTextStyle) {
+                            const textStyleData = textStyleOptions.find(s => s.id === selectedTextStyle);
+                            selections.push({
+                              title: textStyleData?.name || '',
+                              subtitle: textStyleData?.description || '',
+                              onChangeSelection: () => {
+                                setSelectedTextStyle(null);
+                                setSelectedCompletionOption(null);
+                                setGeneratedOptions([]);
+                                setSelectedGeneratedOption(null);
+                                setIsCustomTextConfirmed(false);
+                                setStepTwoText("");
+                              }
+                            });
+                          }
+                          
+                          // Add completion option selection
+                          if (selectedCompletionOption) {
+                            const completionData = completionOptions.find(opt => opt.id === selectedCompletionOption);
+                            selections.push({
+                              title: completionData?.name || '',
+                              subtitle: selectedCompletionOption !== "write-myself" ? completionData?.description || '' : undefined,
+                              onChangeSelection: () => {
+                                setSelectedCompletionOption(null);
+                                setGeneratedOptions([]);
+                                setSelectedGeneratedOption(null);
+                                setIsCustomTextConfirmed(false);
+                                setStepTwoText("");
+                              }
+                            });
+                          }
+                          
+                          // Add generated option selection (for AI assist)
+                          if (selectedGeneratedOption && selectedCompletionOption === "ai-assist") {
+                            selections.push({
+                              title: `Option ${selectedGeneratedIndex !== null ? selectedGeneratedIndex + 1 : 1}`,
+                              subtitle: selectedGeneratedOption,
+                              onChangeSelection: () => {
+                                setSelectedGeneratedOption(null);
+                                setSelectedGeneratedIndex(null);
+                              }
+                            });
+                          }
+                          
+                          // Add custom text selection (for write myself)
+                          if (isCustomTextConfirmed && selectedCompletionOption === "write-myself") {
+                            selections.push({
+                              title: "Custom Text",
+                              subtitle: `"${stepTwoText}"`,
+                              onChangeSelection: () => {
+                                setIsCustomTextConfirmed(false);
+                              }
+                            });
+                          }
+                          
+                          // Add generated options available notice (when options generated but none selected)
+                          if (selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption) {
+                            selections.push({
+                              title: "Text options generated",
+                              subtitle: `100 characters max${tags.length > 0 ? `, tags: ${tags.join(", ")}` : ""}`,
+                              onChangeSelection: () => {
+                                setGeneratedOptions([]);
+                                setSelectedGeneratedOption(null);
+                                setSelectedGeneratedIndex(null);
+                              }
+                            });
+                          }
+                          
+                          return selections;
+                        })()} />
                       </div>
                     )}
 
@@ -5301,40 +5353,7 @@ const Index = () => {
                       ))}
                     </div>
                   </>
-                ) : (
-                  /* Show selected completion option when no generated option is selected */
-                  !selectedGeneratedOption && (
-                    <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
-                      <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                            {completionOptions.find(opt => opt.id === selectedCompletionOption)?.name}
-                            <span className="text-sm">✓</span>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          {selectedCompletionOption !== "write-myself" && (
-                            <CardDescription className="text-sm text-card-foreground text-center">
-                              {completionOptions.find(opt => opt.id === selectedCompletionOption)?.description}
-                            </CardDescription>
-                          )}
-                          <div className="text-center mt-3">
-                            <button onClick={() => {
-                           setSelectedCompletionOption(null);
-                               setGeneratedOptions([]);
-                               setSelectedGeneratedOption(null);
-                               setSelectedGeneratedIndex(null);
-                               setIsCustomTextConfirmed(false);
-                               setStepTwoText("");
-                            }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                              Change selection
-                            </button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )
-                )}
+                ) : null}
 
                 {/* Show AI Assist form when selected and no options generated yet */}
                 {selectedCompletionOption === "ai-assist" && generatedOptions.length === 0 && (
@@ -5398,119 +5417,10 @@ const Index = () => {
 
                 {/* Show generated options box when options exist but no selection made yet */}
                 {selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption && (
-                  <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                          Text options generated
-                          <span className="text-sm">✓</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <CardDescription className="text-sm text-muted-foreground text-center">
-                          100 characters max{tags.length > 0 ? `, tags: ${tags.join(", ")}` : ""}
-                        </CardDescription>
-                        <div className="text-center mt-3">
-                            <button onClick={() => {
-                              setGeneratedOptions([]);
-                              setSelectedGeneratedOption(null);
-                              setSelectedGeneratedIndex(null);
-                            }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                              Change selection
-                            </button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                  <>
+                  </>
                 )}
 
-                {/* Show stacked selections when text option is selected */}
-                {selectedGeneratedOption && (
-                  <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4 mb-8">
-                    {/* Show selected text style */}
-                    <div className="selected-card">
-                      <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                            {textStyleOptions.find(s => s.id === selectedTextStyle)?.name}
-                            <span className="text-sm">✓</span>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <CardDescription className="text-sm text-muted-foreground text-center">
-                            {textStyleOptions.find(s => s.id === selectedTextStyle)?.description}
-                          </CardDescription>
-                          <div className="text-center mt-3">
-                            <button onClick={() => {
-                               setSelectedTextStyle(null);
-                               setSelectedCompletionOption(null);
-                               setGeneratedOptions([]);
-                               setSelectedGeneratedOption(null);
-                               setIsCustomTextConfirmed(false);
-                               setStepTwoText("");
-                               setIsCustomTextConfirmed(false);
-                               setStepTwoText("");
-                            }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                              Change selection
-                            </button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-
-                    {/* Show selected completion option */}
-                    <div className="selected-card">
-                      <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                            {completionOptions.find(opt => opt.id === selectedCompletionOption)?.name}
-                            <span className="text-sm">✓</span>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          {selectedCompletionOption !== "write-myself" && (
-                            <CardDescription className="text-sm text-card-foreground text-center">
-                              {completionOptions.find(opt => opt.id === selectedCompletionOption)?.description}
-                            </CardDescription>
-                          )}
-                          <div className="text-center mt-3">
-                            <button onClick={() => {
-                               setSelectedCompletionOption(null);
-                               setGeneratedOptions([]);
-                               setSelectedGeneratedOption(null);
-                               setIsCustomTextConfirmed(false);
-                               setStepTwoText("");
-                            }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                              Change selection
-                            </button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-
-                    {/* Show selected generated text option */}
-                    <div className="selected-card">
-                      <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                        <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                          Option {selectedGeneratedIndex !== null ? selectedGeneratedIndex + 1 : 1}
-                          <span className="text-sm">✓</span>
-                        </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <CardDescription className="text-sm text-muted-foreground text-center">
-                            {selectedGeneratedOption}
-                          </CardDescription>
-                          <div className="text-center mt-3">
-                            <button onClick={() => setSelectedGeneratedOption(null)} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                              Change selection
-                            </button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                )}
 
                 {/* Generated Text Options Grid - Show when options exist */}
                 {generatedOptions.length > 0 && selectedCompletionOption === "ai-assist" && (
@@ -5603,27 +5513,8 @@ const Index = () => {
 
                 {/* Show confirmed custom text when saved */}
                 {selectedCompletionOption === "write-myself" && isCustomTextConfirmed && (
-                  <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                          Custom Text ✓
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <CardDescription className="text-sm text-muted-foreground text-center">
-                          "{stepTwoText}"
-                        </CardDescription>
-                        <div className="text-center mt-3">
-                          <button onClick={() => {
-                            setIsCustomTextConfirmed(false);
-                          }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                            Change text
-                          </button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                  <>
+                  </>
                 )}
 
 
