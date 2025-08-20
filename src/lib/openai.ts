@@ -69,9 +69,10 @@ export class OpenAIService {
       model = 'gpt-4o-mini'
     } = options;
 
-    // Use max_completion_tokens if provided, otherwise use max_tokens
+    // For GPT-5 models, always use max_completion_tokens; for older models, use max_tokens
+    const isGPT5Model = model?.includes('gpt-5');
     const tokenLimit = max_completion_tokens || max_tokens;
-    const tokenParameter = max_completion_tokens ? 'max_completion_tokens' : 'max_tokens';
+    const tokenParameter = isGPT5Model ? 'max_completion_tokens' : 'max_tokens';
 
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
