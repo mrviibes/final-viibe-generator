@@ -4070,15 +4070,15 @@ const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Add timeout ref for search debouncing
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
-
   // Helper function to truncate text to max words
   const truncateWords = (text: string, maxWords: number): string => {
     const words = text.split(' ');
     if (words.length <= maxWords) return text;
     return words.slice(0, maxWords).join(' ') + '...';
   };
+  
+  // Add timeout ref for search debouncing
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Helper function to check if Step 1 is complete
   const isStep1Complete = (): boolean => {
