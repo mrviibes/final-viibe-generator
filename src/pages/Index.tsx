@@ -13,6 +13,7 @@ import { StepProgress } from "@/components/StepProgress";
 import { useNavigate } from "react-router-dom";
 import { generateCandidates, VibeResult } from "@/lib/vibeModel";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
+import { generateVisualRecommendations, VisualOption } from "@/lib/visualModel";
 const styleOptions = [{
   id: "celebrations",
   name: "Celebrations",
@@ -3937,6 +3938,8 @@ const Index = () => {
   const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
   const [selectedVisualStyle, setSelectedVisualStyle] = useState<string | null>(null);
   const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>(null);
+  const [visualOptions, setVisualOptions] = useState<VisualOption[]>([]);
+  const [selectedVisualIndex, setSelectedVisualIndex] = useState<number | null>(null);
   const [subjectTags, setSubjectTags] = useState<string[]>([]);
   const [subjectTagInput, setSubjectTagInput] = useState<string>("");
   const [isGeneratingSubject, setIsGeneratingSubject] = useState<boolean>(false);
@@ -4010,11 +4013,23 @@ const Index = () => {
   const isStep3Complete = (): boolean => {
     if (!selectedVisualStyle || !selectedSubjectOption) return false;
     
+    // If AI Assist is selected, require visual option selection and dimensions
+    if (selectedSubjectOption === "ai-assist") {
+      const hasVisualSelection = selectedVisualIndex !== null;
+      const hasDimensions = !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
+      return hasVisualSelection && hasDimensions;
+    }
+    
     // If Design Myself is selected, require confirmed description and dimensions
     if (selectedSubjectOption === "design-myself") {
       const hasConfirmedDescription = subjectDescription.trim().length > 0 && isSubjectDescriptionConfirmed;
       const hasDimensions = !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
       return hasConfirmedDescription && hasDimensions;
+    }
+    
+    // For "no-subject", just need dimensions
+    if (selectedSubjectOption === "no-subject") {
+      return !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
     }
     
     return true;
@@ -4067,11 +4082,83 @@ const Index = () => {
 
   // Generate subject using AI
   const handleGenerateSubject = async () => {
+    if (!openAIService.hasApiKey()) {
+      setShowApiKeyDialog(true);
+      return;
+    }
+
     setIsGeneratingSubject(true);
-    // TODO: Implement subject generation logic
-    setTimeout(() => {
+    try {
+      // Build inputs using the same mapping logic as text generation
+      let category = '';
+      let subcategory = '';
+      let finalTags = [...tags, ...subjectTags];
+      
+      // Map category
+      switch (selectedStyle) {
+        case 'celebrations':
+          category = 'celebrations';
+          break;
+        case 'sports':
+          category = 'sports';
+          break;
+        case 'daily-life':
+          category = 'daily life';
+          break;
+        case 'vibes-punchlines':
+          category = 'vibes and punchlines';
+          break;
+        case 'pop-culture':
+          category = 'pop culture';
+          break;
+        case 'random':
+          category = 'no category';
+          break;
+        default:
+          category = 'no category';
+      }
+      
+      // Get subcategory based on selected option
+      if (selectedStyle === 'celebrations' && selectedSubOption) {
+        const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+        subcategory = celebOption?.name || selectedSubOption;
+      } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+        const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+        subcategory = popOption?.name || selectedSubOption;
+        if (selectedPick) {
+          finalTags.push(selectedPick);
+        }
+      } else if (selectedSubOption) {
+        subcategory = selectedSubOption;
+      } else {
+        subcategory = 'general';
+      }
+      
+      // Get tone from text style
+      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+      const tone = selectedTextStyleObj?.name || 'Humorous';
+      
+      // Get final line from Step 2 if available
+      const finalLine = selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : undefined);
+      
+      const visualResult = await generateVisualRecommendations({
+        category,
+        subcategory,
+        tone: tone.toLowerCase(),
+        tags: finalTags,
+        visualStyle: selectedVisualStyle || undefined,
+        finalLine
+      }, 4);
+      
+      // Clear previous selection and set new options
+      setSelectedVisualIndex(null);
+      setVisualOptions(visualResult.options);
+      
+    } catch (error) {
+      console.error('Error generating visual recommendations:', error);
+    } finally {
       setIsGeneratingSubject(false);
-    }, 2000);
+    }
   };
 
   // Generate text using Vibe Model
@@ -5539,7 +5626,9 @@ const Index = () => {
                               setSubjectTagInput("");
                               setSubjectDescription("");
                               setIsSubjectDescriptionConfirmed(false);
-                            }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                              setVisualOptions([]);
+                              setSelectedVisualIndex(null);
+                            }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">,
                               Change selection
                             </button>
                           </div>
@@ -5599,6 +5688,49 @@ const Index = () => {
                               )}
                             </Button>
                           </div>
+
+                          {/* Visual AI recommendations */}
+                          {visualOptions.length > 0 && (
+                            <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              <div className="text-center mb-6">
+                                <h3 className="text-xl font-semibold text-foreground mb-2">Visual AI recommendations</h3>
+                                <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                                {visualOptions.map((option, index) => (
+                                  <Card 
+                                    key={index}
+                                    className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full ${
+                                      selectedVisualIndex === index 
+                                        ? 'border-[#0db0de] bg-[#0db0de]/5 shadow-md' 
+                                        : 'hover:bg-accent/50'
+                                    }`}
+                                    onClick={() => setSelectedVisualIndex(index)}
+                                  >
+                                    <CardHeader className="pb-3">
+                                      <CardTitle className={`text-base font-semibold flex items-center justify-between ${
+                                        selectedVisualIndex === index ? 'text-[#0db0de]' : 'text-card-foreground'
+                                      }`}>
+                                        <span>Option {index + 1}</span>
+                                        {selectedVisualIndex === index && (
+                                          <span className="text-sm">✓</span>
+                                        )}
+                                      </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-2">
+                                      <div>
+                                        <p className="text-sm font-medium text-foreground">{option.subject}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-sm text-muted-foreground">{option.background}</p>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -5770,7 +5902,8 @@ const Index = () => {
                 {/* General Dimensions Selection - Show when subject flow is complete */}
                 {selectedSubjectOption && (
                   (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed) ||
-                  selectedSubjectOption !== "design-myself"
+                  (selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null) ||
+                  selectedSubjectOption === "no-subject"
                 ) && (
                   <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
