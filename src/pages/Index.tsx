@@ -3790,6 +3790,14 @@ const vibesPunchlinesOptions = [{
   id: "seasonal-events",
   name: "Seasonal Events",
   subtitle: "Big yearly happenings"
+}, {
+  id: "advertising",
+  name: "Advertising",
+  subtitle: "Marketing campaigns and ads"
+}, {
+  id: "courier-jokes",
+  name: "Courier Jokes",
+  subtitle: "Delivery service humor"
 }];
 
 const popCultureOptions = [{
