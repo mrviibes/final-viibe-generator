@@ -4052,6 +4052,7 @@ const Index = () => {
   const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>(null);
   const [visualOptions, setVisualOptions] = useState<VisualOption[]>([]);
   const [selectedVisualIndex, setSelectedVisualIndex] = useState<number | null>(null);
+  const [visualModel, setVisualModel] = useState<string | null>(null); // Track which model was used
   const [subjectTags, setSubjectTags] = useState<string[]>([]);
   const [subjectTagInput, setSubjectTagInput] = useState<string>("");
   const [isGeneratingSubject, setIsGeneratingSubject] = useState<boolean>(false);
@@ -4474,6 +4475,7 @@ const Index = () => {
       // Clear previous selection and set new options
       setSelectedVisualIndex(null);
       setVisualOptions(visualResult.options);
+      setVisualModel(visualResult.model); // Track which model was used
       
       // Clear only the input, keep tags for the summary, and hide editor
       setSubjectTagInput("");
@@ -5959,13 +5961,33 @@ const Index = () => {
                       </div>
                     )}
 
-                    {/* Visual AI recommendations - always show if available */}
-                    {selectedSubjectOption === "ai-assist" && visualOptions.length > 0 && selectedVisualIndex === null && (
-                      <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="text-center mb-6">
-                          <h3 className="text-xl font-semibold text-foreground mb-2">Visual AI recommendations</h3>
-                          <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
-                        </div>
+                     {/* Visual AI recommendations - always show if available */}
+                     {selectedSubjectOption === "ai-assist" && visualOptions.length > 0 && selectedVisualIndex === null && (
+                       <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                         <div className="text-center mb-6">
+                           <div className="flex items-center justify-center gap-3 mb-2">
+                             <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={handleGenerateSubject}
+                               disabled={isGeneratingSubject}
+                               className="text-xs"
+                             >
+                               {isGeneratingSubject ? (
+                                 <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                               ) : (
+                                 "Regenerate"
+                               )}
+                             </Button>
+                           </div>
+                           {visualModel === 'fallback' && (
+                             <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-xs p-2 rounded-lg mb-3 max-w-md mx-auto">
+                               ⚠️ Used fallback options (AI timed out). Try "Regenerate" for fresh AI recommendations.
+                             </div>
+                           )}
+                           <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
+                         </div>
                         
                         <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
                           {visualOptions.map((option, index) => (

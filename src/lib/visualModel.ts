@@ -125,9 +125,15 @@ function validateVisualOptions(options: VisualOption[]): VisualOption[] {
 
 function getSlotBasedFallbacks(inputs: VisualInputs): VisualOption[] {
   const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity, subjectOption, dimensions } = inputs;
-  const primaryTags = tags.slice(0, 2).join(', ') || 'simple design';
+  const primaryTags = tags.slice(0, 3).join(', ') || 'dynamic energy';
   const occasion = subcategory || 'general';
   const entity = specificEntity || 'subject';
+  
+  // Dynamic synonym pools to avoid repetitive fallbacks
+  const energyWords = ['explosive', 'dramatic', 'intense', 'vibrant', 'electrifying', 'captivating'];
+  const sceneWords = ['scene', 'environment', 'atmosphere', 'setting', 'backdrop', 'landscape'];
+  const randomEnergy = energyWords[Math.floor(Math.random() * energyWords.length)];
+  const randomScene = sceneWords[Math.floor(Math.random() * sceneWords.length)];
   
   // Determine if we need people in the image based on tags or context
   const needsPeople = tags.some(tag => 
@@ -176,27 +182,27 @@ function getSlotBasedFallbacks(inputs: VisualInputs): VisualOption[] {
   return [
     {
       slot: "background-only",
-      subject: "Clean visual composition",
-      background: `${tone} ${visualStyle || 'modern'} background with ${primaryTags} elements`,
-      prompt: `${tone} ${visualStyle || 'modern'} background with ${primaryTags} elements, clean composition without text or typography [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: busy patterns, high-frequency texture, harsh shadows in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: dark text]`
+      subject: `${randomEnergy.charAt(0).toUpperCase() + randomEnergy.slice(1)} ${tone} ${randomScene}`,
+      background: `${randomEnergy.charAt(0).toUpperCase() + randomEnergy.slice(1)} ${tone} ${visualStyle || 'modern'} environment showcasing ${primaryTags}`,
+      prompt: `${randomEnergy.charAt(0).toUpperCase() + randomEnergy.slice(1)} ${tone} ${visualStyle || 'modern'} environment showcasing ${primaryTags}, ${randomEnergy} composition without text or typography [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: busy patterns, high-frequency texture, harsh shadows in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: dark text]`
     },
     {
       slot: "subject+background", 
-      subject: `${needsPeople ? `${peopleContext} in ` : ''}Central ${occasion} themed composition`,
-      background: `Complementary ${tone} environment with ${primaryTags}`,
-      prompt: `${needsPeople ? `${peopleContext} in ` : ''}Central ${occasion} themed composition positioned on right third in complementary ${tone} environment with ${primaryTags} [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: faces crossing center, busy patterns in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text]`
+      subject: `${needsPeople ? `${peopleContext} immersed in ` : ''}${randomEnergy.charAt(0).toUpperCase() + randomEnergy.slice(1)} ${occasion} moment`,
+      background: `${randomEnergy.charAt(0).toUpperCase() + randomEnergy.slice(1)} ${tone} atmosphere with ${primaryTags}`,
+      prompt: `${needsPeople ? `${peopleContext} immersed in ` : ''}${randomEnergy.charAt(0).toUpperCase() + randomEnergy.slice(1)} ${occasion} moment positioned on right third in ${randomEnergy} ${tone} atmosphere with ${primaryTags} [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: faces crossing center, busy patterns in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text]`
     },
     {
       slot: "object",
-      subject: `Featured ${occasion} objects or symbols`,
-      background: `Minimal ${tone} backdrop`,
-      prompt: `Featured ${occasion} objects or symbols anchored bottom third on minimal ${tone} backdrop, ${primaryTags} style [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: reflective glare in center, busy patterns] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: dark text]`
+      subject: `${randomEnergy.charAt(0).toUpperCase() + randomEnergy.slice(1)} ${occasion} symbols and elements`,
+      background: `Bold ${tone} ${randomScene} with ${primaryTags} accents`,
+      prompt: `${randomEnergy.charAt(0).toUpperCase() + randomEnergy.slice(1)} ${occasion} symbols and elements anchored bottom third on bold ${tone} ${randomScene} with ${primaryTags} accents [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: reflective glare in center, busy patterns] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: dark text]`
     },
     {
       slot: "tone-twist",
-      subject: `${needsPeople ? `${peopleContext} with ` : ''}${tone.charAt(0).toUpperCase() + tone.slice(1)} interpretation of ${occasion}`,
-      background: `Creative ${visualStyle || 'artistic'} setting`,
-      prompt: `${needsPeople ? `${peopleContext} with ` : ''}${tone.charAt(0).toUpperCase() + tone.slice(1)} interpretation of ${occasion} positioned off-center in creative ${visualStyle || 'artistic'} setting [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: limbs crossing center, harsh shadows in safe zone] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text]`
+      subject: `${needsPeople ? `${peopleContext} expressing ` : ''}${randomEnergy.charAt(0).toUpperCase() + randomEnergy.slice(1)} ${tone} energy for ${occasion}`,
+      background: `Imaginative ${visualStyle || 'artistic'} world with ${primaryTags} influences`,
+      prompt: `${needsPeople ? `${peopleContext} expressing ` : ''}${randomEnergy.charAt(0).toUpperCase() + randomEnergy.slice(1)} ${tone} energy for ${occasion} positioned off-center in imaginative ${visualStyle || 'artistic'} world with ${primaryTags} influences [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: limbs crossing center, harsh shadows in safe zone] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text]`
     }
   ];
 }
@@ -225,7 +231,19 @@ For birthdays: think explosive celebrations, towering cakes, floating balloons, 
 For sports: think action-packed moments, dramatic lighting, intense energy!
 Be creative and descriptive while staying relevant to the category/subcategory.
 
-Return valid JSON only.`;
+CRITICAL: Return ONLY valid JSON in this exact format:
+{
+  "options": [
+    {
+      "slot": "background-only",
+      "subject": "description here",
+      "background": "description here", 
+      "prompt": "full prompt with [TAGS:] [TEXT_SAFE_ZONE:] etc"
+    }
+  ]
+}
+
+Do not include any other text or formatting. JSON only.`;
 
 function getStyleKeywords(visualStyle?: string): string {
   const styles: Record<string, string> = {
@@ -247,9 +265,9 @@ Return JSON with 4 options. Each prompt needs: [TAGS: ${tags.join(', ')}] [TEXT_
     const startTime = Date.now();
     console.log('🚀 Starting visual generation with optimized settings...');
     
-    // Create a timeout promise for fast fallback
+    // Create a timeout promise with increased timeout for better reliability
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Visual generation timeout - using fallback')), 7000);
+      setTimeout(() => reject(new Error('Visual generation timeout - using fallback')), 15000);
     });
 
     // Race between AI generation and timeout
@@ -258,7 +276,7 @@ Return JSON with 4 options. Each prompt needs: [TAGS: ${tags.join(', ')}] [TEXT_
       { role: 'user', content: userPrompt }
     ], {
       temperature: 0.7,
-      max_completion_tokens: 600, // Further reduced for reliability  
+      max_completion_tokens: 650, // Slightly increased to reduce truncation
       model: 'gpt-5-mini-2025-08-07'
     });
 
