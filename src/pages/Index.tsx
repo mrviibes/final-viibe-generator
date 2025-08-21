@@ -5877,35 +5877,37 @@ const Index = () => {
                     {selectedSubjectOption === "ai-assist" && !selectedVisualIndex && showSubjectTagEditor && (
                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-8">
-                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">tags will help guide your Viibe</h2>
+                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for content generation</h2>
                           <p className="text-sm text-muted-foreground/70">(female endorser, tight blue jeans, sneakers, busy park)</p>
                         </div>
 
                         <div className="max-w-lg mx-auto space-y-6">
-                          {/* Tag Input with Integrated Generate Button */}
-                          <div className="space-y-2">
-                            <div className="relative">
-                              <Input
-                                value={subjectTagInput}
-                                onChange={(e) => setSubjectTagInput(e.target.value)}
-                                onKeyDown={handleSubjectTagInputKeyDown}
-                                placeholder="Enter tags (press Enter or comma to add)"
-                                className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg pr-32"
-                              />
+                          {/* Tag Input */}
+                          <div className="space-y-4">
+                            <Input
+                              value={subjectTagInput}
+                              onChange={(e) => setSubjectTagInput(e.target.value)}
+                              onKeyDown={handleSubjectTagInputKeyDown}
+                              placeholder="Enter tags (press Enter or comma to add)"
+                              className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg"
+                            />
+                            
+                            {/* Generate Button - Below the input */}
+                            <div className="flex justify-center">
                               <Button 
                                 variant="brand"
-                                size="sm"
-                                className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 text-sm font-medium rounded-md"
+                                size="lg"
+                                className="px-8 py-3 text-base font-medium rounded-lg"
                                 onClick={handleGenerateSubject}
                                 disabled={isGeneratingSubject}
                               >
                                 {isGeneratingSubject ? (
                                   <>
-                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                     Generating...
                                   </>
                                 ) : (
-                                  "Generate"
+                                  "Generate Visual Now"
                                 )}
                               </Button>
                             </div>
