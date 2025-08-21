@@ -51,6 +51,16 @@ function postProcess(line: string, tone: string, requiredTags?: string[]): VibeC
     cleaned = cleaned.replace(pattern, '');
   }
   
+  // Fix common text generation errors
+  // Remove duplicate words (e.g., "to beance to become" -> "to become")
+  cleaned = cleaned.replace(/\b(\w+)\s+\w*\1/gi, '$1');
+  
+  // Fix repeated "to" patterns specifically
+  cleaned = cleaned.replace(/\bto\s+\w*to\b/gi, 'to');
+  
+  // Remove double spaces and clean up
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+  
   // Hard truncate to 100 characters
   if (cleaned.length > 100) {
     cleaned = cleaned.slice(0, 100);
