@@ -22,7 +22,7 @@ import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAP
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
-import { TextOverlayCanvas } from "@/components/TextOverlayCanvas";
+
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 const styleOptions = [{
   id: "celebrations",
@@ -6522,26 +6522,6 @@ const Index = () => {
                    </div>
                  )}
 
-                 {/* Text Overlay Canvas */}
-                 {showTextOverlay && backgroundOnlyImageUrl && (
-                   <div className="bg-muted/30 rounded-lg p-6 space-y-4">
-                     <div className="text-center">
-                       <h4 className="text-lg font-medium mb-2">Perfect Text Overlay</h4>
-                       <p className="text-sm text-muted-foreground mb-4">
-                         Customize your text overlay with perfect spelling guarantee
-                       </p>
-                     </div>
-                     <TextOverlayCanvas
-                       backgroundImageUrl={backgroundOnlyImageUrl}
-                       text={normalizeTypography(suggestContractions(selectedGeneratedOption || stepTwoText || ""))}
-                       onImageGenerated={(url) => {
-                         setFinalImageWithText(url);
-                         setGeneratedImageUrl(url);
-                         setShowTextOverlay(false);
-                       }}
-                     />
-                   </div>
-                 )}
 
                  {/* Action Buttons */}
                 {generatedImageUrl && !showTextOverlay && (
