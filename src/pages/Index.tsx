@@ -5638,13 +5638,27 @@ const Index = () => {
                     <div className="max-w-md mx-auto space-y-6">
                       {/* Tags Input */}
                       <div className="space-y-3">
-                        <Input
-                          value={tagInput}
-                          onChange={(e) => setTagInput(e.target.value)}
-                          onKeyDown={handleTagInputKeyDown}
-                          placeholder="Enter tags (press Enter or comma to add)"
-                          className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg"
-                        />
+                        <div className="relative">
+                          <Input
+                            value={tagInput}
+                            onChange={(e) => setTagInput(e.target.value)}
+                            onKeyDown={handleTagInputKeyDown}
+                            placeholder="Enter tags (press Enter or comma to add)"
+                            className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg pr-24"
+                          />
+                          <Button 
+                            onClick={handleGenerateText}
+                            disabled={tags.length === 0 || isGenerating}
+                            size="sm"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#0db0de] hover:bg-[#0db0de]/90 text-white transition-all duration-200 disabled:opacity-50"
+                          >
+                            {isGenerating ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Generate"
+                            )}
+                          </Button>
+                        </div>
                         
                         {/* Display Tags */}
                         {tags.length > 0 && (
@@ -5652,41 +5666,22 @@ const Index = () => {
                             {tags.map((tag, index) => (
                               <Badge 
                                 key={index} 
-                                variant="secondary" 
-                                className="px-3 py-1 text-sm flex items-center gap-1"
+                                variant="outline" 
+                                className="px-3 py-1 text-sm border-border/50 bg-card hover:bg-accent/70 transition-colors cursor-pointer"
+                                onClick={() => setTags(tags.filter((_, i) => i !== index))}
                               >
-                                {tag}
-                                <X 
-                                  className="h-3 w-3 cursor-pointer hover:text-destructive" 
-                                  onClick={() => removeTag(tag)}
-                                />
+                                {tag} ×
                               </Badge>
                             ))}
                           </div>
                         )}
                       </div>
 
-                      {/* Generate Button */}
-                      <div className="text-center">
-                        <Button 
-                          variant="brand"
-                          className="px-8 py-3 text-base font-medium rounded-lg"
-                          onClick={handleGenerateText}
-                          disabled={isGenerating}
-                        >
-                          {isGenerating ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Generating...
-                            </>
-                          ) : (
-                            "Generate Text Now"
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                     </div>
+                   </div>
+                  )}
+                </div>
+              )}
 
                 {/* Show generated options box when options exist but no selection made yet */}
                 {selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption && (
@@ -5791,7 +5786,7 @@ const Index = () => {
         )}
 
         {currentStep === 3 && (
-          <>
+          </>
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Visual Style</h2>
               <p className="text-xl text-muted-foreground">
