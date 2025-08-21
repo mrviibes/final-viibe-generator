@@ -8,6 +8,8 @@ export interface VisualInputs {
   visualStyle?: string;
   finalLine?: string;
   specificEntity?: string; // For personas like "Teresa Giudice"
+  subjectOption?: string; // single-person, multiple-people, no-subject
+  dimensions?: string; // square, 4:5, 9:16, etc.
 }
 
 export interface VisualOption {
@@ -24,8 +26,105 @@ export interface VisualResult {
 
 const VISUAL_OPTIONS_COUNT = 4;
 
+// Auto-enrichment functions
+function autoEnrichInputs(inputs: VisualInputs): VisualInputs {
+  const enriched = { ...inputs };
+  
+  // Auto-extract nouns from finalLine if provided
+  if (inputs.finalLine && inputs.tags.length < 5) {
+    const extractedNouns = extractNounsFromText(inputs.finalLine);
+    enriched.tags = [...inputs.tags, ...extractedNouns].slice(0, 8); // Max 8 tags
+  }
+  
+  // Auto-seed category-specific tags if not provided
+  if (inputs.tags.length < 3) {
+    const categoryTags = getCategorySpecificTags(inputs.category, inputs.subcategory);
+    enriched.tags = [...inputs.tags, ...categoryTags].slice(0, 6);
+  }
+  
+  return enriched;
+}
+
+function extractNounsFromText(text: string): string[] {
+  // Simple noun extraction - filter common words and keep substantive terms
+  const words = text.toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 2);
+  
+  const commonWords = new Set(['the', 'and', 'but', 'for', 'are', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'man', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use']);
+  
+  return words
+    .filter(word => !commonWords.has(word))
+    .slice(0, 3); // Max 3 extracted nouns
+}
+
+function getCategorySpecificTags(category: string, subcategory: string): string[] {
+  const celebrationMap: Record<string, string[]> = {
+    'birthday': ['cake', 'candles', 'balloons'],
+    'christmas-day': ['tree', 'gifts', 'ornaments'],
+    'halloween': ['pumpkin', 'costume', 'spooky'],
+    'wedding': ['rings', 'flowers', 'celebration'],
+    'default': ['party', 'festive', 'celebration']
+  };
+  
+  const categoryMap: Record<string, string[] | Record<string, string[]>> = {
+    'celebrations': celebrationMap,
+    'sports': ['athletic', 'competition', 'energy'],
+    'daily-life': ['routine', 'casual', 'everyday'],
+    'pop-culture': ['trendy', 'iconic', 'reference'],
+    'default': ['modern', 'creative']
+  };
+  
+  if (categoryMap[category]) {
+    if (typeof categoryMap[category] === 'object' && !Array.isArray(categoryMap[category])) {
+      const subMap = categoryMap[category] as Record<string, string[]>;
+      return subMap[subcategory] || subMap['default'] || ['modern', 'creative'];
+    }
+    if (Array.isArray(categoryMap[category])) {
+      return categoryMap[category] as string[];
+    }
+  }
+  
+  return categoryMap['default'] as string[];
+}
+
+// Validation functions
+function hasVagueFillers(text: string): boolean {
+  const vaguePatterns = [
+    /something\s+like/i,
+    /\belements?\b/i,
+    /\bgeneral\b/i,
+    /\bvarious\b/i,
+    /\bsome\s+kind/i,
+    /\btypes?\s+of/i,
+    /\bmight\s+show/i,
+    /\bcould\s+include/i
+  ];
+  
+  return vaguePatterns.some(pattern => pattern.test(text));
+}
+
+function validateVisualOptions(options: VisualOption[]): VisualOption[] {
+  return options.filter(option => {
+    // Reject options with vague fillers
+    if (hasVagueFillers(option.subject) || hasVagueFillers(option.background)) {
+      console.warn('🚫 Rejected vague option:', option.subject);
+      return false;
+    }
+    
+    // Ensure minimum detail in prompts
+    if (option.prompt.length < 100) {
+      console.warn('🚫 Rejected short prompt:', option.prompt.substring(0, 50));
+      return false;
+    }
+    
+    return true;
+  });
+}
+
 function getSlotBasedFallbacks(inputs: VisualInputs): VisualOption[] {
-  const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity } = inputs;
+  const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity, subjectOption, dimensions } = inputs;
   const primaryTags = tags.slice(0, 2).join(', ') || 'simple design';
   const occasion = subcategory || 'general';
   const entity = specificEntity || 'subject';
@@ -106,27 +205,42 @@ export async function generateVisualRecommendations(
   inputs: VisualInputs,
   n: number = VISUAL_OPTIONS_COUNT
 ): Promise<VisualResult> {
-  const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity } = inputs;
+  // Auto-enrich inputs before processing
+  const enrichedInputs = autoEnrichInputs(inputs);
+  const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity, subjectOption, dimensions } = enrichedInputs;
   
 const systemPrompt = `You are a visual concept recommender for memes and social graphics with pop-culture knowledge.
 
 Core rules:
 • Use the 4-slot framework: background-only, subject+background, object, tone-twist.
-• Incorporate ALL inputs: category, subcategory, tone, visual style, text content, tags, entity/person.
+• Incorporate ALL inputs: category, subcategory, tone, visual style, text content, tags, entity/person, subject composition, dimensions.
 • Use ALL provided {tags} verbatim. Do not paraphrase, change plurality, or translate them.
 • Do NOT include any rendered typography in the image itself unless "Text Content" explicitly instructs it. Assume text will be overlaid later.
+• CRITICAL: Avoid vague language like "something like", "elements", "general", "various", "types of", "could include".
 
 Readability and layout:
 • Text alignment default: center.
 • Reserve a TEXT_SAFE_ZONE centered at 60% width by 35% height. Keep it low-detail, low-contrast.
 • CONTRAST_PLAN: if the background is bright, create a subtle darker gradient in the safe zone. If the background is dark, create a subtle lighter gradient in the safe zone. Avoid hard edges.
 • NEGATIVE_PROMPT: no busy patterns, no high-frequency texture, no faces or limbs crossing the TEXT_SAFE_ZONE, no harsh shadows or specular highlights inside it.
-• CROP_STRATEGY: design that survives 1:1 primary, with crop-safe center for 4:5 and 9:16.
+• CROP_STRATEGY: design optimized for specified dimensions, with crop-safe center for alternates.
 
 People and subjects:
-• If tags include person words, follow them: "group" means 2–4 people, "man" or "woman" means one person.
+• Follow the subject option exactly: "single-person" = one person, "multiple-people" = 2-4 people, "no-subject" = no people.
 • Specify age range, body position, pose, expression, camera distance, and interaction.
 • For specific entities, reference iconic traits and moments without using protected likenesses unless explicitly provided.
+
+Dimensions and composition:
+• If dimensions specified, optimize composition for that aspect ratio.
+• Square (1:1): balanced, centered compositions
+• Portrait (4:5, 9:16): vertical emphasis, subjects positioned for vertical crop
+• Landscape (16:9): horizontal flow, wide establishing shots
+
+Style lexicon by visual style:
+• realistic/photo-real: crisp details, natural lighting, photographic depth
+• illustrated/cartoon: clean lines, vibrant colors, stylized forms
+• collage: layered textures, mixed media, artistic composition
+• minimalist: clean space, simple forms, subtle gradients
 
 Slot differentiation:
 • background-only: text-friendly surfaces. Gradients, soft bokeh, or minimal scenes.
@@ -141,7 +255,7 @@ Output:
   [TEXT_SAFE_ZONE: center 60x35]
   [CONTRAST_PLAN: light|dark|auto]
   [NEGATIVE_PROMPT: ...]
-  [ASPECTS: 1:1 base, crop-safe 4:5, 9:16]
+  [ASPECTS: optimized for {dimensions}]
   [TEXT_HINT: light text|dark text] suggestion for overlay color`;
 
   const userPrompt = `Generate exactly 4 visual concept options using the slot framework for these details:
@@ -152,6 +266,8 @@ Tone: ${tone}
 Visual Style: ${visualStyle || 'Not specified'}
 ${finalLine ? `Text Content: "${finalLine}"` : 'No text content - create visual-only images'}
 ${specificEntity ? `Specific Entity/Person: ${specificEntity}` : ''}
+${subjectOption ? `Subject Composition: ${subjectOption}` : ''}
+${dimensions ? `Target Dimensions: ${dimensions}` : ''}
 Tags: ${tags.join(', ')}
 
 CRITICAL REQUIREMENT: You MUST use the exact tags provided (${tags.join(', ')}) verbatim in the [TAGS: ] micro-directive. Do not paraphrase, substitute, or interpret these tags.
@@ -163,10 +279,17 @@ SLOT-SPECIFIC COMPOSITION RULES:
 • tone-twist: Conceptual twist that matches tone. Twist sits off-center. Center stays clean.
 
 PEOPLE & DEMOGRAPHICS:
-- If tags mention "person", "people", "man", "woman", or "group", follow exactly
-- For "group": specify 2-4 people with age range, poses, interactions
-- For "man"/"woman": specify one person with age range, pose, expression, camera distance
-- Include body position, gaze direction, and hand placement
+- Follow the subject composition exactly: ${subjectOption || 'not specified'}
+- If subject composition is "single-person": exactly one person with age range, pose, expression, camera distance
+- If subject composition is "multiple-people": exactly 2-4 people with age range, poses, interactions
+- If subject composition is "no-subject": NO people, focus on objects, backgrounds, or abstract concepts
+- Include body position, gaze direction, and hand placement when people are present
+
+DIMENSION OPTIMIZATION:
+- Target dimensions: ${dimensions || 'flexible'}
+- If square (1:1): balanced, centered compositions
+- If portrait (4:5, 9:16): vertical emphasis, position subjects for vertical crops
+- If landscape (16:9): horizontal flow, wide establishing shots
 
 ${specificEntity && tags.some(tag => tag.toLowerCase().includes('jail')) ? 
 `SPECIAL INSTRUCTIONS: Since this involves ${specificEntity} and jail-related tags, create 2 options directly related to jail/prison themes (bars, cells, courthouse) and 2 options that reference other iconic aspects of ${specificEntity} that fans would recognize.` : 
@@ -219,7 +342,7 @@ Each prompt must be descriptive for image generation and include ALL required mi
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
     ], {
-      temperature: 0.8,
+      temperature: 0.6, // Reduced for more precise, less generic language
       max_completion_tokens: 1200,
       model: 'gpt-5-mini-2025-08-07'
     });
@@ -235,15 +358,21 @@ Each prompt must be descriptive for image generation and include ALL required mi
     }
 
     const expectedSlots = ['background-only', 'subject+background', 'object', 'tone-twist'];
-    const validOptions = result.options
+    let validOptions = result.options
       .filter((opt: any) => opt.subject && opt.background && opt.prompt && opt.slot)
       .map((opt: any, index: number) => ({
         ...opt,
         slot: opt.slot || expectedSlots[index] // Ensure slot is present
       }));
 
-    if (validOptions.length !== 4) {
-      throw new Error('Invalid visual options - missing required fields');
+    // Apply quality validation to reject vague options
+    validOptions = validateVisualOptions(validOptions);
+
+    // If we rejected too many options, fill with high-quality fallbacks
+    if (validOptions.length < 4) {
+      console.warn(`⚠️ Only ${validOptions.length} quality options generated, adding fallbacks`);
+      const fallbacks = getSlotBasedFallbacks(enrichedInputs);
+      validOptions = [...validOptions, ...fallbacks].slice(0, 4);
     }
 
     return {
@@ -255,7 +384,7 @@ Each prompt must be descriptive for image generation and include ALL required mi
     console.warn('⚠️ Visual generation using fallback options. API may be unavailable or having issues.');
     
     // Use contextual fallbacks instead of generic ones
-    const fallbackOptions = getSlotBasedFallbacks(inputs);
+    const fallbackOptions = getSlotBasedFallbacks(enrichedInputs);
 
     return {
       options: fallbackOptions,

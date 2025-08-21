@@ -4103,7 +4103,11 @@ const Index = () => {
             tone: selectedTextStyle || 'humorous',
             tags: tags,
             visualStyle: selectedVisualStyle || undefined,
-            finalLine: selectedGeneratedOption || undefined
+            finalLine: selectedGeneratedOption || undefined,
+            subjectOption: selectedSubjectOption || undefined,
+            dimensions: selectedDimension === "custom" 
+              ? `${customWidth}x${customHeight}` 
+              : (dimensionOptions.find(d => d.id === selectedDimension)?.name || undefined)
           });
           setVisualRecommendations(recommendations);
         } catch (error) {
@@ -4424,7 +4428,11 @@ const Index = () => {
         tone: tone.toLowerCase(),
         tags: finalTags,
         visualStyle: selectedVisualStyle || undefined,
-        finalLine
+        finalLine,
+        subjectOption: selectedSubjectOption || undefined,
+        dimensions: selectedDimension === "custom" 
+          ? `${customWidth}x${customHeight}` 
+          : (dimensionOptions.find(d => d.id === selectedDimension)?.name || undefined)
       }, 4);
       
       console.log('🎨 Visual generation completed with result:', { 
