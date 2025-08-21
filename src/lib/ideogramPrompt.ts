@@ -6,8 +6,10 @@ export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
   // Put the exact text as the VERY FIRST sentence to ensure it renders
   if (handoff.key_line && handoff.key_line.trim()) {
     const sanitizedText = handoff.key_line.replace(/"/g, '\\"');
-    parts.push(`"${sanitizedText}"`);
-    parts.push("Style and display this text prominently, matching tone, visual look, size, color, and placement on the image.");
+    parts.push(`EXACT_TEXT (VERBATIM): "${sanitizedText}"`);
+    parts.push("Render this text EXACTLY as written, character-for-character, with no spelling changes, no extra words, no missing words.");
+    parts.push("Use only standard ASCII punctuation (straight quotes, regular apostrophes, hyphens). Maintain exact case and spacing.");
+    parts.push("Style and display this text prominently with clear, legible typography on a realistic background.");
   } else {
     // For images without text, focus on visual elements only
     parts.push("Create a visual composition without any text or typography overlays.");
@@ -52,6 +54,7 @@ export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
   // Only add text visibility instructions if there's actual text content
   if (handoff.key_line && handoff.key_line.trim()) {
     parts.push("Ensure the text is clearly visible, balanced with the artwork, and styled to fit the chosen tone and tags.");
+    parts.push("NEGATIVE PROMPTS: No typos, no misspellings, no ligatures, no altered punctuation, no text variations.");
   } else {
     parts.push("Focus on creating a balanced visual composition that fits the chosen tone and tags.");
   }

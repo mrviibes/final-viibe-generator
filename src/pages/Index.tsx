@@ -22,6 +22,8 @@ import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAP
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
+import { TextOverlayCanvas } from "@/components/TextOverlayCanvas";
+import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 const styleOptions = [{
   id: "celebrations",
   name: "Celebrations",
@@ -4090,6 +4092,13 @@ const Index = () => {
   const [proxySettings, setLocalProxySettings] = useState(() => getProxySettings());
   const [proxyApiKey, setProxyApiKey] = useState('');
   
+  // Spelling guarantee mode states
+  const [spellingGuaranteeMode, setSpellingGuaranteeMode] = useState<boolean>(false);
+  const [showTextOverlay, setShowTextOverlay] = useState<boolean>(false);
+  const [backgroundOnlyImageUrl, setBackgroundOnlyImageUrl] = useState<string | null>(null);
+  const [finalImageWithText, setFinalImageWithText] = useState<string | null>(null);
+  const [textMisspellingDetected, setTextMisspellingDetected] = useState<boolean>(false);
+  
   // Visual AI recommendations state
   const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
   const [selectedRecommendation, setSelectedRecommendation] = useState<number | null>(null);
@@ -6325,9 +6334,25 @@ const Index = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium text-foreground">Preview</h3>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {!isGeneratingImage && !generatedImageUrl && (
                       <>
+                        {/* Spelling Guarantee Toggle */}
+                        {(selectedGeneratedOption || stepTwoText) && (selectedGeneratedOption || stepTwoText).trim() && (
+                          <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+                            <input
+                              type="checkbox"
+                              id="spelling-guarantee"
+                              checked={spellingGuaranteeMode}
+                              onChange={(e) => setSpellingGuaranteeMode(e.target.checked)}
+                              className="rounded"
+                            />
+                            <label htmlFor="spelling-guarantee" className="text-sm font-medium cursor-pointer">
+                              Spelling Guarantee
+                            </label>
+                          </div>
+                        )}
+                        
                         <Button 
                           onClick={() => setShowProxySettingsDialog(true)}
                           variant="outline" 
@@ -6394,8 +6419,55 @@ const Index = () => {
                   )}
                 </div>
                 
-                {/* Action Buttons */}
-                {generatedImageUrl && (
+                 {/* Text Misspelling Detection */}
+                 {generatedImageUrl && textMisspellingDetected && (
+                   <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
+                     <p className="text-sm font-medium mb-2">⚠️ Text may be misspelled in the generated image</p>
+                     <div className="flex gap-2 justify-center">
+                       <Button 
+                         variant="outline" 
+                         size="sm"
+                         onClick={() => {
+                           setSpellingGuaranteeMode(true);
+                           handleGenerateImage();
+                         }}
+                       >
+                         Regenerate (Strict Text Mode)
+                       </Button>
+                       <Button 
+                         variant="outline" 
+                         size="sm"
+                         onClick={() => setSpellingGuaranteeMode(true)}
+                       >
+                         Use Spelling Guarantee
+                       </Button>
+                     </div>
+                   </div>
+                 )}
+
+                 {/* Text Overlay Canvas */}
+                 {showTextOverlay && backgroundOnlyImageUrl && (
+                   <div className="bg-muted/30 rounded-lg p-6 space-y-4">
+                     <div className="text-center">
+                       <h4 className="text-lg font-medium mb-2">Perfect Text Overlay</h4>
+                       <p className="text-sm text-muted-foreground mb-4">
+                         Customize your text overlay with perfect spelling guarantee
+                       </p>
+                     </div>
+                     <TextOverlayCanvas
+                       backgroundImageUrl={backgroundOnlyImageUrl}
+                       text={normalizeTypography(suggestContractions(selectedGeneratedOption || stepTwoText || ""))}
+                       onImageGenerated={(url) => {
+                         setFinalImageWithText(url);
+                         setGeneratedImageUrl(url);
+                         setShowTextOverlay(false);
+                       }}
+                     />
+                   </div>
+                 )}
+
+                 {/* Action Buttons */}
+                {generatedImageUrl && !showTextOverlay && (
                   <div className="flex flex-wrap gap-4 justify-center">
                     <Button 
                       variant="outline" 
@@ -6791,14 +6863,42 @@ const Index = () => {
                     const aspectRatioKey = getAspectRatioForIdeogram(selectedDimension === "custom" 
                       ? `${customWidth}x${customHeight}` 
                       : (dimensionOptions.find(d => d.id === selectedDimension)?.name || ""));
-                    const styleType = getStyleTypeForIdeogram(visualStyle);
+                    let styleType = getStyleTypeForIdeogram(visualStyle);
+                    let model: 'V_1' | 'V_1_TURBO' | 'V_2' | 'V_2_TURBO' | 'V_2A' | 'V_2A_TURBO' | 'V_3' = 'V_2_TURBO';
                     
-                    // Generate the image
+                    // Optimize for text accuracy when text is present
+                    if (finalText && finalText.trim()) {
+                      styleType = 'DESIGN'; // Better for text fidelity
+                      model = 'V_2A_TURBO'; // Better model for text
+                    }
+                    
+                    // Handle spelling guarantee mode
+                    if (spellingGuaranteeMode && finalText && finalText.trim()) {
+                      // Generate background-only image first
+                      const backgroundPrompt = promptText.replace(/EXACT_TEXT.*?\./g, '').replace(/Render this text.*?\./g, '').trim() + ' No text, no typography, no words, no letters.';
+                      
+                      const backgroundResult = await generateIdeogramImage({
+                        prompt: backgroundPrompt,
+                        aspect_ratio: aspectRatioKey,
+                        style_type: styleType,
+                        model: model,
+                        magic_prompt_option: 'AUTO'
+                      });
+                      
+                      if (backgroundResult.data?.[0]?.url) {
+                        setBackgroundOnlyImageUrl(backgroundResult.data[0].url);
+                        setShowTextOverlay(true);
+                        setIsGeneratingImage(false);
+                        return;
+                      }
+                    }
+                    
+                    // Generate the image normally
                     const result = await generateIdeogramImage({
                       prompt: promptText,
                       aspect_ratio: aspectRatioKey,
                       style_type: styleType,
-                      model: 'V_2_TURBO',
+                      model: model,
                       magic_prompt_option: 'AUTO'
                     });
                     
