@@ -4449,8 +4449,8 @@ const Index = () => {
       setSelectedVisualIndex(null);
       setVisualOptions(visualResult.options);
       
-      // Don't clear subject tags anymore - keep them for the summary
-      
+      // Keep subject tags for the summary but clear the input
+      setSubjectTagInput("");
       // Log audit info for debugging
       console.log('Visual generation result:', { 
         model: visualResult.model, 
