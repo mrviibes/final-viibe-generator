@@ -4092,7 +4092,7 @@ const Index = () => {
   const [proxySettings, setLocalProxySettings] = useState(() => getProxySettings());
   const [proxyApiKey, setProxyApiKey] = useState('');
   
-  // Spelling guarantee mode states
+  // Spelling guarantee mode states - default to ON when text is present
   const [spellingGuaranteeMode, setSpellingGuaranteeMode] = useState<boolean>(false);
   const [showTextOverlay, setShowTextOverlay] = useState<boolean>(false);
   const [backgroundOnlyImageUrl, setBackgroundOnlyImageUrl] = useState<string | null>(null);
@@ -5749,6 +5749,10 @@ const Index = () => {
                           onClick={() => {
                             setSelectedGeneratedOption(option);
                             setSelectedGeneratedIndex(index);
+                            // Auto-enable spelling guarantee when text is selected
+                            if (option && option.trim()) {
+                              setSpellingGuaranteeMode(true);
+                            }
                           }}
                         >
                           <div className="space-y-3">
@@ -6872,10 +6876,19 @@ const Index = () => {
                       model = 'V_2A_TURBO'; // Better model for text
                     }
                     
-                    // Handle spelling guarantee mode
-                    if (spellingGuaranteeMode && finalText && finalText.trim()) {
-                      // Generate background-only image first
-                      const backgroundPrompt = promptText.replace(/EXACT_TEXT.*?\./g, '').replace(/Render this text.*?\./g, '').trim() + ' No text, no typography, no words, no letters.';
+                     // Handle spelling guarantee mode
+                     if (spellingGuaranteeMode && finalText && finalText.trim()) {
+                       // Generate background-only image first - remove ALL text-related instructions
+                       const backgroundPrompt = promptText
+                         .replace(/EXACT_TEXT \(VERBATIM\): ".*?"/g, '')
+                         .replace(/Render this text EXACTLY.*?\./g, '')
+                         .replace(/Use only standard ASCII.*?\./g, '')
+                         .replace(/If you cannot render.*?\./g, '')
+                         .replace(/Style and display this text.*?\./g, '')
+                         .replace(/Ensure the text is.*?\./g, '')
+                         .replace(/NEGATIVE PROMPTS:.*?\./g, '')
+                         .replace(/\s+/g, ' ')
+                         .trim() + ' No text, no typography, no words, no letters, no characters overlaid on the image.';
                       
                       const backgroundResult = await generateIdeogramImage({
                         prompt: backgroundPrompt,

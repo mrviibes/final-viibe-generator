@@ -1,14 +1,17 @@
 import { IdeogramHandoff } from './ideogram';
+import { normalizeTypography } from './textUtils';
 
 export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
   const parts: string[] = [];
   
   // Put the exact text as the VERY FIRST sentence to ensure it renders
   if (handoff.key_line && handoff.key_line.trim()) {
-    const sanitizedText = handoff.key_line.replace(/"/g, '\\"');
+    const normalizedText = normalizeTypography(handoff.key_line);
+    const sanitizedText = normalizedText.replace(/"/g, '\\"');
     parts.push(`EXACT_TEXT (VERBATIM): "${sanitizedText}"`);
     parts.push("Render this text EXACTLY as written, character-for-character, with no spelling changes, no extra words, no missing words.");
     parts.push("Use only standard ASCII punctuation (straight quotes, regular apostrophes, hyphens). Maintain exact case and spacing.");
+    parts.push("If you cannot render the text exactly as specified, leave the text area completely blank rather than adding incorrect text.");
     parts.push("Style and display this text prominently with clear, legible typography on a realistic background.");
   } else {
     // For images without text, focus on visual elements only
