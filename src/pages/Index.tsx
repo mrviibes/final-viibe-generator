@@ -5868,15 +5868,33 @@ const Index = () => {
                         </div>
 
                         <div className="max-w-lg mx-auto space-y-6">
-                          {/* Tag Input */}
+                          {/* Tag Input with Integrated Generate Button */}
                           <div className="space-y-2">
-                            <Input
-                              value={subjectTagInput}
-                              onChange={(e) => setSubjectTagInput(e.target.value)}
-                              onKeyDown={handleSubjectTagInputKeyDown}
-                              placeholder="Enter tags (press Enter or comma to add)"
-                              className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg"
-                            />
+                            <div className="relative">
+                              <Input
+                                value={subjectTagInput}
+                                onChange={(e) => setSubjectTagInput(e.target.value)}
+                                onKeyDown={handleSubjectTagInputKeyDown}
+                                placeholder="Enter tags (press Enter or comma to add)"
+                                className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg pr-32"
+                              />
+                              <Button 
+                                variant="brand"
+                                size="sm"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 text-sm font-medium rounded-md"
+                                onClick={handleGenerateSubject}
+                                disabled={isGeneratingSubject}
+                              >
+                                {isGeneratingSubject ? (
+                                  <>
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                    Generating...
+                                  </>
+                                ) : (
+                                  "Generate"
+                                )}
+                              </Button>
+                            </div>
                             
                             {/* Display tags */}
                             {subjectTags.length > 0 && (
@@ -5892,25 +5910,6 @@ const Index = () => {
                                 ))}
                               </div>
                             )}
-                          </div>
-
-                          {/* Generate Button */}
-                          <div className="text-center">
-                            <Button 
-                              variant="brand"
-                              className="px-8 py-3 text-base font-medium rounded-lg"
-                              onClick={handleGenerateSubject}
-                              disabled={isGeneratingSubject}
-                            >
-                              {isGeneratingSubject ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Generating...
-                                </>
-                              ) : (
-                                "Generate Subject Now"
-                              )}
-                            </Button>
                           </div>
 
                           {/* Visual AI recommendations */}
