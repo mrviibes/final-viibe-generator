@@ -1,7 +1,7 @@
 import { IdeogramHandoff } from './ideogram';
 import { normalizeTypography } from './textUtils';
 
-export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
+export function buildIdeogramPrompt(handoff: IdeogramHandoff, cleanBackground: boolean = false): string {
   const parts: string[] = [];
   
   // Put the exact text as the VERY FIRST sentence to ensure it renders
@@ -12,7 +12,12 @@ export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
     parts.push("Render this text EXACTLY as written, character-for-character, with no spelling changes, no extra words, no missing words.");
     parts.push("Use only standard ASCII punctuation (straight quotes, regular apostrophes, hyphens). Maintain exact case and spacing.");
     parts.push("If you cannot render the text exactly as specified, leave the text area completely blank rather than adding incorrect text.");
-    parts.push("Style and display this text prominently with clear, legible typography on a realistic background.");
+    
+    if (cleanBackground) {
+      parts.push("Style and display this text prominently with clear, legible typography on a clean, minimal, high-contrast background with clear center area for text.");
+    } else {
+      parts.push("Style and display this text prominently with clear, legible typography on a realistic background.");
+    }
   } else {
     // For images without text, focus on visual elements only
     parts.push("Create a visual composition without any text or typography overlays.");
@@ -47,6 +52,9 @@ export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
   
   // Background should be [AI GENERATED BACKGROUND].
   let background = handoff.rec_background || handoff.chosen_visual || "a clean, contextually appropriate background";
+  if (cleanBackground) {
+    background = "a clean, minimal, high-contrast background with no visual clutter, no decorative elements, no patterns, and a clear center area";
+  }
   parts.push(`Background should be ${background}.`);
   
   // Output format should use aspect ratio [ASPECT RATIO].
@@ -57,9 +65,14 @@ export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
   // Only add text visibility instructions if there's actual text content
   if (handoff.key_line && handoff.key_line.trim()) {
     parts.push("Ensure the text is clearly visible, balanced with the artwork, and styled to fit the chosen tone and tags.");
-    parts.push("NEGATIVE PROMPTS: No typos, no misspellings, no ligatures, no altered punctuation, no text variations.");
+    if (cleanBackground) {
+      parts.push("NEGATIVE PROMPTS: No typos, no misspellings, no ligatures, no altered punctuation, no text variations, no glyphs, no pseudo-letters, no UI elements, no symbols, no decorative text elements, no watermarks, no logos.");
+    } else {
+      parts.push("NEGATIVE PROMPTS: No typos, no misspellings, no ligatures, no altered punctuation, no text variations, no unwanted glyphs, no pseudo-letters.");
+    }
   } else {
     parts.push("Focus on creating a balanced visual composition that fits the chosen tone and tags.");
+    parts.push("NEGATIVE PROMPTS: No text, no typography, no words, no letters, no characters, no glyphs, no symbols overlaid on the image.");
   }
   
   return parts.join(' ');

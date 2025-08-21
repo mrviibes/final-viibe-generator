@@ -19,6 +19,11 @@ export function TextOverlayCanvas({ backgroundImageUrl, text, onImageGenerated }
   const [strokeWidth, setStrokeWidth] = useState([2]);
   const [textAlign, setTextAlign] = useState("center");
   const [verticalAlign, setVerticalAlign] = useState("center");
+  const [showBackdrop, setShowBackdrop] = useState(true);
+  const [backdropColor, setBackdropColor] = useState("#000000");
+  const [backdropOpacity, setBackdropOpacity] = useState([0.5]);
+  const [backdropPadding, setBackdropPadding] = useState([20]);
+  const [backdropRadius, setBackdropRadius] = useState([8]);
 
   const fonts = [
     "Arial Black",
@@ -86,6 +91,31 @@ export function TextOverlayCanvas({ backgroundImageUrl, text, onImageGenerated }
       }
       lines.push(currentLine);
 
+      // Draw backdrop if enabled
+      if (showBackdrop) {
+        const lineHeight = fontSize[0] * 1.2;
+        const totalTextHeight = lines.length * lineHeight;
+        const maxLineWidth = Math.max(...lines.map(line => ctx.measureText(line).width));
+        
+        const backdropWidth = maxLineWidth + (backdropPadding[0] * 2);
+        const backdropHeight = totalTextHeight + (backdropPadding[0] * 2);
+        const backdropX = x - backdropWidth / 2;
+        const backdropY = y - backdropHeight / 2;
+        
+        ctx.save();
+        ctx.globalAlpha = backdropOpacity[0];
+        ctx.fillStyle = backdropColor;
+        
+        if (backdropRadius[0] > 0) {
+          ctx.beginPath();
+          ctx.roundRect(backdropX, backdropY, backdropWidth, backdropHeight, backdropRadius[0]);
+          ctx.fill();
+        } else {
+          ctx.fillRect(backdropX, backdropY, backdropWidth, backdropHeight);
+        }
+        ctx.restore();
+      }
+
       // Draw text with stroke
       const lineHeight = fontSize[0] * 1.2;
       const startY = y - ((lines.length - 1) * lineHeight) / 2;
@@ -119,7 +149,7 @@ export function TextOverlayCanvas({ backgroundImageUrl, text, onImageGenerated }
 
   useEffect(() => {
     drawText();
-  }, [backgroundImageUrl, text, fontSize, fontFamily, textColor, strokeColor, strokeWidth, textAlign, verticalAlign]);
+  }, [backgroundImageUrl, text, fontSize, fontFamily, textColor, strokeColor, strokeWidth, textAlign, verticalAlign, showBackdrop, backdropColor, backdropOpacity, backdropPadding, backdropRadius]);
 
   const downloadImage = () => {
     const canvas = canvasRef.current;
@@ -217,6 +247,69 @@ export function TextOverlayCanvas({ backgroundImageUrl, text, onImageGenerated }
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* Backdrop Controls */}
+      <div className="border-t pt-4">
+        <div className="flex items-center gap-2 mb-3">
+          <input
+            type="checkbox"
+            id="showBackdrop"
+            checked={showBackdrop}
+            onChange={(e) => setShowBackdrop(e.target.checked)}
+            className="rounded"
+          />
+          <label htmlFor="showBackdrop" className="text-sm font-medium">
+            Text Backdrop Plate (improves readability)
+          </label>
+        </div>
+
+        {showBackdrop && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Backdrop Color</label>
+              <input
+                type="color"
+                value={backdropColor}
+                onChange={(e) => setBackdropColor(e.target.value)}
+                className="w-full h-10 rounded border"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Opacity: {Math.round(backdropOpacity[0] * 100)}%</label>
+              <Slider
+                value={backdropOpacity}
+                onValueChange={setBackdropOpacity}
+                max={1}
+                min={0}
+                step={0.1}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Padding: {backdropPadding[0]}px</label>
+              <Slider
+                value={backdropPadding}
+                onValueChange={setBackdropPadding}
+                max={50}
+                min={0}
+                step={5}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Border Radius: {backdropRadius[0]}px</label>
+              <Slider
+                value={backdropRadius}
+                onValueChange={setBackdropRadius}
+                max={20}
+                min={0}
+                step={2}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="text-center">

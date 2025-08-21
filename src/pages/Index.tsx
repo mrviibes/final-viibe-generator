@@ -4098,6 +4098,7 @@ const Index = () => {
   const [backgroundOnlyImageUrl, setBackgroundOnlyImageUrl] = useState<string | null>(null);
   const [finalImageWithText, setFinalImageWithText] = useState<string | null>(null);
   const [textMisspellingDetected, setTextMisspellingDetected] = useState<boolean>(false);
+  const [cleanBackgroundMode, setCleanBackgroundMode] = useState<boolean>(true);
   
   // Visual AI recommendations state
   const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
@@ -5749,9 +5750,10 @@ const Index = () => {
                           onClick={() => {
                             setSelectedGeneratedOption(option);
                             setSelectedGeneratedIndex(index);
-                            // Auto-enable spelling guarantee when text is selected
+                            // Auto-enable spelling guarantee and clean background when text is selected
                             if (option && option.trim()) {
                               setSpellingGuaranteeMode(true);
+                              setCleanBackgroundMode(true);
                             }
                           }}
                         >
@@ -6341,21 +6343,35 @@ const Index = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     {!isGeneratingImage && !generatedImageUrl && (
                       <>
-                        {/* Spelling Guarantee Toggle */}
-                        {(selectedGeneratedOption || stepTwoText) && (selectedGeneratedOption || stepTwoText).trim() && (
-                          <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
-                            <input
-                              type="checkbox"
-                              id="spelling-guarantee"
-                              checked={spellingGuaranteeMode}
-                              onChange={(e) => setSpellingGuaranteeMode(e.target.checked)}
-                              className="rounded"
-                            />
-                            <label htmlFor="spelling-guarantee" className="text-sm font-medium cursor-pointer">
-                              Spelling Guarantee
-                            </label>
-                          </div>
-                        )}
+                         {/* Spelling Guarantee Toggle */}
+                         {(selectedGeneratedOption || stepTwoText) && (selectedGeneratedOption || stepTwoText).trim() && (
+                           <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+                             <input
+                               type="checkbox"
+                               id="spelling-guarantee"
+                               checked={spellingGuaranteeMode}
+                               onChange={(e) => setSpellingGuaranteeMode(e.target.checked)}
+                               className="rounded"
+                             />
+                             <label htmlFor="spelling-guarantee" className="text-sm font-medium cursor-pointer">
+                               Spelling Guarantee
+                             </label>
+                           </div>
+                         )}
+                         
+                         {/* Clean Background Toggle */}
+                         <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+                           <input
+                             type="checkbox"
+                             id="clean-background"
+                             checked={cleanBackgroundMode}
+                             onChange={(e) => setCleanBackgroundMode(e.target.checked)}
+                             className="rounded"
+                           />
+                           <label htmlFor="clean-background" className="text-sm font-medium cursor-pointer">
+                             Clean Background (recommended)
+                           </label>
+                         </div>
                         
                         <Button 
                           onClick={() => setShowProxySettingsDialog(true)}
@@ -6888,7 +6904,7 @@ const Index = () => {
                          .replace(/Ensure the text is.*?\./g, '')
                          .replace(/NEGATIVE PROMPTS:.*?\./g, '')
                          .replace(/\s+/g, ' ')
-                         .trim() + ' No text, no typography, no words, no letters, no characters overlaid on the image.';
+                         .trim() + ' No text, no typography, no words, no letters, no characters, no glyphs, no symbols, no UI elements overlaid on the image. Clean minimal background only.';
                       
                       const backgroundResult = await generateIdeogramImage({
                         prompt: backgroundPrompt,
