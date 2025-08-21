@@ -167,6 +167,9 @@ export class OpenAIService {
     console.log(`Raw content preview: ${content?.substring(0, 200) || 'NO CONTENT'}`);
     
     if (!content || content.trim() === '') {
+      if (finishReason === 'length') {
+        throw new Error('Response truncated - prompt too long. Try shorter input.');
+      }
       throw new Error(`No content received from OpenAI (finish_reason: ${finishReason})`);
     }
 

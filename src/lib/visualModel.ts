@@ -209,45 +209,30 @@ export async function generateVisualRecommendations(
   const enrichedInputs = autoEnrichInputs(inputs);
   const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity, subjectOption, dimensions } = enrichedInputs;
   
-const systemPrompt = `You are a visual concept generator for social graphics. Create exactly 4 distinct options using the slot framework.
+const systemPrompt = `Generate 4 visual concepts for social graphics. Each must include all required JSON fields and micro-directives.
 
 Rules:
-• Use ALL provided tags verbatim in [TAGS: ]
-• NO text or typography in images (text overlaid later)
-• Avoid vague words: "something", "elements", "various", "types of"
-• Reserve center 60x35% for text overlay (low-detail, low-contrast)
+- Use exact tags in [TAGS: ]  
+- Reserve center for text overlay
+- 4 slots: background-only, subject+background, object, tone-twist
 
-Slots:
-• background-only: Clean gradients, no objects in center
-• subject+background: Subject on left/right third, center clear
-• object: Single object bottom third, center negative space  
-• tone-twist: Creative interpretation, twist off-center
+Return valid JSON only.`;
 
-People: Follow subject option exactly:
-• "single-person" = 1 person (age, pose, distance specified)
-• "multiple-people" = 2-4 people (ages, poses, interactions)
-• "no-subject" = no people
-
-Style: ${getStyleKeywords()} based on visual style.
-
-Output: 4 JSON options with required micro-directives in prompts.`;
-
-function getStyleKeywords(): string {
-  return "Clean 3D animation with vibrant colors and smooth surfaces";
+function getStyleKeywords(visualStyle?: string): string {
+  const styles: Record<string, string> = {
+    'realistic': 'photographic, detailed, natural lighting',
+    'illustrated': 'clean illustration, vibrant colors', 
+    '3d-animated': 'clean 3D animation, smooth surfaces',
+    'minimalist': 'simple, clean, minimal design'
+  };
+  return styles[visualStyle || '3d-animated'] || 'modern visual style';
 }
 
-  const userPrompt = `Create 4 visual concepts for:
-
-Category: ${category} > ${subcategory}
-Tone: ${tone}
-Style: ${visualStyle || '3d-animated'}
-${finalLine ? `Text: "${finalLine}"` : 'No text'}
-${subjectOption ? `Subjects: ${subjectOption}` : ''}
-${dimensions ? `Format: ${dimensions}` : ''}
+  const userPrompt = `${category} > ${subcategory}, ${tone} tone, ${visualStyle || '3d-animated'} style
 Tags: ${tags.join(', ')}
+${finalLine ? `Text: "${finalLine}"` : ''}
 
-Return JSON with exactly 4 options. Each prompt must include:
-[TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: busy patterns, center objects] [ASPECTS: ${dimensions || 'flexible'}] [TEXT_HINT: dark text]`;
+Return JSON with 4 options. Each prompt needs: [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: busy center] [ASPECTS: ${dimensions || 'flexible'}] [TEXT_HINT: dark text]`;
 
   try {
     const startTime = Date.now();
@@ -263,8 +248,8 @@ Return JSON with exactly 4 options. Each prompt must include:
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
     ], {
-      temperature: 0.6,
-      max_completion_tokens: 800, // Reduced to prevent truncation
+      temperature: 0.7,
+      max_completion_tokens: 600, // Further reduced for reliability  
       model: 'gpt-5-mini-2025-08-07'
     });
 
