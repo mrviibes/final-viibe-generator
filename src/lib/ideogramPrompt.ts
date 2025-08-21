@@ -3,56 +3,56 @@ import { IdeogramHandoff } from './ideogram';
 export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
   const parts: string[] = [];
   
-  // Strict text control - only render specified text, nothing else
+  // Only add text styling instructions if there's actual text content to display
   if (handoff.key_line && handoff.key_line.trim()) {
-    parts.push(`Display only this text: "${handoff.key_line}". Do not add any other text, labels, tags, or typography.`);
+    parts.push("Style and display text prominently, matching tone, visual look, size, color, and placement on the image.");
+    parts.push(`Use this exact text: ${handoff.key_line}.`);
   } else {
-    parts.push("Create a visual composition with no text, typography, or written elements whatsoever.");
+    // For images without text, focus on visual elements only
+    parts.push("Create a visual composition without any text or typography overlays.");
   }
   
-  // Content context for visual composition
-  let contentLine = `Create content for ${handoff.category}, specifically ${handoff.subcategory_primary}`;
+  // This content is for [CATEGORY], specifically [SUBCATEGORY][ (SECOND SUBCATEGORY if Pop Culture) ].
+  let contentLine = `This content is for ${handoff.category}, specifically ${handoff.subcategory_primary}`;
   if (handoff.category === 'pop-culture' && handoff.subcategory_secondary) {
     contentLine += ` (${handoff.subcategory_secondary})`;
   }
   contentLine += '.';
   parts.push(contentLine);
   
-  // Tone as visual mood guidance
+  // The overall tone is [TONE].
   if (handoff.tone) {
-    parts.push(`Visual mood and atmosphere should convey ${handoff.tone}.`);
+    parts.push(`The overall tone is ${handoff.tone}.`);
   }
   
-  // Text tags as visual styling guidance only
+  // Apply these text tags as guides: [TEXT TAGS].
   const textTags = handoff.text_tags_csv && handoff.text_tags_csv !== "None" ? handoff.text_tags_csv : "none";
-  if (textTags !== "none") {
-    parts.push(`Use these concepts for visual styling inspiration only (do not render as text): ${textTags}.`);
-  }
+  parts.push(`Apply these text tags as guides: ${textTags}.`);
   
-  // Visual style directive
+  // Render the scene in [VISUAL LOOK] style.
   if (handoff.visual_style) {
-    parts.push(`Render in ${handoff.visual_style} visual style.`);
+    parts.push(`Render the scene in ${handoff.visual_style} style.`);
   }
   
-  // Visual tags as composition guidance
+  // Include these visual tags: [VISUAL TAGS].
   if (handoff.visual_tags_csv) {
-    parts.push(`Incorporate these visual elements and themes: ${handoff.visual_tags_csv}.`);
+    parts.push(`Include these visual tags: ${handoff.visual_tags_csv}.`);
   }
   
-  // Background specification
+  // Background should be [AI GENERATED BACKGROUND].
   let background = handoff.rec_background || handoff.chosen_visual || "a clean, contextually appropriate background";
-  parts.push(`Background: ${background}.`);
+  parts.push(`Background should be ${background}.`);
   
-  // Aspect ratio requirement
+  // Output format should use aspect ratio [ASPECT RATIO].
   if (handoff.aspect_ratio) {
-    parts.push(`Use ${handoff.aspect_ratio} aspect ratio.`);
+    parts.push(`Output format should use aspect ratio ${handoff.aspect_ratio}.`);
   }
   
-  // Final composition instructions
+  // Only add text visibility instructions if there's actual text content
   if (handoff.key_line && handoff.key_line.trim()) {
-    parts.push("Make the specified text prominent and readable while maintaining visual balance. Absolutely no additional text elements.");
+    parts.push("Ensure the text is clearly visible, balanced with the artwork, and styled to fit the chosen tone and tags.");
   } else {
-    parts.push("Focus purely on visual composition with no text elements. Create a clean, impactful design.");
+    parts.push("Focus on creating a balanced visual composition that fits the chosen tone and tags.");
   }
   
   return parts.join(' ');
