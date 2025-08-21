@@ -209,12 +209,21 @@ export async function generateVisualRecommendations(
   const enrichedInputs = autoEnrichInputs(inputs);
   const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity, subjectOption, dimensions } = enrichedInputs;
   
-const systemPrompt = `Generate 4 visual concepts for social graphics. Each must include all required JSON fields and micro-directives.
+const systemPrompt = `Generate 4 exciting, vivid visual concepts for social graphics. Make descriptions engaging and context-specific.
 
 Rules:
 - Use exact tags in [TAGS: ]  
 - Reserve center for text overlay
-- 4 slots: background-only, subject+background, object, tone-twist
+- 4 slots with EXCITING descriptions:
+  1. "background-only": Dynamic, immersive BACKGROUND scenes (no main subject)
+  2. "subject+background": Engaging HERO SUBJECTS with stunning backdrops
+  3. "object": Eye-catching FEATURED OBJECTS as focal points
+  4. "tone-twist": Creative ARTISTIC INTERPRETATIONS with unique style twists
+
+Make each concept vivid, specific, and exciting - avoid generic terms like "clean" or "simple".
+For birthdays: think explosive celebrations, towering cakes, floating balloons, confetti storms!
+For sports: think action-packed moments, dramatic lighting, intense energy!
+Be creative and descriptive while staying relevant to the category/subcategory.
 
 Return valid JSON only.`;
 
