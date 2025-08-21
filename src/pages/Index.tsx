@@ -4219,6 +4219,18 @@ const Index = () => {
       });
     }
 
+    // Tags selection - show if there are tags OR if visual options have been generated
+    if (subjectTags.length > 0 || (selectedSubjectOption === "ai-assist" && visualOptions.length > 0)) {
+      const tagsToShow = subjectTags.length > 0 ? subjectTags.join(", ") : "Tags were used for generation";
+      selections.push({
+        title: "Tags",
+        subtitle: tagsToShow,
+        onChangeSelection: () => {
+          setShowSubjectTagEditor(true);
+        }
+      });
+    }
+
     // Dimensions selection
     if (selectedDimension) {
       const dimension = dimensionOptions.find(d => d.id === selectedDimension);
@@ -4449,8 +4461,9 @@ const Index = () => {
       setSelectedVisualIndex(null);
       setVisualOptions(visualResult.options);
       
-      // Keep subject tags for the summary but clear the input
+      // Keep subject tags for the summary but clear the input and hide editor
       setSubjectTagInput("");
+      setShowSubjectTagEditor(false);
       // Log audit info for debugging
       console.log('Visual generation result:', { 
         model: visualResult.model, 
