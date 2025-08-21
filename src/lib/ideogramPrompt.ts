@@ -3,10 +3,11 @@ import { IdeogramHandoff } from './ideogram';
 export function buildIdeogramPrompt(handoff: IdeogramHandoff): string {
   const parts: string[] = [];
   
-  // Only add text styling instructions if there's actual text content to display
+  // Put the exact text as the VERY FIRST sentence to ensure it renders
   if (handoff.key_line && handoff.key_line.trim()) {
-    parts.push("Style and display text prominently, matching tone, visual look, size, color, and placement on the image.");
-    parts.push(`Use this exact text: ${handoff.key_line}.`);
+    const sanitizedText = handoff.key_line.replace(/"/g, '\\"');
+    parts.push(`"${sanitizedText}"`);
+    parts.push("Style and display this text prominently, matching tone, visual look, size, color, and placement on the image.");
   } else {
     // For images without text, focus on visual elements only
     parts.push("Create a visual composition without any text or typography overlays.");
