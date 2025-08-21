@@ -22,7 +22,6 @@ import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAP
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
-
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 const styleOptions = [{
   id: "celebrations",
@@ -3352,13 +3351,12 @@ const dailyLifeOptions = [{
   id: "fire-drill",
   name: "Fire drill"
 }];
-
 const vibesPunchlinesOptions = [{
   id: "dad-jokes",
   name: "Dad Jokes",
   subtitle: "Cheesy predictable puns"
 }, {
-  id: "daily-vibes", 
+  id: "daily-vibes",
   name: "Daily Vibes",
   subtitle: "Day-of-week jokes"
 }, {
@@ -3440,7 +3438,7 @@ const vibesPunchlinesOptions = [{
 }, {
   id: "tech-humor",
   name: "Tech Humor",
-  subtitle: "Gadgets, glitches, online" 
+  subtitle: "Gadgets, glitches, online"
 }, {
   id: "social-media",
   name: "Social Media",
@@ -3806,7 +3804,6 @@ const vibesPunchlinesOptions = [{
   name: "Courier Jokes",
   subtitle: "Delivery service humor"
 }];
-
 const popCultureOptions = [{
   id: "celebrities",
   name: "Celebrities",
@@ -3892,51 +3889,7 @@ const popCultureOptions = [{
   name: "Fictional Characters",
   subtitle: "Heroes, villains, iconic figures"
 }];
-
-const fictionalCharactersList = [
-  "Harry Potter", "Hermione Granger", "Ron Weasley", "Dumbledore", "Voldemort", "Snape",
-  "Batman", "Superman", "Wonder Woman", "Spider-Man", "Iron Man", "Captain America", "Hulk", "Thor", "Black Widow",
-  "Joker", "Harley Quinn", "Lex Luthor", "Green Goblin", "Loki", "Thanos",
-  "Luke Skywalker", "Princess Leia", "Han Solo", "Darth Vader", "Obi-Wan Kenobi", "Yoda", "Chewbacca", "R2-D2", "C-3PO",
-  "Frodo", "Gandalf", "Aragorn", "Legolas", "Gimli", "Gollum", "Sauron",
-  "Sherlock Holmes", "John Watson", "Moriarty",
-  "Mickey Mouse", "Donald Duck", "Goofy", "Elsa", "Anna", "Olaf", "Simba", "Mufasa", "Scar",
-  "Buzz Lightyear", "Woody", "Rex", "Mr. Potato Head",
-  "Mario", "Luigi", "Princess Peach", "Bowser", "Yoshi", "Link", "Zelda", "Ganondorf",
-  "Pikachu", "Charizard", "Mewtwo", "Ash Ketchum",
-  "Naruto", "Sasuke", "Sakura", "Kakashi", "Goku", "Vegeta", "Piccolo",
-  "Jon Snow", "Daenerys Targaryen", "Tyrion Lannister", "Cersei Lannister", "Jaime Lannister", "Arya Stark", "Sansa Stark",
-  "Walter White", "Jesse Pinkman", "Saul Goodman",
-  "Eleven", "Mike Wheeler", "Dustin Henderson", "Steve Harrington", "Hopper",
-  "Rick Sanchez", "Morty Smith", "Jerry Smith", "Beth Smith", "Summer Smith",
-  "Homer Simpson", "Marge Simpson", "Bart Simpson", "Lisa Simpson", "Maggie Simpson",
-  "SpongeBob SquarePants", "Patrick Star", "Squidward", "Mr. Krabs", "Sandy Cheeks",
-  "Bugs Bunny", "Daffy Duck", "Porky Pig", "Tweety", "Sylvester", "Pepe Le Pew",
-  "Tom", "Jerry", "Scooby-Doo", "Shaggy", "Fred", "Velma", "Daphne",
-  "Garfield", "Odie", "Jon Arbuckle",
-  "Calvin", "Hobbes",
-  "Charlie Brown", "Snoopy", "Lucy", "Linus",
-  "Winnie the Pooh", "Tigger", "Eeyore", "Piglet", "Rabbit", "Owl",
-  "Alice", "Mad Hatter", "Cheshire Cat", "Queen of Hearts", "White Rabbit",
-  "Dorothy", "Wizard of Oz", "Tin Man", "Scarecrow", "Cowardly Lion", "Toto",
-  "Peter Pan", "Tinker Bell", "Captain Hook", "Wendy Darling",
-  "Tarzan", "Jane Porter", "King Kong", "Godzilla",
-  "E.T.", "Spock", "Captain Kirk", "Data", "Picard",
-  "Neo", "Morpheus", "Trinity", "Agent Smith",
-  "Terminator", "Sarah Connor", "John Connor",
-  "Indiana Jones", "James Bond", "Ethan Hunt",
-  "Rocky Balboa", "Ivan Drago", "Apollo Creed",
-  "Forrest Gump", "Jenny Curran", "Lieutenant Dan",
-  "Jack Sparrow", "Will Turner", "Elizabeth Swann", "Davy Jones",
-  "Wolverine", "Professor X", "Magneto", "Storm", "Cyclops", "Jean Grey",
-  "Deadpool", "Cable", "Domino",
-  "The Flash", "Green Lantern", "Aquaman", "Cyborg",
-  "Black Panther", "Shuri", "Okoye", "Killmonger",
-  "Doctor Strange", "Scarlet Witch", "Vision", "Falcon", "Winter Soldier",
-  "Ant-Man", "Wasp", "Hawkeye", "Nick Fury", "Maria Hill",
-  "Groot", "Rocket Raccoon", "Star-Lord", "Gamora", "Drax"
-];
-
+const fictionalCharactersList = ["Harry Potter", "Hermione Granger", "Ron Weasley", "Dumbledore", "Voldemort", "Snape", "Batman", "Superman", "Wonder Woman", "Spider-Man", "Iron Man", "Captain America", "Hulk", "Thor", "Black Widow", "Joker", "Harley Quinn", "Lex Luthor", "Green Goblin", "Loki", "Thanos", "Luke Skywalker", "Princess Leia", "Han Solo", "Darth Vader", "Obi-Wan Kenobi", "Yoda", "Chewbacca", "R2-D2", "C-3PO", "Frodo", "Gandalf", "Aragorn", "Legolas", "Gimli", "Gollum", "Sauron", "Sherlock Holmes", "John Watson", "Moriarty", "Mickey Mouse", "Donald Duck", "Goofy", "Elsa", "Anna", "Olaf", "Simba", "Mufasa", "Scar", "Buzz Lightyear", "Woody", "Rex", "Mr. Potato Head", "Mario", "Luigi", "Princess Peach", "Bowser", "Yoshi", "Link", "Zelda", "Ganondorf", "Pikachu", "Charizard", "Mewtwo", "Ash Ketchum", "Naruto", "Sasuke", "Sakura", "Kakashi", "Goku", "Vegeta", "Piccolo", "Jon Snow", "Daenerys Targaryen", "Tyrion Lannister", "Cersei Lannister", "Jaime Lannister", "Arya Stark", "Sansa Stark", "Walter White", "Jesse Pinkman", "Saul Goodman", "Eleven", "Mike Wheeler", "Dustin Henderson", "Steve Harrington", "Hopper", "Rick Sanchez", "Morty Smith", "Jerry Smith", "Beth Smith", "Summer Smith", "Homer Simpson", "Marge Simpson", "Bart Simpson", "Lisa Simpson", "Maggie Simpson", "SpongeBob SquarePants", "Patrick Star", "Squidward", "Mr. Krabs", "Sandy Cheeks", "Bugs Bunny", "Daffy Duck", "Porky Pig", "Tweety", "Sylvester", "Pepe Le Pew", "Tom", "Jerry", "Scooby-Doo", "Shaggy", "Fred", "Velma", "Daphne", "Garfield", "Odie", "Jon Arbuckle", "Calvin", "Hobbes", "Charlie Brown", "Snoopy", "Lucy", "Linus", "Winnie the Pooh", "Tigger", "Eeyore", "Piglet", "Rabbit", "Owl", "Alice", "Mad Hatter", "Cheshire Cat", "Queen of Hearts", "White Rabbit", "Dorothy", "Wizard of Oz", "Tin Man", "Scarecrow", "Cowardly Lion", "Toto", "Peter Pan", "Tinker Bell", "Captain Hook", "Wendy Darling", "Tarzan", "Jane Porter", "King Kong", "Godzilla", "E.T.", "Spock", "Captain Kirk", "Data", "Picard", "Neo", "Morpheus", "Trinity", "Agent Smith", "Terminator", "Sarah Connor", "John Connor", "Indiana Jones", "James Bond", "Ethan Hunt", "Rocky Balboa", "Ivan Drago", "Apollo Creed", "Forrest Gump", "Jenny Curran", "Lieutenant Dan", "Jack Sparrow", "Will Turner", "Elizabeth Swann", "Davy Jones", "Wolverine", "Professor X", "Magneto", "Storm", "Cyclops", "Jean Grey", "Deadpool", "Cable", "Domino", "The Flash", "Green Lantern", "Aquaman", "Cyborg", "Black Panther", "Shuri", "Okoye", "Killmonger", "Doctor Strange", "Scarlet Witch", "Vision", "Falcon", "Winter Soldier", "Ant-Man", "Wasp", "Hawkeye", "Nick Fury", "Maria Hill", "Groot", "Rocket Raccoon", "Star-Lord", "Gamora", "Drax"];
 const textStyleOptions = [{
   id: "humorous",
   name: "Humorous",
@@ -3970,31 +3923,29 @@ const textStyleOptions = [{
   name: "Serious",
   description: "Respectful, formal, matter-of-fact"
 }];
-
 const completionOptions = [{
   id: "ai-assist",
   name: "Option 1 - AI Assist",
   description: "Let AI help generate your content"
 }, {
-  id: "write-myself", 
+  id: "write-myself",
   name: "Option 2 - Write Myself",
   description: "I'll write my own content"
 }, {
   id: "no-text",
-  name: "Option 3 - I Don't Want Text", 
+  name: "Option 3 - I Don't Want Text",
   description: "Skip text content for now"
 }];
-
 const visualStyleOptions = [{
   id: "realistic",
-  name: "Realistic", 
+  name: "Realistic",
   description: "True-to-life photo style"
 }, {
   id: "caricature",
   name: "Caricature",
   description: "Exaggerated comedic features"
 }, {
-  id: "anime", 
+  id: "anime",
   name: "Anime",
   description: "Japanese cartoon aesthetic"
 }, {
@@ -4003,46 +3954,43 @@ const visualStyleOptions = [{
   description: "Pixar-style CGI look"
 }, {
   id: "illustrated",
-  name: "Illustrated", 
+  name: "Illustrated",
   description: "Hand-drawn artistic design"
 }, {
   id: "pop-art",
   name: "Pop Art",
   description: "Bold retro comic style"
 }];
-
 const subjectOptions = [{
   id: "ai-assist",
   name: "Option 1 - AI Assist",
   description: "Let AI help generate your subject"
 }, {
   id: "design-myself",
-  name: "Option 2 - Design Myself", 
+  name: "Option 2 - Design Myself",
   description: "I will create my own subject"
 }, {
   id: "multiple-people",
   name: "No Visuals - I don't want any visuals",
   description: "No Visuals - I don't want any visuals"
 }];
-
 const dimensionOptions = [{
   id: "square",
   name: "Square",
   description: "1:1 aspect ratio"
 }, {
-  id: "landscape", 
+  id: "landscape",
   name: "Landscape",
   description: "16:9 aspect ratio"
 }, {
   id: "portrait",
-  name: "Portrait", 
+  name: "Portrait",
   description: "9:16 aspect ratio"
 }, {
   id: "custom",
   name: "Custom",
   description: "Define your own dimensions"
 }];
-
 const Index = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
@@ -4091,7 +4039,7 @@ const Index = () => {
   const [showProxySettings, setShowProxySettings] = useState(false);
   const [proxySettings, setLocalProxySettings] = useState(() => getProxySettings());
   const [proxyApiKey, setProxyApiKey] = useState('');
-  
+
   // Spelling guarantee mode states - default to ON when text is present
   const [spellingGuaranteeMode, setSpellingGuaranteeMode] = useState<boolean>(false);
   const [showTextOverlay, setShowTextOverlay] = useState<boolean>(false);
@@ -4099,7 +4047,7 @@ const Index = () => {
   const [finalImageWithText, setFinalImageWithText] = useState<string | null>(null);
   const [textMisspellingDetected, setTextMisspellingDetected] = useState<boolean>(false);
   const [cleanBackgroundMode, setCleanBackgroundMode] = useState<boolean>(true);
-  
+
   // Visual AI recommendations state
   const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
   const [selectedRecommendation, setSelectedRecommendation] = useState<number | null>(null);
@@ -4119,14 +4067,14 @@ const Index = () => {
             visualStyle: selectedVisualStyle || undefined,
             finalLine: selectedGeneratedOption || undefined,
             subjectOption: selectedSubjectOption || undefined,
-            dimensions: selectedDimension === "custom" 
-              ? `${customWidth}x${customHeight}` 
-              : (dimensionOptions.find(d => d.id === selectedDimension)?.name || undefined)
+            dimensions: selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || undefined
           });
           setVisualRecommendations(recommendations);
         } catch (error) {
           console.error('Failed to generate visual recommendations:', error);
-          const { toast } = useToast();
+          const {
+            toast
+          } = useToast();
           toast({
             title: "Error",
             description: "Failed to generate visual recommendations",
@@ -4136,15 +4084,16 @@ const Index = () => {
         setIsLoadingRecommendations(false);
       }
     };
-
     generateRecommendations();
   }, [currentStep, visualRecommendations, isLoadingRecommendations, selectedStyle, selectedSubOption, selectedTextStyle, tags, selectedVisualStyle, selectedGeneratedOption]);
-  
+
   // Visual AI recommendations state
   const [isTestingProxy, setIsTestingProxy] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
-  
+  const {
+    toast
+  } = useToast();
+
   // Helper function to truncate text to max words
   const truncateWords = (text: string, maxWords: number): string => {
     const words = text.split(' ');
@@ -4172,14 +4121,17 @@ const Index = () => {
   const testAIConnection = async () => {
     setIsTestingProxy(true);
     try {
-      const testResult = await openAIService.chatJSON([
-        { role: 'user', content: 'Test connection. Return JSON response: {"status": "ok"}' }
-      ], { model: 'gpt-5-mini-2025-08-07', max_completion_tokens: 50 });
-      
+      const testResult = await openAIService.chatJSON([{
+        role: 'user',
+        content: 'Test connection. Return JSON response: {"status": "ok"}'
+      }], {
+        model: 'gpt-5-mini-2025-08-07',
+        max_completion_tokens: 50
+      });
       if (testResult?.status === 'ok') {
         toast({
           title: "Connection Success",
-          description: "AI connection is working properly",
+          description: "AI connection is working properly"
         });
       } else {
         throw new Error('Invalid response');
@@ -4247,7 +4199,6 @@ const Index = () => {
         const option = visualOptions[selectedVisualIndex];
         const optionTitle = `Selected: Option ${selectedVisualIndex + 1} (${option.slot?.replace('-', ' ') || 'Visual'})`;
         const compactDescription = `${option.subject} - ${option.background}`;
-        
         selections.push({
           title: optionTitle,
           subtitle: compactDescription,
@@ -4301,9 +4252,7 @@ const Index = () => {
     // Dimensions selection
     if (selectedDimension) {
       const dimension = dimensionOptions.find(d => d.id === selectedDimension);
-      const title = selectedDimension === "custom" 
-        ? `Dimensions: ${customWidth}x${customHeight}`
-        : `Dimensions: ${dimension?.name}`;
+      const title = selectedDimension === "custom" ? `Dimensions: ${customWidth}x${customHeight}` : `Dimensions: ${dimension?.name}`;
       selections.push({
         title,
         subtitle: dimension?.description,
@@ -4314,22 +4263,21 @@ const Index = () => {
         }
       });
     }
-
     return selections;
   };
-  
+
   // Add timeout ref for search debouncing
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Helper function to check if Step 1 is complete
   const isStep1Complete = (): boolean => {
     if (!selectedStyle) return false;
-    
     switch (selectedStyle) {
       case "pop-culture":
         return !!(selectedSubOption && selectedPick);
       case "random":
-        return !!selectedSubOption; // Custom topic for random
+        return !!selectedSubOption;
+      // Custom topic for random
       case "celebrations":
       case "sports":
       case "daily-life":
@@ -4345,17 +4293,17 @@ const Index = () => {
     if (!selectedTextStyle || !selectedCompletionOption) {
       return false;
     }
-    
+
     // If completion option is AI assist, require a generated option to be selected
     if (selectedCompletionOption === "ai-assist") {
       return !!selectedGeneratedOption;
     }
-    
+
     // If completion option is write myself, require confirmed text
     if (selectedCompletionOption === "write-myself") {
       return stepTwoText.trim().length > 0 && isCustomTextConfirmed;
     }
-    
+
     // For "no-text" option, just need style and completion
     return true;
   };
@@ -4363,31 +4311,30 @@ const Index = () => {
   // Helper function to check if Step 3 is complete
   const isStep3Complete = (): boolean => {
     if (!selectedVisualStyle || !selectedSubjectOption) return false;
-    
+
     // If AI Assist is selected, require visual option selection and dimensions
     if (selectedSubjectOption === "ai-assist") {
       const hasVisualSelection = selectedVisualIndex !== null;
       const hasDimensions = !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
       return hasVisualSelection && hasDimensions;
     }
-    
+
     // If Design Myself is selected, require confirmed description and dimensions
     if (selectedSubjectOption === "design-myself") {
       const hasConfirmedDescription = subjectDescription.trim().length > 0 && isSubjectDescriptionConfirmed;
       const hasDimensions = !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
       return hasConfirmedDescription && hasDimensions;
     }
-    
+
     // For single-person and multiple-people, just need dimensions
     if (selectedSubjectOption === "single-person" || selectedSubjectOption === "multiple-people") {
       return !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
     }
-    
+
     // For "no-subject", just need dimensions
     if (selectedSubjectOption === "no-subject") {
       return !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
     }
-    
     return true;
   };
 
@@ -4404,14 +4351,12 @@ const Index = () => {
     }
     setTagInput("");
   };
-
   const handleTagInputKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       handleAddTag(tagInput);
     }
   };
-
   const removeTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
@@ -4424,14 +4369,12 @@ const Index = () => {
     }
     setSubjectTagInput("");
   };
-
   const handleSubjectTagInputKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       handleAddSubjectTag(subjectTagInput);
     }
   };
-
   const removeSubjectTag = (tagToRemove: string) => {
     setSubjectTags(subjectTags.filter(tag => tag !== tagToRemove));
   };
@@ -4448,16 +4391,18 @@ const Index = () => {
       setSubjectTags([...subjectTags, subjectTagInput.trim()]);
       setSubjectTagInput("");
     }
-
     setIsGeneratingSubject(true);
     try {
       // Build inputs using the same mapping logic as text generation
       let category = '';
       let subcategory = '';
       let finalTags = [...tags, ...subjectTags];
-      
-      console.log('🎨 Visual generation started with tags:', { tags, subjectTags, finalTags });
-      
+      console.log('🎨 Visual generation started with tags:', {
+        tags,
+        subjectTags,
+        finalTags
+      });
+
       // Map category
       switch (selectedStyle) {
         case 'celebrations':
@@ -4481,7 +4426,7 @@ const Index = () => {
         default:
           category = 'no category';
       }
-      
+
       // Get subcategory based on selected option
       if (selectedStyle === 'celebrations' && selectedSubOption) {
         const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
@@ -4497,14 +4442,13 @@ const Index = () => {
       } else {
         subcategory = 'general';
       }
-      
+
       // Get tone from text style
       const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
       const tone = selectedTextStyleObj?.name || 'Humorous';
-      
+
       // Get final line from Step 2 if available
       const finalLine = selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : undefined);
-      
       const visualResult = await generateVisualRecommendations({
         category,
         subcategory,
@@ -4513,38 +4457,34 @@ const Index = () => {
         visualStyle: selectedVisualStyle || undefined,
         finalLine,
         subjectOption: selectedSubjectOption || undefined,
-        dimensions: selectedDimension === "custom" 
-          ? `${customWidth}x${customHeight}` 
-          : (dimensionOptions.find(d => d.id === selectedDimension)?.name || undefined)
+        dimensions: selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || undefined
       }, 4);
-      
-      console.log('🎨 Visual generation completed with result:', { 
-        optionsCount: visualResult.options.length, 
+      console.log('🎨 Visual generation completed with result:', {
+        optionsCount: visualResult.options.length,
         model: visualResult.model,
-        tags: finalTags 
+        tags: finalTags
       });
-      
+
       // Clear previous selection and set new options
       setSelectedVisualIndex(null);
       setVisualOptions(visualResult.options);
       setVisualModel(visualResult.model); // Track which model was used
-      
+
       // Clear only the input, keep tags for the summary, and hide editor
       setSubjectTagInput("");
       setShowSubjectTagEditor(false);
       // Don't clear subjectTags - keep them to show in summary
       // Log audit info for debugging
-      console.log('Visual generation result:', { 
-        model: visualResult.model, 
+      console.log('Visual generation result:', {
+        model: visualResult.model,
         optionsCount: visualResult.options.length,
         slots: visualResult.options.map(opt => opt.slot)
       });
-      
+
       // Warn if fallbacks were used
       if (visualResult.model === 'fallback') {
         console.warn('⚠️ Visual generation used fallback options. API may be unavailable or having issues.');
       }
-      
     } catch (error) {
       console.error('Error generating visual recommendations:', error);
     } finally {
@@ -4558,18 +4498,19 @@ const Index = () => {
       setShowApiKeyDialog(true);
       return;
     }
-
     setIsGenerating(true);
     try {
       // Map UI selections to vibe model inputs
       let category = '';
       let subcategory = '';
       let finalTags = [...tags];
-      
       console.log('🏷️ Text generation started with tags:', tags);
-      console.log('🏷️ Current tags state:', { tags, tagsLength: tags.length });
+      console.log('🏷️ Current tags state:', {
+        tags,
+        tagsLength: tags.length
+      });
       console.log('🏷️ Final tags for processing:', finalTags);
-      
+
       // Map category
       switch (selectedStyle) {
         case 'celebrations':
@@ -4593,7 +4534,7 @@ const Index = () => {
         default:
           category = 'no category';
       }
-      
+
       // Get subcategory based on selected option
       if (selectedStyle === 'celebrations' && selectedSubOption) {
         const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
@@ -4610,15 +4551,15 @@ const Index = () => {
       } else {
         subcategory = 'general';
       }
-      
+
       // Get tone from text style
       const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
       const tone = selectedTextStyleObj?.name || 'Humorous';
-      
+
       // Filter out visual-only tags for text generation
       // Only use the original text tags, not subject tags or visual-only tags
       let finalTagsForGeneration = [...tags]; // Only use text tags, not subjectTags
-      
+
       console.log('📋 Final parameters for text generation:', {
         category,
         subcategory,
@@ -4627,47 +4568,45 @@ const Index = () => {
         originalTags: tags,
         tagCount: finalTagsForGeneration.length
       });
-      
+
       // Ensure we have at least the basic tags
       if (finalTagsForGeneration.length === 0 && tags.length > 0) {
         console.warn('⚠️ finalTagsForGeneration is empty but original tags exist, using original tags');
         finalTagsForGeneration = [...tags];
       }
-      
       const vibeResult: VibeResult = await generateCandidates({
         category,
         subcategory,
         tone: tone.toLowerCase(),
         tags: finalTagsForGeneration
       }, 4);
-      
+
       // Check for partial tag coverage and show notification
       if (vibeResult.audit.reason?.includes('tag coverage') || vibeResult.audit.reason?.includes('partial tag coverage')) {
         sonnerToast.info("Generated text with partial keyword match", {
           description: "The AI created content that may not exactly match all your keywords but fits the tone and context."
         });
       }
-
       console.log('Vibe generation audit:', vibeResult.audit);
       console.log('✅ Generated text options:', vibeResult.candidates);
-      
+
       // Clear previous selection when generating/regenerating
       setSelectedGeneratedOption(null);
-      setSelectedGeneratedIndex(null);  
+      setSelectedGeneratedIndex(null);
       setGeneratedOptions(vibeResult.candidates);
-      
+
       // Don't auto-select any option - let user choose
-      
+
       // Log audit info for debugging
       console.log('🔍 Vibe generation audit:', vibeResult.audit);
-      
+
       // Show success toast with model information if retry occurred
       if (vibeResult.audit.retryAttempt && vibeResult.audit.retryAttempt > 0) {
         sonnerToast.success("Generated text with model fallback", {
           description: `Switched from ${vibeResult.audit.originalModel} to ${vibeResult.audit.model} for better results.`
         });
       }
-      
+
       // Warn if fallbacks were used
       if (vibeResult.audit.usedFallback) {
         console.warn('⚠️ Text generation used fallback variants. API may be unavailable or having issues.');
@@ -4680,30 +4619,25 @@ const Index = () => {
       setIsGenerating(false);
     }
   };
-
   const handleApiKeySet = (apiKey: string) => {
     openAIService.setApiKey(apiKey);
   };
-
   const handleIdeogramApiKeySet = (apiKey: string) => {
     setIdeogramApiKey(apiKey);
     toast({
       title: "API Key Saved",
-      description: "Your Ideogram API key has been saved securely.",
+      description: "Your Ideogram API key has been saved securely."
     });
   };
-
   const handleGenerateImage = async () => {
     const apiKey = getIdeogramApiKey();
     if (!apiKey) {
       setShowIdeogramKeyDialog(true);
       return;
     }
-
     setIsGeneratingImage(true);
     setImageGenerationError("");
     setGeneratedImageUrl(null);
-
     try {
       // Build the handoff data using actual form values
       const finalText = selectedGeneratedOption || stepTwoText || "";
@@ -4721,16 +4655,11 @@ const Index = () => {
       const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
       const tone = selectedTextStyleObj?.name || 'Humorous';
       const visualStyle = selectedVisualStyle || "realistic";
-      const aspectRatio = selectedDimension === "custom" 
-        ? `${customWidth}x${customHeight}` 
-        : (dimensionOptions.find(d => d.id === selectedDimension)?.name || "Landscape");
+      const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Landscape";
       const textTagsStr = tags.join(', ') || "None";
       const visualTagsStr = subjectTags.join(', ') || "None";
-      const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
-        ? visualOptions[selectedVisualIndex].prompt 
-        : (selectedSubjectOption === "design-myself" && subjectDescription ? subjectDescription : "");
+      const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : selectedSubjectOption === "design-myself" && subjectDescription ? subjectDescription : "";
       const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
-
       const ideogramPayload = buildIdeogramHandoff({
         visual_style: visualStyle,
         subcategory: subcategory,
@@ -4757,34 +4686,36 @@ const Index = () => {
       }
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
       const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
-
       console.log('=== Ideogram Generation Debug ===');
       console.log('Direct prompt provided:', !!directPrompt.trim());
       console.log('Final prompt:', prompt);
       console.log('Aspect ratio:', aspectForIdeogram);
       console.log('Style type:', styleForIdeogram);
-      console.log('Final payload:', { prompt, aspect_ratio: aspectForIdeogram, model: 'V_2A_TURBO', magic_prompt_option: 'AUTO', style_type: styleForIdeogram });
-
+      console.log('Final payload:', {
+        prompt,
+        aspect_ratio: aspectForIdeogram,
+        model: 'V_2A_TURBO',
+        magic_prompt_option: 'AUTO',
+        style_type: styleForIdeogram
+      });
       const response = await generateIdeogramImage({
         prompt,
         aspect_ratio: aspectForIdeogram,
         model: 'V_2A_TURBO',
         magic_prompt_option: 'AUTO',
-        style_type: styleForIdeogram,
+        style_type: styleForIdeogram
       });
-
       if (response.data && response.data.length > 0) {
         setGeneratedImageUrl(response.data[0].url);
         toast({
           title: "Image Generated!",
-          description: "Your VIIBE has been successfully created with Ideogram Turbo.",
+          description: "Your VIIBE has been successfully created with Ideogram Turbo."
         });
       } else {
         throw new Error("No image data received from Ideogram API");
       }
     } catch (error) {
       console.error('Image generation failed:', error);
-      
       if (error instanceof IdeogramAPIError) {
         // Handle specific CORS demo activation error
         if (error.message === 'CORS_DEMO_REQUIRED') {
@@ -4802,45 +4733,37 @@ const Index = () => {
       } else {
         setImageGenerationError('An unexpected error occurred while generating the image.');
       }
-      
       toast({
         title: "Generation Failed",
         description: imageGenerationError || "Failed to generate image. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsGeneratingImage(false);
     }
   };
-
   const handleDownloadImage = () => {
     if (!generatedImageUrl) return;
-    
     const link = document.createElement('a');
     link.href = generatedImageUrl;
     link.download = 'viibe-image.jpg';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
     toast({
       title: "Download Started",
-      description: "Your VIIBE image is being downloaded.",
+      description: "Your VIIBE image is being downloaded."
     });
   };
-
   const handleSearch = async (searchTerm: string) => {
     if (!searchTerm.trim() || !selectedSubOption) return;
-    
     if (!openAIService.hasApiKey()) {
       setShowApiKeyDialog(true);
       return;
     }
-
     setIsSearching(true);
     setSearchError("");
     setSearchResults([]);
-
     try {
       const results = await openAIService.searchPopCulture(selectedSubOption, searchTerm);
       setSearchResults(results);
@@ -4854,30 +4777,26 @@ const Index = () => {
       setIsSearching(false);
     }
   };
-
   const handleSearchInputChange = (value: string) => {
     setFinalSearchTerm(value);
     setSearchResults([]);
     setSearchError("");
-    
+
     // Clear results if search is empty
     if (!value.trim()) {
       return;
     }
-    
+
     // If searching fictional characters, also search the local list
     if (selectedSubOption === "Fictional Characters" && value.trim()) {
-      const filteredCharacters = fictionalCharactersList
-        .filter(character => character.toLowerCase().includes(value.toLowerCase()))
-        .slice(0, 8) // Limit to 8 results
-        .map(character => ({
-          title: character,
-          description: `Fictional character from popular culture`
-        }));
-      
+      const filteredCharacters = fictionalCharactersList.filter(character => character.toLowerCase().includes(value.toLowerCase())).slice(0, 8) // Limit to 8 results
+      .map(character => ({
+        title: character,
+        description: `Fictional character from popular culture`
+      }));
       setSearchResults(filteredCharacters);
     }
-    
+
     // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -4890,20 +4809,17 @@ const Index = () => {
       }
     }, 250);
   };
-
-  return (
-    <div className="min-h-screen bg-background py-12 px-4 pb-32">
+  return <div className="min-h-screen bg-background py-12 px-4 pb-32">
       <div className="max-w-6xl mx-auto">
         {/* Main Title */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">YOUR VIIBE</h1>
+          
         </div>
         
         {/* Step Progress Header */}
         <StepProgress currentStep={currentStep} />
         
-        {currentStep === 1 && (
-          <>
+        {currentStep === 1 && <>
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Category</h2>
               <p className="text-xl text-muted-foreground">Select the Category that best fits your Viibe</p>
@@ -4920,92 +4836,82 @@ const Index = () => {
             </div>
 
             {(() => {
-          // Enhanced search that includes subcategories
-          const searchTermLower = searchTerm.toLowerCase();
-          
-          // Search main categories
-          const filteredStyles = styleOptions.filter(style => 
-            style.name.toLowerCase().includes(searchTermLower) || 
-            style.description.toLowerCase().includes(searchTermLower)
-          );
-          
-          // Search subcategories and create hierarchical results
-          const subcategoryResults = [];
-          
-          if (searchTermLower) {
-            // Search celebrations
-            celebrationOptions.forEach(option => {
-              if (option.name.toLowerCase().includes(searchTermLower)) {
-                subcategoryResults.push({
-                  category: 'celebrations',
-                  categoryName: 'Celebrations',
-                  subcategory: option,
-                  type: 'subcategory'
-                });
-              }
-            });
-            
-            // Search sports
-            sportsOptions.forEach(option => {
-              if (option.name.toLowerCase().includes(searchTermLower)) {
-                subcategoryResults.push({
-                  category: 'sports',
-                  categoryName: 'Sports',
-                  subcategory: option,
-                  type: 'subcategory'
-                });
-              }
-            });
-            
-            // Search daily life
-            dailyLifeOptions.forEach(option => {
-              if (option.name.toLowerCase().includes(searchTermLower)) {
-                subcategoryResults.push({
-                  category: 'daily-life',
-                  categoryName: 'Daily Life',
-                  subcategory: option,
-                  type: 'subcategory'
-                });
-              }
-            });
-            
-            // Search vibes & punchlines
-            vibesPunchlinesOptions.forEach(option => {
-              if (option.name.toLowerCase().includes(searchTermLower) || 
-                  option.subtitle.toLowerCase().includes(searchTermLower)) {
-                subcategoryResults.push({
-                  category: 'vibes-punchlines',
-                  categoryName: 'Vibes & Punchlines',
-                  subcategory: option,
-                  type: 'subcategory'
-                });
-              }
-            });
-            
-            // Search pop culture
-            popCultureOptions.forEach(option => {
-              if (option.name.toLowerCase().includes(searchTermLower) || 
-                  option.subtitle.toLowerCase().includes(searchTermLower)) {
-                subcategoryResults.push({
-                  category: 'pop-culture',
-                  categoryName: 'Pop Culture',
-                  subcategory: option,
-                  type: 'subcategory'
-                });
-              }
-            });
-          }
-          
-          const hasResults = filteredStyles.length > 0 || subcategoryResults.length > 0;
-          
-          return hasResults ? <div className="space-y-6">
+            // Enhanced search that includes subcategories
+            const searchTermLower = searchTerm.toLowerCase();
+
+            // Search main categories
+            const filteredStyles = styleOptions.filter(style => style.name.toLowerCase().includes(searchTermLower) || style.description.toLowerCase().includes(searchTermLower));
+
+            // Search subcategories and create hierarchical results
+            const subcategoryResults = [];
+            if (searchTermLower) {
+              // Search celebrations
+              celebrationOptions.forEach(option => {
+                if (option.name.toLowerCase().includes(searchTermLower)) {
+                  subcategoryResults.push({
+                    category: 'celebrations',
+                    categoryName: 'Celebrations',
+                    subcategory: option,
+                    type: 'subcategory'
+                  });
+                }
+              });
+
+              // Search sports
+              sportsOptions.forEach(option => {
+                if (option.name.toLowerCase().includes(searchTermLower)) {
+                  subcategoryResults.push({
+                    category: 'sports',
+                    categoryName: 'Sports',
+                    subcategory: option,
+                    type: 'subcategory'
+                  });
+                }
+              });
+
+              // Search daily life
+              dailyLifeOptions.forEach(option => {
+                if (option.name.toLowerCase().includes(searchTermLower)) {
+                  subcategoryResults.push({
+                    category: 'daily-life',
+                    categoryName: 'Daily Life',
+                    subcategory: option,
+                    type: 'subcategory'
+                  });
+                }
+              });
+
+              // Search vibes & punchlines
+              vibesPunchlinesOptions.forEach(option => {
+                if (option.name.toLowerCase().includes(searchTermLower) || option.subtitle.toLowerCase().includes(searchTermLower)) {
+                  subcategoryResults.push({
+                    category: 'vibes-punchlines',
+                    categoryName: 'Vibes & Punchlines',
+                    subcategory: option,
+                    type: 'subcategory'
+                  });
+                }
+              });
+
+              // Search pop culture
+              popCultureOptions.forEach(option => {
+                if (option.name.toLowerCase().includes(searchTermLower) || option.subtitle.toLowerCase().includes(searchTermLower)) {
+                  subcategoryResults.push({
+                    category: 'pop-culture',
+                    categoryName: 'Pop Culture',
+                    subcategory: option,
+                    type: 'subcategory'
+                  });
+                }
+              });
+            }
+            const hasResults = filteredStyles.length > 0 || subcategoryResults.length > 0;
+            return hasResults ? <div className="space-y-6">
                   {/* Main Categories Results */}
-                  {filteredStyles.length > 0 && (
-                    <div className="space-y-4">
+                  {filteredStyles.length > 0 && <div className="space-y-4">
                       {searchTerm && <h3 className="text-lg font-medium text-foreground text-center">Categories</h3>}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center">
-                        {filteredStyles.map(style => (
-                          <Card key={style.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm" onClick={() => setSelectedStyle(style.id)}>
+                        {filteredStyles.map(style => <Card key={style.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm" onClick={() => setSelectedStyle(style.id)}>
                             <CardHeader className="pb-3">
                               <CardTitle className="text-lg font-semibold text-card-foreground">
                                 {style.name}
@@ -5016,23 +4922,18 @@ const Index = () => {
                                 {style.description}
                               </CardDescription>
                             </CardContent>
-                          </Card>
-                        ))}
+                          </Card>)}
                       </div>
-                    </div>
-                  )}
+                    </div>}
                   
                   {/* Subcategories Results */}
-                  {subcategoryResults.length > 0 && (
-                    <div className="space-y-4">
+                  {subcategoryResults.length > 0 && <div className="space-y-4">
                       {searchTerm && <h3 className="text-lg font-medium text-foreground text-center">Specific Topics</h3>}
                       <div className="max-w-2xl mx-auto space-y-2">
-                        {subcategoryResults.map((result, index) => (
-                          <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:bg-accent/50" 
-                                onClick={() => {
-                                  setSelectedStyle(result.category);
-                                  setSelectedSubOption(result.subcategory.name);
-                                }}>
+                        {subcategoryResults.map((result, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:bg-accent/50" onClick={() => {
+                    setSelectedStyle(result.category);
+                    setSelectedSubOption(result.subcategory.name);
+                  }}>
                             <CardContent className="p-4">
                               <div className="flex items-center gap-3">
                                 <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
@@ -5042,59 +4943,50 @@ const Index = () => {
                                   <p className="font-medium text-card-foreground">
                                     {result.subcategory.name}
                                   </p>
-                                  {result.subcategory.subtitle && (
-                                    <p className="text-sm text-muted-foreground">
+                                  {result.subcategory.subtitle && <p className="text-sm text-muted-foreground">
                                       {result.subcategory.subtitle}
-                                    </p>
-                                  )}
+                                    </p>}
                                 </div>
                                 <ArrowRight className="h-4 w-4 text-muted-foreground" />
                               </div>
                             </CardContent>
-                          </Card>
-                        ))}
+                          </Card>)}
                       </div>
-                    </div>
-                  )}
+                    </div>}
                 </div> : <div className="text-center py-12">
                   <p className="text-lg text-muted-foreground">No matches found</p>
                   <p className="text-sm text-muted-foreground mt-2">Try a different search term</p>
                 </div>;
-        })()}
+          })()}
           </> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Combined Category and Subcategory Selection Card */}
             {(() => {
-              const selectedStyleData = styleOptions.find(s => s.id === selectedStyle);
-              const selections = [{
-                title: selectedStyleData?.name || '',
-                subtitle: selectedStyleData?.description || '',
+            const selectedStyleData = styleOptions.find(s => s.id === selectedStyle);
+            const selections = [{
+              title: selectedStyleData?.name || '',
+              subtitle: selectedStyleData?.description || '',
+              onChangeSelection: () => {
+                setSelectedStyle(null);
+                setSelectedSubOption(null);
+                setSelectedPick(null);
+                setSubOptionSearchTerm("");
+              }
+            }];
+
+            // Add subcategory selection if it exists
+            if (selectedSubOption) {
+              selections.push({
+                title: selectedSubOption,
+                subtitle: selectedStyle === 'celebrations' ? 'Selected celebration' : selectedStyle === 'sports' ? 'Selected sport' : selectedStyle === 'daily-life' ? 'Selected daily life activity' : selectedStyle === 'vibes-punchlines' ? 'Selected vibe' : selectedStyle === 'pop-culture' ? 'Selected pop culture' : 'Selected option',
                 onChangeSelection: () => {
-                  setSelectedStyle(null);
                   setSelectedSubOption(null);
                   setSelectedPick(null);
                   setSubOptionSearchTerm("");
                 }
-              }];
-              
-              // Add subcategory selection if it exists
-              if (selectedSubOption) {
-                selections.push({
-                  title: selectedSubOption,
-                  subtitle: selectedStyle === 'celebrations' ? 'Selected celebration' :
-                           selectedStyle === 'sports' ? 'Selected sport' :
-                           selectedStyle === 'daily-life' ? 'Selected daily life activity' :
-                           selectedStyle === 'vibes-punchlines' ? 'Selected vibe' :
-                           selectedStyle === 'pop-culture' ? 'Selected pop culture' : 'Selected option',
-                  onChangeSelection: () => {
-                    setSelectedSubOption(null);
-                    setSelectedPick(null);
-                    setSubOptionSearchTerm("");
-                  }
-                });
-              }
-              
-              return <StackedSelectionCard selections={selections} />;
-            })()}
+              });
+            }
+            return <StackedSelectionCard selections={selections} />;
+          })()}
 
             {/* Celebrations Dropdown - Only show for celebrations style */}
             {selectedStyle === "celebrations" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -5107,9 +4999,9 @@ const Index = () => {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input value={subOptionSearchTerm} onChange={e => setSubOptionSearchTerm(e.target.value)} onFocus={() => setIsSearchFocused(true)} onBlur={() => {
-                // Delay hiding the list to allow clicks to complete
-                setTimeout(() => setIsSearchFocused(false), 150);
-              }} placeholder="Search celebrations..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                  // Delay hiding the list to allow clicks to complete
+                  setTimeout(() => setIsSearchFocused(false), 150);
+                }} placeholder="Search celebrations..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                   </div>
 
                   {/* Celebrations List */}
@@ -5117,26 +5009,26 @@ const Index = () => {
                       <ScrollArea className="h-96">
                         <div className="p-4 space-y-2">
                           {(() => {
-                    const filteredCelebrations = celebrationOptions.filter(celebration => celebration.name.toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
-                    return filteredCelebrations.length > 0 ? filteredCelebrations.map(celebration => <div key={celebration.id} onClick={e => {
-                      console.log('Celebration clicked:', celebration.name);
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSelectedSubOption(celebration.name);
-                      setIsSearchFocused(false);
-                      setSubOptionSearchTerm("");
-                    }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                      const filteredCelebrations = celebrationOptions.filter(celebration => celebration.name.toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
+                      return filteredCelebrations.length > 0 ? filteredCelebrations.map(celebration => <div key={celebration.id} onClick={e => {
+                        console.log('Celebration clicked:', celebration.name);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(celebration.name);
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
                                   <p className="text-sm font-medium text-card-foreground">
                                     {celebration.name}
                                   </p>
                                 </div>) : subOptionSearchTerm.trim() ? <div onClick={e => {
-                      console.log('Custom celebration clicked:', subOptionSearchTerm.trim());
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSelectedSubOption(subOptionSearchTerm.trim());
-                      setIsSearchFocused(false);
-                      setSubOptionSearchTerm("");
-                    }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
+                        console.log('Custom celebration clicked:', subOptionSearchTerm.trim());
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(subOptionSearchTerm.trim());
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
                                 <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
                                   <span className="text-xs font-bold text-muted-foreground">+</span>
                                 </div>
@@ -5146,7 +5038,7 @@ const Index = () => {
                               </div> : <div className="text-center py-8">
                                 <p className="text-muted-foreground">Start typing to search celebrations</p>
                               </div>;
-                  })()}
+                    })()}
                         </div>
                       </ScrollArea>
                     </Card>}
@@ -5161,9 +5053,9 @@ const Index = () => {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input value={subOptionSearchTerm} onChange={e => setSubOptionSearchTerm(e.target.value)} onFocus={() => setIsSearchFocused(true)} onBlur={() => {
-                // Delay hiding the list to allow clicks to complete
-                setTimeout(() => setIsSearchFocused(false), 150);
-              }} placeholder="Search sports..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                  // Delay hiding the list to allow clicks to complete
+                  setTimeout(() => setIsSearchFocused(false), 150);
+                }} placeholder="Search sports..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                   </div>
 
                   {/* Sports List */}
@@ -5171,26 +5063,26 @@ const Index = () => {
                       <ScrollArea className="h-96">
                         <div className="p-4 space-y-2">
                           {(() => {
-                    const filteredSports = sportsOptions.filter(sport => sport.name.toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
-                    return filteredSports.length > 0 ? filteredSports.map(sport => <div key={sport.id} onClick={e => {
-                      console.log('Sport clicked:', sport.name);
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSelectedSubOption(sport.name);
-                      setIsSearchFocused(false);
-                      setSubOptionSearchTerm("");
-                    }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                      const filteredSports = sportsOptions.filter(sport => sport.name.toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
+                      return filteredSports.length > 0 ? filteredSports.map(sport => <div key={sport.id} onClick={e => {
+                        console.log('Sport clicked:', sport.name);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(sport.name);
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
                                   <p className="text-sm font-medium text-card-foreground">
                                     {sport.name}
                                   </p>
                                 </div>) : subOptionSearchTerm.trim() ? <div onClick={e => {
-                      console.log('Custom sport clicked:', subOptionSearchTerm.trim());
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSelectedSubOption(subOptionSearchTerm.trim());
-                      setIsSearchFocused(false);
-                      setSubOptionSearchTerm("");
-                    }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
+                        console.log('Custom sport clicked:', subOptionSearchTerm.trim());
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(subOptionSearchTerm.trim());
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
                                 <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
                                   <span className="text-xs font-bold text-muted-foreground">+</span>
                                 </div>
@@ -5200,7 +5092,7 @@ const Index = () => {
                               </div> : <div className="p-8 text-center text-muted-foreground">
                                 <p>No sports found</p>
                               </div>;
-                  })()}
+                    })()}
                         </div>
                       </ScrollArea>
                     </Card>}
@@ -5215,9 +5107,9 @@ const Index = () => {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input value={subOptionSearchTerm} onChange={e => setSubOptionSearchTerm(e.target.value)} onFocus={() => setIsSearchFocused(true)} onBlur={() => {
-                // Delay hiding the list to allow clicks to complete
-                setTimeout(() => setIsSearchFocused(false), 150);
-              }} placeholder="Search daily life activities..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                  // Delay hiding the list to allow clicks to complete
+                  setTimeout(() => setIsSearchFocused(false), 150);
+                }} placeholder="Search daily life activities..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                   </div>
 
                   {/* Daily Life List */}
@@ -5225,26 +5117,26 @@ const Index = () => {
                       <ScrollArea className="h-96">
                         <div className="p-4 space-y-2">
                           {(() => {
-                    const filteredDailyLife = dailyLifeOptions.filter(activity => activity.name.toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
-                    return filteredDailyLife.length > 0 ? filteredDailyLife.map(activity => <div key={activity.id} onClick={e => {
-                      console.log('Daily life activity clicked:', activity.name);
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSelectedSubOption(activity.name);
-                      setIsSearchFocused(false);
-                      setSubOptionSearchTerm("");
-                    }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                      const filteredDailyLife = dailyLifeOptions.filter(activity => activity.name.toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
+                      return filteredDailyLife.length > 0 ? filteredDailyLife.map(activity => <div key={activity.id} onClick={e => {
+                        console.log('Daily life activity clicked:', activity.name);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(activity.name);
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
                                   <p className="text-sm font-medium text-card-foreground">
                                     {activity.name}
                                   </p>
                                 </div>) : subOptionSearchTerm.trim() ? <div onClick={e => {
-                      console.log('Custom daily life clicked:', subOptionSearchTerm.trim());
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSelectedSubOption(subOptionSearchTerm.trim());
-                      setIsSearchFocused(false);
-                      setSubOptionSearchTerm("");
-                    }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
+                        console.log('Custom daily life clicked:', subOptionSearchTerm.trim());
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(subOptionSearchTerm.trim());
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
                                 <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
                                   <span className="text-xs font-bold text-muted-foreground">+</span>
                                 </div>
@@ -5254,7 +5146,7 @@ const Index = () => {
                               </div> : <div className="text-center py-8">
                                 <p className="text-muted-foreground">Start typing to search activities</p>
                               </div>;
-                  })()}
+                    })()}
                         </div>
                       </ScrollArea>
                     </Card>}
@@ -5269,9 +5161,9 @@ const Index = () => {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input value={subOptionSearchTerm} onChange={e => setSubOptionSearchTerm(e.target.value)} onFocus={() => setIsSearchFocused(true)} onBlur={() => {
-                // Delay hiding the list to allow clicks to complete
-                setTimeout(() => setIsSearchFocused(false), 150);
-              }} placeholder="Search vibes & punchlines..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                  // Delay hiding the list to allow clicks to complete
+                  setTimeout(() => setIsSearchFocused(false), 150);
+                }} placeholder="Search vibes & punchlines..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                   </div>
 
                   {/* Vibes & Punchlines List */}
@@ -5279,17 +5171,15 @@ const Index = () => {
                       <ScrollArea className="h-96">
                         <div className="p-4 space-y-2">
                           {(() => {
-                    const filteredVibes = vibesPunchlinesOptions.filter(vibe => 
-                      (vibe.name + " " + vibe.subtitle).toLowerCase().includes(subOptionSearchTerm.toLowerCase())
-                    );
-                    return filteredVibes.length > 0 ? filteredVibes.map(vibe => <div key={vibe.id} onClick={e => {
-                      console.log('Vibe clicked:', vibe.name);
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSelectedSubOption(vibe.name);
-                      setIsSearchFocused(false);
-                      setSubOptionSearchTerm("");
-                    }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                      const filteredVibes = vibesPunchlinesOptions.filter(vibe => (vibe.name + " " + vibe.subtitle).toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
+                      return filteredVibes.length > 0 ? filteredVibes.map(vibe => <div key={vibe.id} onClick={e => {
+                        console.log('Vibe clicked:', vibe.name);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(vibe.name);
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
                                   <p className="text-sm font-medium text-card-foreground">
                                     {vibe.name}
                                   </p>
@@ -5297,13 +5187,13 @@ const Index = () => {
                                     {vibe.subtitle}
                                   </p>
                                 </div>) : subOptionSearchTerm.trim() ? <div onClick={e => {
-                      console.log('Custom vibe clicked:', subOptionSearchTerm.trim());
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSelectedSubOption(subOptionSearchTerm.trim());
-                      setIsSearchFocused(false);
-                      setSubOptionSearchTerm("");
-                    }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
+                        console.log('Custom vibe clicked:', subOptionSearchTerm.trim());
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(subOptionSearchTerm.trim());
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
                                 <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
                                   <span className="text-xs font-bold text-muted-foreground">+</span>
                                 </div>
@@ -5313,7 +5203,7 @@ const Index = () => {
                               </div> : <div className="text-center py-8">
                                 <p className="text-muted-foreground">Start typing to search vibes & punchlines</p>
                               </div>;
-                  })()}
+                    })()}
                         </div>
                       </ScrollArea>
                     </Card>}
@@ -5328,9 +5218,9 @@ const Index = () => {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input value={subOptionSearchTerm} onChange={e => setSubOptionSearchTerm(e.target.value)} onFocus={() => setIsSearchFocused(true)} onBlur={() => {
-                // Delay hiding the list to allow clicks to complete
-                setTimeout(() => setIsSearchFocused(false), 150);
-              }} placeholder="Search pop culture..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                  // Delay hiding the list to allow clicks to complete
+                  setTimeout(() => setIsSearchFocused(false), 150);
+                }} placeholder="Search pop culture..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                   </div>
 
                   {/* Pop Culture List */}
@@ -5338,15 +5228,15 @@ const Index = () => {
                       <ScrollArea className="h-96">
                         <div className="p-4 space-y-2">
                           {(() => {
-                    const filteredPopCulture = popCultureOptions.filter(item => item.name.toLowerCase().includes(subOptionSearchTerm.toLowerCase()) || item.subtitle.toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
-                    return filteredPopCulture.length > 0 ? filteredPopCulture.map(item => <div key={item.id} onClick={e => {
-                      console.log('Pop culture clicked:', item.name);
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSelectedSubOption(item.name);
-                      setIsSearchFocused(false);
-                      setSubOptionSearchTerm("");
-                    }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                      const filteredPopCulture = popCultureOptions.filter(item => item.name.toLowerCase().includes(subOptionSearchTerm.toLowerCase()) || item.subtitle.toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
+                      return filteredPopCulture.length > 0 ? filteredPopCulture.map(item => <div key={item.id} onClick={e => {
+                        console.log('Pop culture clicked:', item.name);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(item.name);
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
                                   <p className="text-sm font-medium text-card-foreground">
                                     {item.name}
                                   </p>
@@ -5354,13 +5244,13 @@ const Index = () => {
                                     {item.subtitle}
                                   </p>
                                 </div>) : subOptionSearchTerm.trim() ? <div onClick={e => {
-                      console.log('Custom pop culture clicked:', subOptionSearchTerm.trim());
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSelectedSubOption(subOptionSearchTerm.trim());
-                      setIsSearchFocused(false);
-                      setSubOptionSearchTerm("");
-                    }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
+                        console.log('Custom pop culture clicked:', subOptionSearchTerm.trim());
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(subOptionSearchTerm.trim());
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
                                 <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
                                   <span className="text-xs font-bold text-muted-foreground">+</span>
                                 </div>
@@ -5370,7 +5260,7 @@ const Index = () => {
                               </div> : <div className="text-center py-8">
                                 <p className="text-muted-foreground">Start typing to search pop culture</p>
                               </div>;
-                  })()}
+                    })()}
                         </div>
                       </ScrollArea>
                     </Card>}
@@ -5384,38 +5274,27 @@ const Index = () => {
                   {/* Dynamic Search Input - searches as you type */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input 
-                      value={searchTerm} 
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        handleSearchInputChange(e.target.value);
-                      }}
-                      placeholder={`Search ${selectedSubOption}... (type to search automatically)`} 
-                      className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" 
-                    />
-                    {isSearching && (
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Input value={searchTerm} onChange={e => {
+                  setSearchTerm(e.target.value);
+                  handleSearchInputChange(e.target.value);
+                }} placeholder={`Search ${selectedSubOption}... (type to search automatically)`} className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                    {isSearching && <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      </div>
-                    )}
+                      </div>}
                   </div>
 
                   {/* Search Status and Results */}
-                  {searchTerm.length >= 2 && (
-                    <>
-                      {isSearching && (
-                        <div className="text-center p-4 bg-muted/50 rounded-lg border border-border">
+                  {searchTerm.length >= 2 && <>
+                      {isSearching && <div className="text-center p-4 bg-muted/50 rounded-lg border border-border">
                           <div className="flex items-center justify-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin" />
                             <p className="text-sm text-muted-foreground">
                               Searching extensive {selectedSubOption.toLowerCase()} database...
                             </p>
                           </div>
-                        </div>
-                      )}
+                        </div>}
 
-                      {!isSearching && searchResults.length > 0 && (
-                        <>
+                      {!isSearching && searchResults.length > 0 && <>
                           <div className="text-center mb-4">
                             <p className="text-sm text-muted-foreground">
                               Found {searchResults.length} results from OpenAI's extensive database
@@ -5424,82 +5303,56 @@ const Index = () => {
                           <Card className="max-h-96 overflow-hidden">
                             <ScrollArea className="h-96">
                               <div className="p-4 space-y-2">
-                                {searchResults.map((result, index) => (
-                                  <div 
-                                    key={index}
-                                    onClick={() => {
-                                      setSelectedPick(result.title);
-                                      setSearchResults([]);
-                                      setSearchTerm("");
-                                    }}
-                                    className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors"
-                                  >
+                                {searchResults.map((result, index) => <div key={index} onClick={() => {
+                          setSelectedPick(result.title);
+                          setSearchResults([]);
+                          setSearchTerm("");
+                        }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
                                     <p className="text-sm font-medium text-card-foreground">
                                       {result.title}
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-1">
                                       {result.description}
                                     </p>
-                                  </div>
-                                ))}
+                                  </div>)}
                               </div>
                             </ScrollArea>
                           </Card>
-                        </>
-                      )}
+                        </>}
 
-                      {!isSearching && searchResults.length === 0 && !searchError && searchTerm.length >= 2 && (
-                        <div className="text-center p-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/50">
+                      {!isSearching && searchResults.length === 0 && !searchError && searchTerm.length >= 2 && <div className="text-center p-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/50">
                           <p className="text-sm text-muted-foreground mb-2">
                             No results found in database
                           </p>
-                          <Button
-                            onClick={() => {
-                              setSelectedPick(searchTerm.trim());
-                              setSearchTerm("");
-                            }}
-                            variant="outline"
-                            size="sm"
-                            className="px-4 py-2"
-                          >
+                          <Button onClick={() => {
+                    setSelectedPick(searchTerm.trim());
+                    setSearchTerm("");
+                  }} variant="outline" size="sm" className="px-4 py-2">
                             Use "{searchTerm.trim()}" anyway
                           </Button>
-                        </div>
-                      )}
-                    </>
-                  )}
+                        </div>}
+                    </>}
 
-                  {searchTerm.length > 0 && searchTerm.length < 2 && (
-                    <div className="text-center p-4 bg-muted/20 rounded-lg border border-dashed border-muted-foreground/30">
+                  {searchTerm.length > 0 && searchTerm.length < 2 && <div className="text-center p-4 bg-muted/20 rounded-lg border border-dashed border-muted-foreground/30">
                       <p className="text-sm text-muted-foreground">
                         Type at least 2 characters to search...
                       </p>
-                    </div>
-                  )}
+                    </div>}
 
                   {/* Search Error */}
-                  {searchError && (
-                    <div className="text-center p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+                  {searchError && <div className="text-center p-4 bg-destructive/10 rounded-lg border border-destructive/20">
                       <p className="text-sm text-destructive">{searchError}</p>
-                    </div>
-                  )}
+                    </div>}
 
                   {/* Custom Entry Option */}
-                  {searchTerm.trim() && searchResults.length === 0 && !isSearching && !searchError && (
-                    <div className="text-center">
-                      <Button
-                        onClick={() => {
-                          setSelectedPick(searchTerm.trim());
-                          setSearchTerm("");
-                        }}
-                        variant="outline"
-                        size="lg"
-                        className="px-6 py-3"
-                      >
+                  {searchTerm.trim() && searchResults.length === 0 && !isSearching && !searchError && <div className="text-center">
+                      <Button onClick={() => {
+                  setSelectedPick(searchTerm.trim());
+                  setSearchTerm("");
+                }} variant="outline" size="lg" className="px-6 py-3">
                         Use "{searchTerm.trim()}" as custom {selectedSubOption.toLowerCase()}
                       </Button>
-                    </div>
-                  )}
+                    </div>}
                 </div>
               </div> : selectedStyle === "random" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
@@ -5507,12 +5360,7 @@ const Index = () => {
                 </div>
                 
                 <div className="text-center">
-                  <Button 
-                    onClick={() => setCurrentStep(2)}
-                    variant="brand" 
-                    size="lg"
-                    className="px-8 py-6 text-lg"
-                  >
+                  <Button onClick={() => setCurrentStep(2)} variant="brand" size="lg" className="px-8 py-6 text-lg">
                     Continue to Text
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -5523,66 +5371,54 @@ const Index = () => {
               </div> : null}
 
           </div>}
-          </>
-        )}
+          </>}
 
-        {currentStep === 2 && (
-          <>
+        {currentStep === 2 && <>
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Text Style</h2>
               <p className="text-xl italic">
                 {(() => {
-                  let breadcrumb = [];
-                  
-                  // Add main category
-                  const selectedStyleObj = styleOptions.find(s => s.id === selectedStyle);
-                  if (selectedStyleObj) {
-                    breadcrumb.push(selectedStyleObj.name);
-                  }
-                  
-                  // Add subcategory
-                  if (selectedSubOption) {
-                    if (selectedStyle === 'celebrations') {
-                      const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
-                      breadcrumb.push(celebOption?.name || selectedSubOption);
-                    } else if (selectedStyle === 'pop-culture') {
-                      const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
-                      breadcrumb.push(popOption?.name || selectedSubOption);
-                    } else {
-                      breadcrumb.push(selectedSubOption);
-                    }
-                  }
-                  
-                  // Add specific pick for pop culture
-                  if (selectedPick && selectedStyle === 'pop-culture') {
-                    breadcrumb.push(selectedPick);
-                  }
-                  
-                  // Render breadcrumb with dynamic colors
-                  return (
-                    <>
-                      {breadcrumb.map((item, index) => (
-                        <span key={index}>
+              let breadcrumb = [];
+
+              // Add main category
+              const selectedStyleObj = styleOptions.find(s => s.id === selectedStyle);
+              if (selectedStyleObj) {
+                breadcrumb.push(selectedStyleObj.name);
+              }
+
+              // Add subcategory
+              if (selectedSubOption) {
+                if (selectedStyle === 'celebrations') {
+                  const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                  breadcrumb.push(celebOption?.name || selectedSubOption);
+                } else if (selectedStyle === 'pop-culture') {
+                  const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                  breadcrumb.push(popOption?.name || selectedSubOption);
+                } else {
+                  breadcrumb.push(selectedSubOption);
+                }
+              }
+
+              // Add specific pick for pop culture
+              if (selectedPick && selectedStyle === 'pop-culture') {
+                breadcrumb.push(selectedPick);
+              }
+
+              // Render breadcrumb with dynamic colors
+              return <>
+                      {breadcrumb.map((item, index) => <span key={index}>
                           <span className="text-muted-foreground">{item}</span>
                           {index < breadcrumb.length && <span className="text-muted-foreground"> &gt; </span>}
-                        </span>
-                      ))}
+                        </span>)}
                       <span className="text-[#0db0de]">Your Text</span>
-                    </>
-                  );
-                })()}
+                    </>;
+            })()}
               </p>
             </div>
 
             {/* Show style selection grid when no style is selected */}
-            {!selectedTextStyle ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center max-w-6xl mx-auto">
-                {textStyleOptions.map(style => (
-                  <Card 
-                    key={style.id} 
-                    className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm"
-                    onClick={() => setSelectedTextStyle(style.id)}
-                  >
+            {!selectedTextStyle ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center max-w-6xl mx-auto">
+                {textStyleOptions.map(style => <Card key={style.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm" onClick={() => setSelectedTextStyle(style.id)}>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-card-foreground">
                         {style.name}
@@ -5593,107 +5429,95 @@ const Index = () => {
                         {style.description}
                       </CardDescription>
                     </CardContent>
-                  </Card>
-                ))}
-              </div>
-                ) : (
-                  /* Show StackedSelectionCard when any selection is made */
-                  <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  </Card>)}
+              </div> : (/* Show StackedSelectionCard when any selection is made */
+        <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {/* Show stacked selections when any selection is made */}
-                    {(selectedTextStyle || selectedCompletionOption || selectedGeneratedOption || isCustomTextConfirmed) && (
-                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {(selectedTextStyle || selectedCompletionOption || selectedGeneratedOption || isCustomTextConfirmed) && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <StackedSelectionCard selections={(() => {
-                          const selections = [];
-                          
-                          // Add text style selection
-                          if (selectedTextStyle) {
-                            const textStyleData = textStyleOptions.find(s => s.id === selectedTextStyle);
-                            selections.push({
-                              title: textStyleData?.name || '',
-                              subtitle: textStyleData?.description || '',
-                              onChangeSelection: () => {
-                                setSelectedTextStyle(null);
-                                setSelectedCompletionOption(null);
-                                setGeneratedOptions([]);
-                                setSelectedGeneratedOption(null);
-                                setIsCustomTextConfirmed(false);
-                                setStepTwoText("");
-                              }
-                            });
-                          }
-                          
-                          // Add completion option selection
-                          if (selectedCompletionOption) {
-                            const completionData = completionOptions.find(opt => opt.id === selectedCompletionOption);
-                            selections.push({
-                              title: completionData?.name || '',
-                              subtitle: selectedCompletionOption !== "write-myself" ? completionData?.description || '' : undefined,
-                              onChangeSelection: () => {
-                                setSelectedCompletionOption(null);
-                                setGeneratedOptions([]);
-                                setSelectedGeneratedOption(null);
-                                setIsCustomTextConfirmed(false);
-                                setStepTwoText("");
-                              }
-                            });
-                          }
-                          
-                          // Add generated option selection (for AI assist)
-                          if (selectedGeneratedOption && selectedCompletionOption === "ai-assist") {
-                            selections.push({
-                              title: `Option ${selectedGeneratedIndex !== null ? selectedGeneratedIndex + 1 : 1}`,
-                              subtitle: selectedGeneratedOption,
-                              onChangeSelection: () => {
-                                setSelectedGeneratedOption(null);
-                                setSelectedGeneratedIndex(null);
-                              }
-                            });
-                          }
-                          
-                          // Add custom text selection (for write myself)
-                          if (isCustomTextConfirmed && selectedCompletionOption === "write-myself") {
-                            selections.push({
-                              title: "Custom Text",
-                              subtitle: `"${stepTwoText}"`,
-                              onChangeSelection: () => {
-                                setIsCustomTextConfirmed(false);
-                              }
-                            });
-                          }
-                          
-                          // Add generated options available notice (when options generated but none selected)
-                          if (selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption) {
-                            const tagDisplay = tags.length > 0 ? `, tags: ${tags.join(", ")}` : " (no tags added)";
-                            selections.push({
-                              title: "Text options generated",
-                              subtitle: `100 characters max${tagDisplay}`,
-                              onChangeSelection: () => {
-                                setGeneratedOptions([]);
-                                setSelectedGeneratedOption(null);
-                                setSelectedGeneratedIndex(null);
-                              }
-                            });
-                          }
-                          
-                          return selections;
-                        })()} />
-                      </div>
-                    )}
+              const selections = [];
+
+              // Add text style selection
+              if (selectedTextStyle) {
+                const textStyleData = textStyleOptions.find(s => s.id === selectedTextStyle);
+                selections.push({
+                  title: textStyleData?.name || '',
+                  subtitle: textStyleData?.description || '',
+                  onChangeSelection: () => {
+                    setSelectedTextStyle(null);
+                    setSelectedCompletionOption(null);
+                    setGeneratedOptions([]);
+                    setSelectedGeneratedOption(null);
+                    setIsCustomTextConfirmed(false);
+                    setStepTwoText("");
+                  }
+                });
+              }
+
+              // Add completion option selection
+              if (selectedCompletionOption) {
+                const completionData = completionOptions.find(opt => opt.id === selectedCompletionOption);
+                selections.push({
+                  title: completionData?.name || '',
+                  subtitle: selectedCompletionOption !== "write-myself" ? completionData?.description || '' : undefined,
+                  onChangeSelection: () => {
+                    setSelectedCompletionOption(null);
+                    setGeneratedOptions([]);
+                    setSelectedGeneratedOption(null);
+                    setIsCustomTextConfirmed(false);
+                    setStepTwoText("");
+                  }
+                });
+              }
+
+              // Add generated option selection (for AI assist)
+              if (selectedGeneratedOption && selectedCompletionOption === "ai-assist") {
+                selections.push({
+                  title: `Option ${selectedGeneratedIndex !== null ? selectedGeneratedIndex + 1 : 1}`,
+                  subtitle: selectedGeneratedOption,
+                  onChangeSelection: () => {
+                    setSelectedGeneratedOption(null);
+                    setSelectedGeneratedIndex(null);
+                  }
+                });
+              }
+
+              // Add custom text selection (for write myself)
+              if (isCustomTextConfirmed && selectedCompletionOption === "write-myself") {
+                selections.push({
+                  title: "Custom Text",
+                  subtitle: `"${stepTwoText}"`,
+                  onChangeSelection: () => {
+                    setIsCustomTextConfirmed(false);
+                  }
+                });
+              }
+
+              // Add generated options available notice (when options generated but none selected)
+              if (selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption) {
+                const tagDisplay = tags.length > 0 ? `, tags: ${tags.join(", ")}` : " (no tags added)";
+                selections.push({
+                  title: "Text options generated",
+                  subtitle: `100 characters max${tagDisplay}`,
+                  onChangeSelection: () => {
+                    setGeneratedOptions([]);
+                    setSelectedGeneratedOption(null);
+                    setSelectedGeneratedIndex(null);
+                  }
+                });
+              }
+              return selections;
+            })()} />
+                      </div>}
 
                 {/* Completion Options */}
-                {!selectedCompletionOption ? (
-                  <>
+                {!selectedCompletionOption ? <>
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">Choose your option for completing your text</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center max-w-4xl mx-auto">
-                      {completionOptions.map(option => (
-                        <Card 
-                          key={option.id} 
-                          className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full"
-                          onClick={() => setSelectedCompletionOption(option.id)}
-                        >
+                      {completionOptions.map(option => <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption(option.id)}>
                           <CardHeader className="pb-3">
                             <CardTitle className="text-lg font-semibold text-card-foreground">
                               {option.name}
@@ -5704,15 +5528,12 @@ const Index = () => {
                               {option.description}
                             </CardDescription>
                           </CardContent>
-                        </Card>
-                      ))}
+                        </Card>)}
                     </div>
-                  </>
-                ) : null}
+                  </> : null}
 
                 {/* Show AI Assist form when selected and no options generated yet */}
-                {selectedCompletionOption === "ai-assist" && generatedOptions.length === 0 && (
-                  <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {selectedCompletionOption === "ai-assist" && generatedOptions.length === 0 && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">Add relevant tags for content generation</p>
                     </div>
@@ -5720,85 +5541,50 @@ const Index = () => {
                     <div className="max-w-md mx-auto space-y-6">
                       {/* Tags Input */}
                       <div className="space-y-3">
-                        <Input
-                          value={tagInput}
-                          onChange={(e) => setTagInput(e.target.value)}
-                          onKeyDown={handleTagInputKeyDown}
-                          placeholder="Enter tags (press Enter or comma to add)"
-                          className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg"
-                        />
+                        <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                         
                         {/* Display Tags */}
-                        {tags.length > 0 && (
-                          <div className="flex flex-wrap gap-2 justify-center">
-                            {tags.map((tag, index) => (
-                              <Badge 
-                                key={index} 
-                                variant="secondary" 
-                                className="px-3 py-1 text-sm flex items-center gap-1"
-                              >
+                        {tags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
+                            {tags.map((tag, index) => <Badge key={index} variant="secondary" className="px-3 py-1 text-sm flex items-center gap-1">
                                 {tag}
-                                <X 
-                                  className="h-3 w-3 cursor-pointer hover:text-destructive" 
-                                  onClick={() => removeTag(tag)}
-                                />
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+                                <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => removeTag(tag)} />
+                              </Badge>)}
+                          </div>}
                       </div>
 
                       {/* Generate Button */}
                       <div className="text-center">
-                        <Button 
-                          variant="brand"
-                          className="px-8 py-3 text-base font-medium rounded-lg"
-                          onClick={handleGenerateText}
-                          disabled={isGenerating}
-                        >
-                          {isGenerating ? (
-                            <>
+                        <Button variant="brand" className="px-8 py-3 text-base font-medium rounded-lg" onClick={handleGenerateText} disabled={isGenerating}>
+                          {isGenerating ? <>
                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                               Generating...
-                            </>
-                          ) : (
-                            "Generate Text Now"
-                          )}
+                            </> : "Generate Text Now"}
                         </Button>
                       </div>
                     </div>
-                  </div>
-                )}
+                  </div>}
 
                 {/* Show generated options box when options exist but no selection made yet */}
-                {selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption && (
-                  <>
-                  </>
-                )}
+                {selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption && <>
+                  </>}
 
 
                 {/* Generated Text Options Grid - Show when options exist but no selection made */}
-                {generatedOptions.length > 0 && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && (
-                  <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {generatedOptions.length > 0 && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
-                      {generatedOptions.slice(0, 4).map((option, index) => (
-                        <Card 
-                          key={index}
-                          className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50"
-                          onClick={() => {
-                            setSelectedGeneratedOption(option);
-                            setSelectedGeneratedIndex(index);
-                            // Auto-enable spelling guarantee and clean background when text is selected
-                            if (option && option.trim()) {
-                              setSpellingGuaranteeMode(true);
-                              setCleanBackgroundMode(true);
-                            }
-                          }}
-                        >
+                      {generatedOptions.slice(0, 4).map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50" onClick={() => {
+                setSelectedGeneratedOption(option);
+                setSelectedGeneratedIndex(index);
+                // Auto-enable spelling guarantee and clean background when text is selected
+                if (option && option.trim()) {
+                  setSpellingGuaranteeMode(true);
+                  setCleanBackgroundMode(true);
+                }
+              }}>
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
                               <span className="text-sm font-medium text-muted-foreground">
@@ -5809,16 +5595,13 @@ const Index = () => {
                               {option}
                             </p>
                           </div>
-                        </Card>
-                      ))}
+                        </Card>)}
                     </div>
 
-                  </div>
-                )}
+                  </div>}
 
                 {/* Show Write Myself input panel when selected but not confirmed */}
-                {selectedCompletionOption === "write-myself" && !isCustomTextConfirmed && (
-                  <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {selectedCompletionOption === "write-myself" && !isCustomTextConfirmed && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">Write your custom text</p>
                     </div>
@@ -5826,16 +5609,11 @@ const Index = () => {
                     <div className="max-w-md mx-auto space-y-6">
                       {/* Custom Text Input */}
                       <div className="space-y-3">
-                        <Textarea
-                          value={stepTwoText}
-                          onChange={(e) => {
-                            if (e.target.value.length <= 100) {
-                              setStepTwoText(e.target.value);
-                            }
-                          }}
-                          placeholder="Enter your custom text (100 characters max)"
-                          className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 min-h-[120px] text-base font-medium rounded-lg resize-none"
-                        />
+                        <Textarea value={stepTwoText} onChange={e => {
+                  if (e.target.value.length <= 100) {
+                    setStepTwoText(e.target.value);
+                  }
+                }} placeholder="Enter your custom text (100 characters max)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 min-h-[120px] text-base font-medium rounded-lg resize-none" />
                         
                         {/* Character Counter */}
                         <div className="text-center">
@@ -5847,65 +5625,48 @@ const Index = () => {
 
                       {/* Save Button */}
                       <div className="text-center">
-                        <Button 
-                          variant="brand"
-                          className="px-8 py-3 text-base font-medium rounded-lg"
-                          onClick={() => {
-                            if (stepTwoText.trim()) {
-                              setIsCustomTextConfirmed(true);
-                            }
-                          }}
-                          disabled={!stepTwoText.trim()}
-                        >
+                        <Button variant="brand" className="px-8 py-3 text-base font-medium rounded-lg" onClick={() => {
+                  if (stepTwoText.trim()) {
+                    setIsCustomTextConfirmed(true);
+                  }
+                }} disabled={!stepTwoText.trim()}>
                           Save text
                         </Button>
                       </div>
                     </div>
-                  </div>
-                )}
+                  </div>}
 
                 {/* Show confirmed custom text when saved */}
-                {selectedCompletionOption === "write-myself" && isCustomTextConfirmed && (
-                  <>
-                  </>
-                )}
+                {selectedCompletionOption === "write-myself" && isCustomTextConfirmed && <>
+                  </>}
 
 
                 {/* TODO: Add additional sub-options here after text style is selected */}
-              </div>
-            )}
-          </>
-        )}
+              </div>)}
+          </>}
 
-        {currentStep === 3 && (
-          <>
+        {currentStep === 3 && <>
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Visual Style</h2>
               <p className="text-xl text-muted-foreground">
                 {(() => {
-                  // Show the actual text they chose, or indicate no text
-                  if (selectedCompletionOption === "no-text") {
-                    return "Your Viibe doesn't have any text";
-                  } else if (selectedGeneratedOption) {
-                    return `"${selectedGeneratedOption}"`;
-                  } else if (stepTwoText && isCustomTextConfirmed) {
-                    return `"${stepTwoText}"`;
-                  } else {
-                    return "Your Viibe doesn't have any text";
-                  }
-                })()}
+              // Show the actual text they chose, or indicate no text
+              if (selectedCompletionOption === "no-text") {
+                return "Your Viibe doesn't have any text";
+              } else if (selectedGeneratedOption) {
+                return `"${selectedGeneratedOption}"`;
+              } else if (stepTwoText && isCustomTextConfirmed) {
+                return `"${stepTwoText}"`;
+              } else {
+                return "Your Viibe doesn't have any text";
+              }
+            })()}
               </p>
             </div>
 
             {/* Show visual style selection grid when no style is selected */}
-            {!selectedVisualStyle ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center max-w-6xl mx-auto">
-                {visualStyleOptions.map(style => (
-                  <Card 
-                    key={style.id} 
-                    className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm"
-                    onClick={() => setSelectedVisualStyle(style.id)}
-                  >
+            {!selectedVisualStyle ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center max-w-6xl mx-auto">
+                {visualStyleOptions.map(style => <Card key={style.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm" onClick={() => setSelectedVisualStyle(style.id)}>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg font-semibold text-card-foreground">
                         {style.name}
@@ -5916,32 +5677,23 @@ const Index = () => {
                         {style.description}
                       </CardDescription>
                     </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              /* Show StackedSelectionCard with all selections */
-              <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  </Card>)}
+              </div> : (/* Show StackedSelectionCard with all selections */
+        <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <StackedSelectionCard selections={buildSelections()} />
 
                 {/* Subject options selection */}
-                {!selectedSubjectOption ? (
-                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {!selectedSubjectOption ? <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-8">
                       <p className="text-xl text-muted-foreground">Choose your option for your subject (what's the focus of image)</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                      {subjectOptions.map(option => (
-                        <Card 
-                          key={option.id}
-                          className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full"
-                          onClick={() => {
-                            setSelectedSubjectOption(option.id);
-                            if (option.id === "ai-assist") {
-                              setShowSubjectTagEditor(true);
-                            }
-                          }}
-                        >
+                      {subjectOptions.map(option => <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => {
+                setSelectedSubjectOption(option.id);
+                if (option.id === "ai-assist") {
+                  setShowSubjectTagEditor(true);
+                }
+              }}>
                           <CardHeader className="pb-3 text-center">
                             <CardTitle className="text-lg font-semibold text-card-foreground">
                               {option.name}
@@ -5952,17 +5704,13 @@ const Index = () => {
                               {option.description}
                             </CardDescription>
                           </CardContent>
-                        </Card>
-                      ))}
+                        </Card>)}
                     </div>
-                  </div>
-                ) : (
-                  /* Show subject generation form if AI Assist */
-                  <div className="space-y-6">
+                  </div> : (/* Show subject generation form if AI Assist */
+          <div className="space-y-6">
 
                     {/* Subject generation form for AI Assist - show only if no visual is selected yet */}
-                    {selectedSubjectOption === "ai-assist" && selectedVisualIndex === null && showSubjectTagEditor && (
-                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {selectedSubjectOption === "ai-assist" && selectedVisualIndex === null && showSubjectTagEditor && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-8">
                           <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for content generation</h2>
                           <p className="text-sm text-muted-foreground/70">(female endorser, tight blue jeans, sneakers, busy park)</p>
@@ -5971,106 +5719,52 @@ const Index = () => {
                         <div className="max-w-lg mx-auto space-y-6">
                           {/* Tag Input */}
                           <div className="space-y-4">
-                            <Input
-                              value={subjectTagInput}
-                              onChange={(e) => setSubjectTagInput(e.target.value)}
-                              onKeyDown={handleSubjectTagInputKeyDown}
-                              placeholder="Enter tags (press Enter or comma to add)"
-                              className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg"
-                            />
+                            <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                             
                             {/* Generate Button - Below the input */}
                             <div className="flex justify-center">
-                              <Button 
-                                variant="brand"
-                                size="lg"
-                                className="px-8 py-3 text-base font-medium rounded-lg"
-                                onClick={handleGenerateSubject}
-                                disabled={isGeneratingSubject}
-                              >
-                                {isGeneratingSubject ? (
-                                  <>
+                              <Button variant="brand" size="lg" className="px-8 py-3 text-base font-medium rounded-lg" onClick={handleGenerateSubject} disabled={isGeneratingSubject}>
+                                {isGeneratingSubject ? <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                     Generating...
-                                  </>
-                                ) : (
-                                  "Generate Visual Now"
-                                )}
+                                  </> : "Generate Visual Now"}
                               </Button>
                             </div>
                             
                             {/* Display tags */}
-                            {subjectTags.length > 0 && (
-                              <div className="flex flex-wrap gap-2 justify-center">
-                                {subjectTags.map((tag, index) => (
-                                  <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
+                            {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
+                                {subjectTags.map((tag, index) => <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
                                     {tag}
-                                    <X 
-                                      className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" 
-                                      onClick={() => removeSubjectTag(tag)}
-                                    />
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
+                                    <X className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeSubjectTag(tag)} />
+                                  </Badge>)}
+                              </div>}
                           </div>
                         </div>
-                      </div>
-                    )}
+                      </div>}
 
                      {/* Visual AI recommendations - always show if available */}
-                     {selectedSubjectOption === "ai-assist" && visualOptions.length > 0 && selectedVisualIndex === null && (
-                       <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                     {selectedSubjectOption === "ai-assist" && visualOptions.length > 0 && selectedVisualIndex === null && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                          <div className="text-center mb-6">
                             <div className="flex items-center justify-center gap-3 mb-2">
                               <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleGenerateSubject}
-                                disabled={isGeneratingSubject}
-                                className="text-xs"
-                              >
-                                {isGeneratingSubject ? (
-                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                ) : (
-                                  "Regenerate"
-                                )}
+                              <Button variant="outline" size="sm" onClick={handleGenerateSubject} disabled={isGeneratingSubject} className="text-xs">
+                                {isGeneratingSubject ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
                               </Button>
-                              {visualModel === 'fallback' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={testAIConnection}
-                                  disabled={isTestingProxy}
-                                  className="text-xs"
-                                >
-                                  {isTestingProxy ? (
-                                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                  ) : (
-                                    "Test Connection"
-                                  )}
-                                </Button>
-                              )}
+                              {visualModel === 'fallback' && <Button variant="outline" size="sm" onClick={testAIConnection} disabled={isTestingProxy} className="text-xs">
+                                  {isTestingProxy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Test Connection"}
+                                </Button>}
                             </div>
-                            {visualModel === 'fallback' && (
-                              <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-xs p-2 rounded-lg mb-3 max-w-md mx-auto">
+                            {visualModel === 'fallback' && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-xs p-2 rounded-lg mb-3 max-w-md mx-auto">
                                 {getErrorMessage(visualRecommendations?.errorCode)}
-                              </div>
-                            )}
+                              </div>}
                            <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
                          </div>
                         
                         <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
-                          {visualOptions.map((option, index) => (
-                            <Card 
-                              key={index}
-                              className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50"
-                              onClick={() => {
-                                setSelectedVisualIndex(index);
-                                setShowSubjectTagEditor(false); // Keep tag editor hidden once visual is selected
-                              }}
-                            >
+                          {visualOptions.map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50" onClick={() => {
+                  setSelectedVisualIndex(index);
+                  setShowSubjectTagEditor(false); // Keep tag editor hidden once visual is selected
+                }}>
                               <CardHeader className="pb-2">
                                 <CardTitle className="text-base font-semibold text-card-foreground">
                                   Option {index + 1} ({option.slot?.replace('-', ' ') || 'Visual'})
@@ -6081,28 +5775,19 @@ const Index = () => {
                                   {option.subject} - {option.background}
                                 </p>
                               </CardContent>
-                            </Card>
-                          ))}
+                            </Card>)}
                         </div>
-                      </div>
-                    )}
+                      </div>}
 
                     {/* Dimensions Selection - Show when AI assist visual is selected */}
-                    {selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null && (
-                      <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-6">
                           <p className="text-xl text-muted-foreground">Choose your dimensions</p>
                         </div>
 
                         {/* Show dimension selection grid when no dimension is selected */}
-                        {!selectedDimension ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
-                            {dimensionOptions.map(dimension => (
-                              <Card 
-                                key={dimension.id}
-                                className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md"
-                                onClick={() => setSelectedDimension(dimension.id)}
-                              >
+                        {!selectedDimension ? <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
+                            {dimensionOptions.map(dimension => <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
                                 <CardHeader className="pb-3 text-center">
                                   <CardTitle className="text-lg font-semibold text-card-foreground">
                                     {dimension.name}
@@ -6113,43 +5798,25 @@ const Index = () => {
                                     {dimension.description}
                                   </CardDescription>
                                 </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        ) : selectedDimension === "custom" && (
-                          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              </Card>)}
+                          </div> : selectedDimension === "custom" && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="text-center mb-8">
                               <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
                             </div>
                             <div className="max-w-md mx-auto flex gap-4 items-center">
                               <div className="flex-1">
-                                <Input
-                                  type="number"
-                                  value={customWidth}
-                                  onChange={(e) => setCustomWidth(e.target.value)}
-                                  placeholder="Width"
-                                  className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg"
-                                />
+                                <Input type="number" value={customWidth} onChange={e => setCustomWidth(e.target.value)} placeholder="Width" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
                               </div>
                               <span className="text-muted-foreground">×</span>
                               <div className="flex-1">
-                                <Input
-                                  type="number"
-                                  value={customHeight}
-                                  onChange={(e) => setCustomHeight(e.target.value)}
-                                  placeholder="Height"
-                                  className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg"
-                                />
+                                <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                          </div>}
+                      </div>}
 
                     {/* Show confirmed subject description when saved */}
-                    {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && (
-                      <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
                           <CardHeader className="pb-3">
                             <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
@@ -6162,79 +5829,55 @@ const Index = () => {
                             </CardDescription>
                             <div className="text-center mt-3">
                               <button onClick={() => {
-                                setIsSubjectDescriptionConfirmed(false);
-                              }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                      setIsSubjectDescriptionConfirmed(false);
+                    }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                                 Change description
                               </button>
                             </div>
                           </CardContent>
                         </Card>
-                      </div>
-                    )}
+                      </div>}
 
                     {/* Subject description form for Design Myself */}
-                    {selectedSubjectOption === "design-myself" && !isSubjectDescriptionConfirmed && (
-                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {selectedSubjectOption === "design-myself" && !isSubjectDescriptionConfirmed && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-8">
                           <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Describe the visuals of your Viibe (100 characters max)</h2>
                         </div>
 
                         <div className="max-w-lg mx-auto">
                           <div className="relative">
-                            <Textarea
-                              value={subjectDescription}
-                              onChange={(e) => {
-                                if (e.target.value.length <= 100) {
-                                  setSubjectDescription(e.target.value);
-                                }
-                              }}
-                              placeholder="Describe your subject and background of your visual"
-                              className="min-h-[100px] text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 text-base font-medium rounded-lg resize-none"
-                              maxLength={100}
-                            />
+                            <Textarea value={subjectDescription} onChange={e => {
+                    if (e.target.value.length <= 100) {
+                      setSubjectDescription(e.target.value);
+                    }
+                  }} placeholder="Describe your subject and background of your visual" className="min-h-[100px] text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 text-base font-medium rounded-lg resize-none" maxLength={100} />
                             
                             {/* Character counter */}
                             <div className="absolute bottom-3 left-3 text-xs text-muted-foreground">
                               {subjectDescription.length}/100
                             </div>
                             
-                            {subjectDescription.length >= 100 && (
-                              <div className="absolute -bottom-6 left-0 right-0 text-center">
+                            {subjectDescription.length >= 100 && <div className="absolute -bottom-6 left-0 right-0 text-center">
                                 <span className="text-xs text-destructive">You have hit your max characters</span>
-                              </div>
-                            )}
+                              </div>}
                           </div>
                           
                           {/* Use this text button */}
-                          {subjectDescription.trim().length > 0 && (
-                            <div className="flex justify-end mt-4">
-                              <Button 
-                                variant="brand"
-                                className="px-6 py-2 text-sm font-medium rounded-lg"
-                                onClick={() => {
-                                  setIsSubjectDescriptionConfirmed(true);
-                                }}
-                              >
+                          {subjectDescription.trim().length > 0 && <div className="flex justify-end mt-4">
+                              <Button variant="brand" className="px-6 py-2 text-sm font-medium rounded-lg" onClick={() => {
+                    setIsSubjectDescriptionConfirmed(true);
+                  }}>
                                 Use this text
                               </Button>
-                            </div>
-                          )}
+                            </div>}
                         </div>
-                      </div>
-                    )}
+                      </div>}
 
                     {/* Dimensions Selection - Show when custom description is confirmed */}
-                    {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && (
-                      <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Show dimension selection grid when no dimension is selected */}
-                        {!selectedDimension ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
-                            {dimensionOptions.map(dimension => (
-                              <Card 
-                                key={dimension.id}
-                                className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md"
-                                onClick={() => setSelectedDimension(dimension.id)}
-                              >
+                        {!selectedDimension ? <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
+                            {dimensionOptions.map(dimension => <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
                                 <CardHeader className="pb-3 text-center">
                                   <CardTitle className="text-lg font-semibold text-card-foreground">
                                     {dimension.name}
@@ -6245,11 +5888,8 @@ const Index = () => {
                                     {dimension.description}
                                   </CardDescription>
                                 </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              </Card>)}
+                          </div> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="mb-8 selected-card">
                               <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
                                 <CardHeader className="pb-3">
@@ -6264,10 +5904,10 @@ const Index = () => {
                                   </CardDescription>
                                   <div className="text-center mt-3">
                                     <button onClick={() => {
-                                      setSelectedDimension(null);
-                                      setCustomWidth("");
-                                      setCustomHeight("");
-                                    }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                          setSelectedDimension(null);
+                          setCustomWidth("");
+                          setCustomHeight("");
+                        }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
                                       Change selection
                                     </button>
                                   </div>
@@ -6276,62 +5916,33 @@ const Index = () => {
                             </div>
 
                             {/* Custom dimension inputs */}
-                            {selectedDimension === "custom" && (
-                              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {selectedDimension === "custom" && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div className="text-center mb-8">
                                   <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
                                 </div>
                                 <div className="max-w-md mx-auto flex gap-4 items-center">
                                   <div className="flex-1">
-                                    <Input
-                                      type="number"
-                                      value={customWidth}
-                                      onChange={(e) => setCustomWidth(e.target.value)}
-                                      placeholder="Width"
-                                      className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg"
-                                    />
+                                    <Input type="number" value={customWidth} onChange={e => setCustomWidth(e.target.value)} placeholder="Width" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
                                   </div>
                                   <span className="text-muted-foreground">×</span>
                                   <div className="flex-1">
-                                    <Input
-                                      type="number"
-                                      value={customHeight}
-                                      onChange={(e) => setCustomHeight(e.target.value)}
-                                      placeholder="Height"
-                                      className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg"
-                                    />
+                                    <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
                                   </div>
                                 </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
+                              </div>}
+                          </div>}
+                      </div>}
+                  </div>)}
 
                 {/* General Dimensions Selection - Show only for non-AI assist options */}
-                {selectedSubjectOption && (
-                  (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed) ||
-                  selectedSubjectOption === "no-subject" ||
-                  selectedSubjectOption === "single-person" ||
-                  selectedSubjectOption === "multiple-people"
-                ) && (
-                  <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {selectedSubjectOption && (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed || selectedSubjectOption === "no-subject" || selectedSubjectOption === "single-person" || selectedSubjectOption === "multiple-people") && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">Choose your dimensions</p>
                     </div>
 
                     {/* Show dimension selection grid when no dimension is selected */}
-                    {!selectedDimension ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
-                        {dimensionOptions.map(dimension => (
-                          <Card 
-                            key={dimension.id}
-                            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md"
-                            onClick={() => setSelectedDimension(dimension.id)}
-                          >
+                    {!selectedDimension ? <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
+                        {dimensionOptions.map(dimension => <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
                             <CardHeader className="pb-3 text-center">
                               <CardTitle className="text-lg font-semibold text-card-foreground">
                                 {dimension.name}
@@ -6342,51 +5953,29 @@ const Index = () => {
                                 {dimension.description}
                               </CardDescription>
                             </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                          </Card>)}
+                      </div> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Custom dimension inputs */}
-                        {selectedDimension === "custom" && (
-                          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {selectedDimension === "custom" && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="text-center mb-8">
                               <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
                             </div>
                             <div className="max-w-md mx-auto flex gap-4 items-center">
                               <div className="flex-1">
-                                <Input
-                                  type="number"
-                                  value={customWidth}
-                                  onChange={(e) => setCustomWidth(e.target.value)}
-                                  placeholder="Width"
-                                  className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg"
-                                />
+                                <Input type="number" value={customWidth} onChange={e => setCustomWidth(e.target.value)} placeholder="Width" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
                               </div>
                               <span className="text-muted-foreground">×</span>
                               <div className="flex-1">
-                                <Input
-                                  type="number"
-                                  value={customHeight}
-                                  onChange={(e) => setCustomHeight(e.target.value)}
-                                  placeholder="Height"
-                                  className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg"
-                                />
+                                <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
+                          </div>}
+                      </div>}
+                  </div>}
+              </div>)}
+          </>}
 
-        {currentStep === 4 && (
-          <>
+        {currentStep === 4 && <>
             <div className="text-center mb-8">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Finished Design</h2>
               <p className="text-xl text-muted-foreground">Your viibe is ready! Review the details and download your creation.</p>
@@ -6398,79 +5987,45 @@ const Index = () => {
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium text-foreground">Preview</h3>
                   <div className="flex items-center gap-2 flex-wrap">
-                    {!isGeneratingImage && !generatedImageUrl && (
-                      <>
+                    {!isGeneratingImage && !generatedImageUrl && <>
                          {/* Spelling Guarantee Toggle */}
-                         {(selectedGeneratedOption || stepTwoText) && (selectedGeneratedOption || stepTwoText).trim() && (
-                           <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
-                             <input
-                               type="checkbox"
-                               id="spelling-guarantee"
-                               checked={spellingGuaranteeMode}
-                               onChange={(e) => setSpellingGuaranteeMode(e.target.checked)}
-                               className="rounded"
-                             />
+                         {(selectedGeneratedOption || stepTwoText) && (selectedGeneratedOption || stepTwoText).trim() && <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+                             <input type="checkbox" id="spelling-guarantee" checked={spellingGuaranteeMode} onChange={e => setSpellingGuaranteeMode(e.target.checked)} className="rounded" />
                              <label htmlFor="spelling-guarantee" className="text-sm font-medium cursor-pointer">
                                Spelling Guarantee
                              </label>
-                           </div>
-                         )}
+                           </div>}
                          
                          {/* Clean Background Toggle */}
                          <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
-                           <input
-                             type="checkbox"
-                             id="clean-background"
-                             checked={cleanBackgroundMode}
-                             onChange={(e) => setCleanBackgroundMode(e.target.checked)}
-                             className="rounded"
-                           />
+                           <input type="checkbox" id="clean-background" checked={cleanBackgroundMode} onChange={e => setCleanBackgroundMode(e.target.checked)} className="rounded" />
                            <label htmlFor="clean-background" className="text-sm font-medium cursor-pointer">
                              Clean Background (recommended)
                            </label>
                          </div>
                         
-                        <Button 
-                          onClick={() => setShowProxySettingsDialog(true)}
-                          variant="outline" 
-                          size="sm"
-                          className="flex items-center gap-2"
-                        >
+                        <Button onClick={() => setShowProxySettingsDialog(true)} variant="outline" size="sm" className="flex items-center gap-2">
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
                           Proxy Settings
                         </Button>
-                        <Button 
-                          onClick={handleGenerateImage}
-                          variant="brand" 
-                          className="flex items-center gap-2"
-                        >
+                        <Button onClick={handleGenerateImage} variant="brand" className="flex items-center gap-2">
                           <Download className="h-4 w-4" />
                           Generate with Ideogram
                         </Button>
-                      </>
-                    )}
+                      </>}
                   </div>
                 </div>
                 
                 <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
-                  {isGeneratingImage ? (
-                    <div className="flex flex-col items-center gap-4">
+                  {isGeneratingImage ? <div className="flex flex-col items-center gap-4">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                       <p className="text-muted-foreground text-lg">Generating image with Ideogram Turbo...</p>
-                    </div>
-                  ) : generatedImageUrl ? (
-                    <div className="max-w-full max-h-full">
-                      <img 
-                        src={generatedImageUrl} 
-                        alt="Generated VIIBE" 
-                        className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-                      />
-                    </div>
-                  ) : imageGenerationError ? (
-                    <div className="flex flex-col items-center gap-4 text-center max-w-md">
+                    </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
+                      <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+                    </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
                       <AlertCircle className="h-8 w-8 text-destructive" />
                       <div>
                         <p className="text-destructive text-lg font-medium">Generation Failed</p>
@@ -6480,73 +6035,40 @@ const Index = () => {
                         <Button onClick={handleGenerateImage} variant="outline" size="sm">
                           Try Again
                         </Button>
-                        {imageGenerationError.includes('CORS proxy needs activation') && (
-                          <Button 
-                            variant="brand" 
-                            size="sm"
-                            onClick={() => setShowCorsRetryDialog(true)}
-                          >
+                        {imageGenerationError.includes('CORS proxy needs activation') && <Button variant="brand" size="sm" onClick={() => setShowCorsRetryDialog(true)}>
                             Enable CORS Proxy
-                          </Button>
-                        )}
+                          </Button>}
                       </div>
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>
-                  )}
+                    </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
                 </div>
                 
                  {/* Text Misspelling Detection */}
-                 {generatedImageUrl && textMisspellingDetected && (
-                   <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
+                 {generatedImageUrl && textMisspellingDetected && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
                      <p className="text-sm font-medium mb-2">⚠️ Text may be misspelled in the generated image</p>
                      <div className="flex gap-2 justify-center">
-                       <Button 
-                         variant="outline" 
-                         size="sm"
-                         onClick={() => {
-                           setSpellingGuaranteeMode(true);
-                           handleGenerateImage();
-                         }}
-                       >
+                       <Button variant="outline" size="sm" onClick={() => {
+                  setSpellingGuaranteeMode(true);
+                  handleGenerateImage();
+                }}>
                          Regenerate (Strict Text Mode)
                        </Button>
-                       <Button 
-                         variant="outline" 
-                         size="sm"
-                         onClick={() => setSpellingGuaranteeMode(true)}
-                       >
+                       <Button variant="outline" size="sm" onClick={() => setSpellingGuaranteeMode(true)}>
                          Use Spelling Guarantee
                        </Button>
                      </div>
-                   </div>
-                 )}
+                   </div>}
 
 
                  {/* Action Buttons */}
-                {generatedImageUrl && !showTextOverlay && (
-                  <div className="flex flex-wrap gap-4 justify-center">
-                    <Button 
-                      variant="outline" 
-                      className="flex items-center gap-2"
-                      onClick={handleDownloadImage}
-                    >
+                {generatedImageUrl && !showTextOverlay && <div className="flex flex-wrap gap-4 justify-center">
+                    <Button variant="outline" className="flex items-center gap-2" onClick={handleDownloadImage}>
                       <Download className="h-4 w-4" />
                       Download Image
                     </Button>
-                    <Button 
-                      variant="brand" 
-                      className="flex items-center gap-2"
-                      onClick={handleGenerateImage}
-                      disabled={isGeneratingImage}
-                    >
-                      {isGeneratingImage ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <Button variant="brand" className="flex items-center gap-2" onClick={handleGenerateImage} disabled={isGeneratingImage}>
+                      {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      )}
+                        </svg>}
                       Generate Again
                     </Button>
                     <Button variant="outline" onClick={() => setCurrentStep(1)}>
@@ -6555,21 +6077,14 @@ const Index = () => {
                       </svg>
                       Start Over
                     </Button>
-                  </div>
-                )}
+                  </div>}
               </div>
               
               {/* Proxy Settings Dialog */}
-              {showProxySettings && (
-                <div className="bg-muted/30 rounded-lg p-6 space-y-4">
+              {showProxySettings && <div className="bg-muted/30 rounded-lg p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-md font-medium text-foreground">Proxy Settings</h4>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setShowProxySettings(false)}
-                      className="h-8 w-8 p-0"
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => setShowProxySettings(false)} className="h-8 w-8 p-0">
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
@@ -6581,14 +6096,14 @@ const Index = () => {
                   <div className="space-y-3">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-foreground">Connection Method</label>
-                      <Select
-                        value={proxySettings.type}
-                        onValueChange={(value: ProxySettings['type']) => {
-                          const newSettings = { ...proxySettings, type: value };
-                          setLocalProxySettings(newSettings);
-                          setProxySettings(newSettings);
-                        }}
-                      >
+                      <Select value={proxySettings.type} onValueChange={(value: ProxySettings['type']) => {
+                  const newSettings = {
+                    ...proxySettings,
+                    type: value
+                  };
+                  setLocalProxySettings(newSettings);
+                  setProxySettings(newSettings);
+                }}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -6600,85 +6115,61 @@ const Index = () => {
                       </Select>
                     </div>
                     
-                    {proxySettings.type === 'proxy-cors-sh' && (
-                      <div className="space-y-2">
+                    {proxySettings.type === 'proxy-cors-sh' && <div className="space-y-2">
                         <label className="text-sm font-medium text-foreground">Proxy API Key</label>
-                        <Input
-                          type="password"
-                          placeholder="Enter your proxy.cors.sh API key"
-                          value={proxyApiKey}
-                          onChange={(e) => setProxyApiKey(e.target.value)}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const newSettings = { ...proxySettings, apiKey: proxyApiKey };
-                            setLocalProxySettings(newSettings);
-                            setProxySettings(newSettings);
-                            toast({
-                              title: "API Key Saved",
-                              description: "Your proxy API key has been saved.",
-                            });
-                          }}
-                        >
+                        <Input type="password" placeholder="Enter your proxy.cors.sh API key" value={proxyApiKey} onChange={e => setProxyApiKey(e.target.value)} />
+                        <Button variant="outline" size="sm" onClick={() => {
+                  const newSettings = {
+                    ...proxySettings,
+                    apiKey: proxyApiKey
+                  };
+                  setLocalProxySettings(newSettings);
+                  setProxySettings(newSettings);
+                  toast({
+                    title: "API Key Saved",
+                    description: "Your proxy API key has been saved."
+                  });
+                }}>
                           Save API Key
                         </Button>
-                      </div>
-                    )}
+                      </div>}
                     
-                    {proxySettings.type === 'cors-anywhere' && (
-                      <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+                    {proxySettings.type === 'cors-anywhere' && <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
                         <p className="text-sm text-yellow-800 dark:text-yellow-200">
                           <strong>Note:</strong> CORS Anywhere requires manual activation. 
-                          <Button
-                            variant="link"
-                            className="h-auto p-0 ml-1 text-yellow-800 dark:text-yellow-200 underline"
-                            onClick={() => window.open('https://cors-anywhere.herokuapp.com/corsdemo', '_blank')}
-                          >
+                          <Button variant="link" className="h-auto p-0 ml-1 text-yellow-800 dark:text-yellow-200 underline" onClick={() => window.open('https://cors-anywhere.herokuapp.com/corsdemo', '_blank')}>
                             Click here to enable it
                           </Button>
                           , then test the connection below.
                         </p>
-                      </div>
-                    )}
+                      </div>}
                     
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          setIsTestingProxy(true);
-                          try {
-                            const success = await testProxyConnection(proxySettings.type);
-                            toast({
-                              title: success ? "Connection Successful" : "Connection Failed",
-                              description: success 
-                                ? "The proxy connection is working correctly."
-                                : "Unable to connect through this proxy method.",
-                              variant: success ? "default" : "destructive",
-                            });
-                          } catch (error) {
-                            toast({
-                              title: "Test Failed",
-                              description: "An error occurred while testing the connection.",
-                              variant: "destructive",
-                            });
-                          } finally {
-                            setIsTestingProxy(false);
-                          }
-                        }}
-                        disabled={isTestingProxy}
-                      >
-                        {isTestingProxy ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : null}
+                      <Button variant="outline" size="sm" onClick={async () => {
+                  setIsTestingProxy(true);
+                  try {
+                    const success = await testProxyConnection(proxySettings.type);
+                    toast({
+                      title: success ? "Connection Successful" : "Connection Failed",
+                      description: success ? "The proxy connection is working correctly." : "Unable to connect through this proxy method.",
+                      variant: success ? "default" : "destructive"
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "Test Failed",
+                      description: "An error occurred while testing the connection.",
+                      variant: "destructive"
+                    });
+                  } finally {
+                    setIsTestingProxy(false);
+                  }
+                }} disabled={isTestingProxy}>
+                        {isTestingProxy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                         Test Connection
                       </Button>
                     </div>
                   </div>
-                </div>
-              )}
+                </div>}
 
               {/* Design Summary */}
               <div className="space-y-4">
@@ -6700,23 +6191,21 @@ const Index = () => {
                         <td className="p-3 text-sm">Subcategory</td>
                         <td className="p-3 text-sm">
                           {(() => {
-                            if (selectedStyle === 'celebrations' && selectedSubOption) {
-                              const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
-                              return celebOption?.name || selectedSubOption;
-                            } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
-                              const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
-                              return popOption?.name || selectedSubOption;
-                            }
-                            return selectedSubOption || "Not selected";
-                          })()}
+                        if (selectedStyle === 'celebrations' && selectedSubOption) {
+                          const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                          return celebOption?.name || selectedSubOption;
+                        } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                          const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                          return popOption?.name || selectedSubOption;
+                        }
+                        return selectedSubOption || "Not selected";
+                      })()}
                         </td>
                       </tr>
-                      {selectedStyle === 'pop-culture' && selectedPick && (
-                        <tr>
+                      {selectedStyle === 'pop-culture' && selectedPick && <tr>
                           <td className="p-3 text-sm">Pop Culture Pick</td>
                           <td className="p-3 text-sm">{selectedPick}</td>
-                        </tr>
-                      )}
+                        </tr>}
                       <tr>
                         <td className="p-3 text-sm">Tone</td>
                         <td className="p-3 text-sm">{selectedTextStyle ? textStyleOptions.find(ts => ts.id === selectedTextStyle)?.name : "Not selected"}</td>
@@ -6732,19 +6221,13 @@ const Index = () => {
                       <tr>
                         <td className="p-3 text-sm">Visual AI Recommendations</td>
                         <td className="p-3 text-sm">
-                          {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
-                            ? `Option ${selectedVisualIndex + 1}: ${truncateWords(visualOptions[selectedVisualIndex].subject, 5)}`
-                            : "Not selected"
-                          }
+                          {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? `Option ${selectedVisualIndex + 1}: ${truncateWords(visualOptions[selectedVisualIndex].subject, 5)}` : "Not selected"}
                         </td>
                       </tr>
                       <tr>
                         <td className="p-3 text-sm">Aspect Ratio</td>
                         <td className="p-3 text-sm">
-                          {selectedDimension === "custom" 
-                            ? `${customWidth}x${customHeight}` 
-                            : (dimensionOptions.find(d => d.id === selectedDimension)?.name || "Not selected")
-                          }
+                          {selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Not selected"}
                         </td>
                       </tr>
                       <tr>
@@ -6773,350 +6256,256 @@ const Index = () => {
                   <h3 className="text-lg font-medium text-foreground">Generated Prompt</h3>
                   <div className="bg-muted/30 rounded-lg p-6">
                     {(() => {
-                      // Build the same handoff structure we use for generation
-                      const finalText = selectedGeneratedOption || stepTwoText || "";
-                      const visualStyle = selectedVisualStyle || "";
-                      const subcategory = (() => {
-                        if (selectedStyle === 'celebrations' && selectedSubOption) {
-                          const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
-                          return celebOption?.name || selectedSubOption;
-                        } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
-                          const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
-                          return popOption?.name || selectedSubOption;
-                        }
-                        return selectedSubOption || 'general';
-                      })();
-                      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
-                      const tone = selectedTextStyleObj?.name || 'Humorous';
-                      const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
-                      const aspectRatio = selectedDimension === "custom" 
-                        ? `${customWidth}x${customHeight}` 
-                        : (dimensionOptions.find(d => d.id === selectedDimension)?.name || "");
-                      const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
-                      
-                      const tempHandoff = buildIdeogramHandoff({
-                        visual_style: visualStyle,
-                        subcategory: subcategory,
-                        tone: tone.toLowerCase(),
-                        final_line: finalText,
-                        tags_csv: [...tags, ...subjectTags].join(', '),
-                        category: categoryName,
-                        subcategory_secondary: subcategorySecondary,
-                        aspect_ratio: aspectRatio,
-                        text_tags_csv: tags.join(', '),
-                        visual_tags_csv: subjectTags.join(', '),
-                        ai_text_assist_used: selectedCompletionOption === "ai-assist",
-                        ai_visual_assist_used: selectedSubjectOption === "ai-assist",
-                        rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
-                          ? visualOptions[selectedVisualIndex].subject 
-                          : (selectedSubjectOption === "design-myself" ? subjectDescription : undefined),
-                        rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
-                          ? visualOptions[selectedVisualIndex].background 
-                          : undefined
-                      });
-                      
-                      const promptText = buildIdeogramPrompt(tempHandoff);
-                      
-                      return (
-                        <p className="text-sm text-foreground font-mono leading-relaxed">
+                // Build the same handoff structure we use for generation
+                const finalText = selectedGeneratedOption || stepTwoText || "";
+                const visualStyle = selectedVisualStyle || "";
+                const subcategory = (() => {
+                  if (selectedStyle === 'celebrations' && selectedSubOption) {
+                    const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                    return celebOption?.name || selectedSubOption;
+                  } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                    const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                    return popOption?.name || selectedSubOption;
+                  }
+                  return selectedSubOption || 'general';
+                })();
+                const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+                const tone = selectedTextStyleObj?.name || 'Humorous';
+                const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+                const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "";
+                const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
+                const tempHandoff = buildIdeogramHandoff({
+                  visual_style: visualStyle,
+                  subcategory: subcategory,
+                  tone: tone.toLowerCase(),
+                  final_line: finalText,
+                  tags_csv: [...tags, ...subjectTags].join(', '),
+                  category: categoryName,
+                  subcategory_secondary: subcategorySecondary,
+                  aspect_ratio: aspectRatio,
+                  text_tags_csv: tags.join(', '),
+                  visual_tags_csv: subjectTags.join(', '),
+                  ai_text_assist_used: selectedCompletionOption === "ai-assist",
+                  ai_visual_assist_used: selectedSubjectOption === "ai-assist",
+                  rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].subject : selectedSubjectOption === "design-myself" ? subjectDescription : undefined,
+                  rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].background : undefined
+                });
+                const promptText = buildIdeogramPrompt(tempHandoff);
+                return <p className="text-sm text-foreground font-mono leading-relaxed">
                           {promptText || "No prompt available"}
-                        </p>
-                      );
-                    })()}
+                        </p>;
+              })()}
                   </div>
                 </div>
             </div>
-          </>
-        )}
+          </>}
 
         {/* Bottom Navigation */}
         <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4">
           <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <Button
-              variant="outline"
-              onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
-              className={currentStep === 1 ? "invisible" : ""}
-              disabled={currentStep === 1}
-            >
+            <Button variant="outline" onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))} className={currentStep === 1 ? "invisible" : ""} disabled={currentStep === 1}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
             
-            <Button
-              variant={
-                (currentStep === 1 && !isStep1Complete()) || 
-                (currentStep === 2 && !isStep2Complete()) ||
-                (currentStep === 3 && !isStep3Complete()) ||
-                (currentStep === 4 && !isStep4Complete()) ? "outline" : "brand"
-              }
-              onClick={async () => {
-                if (currentStep === 3 && isStep3Complete() && selectedDimension) {
-                  // Move to Step 4 and automatically start generating the image
-                  setCurrentStep(4);
-                  
-                  // Start automatic image generation
-                  setIsGeneratingImage(true);
-                  
-                  try {
-                    const finalText = selectedGeneratedOption || stepTwoText || "";
-                    const visualStyle = selectedVisualStyle || "";
-                    const subcategory = (() => {
-                      if (selectedStyle === 'celebrations' && selectedSubOption) {
-                        const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
-                        return celebOption?.name || selectedSubOption;
-                      } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
-                        const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
-                        return popOption?.name || selectedSubOption;
-                      }
-                      return selectedSubOption || 'general';
-                    })();
-                    const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
-                    const tone = selectedTextStyleObj?.name || 'Humorous';
-                    const allTags = [...tags, ...subjectTags];
-                    
-                    // Get chosen visual concept if selected
-                    const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
-                      ? visualOptions[selectedVisualIndex].prompt 
-                      : undefined;
-                    
-                    // Build comprehensive Ideogram handoff payload
-                    const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
-                    const aspectRatio = selectedDimension === "custom" 
-                      ? `${customWidth}x${customHeight}` 
-                      : (dimensionOptions.find(d => d.id === selectedDimension)?.name || "");
-                    
-                    // Get secondary subcategory for pop culture
-                    const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
-                    
-                    const ideogramPayload = buildIdeogramHandoff({
-                      // Core parameters
-                      visual_style: visualStyle,
-                      subcategory: subcategory,
-                      tone: tone.toLowerCase(),
-                      final_line: finalText,
-                      tags_csv: allTags.join(', '),
-                      chosen_visual: chosenVisual,
-                      
-                      // Extended parameters
-                      category: categoryName,
-                      subcategory_secondary: subcategorySecondary,
-                      aspect_ratio: aspectRatio,
-                      text_tags_csv: tags.join(', '),
-                      visual_tags_csv: subjectTags.join(', '),
-                      ai_text_assist_used: selectedCompletionOption === "ai-assist",
-                      ai_visual_assist_used: selectedSubjectOption === "ai-assist",
-                      
-                      // Visual AI Recommendations
-                      rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
-                        ? visualOptions[selectedVisualIndex].subject 
-                        : (selectedSubjectOption === "design-myself" ? subjectDescription : undefined),
-                      rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
-                        ? visualOptions[selectedVisualIndex].background 
-                        : undefined
-                    });
-                    
-                    // Generate the Ideogram prompt
-                    const promptText = buildIdeogramPrompt(ideogramPayload);
-                    const aspectRatioKey = getAspectRatioForIdeogram(selectedDimension === "custom" 
-                      ? `${customWidth}x${customHeight}` 
-                      : (dimensionOptions.find(d => d.id === selectedDimension)?.name || ""));
-                    let styleType = getStyleTypeForIdeogram(visualStyle);
-                    let model: 'V_1' | 'V_1_TURBO' | 'V_2' | 'V_2_TURBO' | 'V_2A' | 'V_2A_TURBO' | 'V_3' = 'V_2_TURBO';
-                    
-                    // Optimize for text accuracy when text is present
-                    if (finalText && finalText.trim()) {
-                      styleType = 'DESIGN'; // Better for text fidelity
-                      model = 'V_2A_TURBO'; // Better model for text
-                    }
-                    
-                     // Handle spelling guarantee mode
-                     if (spellingGuaranteeMode && finalText && finalText.trim()) {
-                       // Generate background-only image first - remove ALL text-related instructions
-                       const backgroundPrompt = promptText
-                         .replace(/EXACT_TEXT \(VERBATIM\): ".*?"/g, '')
-                         .replace(/Render this text EXACTLY.*?\./g, '')
-                         .replace(/Use only standard ASCII.*?\./g, '')
-                         .replace(/If you cannot render.*?\./g, '')
-                         .replace(/Style and display this text.*?\./g, '')
-                         .replace(/Ensure the text is.*?\./g, '')
-                         .replace(/NEGATIVE PROMPTS:.*?\./g, '')
-                         .replace(/\s+/g, ' ')
-                         .trim() + ' No text, no typography, no words, no letters, no characters, no glyphs, no symbols, no UI elements overlaid on the image. Clean minimal background only.';
-                      
-                      const backgroundResult = await generateIdeogramImage({
-                        prompt: backgroundPrompt,
-                        aspect_ratio: aspectRatioKey,
-                        style_type: styleType,
-                        model: model,
-                        magic_prompt_option: 'AUTO'
-                      });
-                      
-                      if (backgroundResult.data?.[0]?.url) {
-                        setBackgroundOnlyImageUrl(backgroundResult.data[0].url);
-                        setShowTextOverlay(true);
-                        setIsGeneratingImage(false);
-                        return;
-                      }
-                    }
-                    
-                    // Generate the image normally
-                    const result = await generateIdeogramImage({
-                      prompt: promptText,
-                      aspect_ratio: aspectRatioKey,
-                      style_type: styleType,
-                      model: model,
-                      magic_prompt_option: 'AUTO'
-                    });
-                    
-                    if (result.data?.[0]?.url) {
-                      setGeneratedImageUrl(result.data[0].url);
-                      sonnerToast.success("Your VIIBE has been generated successfully!");
-                    } else {
-                      sonnerToast.error("Failed to generate your VIIBE. Please try again.");
-                    }
-                    
-                  } catch (error) {
-                    console.error("Error generating image:", error);
-                    sonnerToast.error("Failed to generate your VIIBE. Please try again.");
-                  } finally {
-                    setIsGeneratingImage(false);
+            <Button variant={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete() || currentStep === 4 && !isStep4Complete() ? "outline" : "brand"} onClick={async () => {
+            if (currentStep === 3 && isStep3Complete() && selectedDimension) {
+              // Move to Step 4 and automatically start generating the image
+              setCurrentStep(4);
+
+              // Start automatic image generation
+              setIsGeneratingImage(true);
+              try {
+                const finalText = selectedGeneratedOption || stepTwoText || "";
+                const visualStyle = selectedVisualStyle || "";
+                const subcategory = (() => {
+                  if (selectedStyle === 'celebrations' && selectedSubOption) {
+                    const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                    return celebOption?.name || selectedSubOption;
+                  } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                    const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                    return popOption?.name || selectedSubOption;
                   }
-                  
-                } else if (currentStep === 4 && isStep4Complete()) {
-                  // Generate VIIBE with Ideogram handoff
-                  const finalText = selectedGeneratedOption || stepTwoText || "";
-                  const visualStyle = selectedVisualStyle || "";
-                  const subcategory = (() => {
-                    if (selectedStyle === 'celebrations' && selectedSubOption) {
-                      const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
-                      return celebOption?.name || selectedSubOption;
-                    } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
-                      const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
-                      return popOption?.name || selectedSubOption;
-                    }
-                    return selectedSubOption || 'general';
-                  })();
-                  const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
-                  const tone = selectedTextStyleObj?.name || 'Humorous';
-                  const allTags = [...tags, ...subjectTags];
-                  
-                  // Get chosen visual concept if selected
-                  const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
-                    ? visualOptions[selectedVisualIndex].prompt 
-                    : undefined;
-                  
-                  // Build comprehensive Ideogram handoff payload
-                  const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
-                  const aspectRatio = selectedDimension === "custom" 
-                    ? `${customWidth}x${customHeight}` 
-                    : (dimensionOptions.find(d => d.id === selectedDimension)?.name || "");
-                  
-                  // Get secondary subcategory for pop culture
-                  const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
-                  
-                  const ideogramPayload = buildIdeogramHandoff({
-                    // Core parameters
-                    visual_style: visualStyle,
-                    subcategory: subcategory,
-                    tone: tone.toLowerCase(),
-                    final_line: finalText,
-                    tags_csv: allTags.join(', '),
-                    chosen_visual: chosenVisual,
-                    
-                    // Extended parameters
-                    category: categoryName,
-                    subcategory_secondary: subcategorySecondary,
-                    aspect_ratio: aspectRatio,
-                    text_tags_csv: tags.join(', '),
-                    visual_tags_csv: subjectTags.join(', '),
-                    ai_text_assist_used: selectedCompletionOption === "ai-assist",
-                    ai_visual_assist_used: selectedSubjectOption === "ai-assist",
-                    
-                    // Visual AI Recommendations
-                    rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
-                      ? visualOptions[selectedVisualIndex].subject 
-                      : (selectedSubjectOption === "design-myself" ? subjectDescription : undefined),
-                    rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] 
-                      ? visualOptions[selectedVisualIndex].background 
-                      : undefined
-                  });
-                  
-                  console.log("VIIBE Generated!", {
-                    category: selectedStyle || "",
-                    subcategory: selectedSubOption || "",
-                    pick: selectedPick || "",
-                    textStyle: selectedTextStyle || "",
-                    completionOption: selectedCompletionOption || "",
-                    customText: stepTwoText || "",
-                    finalText: finalText,
-                    visualStyle: selectedVisualStyle || "",
-                    subjectOption: selectedSubjectOption || "",
-                    subjectDescription: subjectDescription || "",
-                    dimensions: selectedDimension || "",
-                    customWidth: customWidth || "",
-                    customHeight: customHeight || "",
-                    tags: tags.join(", "),
-                    subjectTags: subjectTags.join(", "),
-                    ideogramHandoff: ideogramPayload
-                  });
-                  
-                  // You can add your VIIBE generation logic here
-                  alert("VIIBE Generated Successfully! Check console for Ideogram handoff payload.");
-                } else {
-                  setCurrentStep(prev => prev + 1);
+                  return selectedSubOption || 'general';
+                })();
+                const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+                const tone = selectedTextStyleObj?.name || 'Humorous';
+                const allTags = [...tags, ...subjectTags];
+
+                // Get chosen visual concept if selected
+                const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : undefined;
+
+                // Build comprehensive Ideogram handoff payload
+                const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+                const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "";
+
+                // Get secondary subcategory for pop culture
+                const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
+                const ideogramPayload = buildIdeogramHandoff({
+                  // Core parameters
+                  visual_style: visualStyle,
+                  subcategory: subcategory,
+                  tone: tone.toLowerCase(),
+                  final_line: finalText,
+                  tags_csv: allTags.join(', '),
+                  chosen_visual: chosenVisual,
+                  // Extended parameters
+                  category: categoryName,
+                  subcategory_secondary: subcategorySecondary,
+                  aspect_ratio: aspectRatio,
+                  text_tags_csv: tags.join(', '),
+                  visual_tags_csv: subjectTags.join(', '),
+                  ai_text_assist_used: selectedCompletionOption === "ai-assist",
+                  ai_visual_assist_used: selectedSubjectOption === "ai-assist",
+                  // Visual AI Recommendations
+                  rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].subject : selectedSubjectOption === "design-myself" ? subjectDescription : undefined,
+                  rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].background : undefined
+                });
+
+                // Generate the Ideogram prompt
+                const promptText = buildIdeogramPrompt(ideogramPayload);
+                const aspectRatioKey = getAspectRatioForIdeogram(selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "");
+                let styleType = getStyleTypeForIdeogram(visualStyle);
+                let model: 'V_1' | 'V_1_TURBO' | 'V_2' | 'V_2_TURBO' | 'V_2A' | 'V_2A_TURBO' | 'V_3' = 'V_2_TURBO';
+
+                // Optimize for text accuracy when text is present
+                if (finalText && finalText.trim()) {
+                  styleType = 'DESIGN'; // Better for text fidelity
+                  model = 'V_2A_TURBO'; // Better model for text
                 }
-              }}
-              disabled={
-                (currentStep === 1 && !isStep1Complete()) || 
-                (currentStep === 2 && !isStep2Complete()) ||
-                (currentStep === 3 && !isStep3Complete()) ||
-                (currentStep === 4 && !isStep4Complete())
+
+                // Handle spelling guarantee mode
+                if (spellingGuaranteeMode && finalText && finalText.trim()) {
+                  // Generate background-only image first - remove ALL text-related instructions
+                  const backgroundPrompt = promptText.replace(/EXACT_TEXT \(VERBATIM\): ".*?"/g, '').replace(/Render this text EXACTLY.*?\./g, '').replace(/Use only standard ASCII.*?\./g, '').replace(/If you cannot render.*?\./g, '').replace(/Style and display this text.*?\./g, '').replace(/Ensure the text is.*?\./g, '').replace(/NEGATIVE PROMPTS:.*?\./g, '').replace(/\s+/g, ' ').trim() + ' No text, no typography, no words, no letters, no characters, no glyphs, no symbols, no UI elements overlaid on the image. Clean minimal background only.';
+                  const backgroundResult = await generateIdeogramImage({
+                    prompt: backgroundPrompt,
+                    aspect_ratio: aspectRatioKey,
+                    style_type: styleType,
+                    model: model,
+                    magic_prompt_option: 'AUTO'
+                  });
+                  if (backgroundResult.data?.[0]?.url) {
+                    setBackgroundOnlyImageUrl(backgroundResult.data[0].url);
+                    setShowTextOverlay(true);
+                    setIsGeneratingImage(false);
+                    return;
+                  }
+                }
+
+                // Generate the image normally
+                const result = await generateIdeogramImage({
+                  prompt: promptText,
+                  aspect_ratio: aspectRatioKey,
+                  style_type: styleType,
+                  model: model,
+                  magic_prompt_option: 'AUTO'
+                });
+                if (result.data?.[0]?.url) {
+                  setGeneratedImageUrl(result.data[0].url);
+                  sonnerToast.success("Your VIIBE has been generated successfully!");
+                } else {
+                  sonnerToast.error("Failed to generate your VIIBE. Please try again.");
+                }
+              } catch (error) {
+                console.error("Error generating image:", error);
+                sonnerToast.error("Failed to generate your VIIBE. Please try again.");
+              } finally {
+                setIsGeneratingImage(false);
               }
-            >
-              {(currentStep === 3 && isStep3Complete() && selectedDimension) ? (
-                "GENERATE YOUR VIIBE"
-              ) : currentStep === 4 && isStep4Complete() ? (
-                "GENERATE VIIBE NOW"
-              ) : (
-                <>
+            } else if (currentStep === 4 && isStep4Complete()) {
+              // Generate VIIBE with Ideogram handoff
+              const finalText = selectedGeneratedOption || stepTwoText || "";
+              const visualStyle = selectedVisualStyle || "";
+              const subcategory = (() => {
+                if (selectedStyle === 'celebrations' && selectedSubOption) {
+                  const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                  return celebOption?.name || selectedSubOption;
+                } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                  const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                  return popOption?.name || selectedSubOption;
+                }
+                return selectedSubOption || 'general';
+              })();
+              const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+              const tone = selectedTextStyleObj?.name || 'Humorous';
+              const allTags = [...tags, ...subjectTags];
+
+              // Get chosen visual concept if selected
+              const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : undefined;
+
+              // Build comprehensive Ideogram handoff payload
+              const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+              const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "";
+
+              // Get secondary subcategory for pop culture
+              const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
+              const ideogramPayload = buildIdeogramHandoff({
+                // Core parameters
+                visual_style: visualStyle,
+                subcategory: subcategory,
+                tone: tone.toLowerCase(),
+                final_line: finalText,
+                tags_csv: allTags.join(', '),
+                chosen_visual: chosenVisual,
+                // Extended parameters
+                category: categoryName,
+                subcategory_secondary: subcategorySecondary,
+                aspect_ratio: aspectRatio,
+                text_tags_csv: tags.join(', '),
+                visual_tags_csv: subjectTags.join(', '),
+                ai_text_assist_used: selectedCompletionOption === "ai-assist",
+                ai_visual_assist_used: selectedSubjectOption === "ai-assist",
+                // Visual AI Recommendations
+                rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].subject : selectedSubjectOption === "design-myself" ? subjectDescription : undefined,
+                rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].background : undefined
+              });
+              console.log("VIIBE Generated!", {
+                category: selectedStyle || "",
+                subcategory: selectedSubOption || "",
+                pick: selectedPick || "",
+                textStyle: selectedTextStyle || "",
+                completionOption: selectedCompletionOption || "",
+                customText: stepTwoText || "",
+                finalText: finalText,
+                visualStyle: selectedVisualStyle || "",
+                subjectOption: selectedSubjectOption || "",
+                subjectDescription: subjectDescription || "",
+                dimensions: selectedDimension || "",
+                customWidth: customWidth || "",
+                customHeight: customHeight || "",
+                tags: tags.join(", "),
+                subjectTags: subjectTags.join(", "),
+                ideogramHandoff: ideogramPayload
+              });
+
+              // You can add your VIIBE generation logic here
+              alert("VIIBE Generated Successfully! Check console for Ideogram handoff payload.");
+            } else {
+              setCurrentStep(prev => prev + 1);
+            }
+          }} disabled={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete() || currentStep === 4 && !isStep4Complete()}>
+              {currentStep === 3 && isStep3Complete() && selectedDimension ? "GENERATE YOUR VIIBE" : currentStep === 4 && isStep4Complete() ? "GENERATE VIIBE NOW" : <>
                   Continue
                   <ArrowRight className="h-4 w-4 ml-2" />
-                </>
-              )}
+                </>}
             </Button>
           </div>
         </div>
 
         {/* API Key Dialog */}
-        <ApiKeyDialog 
-          open={showApiKeyDialog}
-          onOpenChange={setShowApiKeyDialog}
-          onApiKeySet={handleApiKeySet}
-        />
+        <ApiKeyDialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog} onApiKeySet={handleApiKeySet} />
 
         {/* Ideogram API Key Dialog */}
-        <IdeogramKeyDialog 
-          open={showIdeogramKeyDialog}
-          onOpenChange={setShowIdeogramKeyDialog}
-          onApiKeySet={handleIdeogramApiKeySet}
-        />
+        <IdeogramKeyDialog open={showIdeogramKeyDialog} onOpenChange={setShowIdeogramKeyDialog} onApiKeySet={handleIdeogramApiKeySet} />
 
         {/* Proxy Settings Dialog */}
-        <ProxySettingsDialog 
-          open={showProxySettingsDialog}
-          onOpenChange={setShowProxySettingsDialog}
-        />
+        <ProxySettingsDialog open={showProxySettingsDialog} onOpenChange={setShowProxySettingsDialog} />
 
         {/* CORS Retry Dialog */}
-        <CorsRetryDialog 
-          open={showCorsRetryDialog}
-          onOpenChange={setShowCorsRetryDialog}
-          onRetry={handleGenerateImage}
-        />
+        <CorsRetryDialog open={showCorsRetryDialog} onOpenChange={setShowCorsRetryDialog} onRetry={handleGenerateImage} />
 
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
