@@ -173,7 +173,7 @@ export class OpenAIService {
       throw new Error(`No content received from OpenAI (finish_reason: ${finishReason})`);
     }
 
-    // Try to parse JSON
+    // Enhanced JSON parsing with cleanup
     try {
       const parsed = JSON.parse(content);
       console.log('Successfully parsed JSON:', parsed);
@@ -182,15 +182,29 @@ export class OpenAIService {
       console.error('JSON parse error:', parseError);
       console.error('Raw content that failed to parse:', content);
       
-      // For any model, try to extract JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          const extracted = JSON.parse(jsonMatch[0]);
-          console.log('Successfully extracted JSON from response:', extracted);
-          return extracted;
-        } catch (e) {
-          console.error('Failed to parse extracted JSON:', e);
+      // Clean content by removing common wrapping patterns
+      let cleanedContent = content
+        .replace(/```json\s*|\s*```/g, '') // Remove code fences
+        .replace(/^[^{]*/, '') // Remove text before first {
+        .replace(/[^}]*$/, '') // Remove text after last }
+        .trim();
+      
+      // Try parsing cleaned content
+      try {
+        const parsed = JSON.parse(cleanedContent);
+        console.log('Successfully parsed cleaned JSON:', parsed);
+        return parsed;
+      } catch (cleanError) {
+        // Final attempt: extract largest JSON block
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const extracted = JSON.parse(jsonMatch[0]);
+            console.log('Successfully extracted JSON from response:', extracted);
+            return extracted;
+          } catch (e) {
+            console.error('Failed to parse extracted JSON:', e);
+          }
         }
       }
       

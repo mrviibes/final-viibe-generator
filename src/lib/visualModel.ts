@@ -216,35 +216,26 @@ export async function generateVisualRecommendations(
   const enrichedInputs = autoEnrichInputs(inputs);
   const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity, subjectOption, dimensions } = enrichedInputs;
   
-const systemPrompt = `Generate 4 exciting, vivid visual concepts for social graphics. Make descriptions engaging and context-specific.
+const systemPrompt = `Generate 4 vivid visual concepts for social graphics. Keep prompts concise (60-80 words each).
 
-Rules:
-- Use exact tags in [TAGS: ]  
-- Reserve center for text overlay
-- 4 slots with EXCITING descriptions:
-  1. "background-only": Dynamic, immersive BACKGROUND scenes (no main subject)
-  2. "subject+background": Engaging HERO SUBJECTS with stunning backdrops
-  3. "object": Eye-catching FEATURED OBJECTS as focal points
-  4. "tone-twist": Creative ARTISTIC INTERPRETATIONS with unique style twists
+CRITICAL RULES:
+- Return ONLY pure JSON - no code blocks, no prose, no extra text
+- Use double quotes for all keys and strings
+- Each prompt must be 60-80 words maximum for efficiency
+- 4 slots: "background-only", "subject+background", "object", "tone-twist"
 
-Make each concept vivid, specific, and exciting - avoid generic terms like "clean" or "simple".
-For birthdays: think explosive celebrations, towering cakes, floating balloons, confetti storms!
-For sports: think action-packed moments, dramatic lighting, intense energy!
-Be creative and descriptive while staying relevant to the category/subcategory.
+IMPORTANT: Your response must be valid JSON that begins with { and ends with }. No markdown formatting.
 
-CRITICAL: Return ONLY valid JSON response in this exact format:
 {
   "options": [
     {
       "slot": "background-only",
-      "subject": "description here",
-      "background": "description here", 
-      "prompt": "full prompt with [TAGS:] [TEXT_SAFE_ZONE:] etc"
+      "subject": "brief description",
+      "background": "brief description", 
+      "prompt": "compact prompt with [TAGS:] [TEXT_SAFE_ZONE:] etc (60-80 words)"
     }
   ]
-}
-
-Do not include any other text or formatting. JSON only.`;
+}`;
 
 function getStyleKeywords(visualStyle?: string): string {
   const styles: Record<string, string> = {
@@ -256,11 +247,13 @@ function getStyleKeywords(visualStyle?: string): string {
   return styles[visualStyle || '3d-animated'] || 'modern visual style';
 }
 
-  const userPrompt = `${category} > ${subcategory}, ${tone} tone, ${visualStyle || '3d-animated'} style
+  const userPrompt = `Context: ${category} > ${subcategory}, ${tone} tone, ${visualStyle || '3d-animated'} style
 Tags: ${tags.join(', ')}
 ${finalLine ? `Text: "${finalLine}"` : ''}
 
-Return JSON with 4 options. Each prompt needs: [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: busy center] [ASPECTS: ${dimensions || 'flexible'}] [TEXT_HINT: dark text]`;
+Generate 4 compact visual concepts. Each prompt: 60-80 words with [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: busy center] [ASPECTS: ${dimensions || 'flexible'}] [TEXT_HINT: dark text]
+
+Return pure JSON only.`;
 
   try {
     const startTime = Date.now();
@@ -271,17 +264,41 @@ Return JSON with 4 options. Each prompt needs: [TAGS: ${tags.join(', ')}] [TEXT_
       setTimeout(() => reject(new Error('TIMEOUT')), 30000);
     });
 
-    // Race between AI generation and timeout
-    const aiPromise = openAIService.chatJSON([
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ], {
-      temperature: 0.7,
-      max_completion_tokens: 500, // Reduced for faster response
-      model: 'gpt-5-mini-2025-08-07'
-    });
-
-    const result = await Promise.race([aiPromise, timeoutPromise]);
+    // Primary attempt with optimized settings
+    let result;
+    try {
+      result = await Promise.race([
+        openAIService.chatJSON([
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ], {
+          temperature: 0.7,
+          max_completion_tokens: 900, // Increased to prevent truncation
+          model: 'gpt-5-mini-2025-08-07'
+        }),
+        timeoutPromise
+      ]);
+    } catch (firstError) {
+      // Automatic retry with larger model and compact prompt on parse failure
+      if (firstError instanceof Error && (firstError.message.includes('JSON') || firstError.message.includes('parse'))) {
+        console.log('🔄 Retrying with larger model due to parse error...');
+        const compactUserPrompt = `${category}>${subcategory}, ${tone}, ${tags.slice(0,3).join(',')}. Generate 4 compact visual JSON concepts. Pure JSON only.`;
+        
+        result = await Promise.race([
+          openAIService.chatJSON([
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: compactUserPrompt }
+          ], {
+            temperature: 0.6,
+            max_completion_tokens: 1000,
+            model: 'gpt-5-2025-08-07'
+          }),
+          timeoutPromise
+        ]);
+      } else {
+        throw firstError;
+      }
+    }
     
     const duration = Date.now() - startTime;
     console.log(`✅ Visual generation completed in ${duration}ms`);
