@@ -4187,22 +4187,35 @@ const Index = () => {
       });
     }
 
-    // Visual AI Recommendation selection
-    if (selectedVisualIndex !== null && visualOptions[selectedVisualIndex]) {
-      const option = visualOptions[selectedVisualIndex];
-      const optionTitle = `Option ${selectedVisualIndex + 1} (${option.slot?.replace('-', ' ') || 'Visual'})`;
-      const compactDescription = `${option.subject} - ${option.background}`;
-      
-      selections.push({
-        title: optionTitle,
-        subtitle: compactDescription,
-        onChangeSelection: () => {
-          setSelectedVisualIndex(null);
-          setSelectedDimension(null);
-          setCustomWidth("");
-          setCustomHeight("");
-        }
-      });
+    // Visual AI Recommendation selection - show all generated options
+    if (selectedSubjectOption === "ai-assist" && visualOptions.length > 0) {
+      if (selectedVisualIndex !== null && visualOptions[selectedVisualIndex]) {
+        // Show selected option
+        const option = visualOptions[selectedVisualIndex];
+        const optionTitle = `Selected: Option ${selectedVisualIndex + 1} (${option.slot?.replace('-', ' ') || 'Visual'})`;
+        const compactDescription = `${option.subject} - ${option.background}`;
+        
+        selections.push({
+          title: optionTitle,
+          subtitle: compactDescription,
+          onChangeSelection: () => {
+            setSelectedVisualIndex(null);
+            setSelectedDimension(null);
+            setCustomWidth("");
+            setCustomHeight("");
+          }
+        });
+      } else {
+        // Show that options are generated but none selected yet
+        selections.push({
+          title: "Visual Options Generated",
+          subtitle: `${visualOptions.length} AI-generated options available`,
+          onChangeSelection: () => {
+            // Go back to step 3 visual selection
+            setCurrentStep(3);
+          }
+        });
+      }
     }
 
     // Custom Visual Description selection (for design-myself)
