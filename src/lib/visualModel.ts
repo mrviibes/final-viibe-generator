@@ -22,6 +22,7 @@ export interface VisualOption {
 export interface VisualResult {
   options: VisualOption[];
   model: string;
+  errorCode?: 'timeout' | 'unauthorized' | 'network' | 'parse_error';
 }
 
 const VISUAL_OPTIONS_COUNT = 4;
@@ -267,7 +268,7 @@ Return JSON with 4 options. Each prompt needs: [TAGS: ${tags.join(', ')}] [TEXT_
     
     // Create a timeout promise with increased timeout for better reliability
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Visual generation timeout - using fallback')), 15000);
+      setTimeout(() => reject(new Error('TIMEOUT')), 30000);
     });
 
     // Race between AI generation and timeout
@@ -276,7 +277,7 @@ Return JSON with 4 options. Each prompt needs: [TAGS: ${tags.join(', ')}] [TEXT_
       { role: 'user', content: userPrompt }
     ], {
       temperature: 0.7,
-      max_completion_tokens: 650, // Slightly increased to reduce truncation
+      max_completion_tokens: 500, // Reduced for faster response
       model: 'gpt-5-mini-2025-08-07'
     });
 
@@ -314,14 +315,30 @@ Return JSON with 4 options. Each prompt needs: [TAGS: ${tags.join(', ')}] [TEXT_
     };
   } catch (error) {
     console.error('Error generating visual recommendations:', error);
-    console.warn('⚠️ Visual generation using fallback options. API may be unavailable or having issues.');
+    
+    // Determine specific error type for better user guidance
+    let errorCode: 'timeout' | 'unauthorized' | 'network' | 'parse_error' = 'network';
+    
+    if (error instanceof Error) {
+      if (error.message === 'TIMEOUT') {
+        errorCode = 'timeout';
+        console.warn('⚠️ Visual generation timed out after 30s');
+      } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
+        errorCode = 'unauthorized';
+        console.warn('⚠️ API key issue detected');
+      } else if (error.message.includes('JSON') || error.message.includes('parse')) {
+        errorCode = 'parse_error';
+        console.warn('⚠️ Response parsing failed');
+      }
+    }
     
     // Use contextual fallbacks instead of generic ones
     const fallbackOptions = getSlotBasedFallbacks(enrichedInputs);
 
     return {
       options: fallbackOptions,
-      model: 'fallback'
+      model: 'fallback',
+      errorCode
     };
   }
 }

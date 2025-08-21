@@ -4152,6 +4152,48 @@ const Index = () => {
     return words.slice(0, maxWords).join(' ') + '...';
   };
 
+  // Error message helper for visual generation
+  const getErrorMessage = (errorCode?: string) => {
+    switch (errorCode) {
+      case 'timeout':
+        return '⏰ AI generation timed out (30s). Try "Regenerate" or check your connection.';
+      case 'unauthorized':
+        return '🔑 API key issue detected. Check your OpenAI key in settings.';
+      case 'network':
+        return '🌐 Network error. Check connection and try "Regenerate".';
+      case 'parse_error':
+        return '📄 Response parsing failed. Try "Regenerate" for a fresh attempt.';
+      default:
+        return '⚠️ Used fallback options (AI timed out). Try "Regenerate" for fresh AI recommendations.';
+    }
+  };
+
+  // Test connection function
+  const testAIConnection = async () => {
+    setIsTestingProxy(true);
+    try {
+      const testResult = await openAIService.chatJSON([
+        { role: 'user', content: 'Test connection. Return: {"status": "ok"}' }
+      ], { model: 'gpt-5-mini-2025-08-07', max_completion_tokens: 50 });
+      
+      if (testResult?.status === 'ok') {
+        toast({
+          title: "Connection Success",
+          description: "AI connection is working properly",
+        });
+      } else {
+        throw new Error('Invalid response');
+      }
+    } catch (error) {
+      toast({
+        title: "Connection Failed",
+        description: "Check your API key and network connection",
+        variant: "destructive"
+      });
+    }
+    setIsTestingProxy(false);
+  };
+
   // Helper function to build selections for StackedSelectionCard
   const buildSelections = () => {
     const selections = [];
@@ -5980,27 +6022,42 @@ const Index = () => {
                      {selectedSubjectOption === "ai-assist" && visualOptions.length > 0 && selectedVisualIndex === null && (
                        <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                          <div className="text-center mb-6">
-                           <div className="flex items-center justify-center gap-3 mb-2">
-                             <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
-                             <Button
-                               variant="outline"
-                               size="sm"
-                               onClick={handleGenerateSubject}
-                               disabled={isGeneratingSubject}
-                               className="text-xs"
-                             >
-                               {isGeneratingSubject ? (
-                                 <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                               ) : (
-                                 "Regenerate"
-                               )}
-                             </Button>
-                           </div>
-                           {visualModel === 'fallback' && (
-                             <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-xs p-2 rounded-lg mb-3 max-w-md mx-auto">
-                               ⚠️ Used fallback options (AI timed out). Try "Regenerate" for fresh AI recommendations.
-                             </div>
-                           )}
+                            <div className="flex items-center justify-center gap-3 mb-2">
+                              <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleGenerateSubject}
+                                disabled={isGeneratingSubject}
+                                className="text-xs"
+                              >
+                                {isGeneratingSubject ? (
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                ) : (
+                                  "Regenerate"
+                                )}
+                              </Button>
+                              {visualModel === 'fallback' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={testAIConnection}
+                                  disabled={isTestingProxy}
+                                  className="text-xs"
+                                >
+                                  {isTestingProxy ? (
+                                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                  ) : (
+                                    "Test Connection"
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                            {visualModel === 'fallback' && (
+                              <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-xs p-2 rounded-lg mb-3 max-w-md mx-auto">
+                                {getErrorMessage(visualRecommendations?.errorCode)}
+                              </div>
+                            )}
                            <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
                          </div>
                         
