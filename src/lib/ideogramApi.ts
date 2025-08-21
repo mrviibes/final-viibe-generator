@@ -6,8 +6,11 @@ export interface ProxySettings {
 }
 
 const PROXY_CONFIGS = {
+  'direct': '',
   'cors-anywhere': 'https://cors-anywhere.herokuapp.com/',
-  'proxy-cors-sh': 'https://proxy.cors.sh/'
+  'proxy-cors-sh': 'https://proxy.cors.sh/',
+  'allorigins': 'https://api.allorigins.win/raw?url=',
+  'thingproxy': 'https://thingproxy.freeboard.io/fetch/'
 };
 
 export interface IdeogramGenerateRequest {

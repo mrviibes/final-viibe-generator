@@ -209,124 +209,45 @@ export async function generateVisualRecommendations(
   const enrichedInputs = autoEnrichInputs(inputs);
   const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity, subjectOption, dimensions } = enrichedInputs;
   
-const systemPrompt = `You are a visual concept recommender for memes and social graphics with pop-culture knowledge.
+const systemPrompt = `You are a visual concept generator for social graphics. Create exactly 4 distinct options using the slot framework.
 
-Core rules:
-• Use the 4-slot framework: background-only, subject+background, object, tone-twist.
-• Incorporate ALL inputs: category, subcategory, tone, visual style, text content, tags, entity/person, subject composition, dimensions.
-• Use ALL provided {tags} verbatim. Do not paraphrase, change plurality, or translate them.
-• Do NOT include any rendered typography in the image itself unless "Text Content" explicitly instructs it. Assume text will be overlaid later.
-• CRITICAL: Avoid vague language like "something like", "elements", "general", "various", "types of", "could include".
+Rules:
+• Use ALL provided tags verbatim in [TAGS: ]
+• NO text or typography in images (text overlaid later)
+• Avoid vague words: "something", "elements", "various", "types of"
+• Reserve center 60x35% for text overlay (low-detail, low-contrast)
 
-Readability and layout:
-• Text alignment default: center.
-• Reserve a TEXT_SAFE_ZONE centered at 60% width by 35% height. Keep it low-detail, low-contrast.
-• CONTRAST_PLAN: if the background is bright, create a subtle darker gradient in the safe zone. If the background is dark, create a subtle lighter gradient in the safe zone. Avoid hard edges.
-• NEGATIVE_PROMPT: no busy patterns, no high-frequency texture, no faces or limbs crossing the TEXT_SAFE_ZONE, no harsh shadows or specular highlights inside it.
-• CROP_STRATEGY: design optimized for specified dimensions, with crop-safe center for alternates.
+Slots:
+• background-only: Clean gradients, no objects in center
+• subject+background: Subject on left/right third, center clear
+• object: Single object bottom third, center negative space  
+• tone-twist: Creative interpretation, twist off-center
 
-People and subjects:
-• Follow the subject option exactly: "single-person" = one person, "multiple-people" = 2-4 people, "no-subject" = no people.
-• Specify age range, body position, pose, expression, camera distance, and interaction.
-• For specific entities, reference iconic traits and moments without using protected likenesses unless explicitly provided.
+People: Follow subject option exactly:
+• "single-person" = 1 person (age, pose, distance specified)
+• "multiple-people" = 2-4 people (ages, poses, interactions)
+• "no-subject" = no people
 
-Dimensions and composition:
-• If dimensions specified, optimize composition for that aspect ratio.
-• Square (1:1): balanced, centered compositions
-• Portrait (4:5, 9:16): vertical emphasis, subjects positioned for vertical crop
-• Landscape (16:9): horizontal flow, wide establishing shots
+Style: ${getStyleKeywords()} based on visual style.
 
-Style lexicon by visual style:
-• realistic/photo-real: crisp details, natural lighting, photographic depth
-• illustrated/cartoon: clean lines, vibrant colors, stylized forms
-• collage: layered textures, mixed media, artistic composition
-• minimalist: clean space, simple forms, subtle gradients
+Output: 4 JSON options with required micro-directives in prompts.`;
 
-Slot differentiation:
-• background-only: text-friendly surfaces. Gradients, soft bokeh, or minimal scenes.
-• subject+background: subject placed on left or right third. Keep center clean for text.
-• object: single object anchored low third. Keep center negative space.
-• tone-twist: add an idea-level twist while preserving the safe zone.
-
-Output:
-• Return exactly 4 JSON options using your schema.
-• Inside each option's "prompt", include these micro-directives:
-  [TAGS: ...] include the exact provided tags
-  [TEXT_SAFE_ZONE: center 60x35]
-  [CONTRAST_PLAN: light|dark|auto]
-  [NEGATIVE_PROMPT: ...]
-  [ASPECTS: optimized for {dimensions}]
-  [TEXT_HINT: light text|dark text] suggestion for overlay color`;
-
-  const userPrompt = `Generate exactly 4 visual concept options using the slot framework for these details:
-
-Category: ${category}
-Subcategory: ${subcategory}  
-Tone: ${tone}
-Visual Style: ${visualStyle || 'Not specified'}
-${finalLine ? `Text Content: "${finalLine}"` : 'No text content - create visual-only images'}
-${specificEntity ? `Specific Entity/Person: ${specificEntity}` : ''}
-${subjectOption ? `Subject Composition: ${subjectOption}` : ''}
-${dimensions ? `Target Dimensions: ${dimensions}` : ''}
-Tags: ${tags.join(', ')}
-
-CRITICAL REQUIREMENT: You MUST use the exact tags provided (${tags.join(', ')}) verbatim in the [TAGS: ] micro-directive. Do not paraphrase, substitute, or interpret these tags.
-
-SLOT-SPECIFIC COMPOSITION RULES:
-• background-only: Soft gradient or subtle texture. No faces, no objects in center. Gentle lighting falloff into the TEXT_SAFE_ZONE.
-• subject+background: Subject on left or right third, eye line toward center. Background depth of field. Keep center negative space.
-• object: Single object, 30–40% of frame, anchored bottom third. Center remains low-detail.
-• tone-twist: Conceptual twist that matches tone. Twist sits off-center. Center stays clean.
-
-PEOPLE & DEMOGRAPHICS:
-- Follow the subject composition exactly: ${subjectOption || 'not specified'}
-- If subject composition is "single-person": exactly one person with age range, pose, expression, camera distance
-- If subject composition is "multiple-people": exactly 2-4 people with age range, poses, interactions
-- If subject composition is "no-subject": NO people, focus on objects, backgrounds, or abstract concepts
-- Include body position, gaze direction, and hand placement when people are present
-
-DIMENSION OPTIMIZATION:
-- Target dimensions: ${dimensions || 'flexible'}
-- If square (1:1): balanced, centered compositions
-- If portrait (4:5, 9:16): vertical emphasis, position subjects for vertical crops
-- If landscape (16:9): horizontal flow, wide establishing shots
-
-${specificEntity && tags.some(tag => tag.toLowerCase().includes('jail')) ? 
-`SPECIAL INSTRUCTIONS: Since this involves ${specificEntity} and jail-related tags, create 2 options directly related to jail/prison themes (bars, cells, courthouse) and 2 options that reference other iconic aspects of ${specificEntity} that fans would recognize.` : 
-specificEntity ? 
-`SPECIAL INSTRUCTIONS: Since this involves ${specificEntity}, reference their iconic traits and moments without using protected likenesses unless explicitly provided.` : ''}
-
-Return exactly this JSON structure with 4 options, each prompt MUST include all micro-directives:
-{
-  "options": [
-    {
-      "slot": "background-only",
-      "subject": "Text-friendly background description",
-      "background": "Background details",
-      "prompt": "Complete visual description + [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: light|dark|auto] [NEGATIVE_PROMPT: busy patterns, strong shadows, limbs crossing center, reflective glare in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text|dark text]"
-    },
-    {
-      "slot": "subject+background", 
-      "subject": "Subject positioned on third, demographics if applicable",
-      "background": "Background with depth of field",
-      "prompt": "Complete visual description + [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: light|dark|auto] [NEGATIVE_PROMPT: busy patterns, strong shadows, limbs crossing center, reflective glare in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text|dark text]"
-    },
-    {
-      "slot": "object",
-      "subject": "Single key object anchored bottom third",
-      "background": "Minimal backdrop", 
-      "prompt": "Complete visual description + [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: light|dark|auto] [NEGATIVE_PROMPT: busy patterns, strong shadows, limbs crossing center, reflective glare in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text|dark text]"
-    },
-    {
-      "slot": "tone-twist",
-      "subject": "Creative ${tone} interpretation with twist off-center",
-      "background": "Setting that amplifies mood while preserving safe zone",
-      "prompt": "Complete visual description + [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: light|dark|auto] [NEGATIVE_PROMPT: busy patterns, strong shadows, limbs crossing center, reflective glare in center] [ASPECTS: 1:1 base, crop-safe 4:5, 9:16] [TEXT_HINT: light text|dark text]"
-    }
-  ]
+function getStyleKeywords(): string {
+  return "Clean 3D animation with vibrant colors and smooth surfaces";
 }
 
-Each prompt must be descriptive for image generation and include ALL required micro-directives.`;
+  const userPrompt = `Create 4 visual concepts for:
+
+Category: ${category} > ${subcategory}
+Tone: ${tone}
+Style: ${visualStyle || '3d-animated'}
+${finalLine ? `Text: "${finalLine}"` : 'No text'}
+${subjectOption ? `Subjects: ${subjectOption}` : ''}
+${dimensions ? `Format: ${dimensions}` : ''}
+Tags: ${tags.join(', ')}
+
+Return JSON with exactly 4 options. Each prompt must include:
+[TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: busy patterns, center objects] [ASPECTS: ${dimensions || 'flexible'}] [TEXT_HINT: dark text]`;
 
   try {
     const startTime = Date.now();
@@ -342,8 +263,8 @@ Each prompt must be descriptive for image generation and include ALL required mi
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
     ], {
-      temperature: 0.6, // Reduced for more precise, less generic language
-      max_completion_tokens: 1200,
+      temperature: 0.6,
+      max_completion_tokens: 800, // Reduced to prevent truncation
       model: 'gpt-5-mini-2025-08-07'
     });
 
