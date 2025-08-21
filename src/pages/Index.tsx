@@ -4055,6 +4055,7 @@ const Index = () => {
   const [subjectTags, setSubjectTags] = useState<string[]>([]);
   const [subjectTagInput, setSubjectTagInput] = useState<string>("");
   const [isGeneratingSubject, setIsGeneratingSubject] = useState<boolean>(false);
+  const [showSubjectTagEditor, setShowSubjectTagEditor] = useState<boolean>(false);
   const [subjectDescription, setSubjectDescription] = useState<string>("");
   const [isSubjectDescriptionConfirmed, setIsSubjectDescriptionConfirmed] = useState<boolean>(false);
   const [selectedDimension, setSelectedDimension] = useState<string | null>(null);
@@ -4181,6 +4182,7 @@ const Index = () => {
           setSelectedDimension(null);
           setCustomWidth("");
           setCustomHeight("");
+          setShowSubjectTagEditor(false);
         }
       });
     }
@@ -4447,9 +4449,7 @@ const Index = () => {
       setSelectedVisualIndex(null);
       setVisualOptions(visualResult.options);
       
-      // Clear subject tags and input after successful generation
-      setSubjectTags([]);
-      setSubjectTagInput("");
+      // Don't clear subject tags anymore - keep them for the summary
       
       // Log audit info for debugging
       console.log('Visual generation result:', { 
@@ -5848,7 +5848,12 @@ const Index = () => {
                         <Card 
                           key={option.id}
                           className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full"
-                          onClick={() => setSelectedSubjectOption(option.id)}
+                          onClick={() => {
+                            setSelectedSubjectOption(option.id);
+                            if (option.id === "ai-assist") {
+                              setShowSubjectTagEditor(true);
+                            }
+                          }}
                         >
                           <CardHeader className="pb-3 text-center">
                             <CardTitle className="text-lg font-semibold text-card-foreground">
@@ -5869,7 +5874,7 @@ const Index = () => {
                   <div className="space-y-6">
 
                     {/* Subject generation form for AI Assist */}
-                    {selectedSubjectOption === "ai-assist" && (
+                    {selectedSubjectOption === "ai-assist" && !selectedVisualIndex && showSubjectTagEditor && (
                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-8">
                           <h2 className="text-2xl font-semibold text-muted-foreground mb-4">tags will help guide your Viibe</h2>
@@ -6239,10 +6244,9 @@ const Index = () => {
                   </div>
                 )}
 
-                {/* General Dimensions Selection - Show when subject flow is complete */}
+                {/* General Dimensions Selection - Show only for non-AI assist options */}
                 {selectedSubjectOption && (
                   (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed) ||
-                  (selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null) ||
                   selectedSubjectOption === "no-subject" ||
                   selectedSubjectOption === "single-person" ||
                   selectedSubjectOption === "multiple-people"
