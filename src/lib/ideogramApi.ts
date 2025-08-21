@@ -1,7 +1,7 @@
 const IDEOGRAM_API_BASE = 'https://api.ideogram.ai/generate';
 
 export interface ProxySettings {
-  type: 'direct' | 'cors-anywhere' | 'proxy-cors-sh';
+  type: 'direct' | 'cors-anywhere' | 'proxy-cors-sh' | 'allorigins' | 'thingproxy';
   apiKey?: string; // For proxy.cors.sh
 }
 
@@ -85,20 +85,48 @@ export function getProxySettings(): ProxySettings {
 
 export async function testProxyConnection(proxyType: ProxySettings['type']): Promise<boolean> {
   try {
-    const testUrl = proxyType === 'direct' 
-      ? 'https://httpbin.org/status/200'
-      : proxyType === 'cors-anywhere'
-      ? 'https://cors-anywhere.herokuapp.com/https://httpbin.org/status/200'
-      : 'https://proxy.cors.sh/https://httpbin.org/status/200';
+    const testUrls: Record<ProxySettings['type'], string> = {
+      'direct': 'https://httpbin.org/status/200',
+      'cors-anywhere': 'https://cors-anywhere.herokuapp.com/https://httpbin.org/status/200',
+      'proxy-cors-sh': 'https://proxy.cors.sh/https://httpbin.org/status/200',
+      'allorigins': 'https://api.allorigins.win/raw?url=https://httpbin.org/status/200',
+      'thingproxy': 'https://thingproxy.freeboard.io/fetch/https://httpbin.org/status/200'
+    };
+
+    const headers: Record<string, string> = {};
+    if (proxyType === 'cors-anywhere') {
+      headers['X-Requested-With'] = 'XMLHttpRequest';
+    }
     
-    const response = await fetch(testUrl, { 
+    const response = await fetch(testUrls[proxyType], { 
       method: 'GET',
-      headers: proxyType === 'cors-anywhere' ? { 'X-Requested-With': 'XMLHttpRequest' } : {}
+      headers,
+      signal: AbortSignal.timeout(5000) // 5 second timeout
     });
     return response.ok;
   } catch {
     return false;
   }
+}
+
+// Auto-select the best working proxy
+export async function findBestProxy(): Promise<ProxySettings['type']> {
+  const proxyTypes: ProxySettings['type'][] = ['direct', 'proxy-cors-sh', 'allorigins', 'thingproxy', 'cors-anywhere'];
+  
+  for (const proxyType of proxyTypes) {
+    try {
+      const works = await testProxyConnection(proxyType);
+      if (works) {
+        console.log(`Auto-selected proxy: ${proxyType}`);
+        return proxyType;
+      }
+    } catch (error) {
+      console.log(`Failed to test ${proxyType}:`, error);
+    }
+  }
+  
+  // Fallback to direct if nothing works
+  return 'direct';
 }
 
 export async function generateIdeogramImage(request: IdeogramGenerateRequest): Promise<IdeogramGenerateResponse> {
@@ -116,14 +144,28 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
       'Content-Type': 'application/json',
     };
 
-    if (proxyType === 'cors-anywhere') {
-      url = PROXY_CONFIGS['cors-anywhere'] + IDEOGRAM_API_BASE;
-      headers['X-Requested-With'] = 'XMLHttpRequest';
-    } else if (proxyType === 'proxy-cors-sh') {
-      url = PROXY_CONFIGS['proxy-cors-sh'] + IDEOGRAM_API_BASE;
-      if (settings.apiKey) {
-        headers['x-cors-api-key'] = settings.apiKey;
-      }
+    // Configure URL and headers based on proxy type
+    switch (proxyType) {
+      case 'cors-anywhere':
+        url = PROXY_CONFIGS['cors-anywhere'] + IDEOGRAM_API_BASE;
+        headers['X-Requested-With'] = 'XMLHttpRequest';
+        break;
+      case 'proxy-cors-sh':
+        url = PROXY_CONFIGS['proxy-cors-sh'] + IDEOGRAM_API_BASE;
+        if (settings.apiKey) {
+          headers['x-cors-api-key'] = settings.apiKey;
+        }
+        break;
+      case 'allorigins':
+        url = PROXY_CONFIGS['allorigins'] + encodeURIComponent(IDEOGRAM_API_BASE);
+        break;
+      case 'thingproxy':
+        url = PROXY_CONFIGS['thingproxy'] + IDEOGRAM_API_BASE;
+        break;
+      case 'direct':
+      default:
+        // Use direct URL
+        break;
     }
 
     // Always use JSON format wrapped in image_request
@@ -175,7 +217,7 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
         // Check for specific CORS demo error
         if (response.status === 403 && errorText.includes('corsdemo')) {
           throw new IdeogramAPIError(
-            'CORS proxy requires activation. Please visit https://cors-anywhere.herokuapp.com/corsdemo and enable temporary access, then try again.',
+            'CORS_DEMO_REQUIRED',
             403
           );
         }
@@ -208,11 +250,27 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
     }
   };
 
-  // Try different proxy methods and model downgrades
-  const proxyMethods: ProxySettings['type'][] = [settings.type];
-  if (settings.type !== 'proxy-cors-sh') proxyMethods.push('proxy-cors-sh');
-  if (settings.type !== 'cors-anywhere') proxyMethods.push('cors-anywhere');
-  if (settings.type !== 'direct') proxyMethods.push('direct');
+  // Auto-select best proxy if user hasn't manually configured one
+  let proxyMethods: ProxySettings['type'][];
+  
+  if (settings.type === 'direct') {
+    // If user selected direct, try auto-selection first, then fallbacks
+    const bestProxy = await findBestProxy();
+    proxyMethods = [bestProxy];
+    if (bestProxy !== 'proxy-cors-sh') proxyMethods.push('proxy-cors-sh');
+    if (bestProxy !== 'allorigins') proxyMethods.push('allorigins');
+    if (bestProxy !== 'thingproxy') proxyMethods.push('thingproxy');
+    if (bestProxy !== 'cors-anywhere') proxyMethods.push('cors-anywhere');
+  } else {
+    // User has specific preference, try it first then fallbacks
+    proxyMethods = [settings.type];
+    const fallbacks: ProxySettings['type'][] = ['proxy-cors-sh', 'allorigins', 'thingproxy', 'cors-anywhere', 'direct'];
+    for (const fallback of fallbacks) {
+      if (fallback !== settings.type) {
+        proxyMethods.push(fallback);
+      }
+    }
+  }
 
   for (const proxyType of proxyMethods) {
     try {

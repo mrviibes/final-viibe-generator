@@ -41,7 +41,7 @@ export function ProxySettingsDialog({ open, onOpenChange }: ProxySettingsDialogP
   };
 
   const testAllConnections = async () => {
-    const types: ProxySettings['type'][] = ['direct', 'cors-anywhere', 'proxy-cors-sh'];
+    const types: ProxySettings['type'][] = ['direct', 'proxy-cors-sh', 'allorigins', 'thingproxy', 'cors-anywhere'];
     await Promise.all(types.map(type => testConnection(type)));
   };
 
@@ -120,6 +120,34 @@ export function ProxySettingsDialog({ open, onOpenChange }: ProxySettingsDialogP
                 <div className="flex items-center space-x-2">
                   {getStatusIcon(testResults['proxy-cors-sh'])}
                   <Badge variant="outline">Stable</Badge>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <RadioGroupItem value="allorigins" id="allorigins" />
+                  <div>
+                    <Label htmlFor="allorigins" className="font-medium">AllOrigins</Label>
+                    <p className="text-sm text-muted-foreground">Free, reliable CORS proxy</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {getStatusIcon(testResults.allorigins)}
+                  <Badge variant="secondary">Free</Badge>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <RadioGroupItem value="thingproxy" id="thingproxy" />
+                  <div>
+                    <Label htmlFor="thingproxy" className="font-medium">ThingProxy</Label>
+                    <p className="text-sm text-muted-foreground">Alternative free CORS proxy</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {getStatusIcon(testResults.thingproxy)}
+                  <Badge variant="secondary">Free</Badge>
                 </div>
               </div>
 

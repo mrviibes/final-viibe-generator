@@ -11,6 +11,7 @@ import { openAIService, OpenAISearchResult } from "@/lib/openai";
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
 import { IdeogramKeyDialog } from "@/components/IdeogramKeyDialog";
 import { ProxySettingsDialog } from "@/components/ProxySettingsDialog";
+import { CorsRetryDialog } from "@/components/CorsRetryDialog";
 import { StepProgress } from "@/components/StepProgress";
 import { StackedSelectionCard } from "@/components/StackedSelectionCard";
 import { useNavigate } from "react-router-dom";
@@ -4078,6 +4079,7 @@ const Index = () => {
   const [isCustomTextConfirmed, setIsCustomTextConfirmed] = useState<boolean>(false);
   const [showIdeogramKeyDialog, setShowIdeogramKeyDialog] = useState<boolean>(false);
   const [showProxySettingsDialog, setShowProxySettingsDialog] = useState<boolean>(false);
+  const [showCorsRetryDialog, setShowCorsRetryDialog] = useState<boolean>(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageGenerationError, setImageGenerationError] = useState<string>("");
@@ -4699,22 +4701,29 @@ const Index = () => {
         throw new Error("No image data received from Ideogram API");
       }
     } catch (error) {
-      const errorMessage = error instanceof IdeogramAPIError 
-        ? error.message 
-        : "Failed to generate image. Please try again.";
+      console.error('Image generation failed:', error);
       
-      // Set more specific error handling
-      let displayError = errorMessage;
-      if (errorMessage.includes('corsdemo')) {
-        displayError = "CORS proxy needs activation. Click 'Enable CORS Proxy' button below, then try again.";
-      } else if (errorMessage.includes('CORS error')) {
-        displayError = "CORS error detected. Please enable proxy settings and try again.";
+      if (error instanceof IdeogramAPIError) {
+        // Handle specific CORS demo activation error
+        if (error.message === 'CORS_DEMO_REQUIRED') {
+          setShowCorsRetryDialog(true);
+          setImageGenerationError('CORS proxy needs activation. Click "Enable CORS Proxy" button below, then try again.');
+        } else if (error.message.includes('proxy.cors.sh') && !getProxySettings().apiKey) {
+          setImageGenerationError('Proxy.cors.sh selected but no API key provided. Add an API key in Proxy Settings for better reliability.');
+          setTimeout(() => setShowProxySettingsDialog(true), 2000);
+        } else if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+          setImageGenerationError('Connection failed. Trying alternative proxy methods automatically...');
+          setTimeout(() => setShowProxySettingsDialog(true), 2000);
+        } else {
+          setImageGenerationError(error.message);
+        }
+      } else {
+        setImageGenerationError('An unexpected error occurred while generating the image.');
       }
       
-      setImageGenerationError(displayError);
       toast({
         title: "Generation Failed",
-        description: displayError,
+        description: imageGenerationError || "Failed to generate image. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -6370,11 +6379,11 @@ const Index = () => {
                         <Button onClick={handleGenerateImage} variant="outline" size="sm">
                           Try Again
                         </Button>
-                        {imageGenerationError.includes('corsdemo') && (
+                        {imageGenerationError.includes('CORS proxy needs activation') && (
                           <Button 
                             variant="brand" 
                             size="sm"
-                            onClick={() => window.open('https://cors-anywhere.herokuapp.com/corsdemo', '_blank')}
+                            onClick={() => setShowCorsRetryDialog(true)}
                           >
                             Enable CORS Proxy
                           </Button>
@@ -6931,6 +6940,13 @@ const Index = () => {
         <ProxySettingsDialog 
           open={showProxySettingsDialog}
           onOpenChange={setShowProxySettingsDialog}
+        />
+
+        {/* CORS Retry Dialog */}
+        <CorsRetryDialog 
+          open={showCorsRetryDialog}
+          onOpenChange={setShowCorsRetryDialog}
+          onRetry={handleGenerateImage}
         />
 
       </div>
