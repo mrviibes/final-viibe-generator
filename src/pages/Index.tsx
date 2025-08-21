@@ -4203,13 +4203,15 @@ const Index = () => {
             setSelectedDimension(null);
             setCustomWidth("");
             setCustomHeight("");
+            // Reset back to Step 3 to reselect
+            setCurrentStep(3);
           }
         });
       } else {
         // Show that options are generated but none selected yet
         selections.push({
           title: "Visual Options Generated",
-          subtitle: `${visualOptions.length} AI-generated options available`,
+          subtitle: `${visualOptions.length} AI-generated options available - Click to select`,
           onChangeSelection: () => {
             // Go back to step 3 visual selection
             setCurrentStep(3);
@@ -5899,8 +5901,8 @@ const Index = () => {
                   /* Show subject generation form if AI Assist */
                   <div className="space-y-6">
 
-                    {/* Subject generation form for AI Assist */}
-                    {selectedSubjectOption === "ai-assist" && !selectedVisualIndex && showSubjectTagEditor && (
+                    {/* Subject generation form for AI Assist - show only if no visual is selected yet */}
+                    {selectedSubjectOption === "ai-assist" && selectedVisualIndex === null && showSubjectTagEditor && (
                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-8">
                           <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for content generation</h2>
@@ -5953,158 +5955,101 @@ const Index = () => {
                               </div>
                             )}
                           </div>
+                        </div>
+                      </div>
+                    )}
 
-                          {/* Visual AI recommendations */}
-                          {visualOptions.length > 0 && selectedVisualIndex === null && (
-                            <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              <div className="text-center mb-6">
-                                <h3 className="text-xl font-semibold text-foreground mb-2">Visual AI recommendations</h3>
-                                <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
-                              </div>
-                              
-                                <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
-                                {visualOptions.map((option, index) => (
-                                  <Card 
-                                    key={index}
-                                    className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50"
-                                    onClick={() => setSelectedVisualIndex(index)}
-                                  >
-                                     <CardHeader className="pb-2">
-                                       <CardTitle className="text-base font-semibold text-card-foreground">
-                                         Option {index + 1} ({option.slot?.replace('-', ' ') || 'Visual'})
-                                       </CardTitle>
-                                     </CardHeader>
-                                    <CardContent className="pt-0">
-                                      <p className="text-sm text-muted-foreground line-clamp-2">
-                                        {option.subject} - {option.background}
-                                      </p>
-                                    </CardContent>
-                                  </Card>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                    {/* Visual AI recommendations - always show if available */}
+                    {selectedSubjectOption === "ai-assist" && visualOptions.length > 0 && selectedVisualIndex === null && (
+                      <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="text-center mb-6">
+                          <h3 className="text-xl font-semibold text-foreground mb-2">Visual AI recommendations</h3>
+                          <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
+                          {visualOptions.map((option, index) => (
+                            <Card 
+                              key={index}
+                              className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50"
+                              onClick={() => {
+                                setSelectedVisualIndex(index);
+                                setShowSubjectTagEditor(false); // Keep tag editor hidden once visual is selected
+                              }}
+                            >
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-base font-semibold text-card-foreground">
+                                  Option {index + 1} ({option.slot?.replace('-', ' ') || 'Visual'})
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="pt-0">
+                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                  {option.subject} - {option.background}
+                                </p>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                          {/* Selected visual concept confirmation */}
-                          {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] && (
-                            <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                                <CardHeader className="pb-3">
-                                  <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                                    Selected concept ✓
+                    {/* Dimensions Selection - Show when AI assist visual is selected */}
+                    {selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null && (
+                      <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="text-center mb-6">
+                          <p className="text-xl text-muted-foreground">Choose your dimensions</p>
+                        </div>
+
+                        {/* Show dimension selection grid when no dimension is selected */}
+                        {!selectedDimension ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
+                            {dimensionOptions.map(dimension => (
+                              <Card 
+                                key={dimension.id}
+                                className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md"
+                                onClick={() => setSelectedDimension(dimension.id)}
+                              >
+                                <CardHeader className="pb-3 text-center">
+                                  <CardTitle className="text-lg font-semibold text-card-foreground">
+                                    {dimension.name}
                                   </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                  <div className="space-y-2">
-                                    <div>
-                                      <p className="text-sm font-medium text-foreground">{visualOptions[selectedVisualIndex].subject}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-sm text-muted-foreground">{visualOptions[selectedVisualIndex].background}</p>
-                                    </div>
-                                  </div>
-                                  <div className="text-center mt-3">
-                                    <button onClick={() => {
-                                      setSelectedVisualIndex(null);
-                                    }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                                      Change selection
-                                    </button>
-                                  </div>
+                                  <CardDescription className="text-sm text-muted-foreground text-center">
+                                    {dimension.description}
+                                  </CardDescription>
                                 </CardContent>
                               </Card>
+                            ))}
+                          </div>
+                        ) : selectedDimension === "custom" && (
+                          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="text-center mb-8">
+                              <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
                             </div>
-                          )}
-
-                          {/* Dimensions Selection - Show when AI assist visual is selected */}
-                          {selectedVisualIndex !== null && (
-                            <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              <div className="text-center mb-6">
-                                <p className="text-xl text-muted-foreground">Choose your dimensions</p>
+                            <div className="max-w-md mx-auto flex gap-4 items-center">
+                              <div className="flex-1">
+                                <Input
+                                  type="number"
+                                  value={customWidth}
+                                  onChange={(e) => setCustomWidth(e.target.value)}
+                                  placeholder="Width"
+                                  className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg"
+                                />
                               </div>
-
-                              {/* Show dimension selection grid when no dimension is selected */}
-                              {!selectedDimension ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
-                                  {dimensionOptions.map(dimension => (
-                                    <Card 
-                                      key={dimension.id}
-                                      className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md"
-                                      onClick={() => setSelectedDimension(dimension.id)}
-                                    >
-                                      <CardHeader className="pb-3 text-center">
-                                        <CardTitle className="text-lg font-semibold text-card-foreground">
-                                          {dimension.name}
-                                        </CardTitle>
-                                      </CardHeader>
-                                      <CardContent>
-                                        <CardDescription className="text-sm text-muted-foreground text-center">
-                                          {dimension.description}
-                                        </CardDescription>
-                                      </CardContent>
-                                    </Card>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                  <div className="mb-8 selected-card">
-                                    <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                                      <CardHeader className="pb-3">
-                                        <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                                          {dimensionOptions.find(d => d.id === selectedDimension)?.name}
-                                          <span className="text-sm">✓</span>
-                                        </CardTitle>
-                                      </CardHeader>
-                                      <CardContent>
-                                        <CardDescription className="text-sm text-muted-foreground text-center">
-                                          {dimensionOptions.find(d => d.id === selectedDimension)?.description}
-                                        </CardDescription>
-                                        <div className="text-center mt-3">
-                                          <button onClick={() => {
-                                            setSelectedDimension(null);
-                                            setCustomWidth("");
-                                            setCustomHeight("");
-                                          }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                                            Change selection
-                                          </button>
-                                        </div>
-                                      </CardContent>
-                                    </Card>
-                                  </div>
-
-                                  {/* Custom dimension inputs */}
-                                  {selectedDimension === "custom" && (
-                                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                      <div className="text-center mb-8">
-                                        <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
-                                      </div>
-                                      <div className="max-w-md mx-auto flex gap-4 items-center">
-                                        <div className="flex-1">
-                                          <Input
-                                            type="number"
-                                            value={customWidth}
-                                            onChange={(e) => setCustomWidth(e.target.value)}
-                                            placeholder="Width"
-                                            className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg"
-                                          />
-                                        </div>
-                                        <span className="text-muted-foreground">×</span>
-                                        <div className="flex-1">
-                                          <Input
-                                            type="number"
-                                            value={customHeight}
-                                            onChange={(e) => setCustomHeight(e.target.value)}
-                                            placeholder="Height"
-                                            className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg"
-                                          />
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                              <span className="text-muted-foreground">×</span>
+                              <div className="flex-1">
+                                <Input
+                                  type="number"
+                                  value={customHeight}
+                                  onChange={(e) => setCustomHeight(e.target.value)}
+                                  placeholder="Height"
+                                  className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg"
+                                />
+                              </div>
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
