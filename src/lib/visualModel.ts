@@ -232,7 +232,7 @@ For birthdays: think explosive celebrations, towering cakes, floating balloons, 
 For sports: think action-packed moments, dramatic lighting, intense energy!
 Be creative and descriptive while staying relevant to the category/subcategory.
 
-CRITICAL: Return ONLY valid JSON in this exact format:
+CRITICAL: Return ONLY valid JSON response in this exact format:
 {
   "options": [
     {
