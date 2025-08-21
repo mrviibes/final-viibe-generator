@@ -5786,7 +5786,7 @@ const Index = () => {
         )}
 
         {currentStep === 3 && (
-          </>
+          <>
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Visual Style</h2>
               <p className="text-xl text-muted-foreground">
