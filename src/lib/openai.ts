@@ -220,8 +220,7 @@ export class OpenAIService {
               content: prompt
             }
           ],
-          max_tokens: 800,
-          temperature: 0.7,
+          max_completion_tokens: 800,
           response_format: {
             type: "json_schema",
             json_schema: {
@@ -282,8 +281,7 @@ export class OpenAIService {
                   content: `${prompt} Return as valid JSON array: [{"title": "...", "description": "..."}]`
                 }
               ],
-              max_tokens: 800,
-              temperature: 0.7,
+              max_completion_tokens: 800,
             }),
           });
           
@@ -337,8 +335,7 @@ export class OpenAIService {
               content: prompt
             }
           ],
-          max_tokens: 600,
-          temperature: 0.8,
+          max_completion_tokens: 600,
           response_format: {
             type: "json_schema",
             json_schema: {
