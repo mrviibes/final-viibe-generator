@@ -4132,9 +4132,9 @@ const Index = () => {
 
   // Error message helper for visual generation
   const getErrorMessage = (errorCode?: string) => {
-    switch (errorCode) {
+    switch ((errorCode || '').toLowerCase()) {
       case 'timeout':
-        return '⏰ AI generation timed out (30s). Try "Regenerate" or check your connection.';
+        return '⏰ AI generation timed out (45s). Try "Regenerate" or check your connection.';
       case 'unauthorized':
         return '🔑 API key issue detected. Check your OpenAI key in settings.';
       case 'network':
@@ -4154,7 +4154,7 @@ const Index = () => {
         role: 'user',
         content: 'Test connection. Return JSON response: {"status": "ok"}'
       }], {
-        model: 'gpt-5-mini-2025-08-07',
+        model: 'gpt-4.1-2025-04-14',
         max_completion_tokens: 50
       });
       if (testResult?.status === 'ok') {

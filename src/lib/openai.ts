@@ -59,12 +59,14 @@ export class OpenAIService {
     max_tokens?: number;
     max_completion_tokens?: number;
     model?: string;
+    edgeOnly?: boolean;
   } = {}): Promise<any> {
     const {
       temperature = 0.8,
       max_tokens = 2500,
       max_completion_tokens,
-      model = 'gpt-5-mini-2025-08-07'
+      model = 'gpt-5-mini-2025-08-07',
+      edgeOnly = false
     } = options;
 
     // Retry strategy: try current model, then fallback models
@@ -103,7 +105,12 @@ export class OpenAIService {
           result = data;
           console.log('Edge Function call successful');
         } catch (edgeError) {
-          console.warn('Edge Function failed, trying direct API:', edgeError);
+          console.warn('Edge Function failed:', edgeError);
+          
+          // If edgeOnly is true, don't fallback to direct API
+          if (edgeOnly) {
+            throw edgeError;
+          }
           
           // Fallback to direct API if user has a key
           if (this.apiKey) {

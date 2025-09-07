@@ -267,14 +267,15 @@ Return pure JSON only.`;
     // Primary attempt with GPT-4.1 for better reliability
     let result;
     try {
-      console.log('🎯 Using GPT-4.1 for visual generation...');
+      console.log('🎯 Using GPT-4.1 for visual generation with Edge Function enforcement...');
       result = await Promise.race([
         openAIService.chatJSON([
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ], {
-          max_completion_tokens: 500,
-          model: 'gpt-4.1-2025-04-14'
+          max_completion_tokens: 800,
+          model: 'gpt-4.1-2025-04-14',
+          edgeOnly: true
         }),
         makeTimeoutPromise()
       ]);
@@ -292,8 +293,9 @@ Return pure JSON only.`;
               { role: 'system', content: systemPrompt },
               { role: 'user', content: compactUserPrompt }
             ], {
-              max_completion_tokens: 400,
-              model: 'gpt-4.1-2025-04-14'
+              max_completion_tokens: 600,
+              model: 'gpt-4.1-2025-04-14',
+              edgeOnly: true
             }),
             makeTimeoutPromise()
           ]);
@@ -306,8 +308,9 @@ Return pure JSON only.`;
               { role: 'system', content: systemPrompt },
               { role: 'user', content: minimalPrompt }
             ], {
-              max_completion_tokens: 600,
-              model: 'gpt-4.1-2025-04-14'
+              max_completion_tokens: 800,
+              model: 'gpt-4.1-2025-04-14',
+              edgeOnly: true
             }),
             makeTimeoutPromise()
           ]);
