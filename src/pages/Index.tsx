@@ -16,6 +16,7 @@ import { ProxySettingsDialog } from "@/components/ProxySettingsDialog";
 import { CorsRetryDialog } from "@/components/CorsRetryDialog";
 import { StepProgress } from "@/components/StepProgress";
 import { StackedSelectionCard } from "@/components/StackedSelectionCard";
+import { TextLayoutSelector } from "@/components/TextLayoutSelector";
 import { useNavigate } from "react-router-dom";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
 import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
@@ -4024,6 +4025,7 @@ const Index = () => {
   const [generatedOptions, setGeneratedOptions] = useState<string[]>([]);
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
+  const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
@@ -4310,17 +4312,17 @@ const Index = () => {
       return false;
     }
 
-    // If completion option is AI assist, require a generated option to be selected
+    // If completion option is AI assist, require a generated option to be selected and layout to be selected
     if (selectedCompletionOption === "ai-assist") {
-      return !!selectedGeneratedOption;
+      return !!selectedGeneratedOption && !!selectedTextLayout;
     }
 
-    // If completion option is write myself, require confirmed text
+    // If completion option is write myself, require confirmed text and layout selection
     if (selectedCompletionOption === "write-myself") {
-      return stepTwoText.trim().length > 0 && isCustomTextConfirmed;
+      return stepTwoText.trim().length > 0 && isCustomTextConfirmed && !!selectedTextLayout;
     }
 
-    // For "no-text" option, just need style and completion
+    // For "no-text" option, just need style and completion (no layout needed)
     return true;
   };
 
@@ -5533,6 +5535,7 @@ const Index = () => {
                     setSelectedGeneratedOption(null);
                     setIsCustomTextConfirmed(false);
                     setStepTwoText("");
+                    setSelectedTextLayout(null);
                   }
                 });
               }
@@ -5549,6 +5552,7 @@ const Index = () => {
                     setSelectedGeneratedOption(null);
                     setIsCustomTextConfirmed(false);
                     setStepTwoText("");
+                    setSelectedTextLayout(null);
                   }
                 });
               }
@@ -5561,6 +5565,7 @@ const Index = () => {
                   onChangeSelection: () => {
                     setSelectedGeneratedOption(null);
                     setSelectedGeneratedIndex(null);
+                    setSelectedTextLayout(null);
                   }
                 });
               }
@@ -5572,6 +5577,7 @@ const Index = () => {
                   subtitle: `"${stepTwoText}"`,
                   onChangeSelection: () => {
                     setIsCustomTextConfirmed(false);
+                    setSelectedTextLayout(null);
                   }
                 });
               }
@@ -5761,6 +5767,41 @@ const Index = () => {
                 {selectedCompletionOption === "write-myself" && isCustomTextConfirmed && <>
                   </>}
 
+                {/* Text Layout Selection - Show after text is chosen (AI or custom) and when not "no-text" */}
+                {selectedCompletionOption !== "no-text" && 
+                  ((selectedCompletionOption === "ai-assist" && selectedGeneratedOption) || 
+                   (selectedCompletionOption === "write-myself" && isCustomTextConfirmed)) && 
+                  !selectedTextLayout && (
+                    <div className="mt-8">
+                      <TextLayoutSelector 
+                        selectedLayout={selectedTextLayout}
+                        onLayoutSelect={setSelectedTextLayout}
+                      />
+                    </div>
+                )}
+
+                {/* Show selected layout confirmation */}
+                {selectedTextLayout && selectedCompletionOption !== "no-text" && (
+                  <div className="mt-8">
+                    <StackedSelectionCard 
+                      selections={[{
+                        title: (() => {
+                          const layoutOptions = [
+                            { id: "negativeSpace", name: "Negative Space" },
+                            { id: "memeTopBottom", name: "Meme Top/Bottom" },
+                            { id: "lowerThird", name: "Lower Third Banner" },
+                            { id: "sideBarLeft", name: "Side Bar (Left)" },
+                            { id: "badgeSticker", name: "Badge/Sticker Callout" },
+                            { id: "subtleCaption", name: "Subtle Caption" }
+                          ];
+                          return layoutOptions.find(l => l.id === selectedTextLayout)?.name || selectedTextLayout;
+                        })(),
+                        subtitle: "Text layout style",
+                        onChangeSelection: () => setSelectedTextLayout(null)
+                      }]}
+                    />
+                  </div>
+                )}
 
                 {/* TODO: Add additional sub-options here after text style is selected */}
               </div>)}
