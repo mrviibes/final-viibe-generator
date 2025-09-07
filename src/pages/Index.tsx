@@ -4261,7 +4261,7 @@ const Index = () => {
   const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
   const [selectedRecommendation, setSelectedRecommendation] = useState<number | null>(null);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
-  const [enforceVariety, setEnforceVariety] = useState(true);
+  
 
   // Generate visual recommendations when reaching step 4
   useEffect(() => {
@@ -4280,20 +4280,13 @@ const Index = () => {
             textLayoutId: selectedTextLayout || "negativeSpace"
           });
           
-          // Ensure visual variance
+          // Ensure visual variance (disabled)
           const varianceResult = ensureVisualVariance(
             result.visualOptions, 
             selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ""),
             selectedTextLayout || "negativeSpace",
-            enforceVariety
+            false
           );
-          
-          // Show variety improvements if any
-          if (varianceResult.reasons.length > 0) {
-            sonnerToast.info("Variety improved", {
-              description: `Enhanced visual diversity: ${varianceResult.reasons.join(', ')}`
-            });
-          }
           
           // Validate layout-aware options
           const validation = validateLayoutAwareVisuals(varianceResult.diversifiedOptions, selectedTextLayout || "negativeSpace");
@@ -4738,20 +4731,13 @@ const Index = () => {
         textLayoutId: selectedTextLayout || "negativeSpace"
       });
       
-      // Ensure visual variance
+      // Ensure visual variance (disabled)
       const varianceResult = ensureVisualVariance(
         result.visualOptions, 
         finalLine || "",
         selectedTextLayout || "negativeSpace",
-        enforceVariety
+        false
       );
-      
-      // Show variety improvements if any
-      if (varianceResult.reasons.length > 0) {
-        sonnerToast.info("Variety improved", {
-          description: `Enhanced visual diversity: ${varianceResult.reasons.join(', ')}`
-        });
-      }
       
       // Validate layout-aware options
       const validation = validateLayoutAwareVisuals(varianceResult.diversifiedOptions, selectedTextLayout || "negativeSpace");
@@ -6148,17 +6134,6 @@ const Index = () => {
                                  </Button>}
                              </div>
                              
-                             {/* Variety Toggle */}
-                             <div className="flex items-center justify-center gap-2 mb-3">
-                               <Switch
-                                 id="enforce-variety"
-                                 checked={enforceVariety}
-                                 onCheckedChange={setEnforceVariety}
-                               />
-                               <label htmlFor="enforce-variety" className="text-xs text-muted-foreground cursor-pointer">
-                                 Enforce variety
-                               </label>
-                             </div>
                              
                              {visualModel === 'fallback' && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-xs p-2 rounded-lg mb-3 max-w-md mx-auto">
                                  {getErrorMessage(visualRecommendations?.errorCode)}
