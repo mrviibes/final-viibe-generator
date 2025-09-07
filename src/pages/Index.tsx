@@ -6,7 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X, Download } from "lucide-react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X, Download, Settings } from "lucide-react";
 import { openAIService, OpenAISearchResult } from "@/lib/openai";
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
 import { IdeogramKeyDialog } from "@/components/IdeogramKeyDialog";
@@ -3991,6 +3993,11 @@ const dimensionOptions = [{
   description: "Define your own dimensions"
 }];
 const Index = () => {
+  // Barebones mode state
+  const [barebonesMode, setBarebonesMode] = useState<boolean>(false);
+  const [directPrompt, setDirectPrompt] = useState<string>("");
+  const [negativePrompt, setNegativePrompt] = useState<string>("");
+  
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [selectedSubOption, setSelectedSubOption] = useState<string | null>(null);
@@ -4034,7 +4041,6 @@ const Index = () => {
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageGenerationError, setImageGenerationError] = useState<string>("");
-  const [directPrompt, setDirectPrompt] = useState<string>("");
   const [showProxySettings, setShowProxySettings] = useState(false);
   const [proxySettings, setLocalProxySettings] = useState(() => getProxySettings());
   const [proxyApiKey, setProxyApiKey] = useState('');
@@ -4318,6 +4324,11 @@ const Index = () => {
 
   // Helper function to check if Step 3 is complete
   const isStep3Complete = (): boolean => {
+    // In barebones mode, just need direct prompt and dimensions
+    if (barebonesMode) {
+      return !!directPrompt.trim() && !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
+    }
+    
     if (!selectedVisualStyle || !selectedSubjectOption) return false;
 
     // If AI Assist is selected, require visual option selection and dimensions
@@ -4389,6 +4400,12 @@ const Index = () => {
 
   // Generate subject using AI
   const handleGenerateSubject = async () => {
+    // Skip AI generation in barebones mode
+    if (barebonesMode) {
+      sonnerToast.error("AI visual generation is disabled in barebones mode. Please use direct prompts.");
+      return;
+    }
+    
     if (!openAIService.hasApiKey()) {
       setShowApiKeyDialog(true);
       return;
@@ -4508,6 +4525,12 @@ const Index = () => {
 
   // Generate text using Vibe Model
   const handleGenerateText = async () => {
+    // Skip AI generation in barebones mode
+    if (barebonesMode) {
+      sonnerToast.error("AI text generation is disabled in barebones mode. Please use 'Write my own line' option.");
+      return;
+    }
+    
     if (!openAIService.hasApiKey()) {
       setShowApiKeyDialog(true);
       return;
@@ -4674,8 +4697,14 @@ const Index = () => {
       if (!prompt && selectedRecommendation !== null && visualRecommendations) {
         prompt = visualRecommendations.options[selectedRecommendation].prompt;
       }
-      if (!prompt) {
+      if (!prompt && !barebonesMode) {
         prompt = buildIdeogramPrompt(ideogramPayload);
+      }
+      
+      // In barebones mode, require direct prompt
+      if (barebonesMode && !prompt) {
+        sonnerToast.error("Please provide a direct prompt in barebones mode.");
+        return;
       }
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
       const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
@@ -4804,9 +4833,79 @@ const Index = () => {
   };
   return <div className="min-h-screen bg-background py-12 px-4 pb-32">
       <div className="max-w-6xl mx-auto">
-        {/* Main Title */}
-        <div className="text-center mb-8">
+        {/* AI Status Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <Badge variant={barebonesMode ? "secondary" : "default"} className="text-sm">
+              AI: {barebonesMode ? "OFF (Barebones)" : "Connected"}
+            </Badge>
+            {!barebonesMode && (
+              <Badge variant="outline" className="text-xs">
+                GPT-4o + Ideogram V2
+              </Badge>
+            )}
+          </div>
           
+          {/* Settings Menu */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>AI Settings</SheetTitle>
+                <SheetDescription>
+                  Configure how AI assistance works in your workflow
+                </SheetDescription>
+              </SheetHeader>
+              <div className="space-y-6 mt-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <label className="text-base font-medium">Barebones Mode</label>
+                    <p className="text-sm text-muted-foreground">
+                      Disable all AI assistance and use direct prompts only
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={barebonesMode} 
+                    onCheckedChange={setBarebonesMode}
+                  />
+                </div>
+                
+                {!barebonesMode && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">AI Models</label>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>• Text Generation: OpenAI GPT-4o</p>
+                        <p>• Image Generation: Ideogram V2 Turbo</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowApiKeyDialog(true)}
+                        className="w-full"
+                      >
+                        Manage OpenAI API Key
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowIdeogramKeyDialog(true)}
+                        className="w-full"
+                      >
+                        Manage Ideogram API Key
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
         
         {/* Step Progress Header */}
@@ -5506,23 +5605,47 @@ const Index = () => {
                 {/* Completion Options */}
                 {!selectedCompletionOption ? <>
                     <div className="text-center mb-6">
-                      <p className="text-xl text-muted-foreground">Choose your option for completing your text</p>
+                      <p className="text-xl text-muted-foreground">
+                        {barebonesMode 
+                          ? "Write your custom text directly" 
+                          : "Choose your option for completing your text"
+                        }
+                      </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center max-w-4xl mx-auto">
-                      {completionOptions.map(option => <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption(option.id)}>
+                    {barebonesMode ? (
+                      // Barebones mode: Show only write-myself option
+                      <div className="max-w-md mx-auto">
+                        <Card className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption("write-myself")}>
                           <CardHeader className="pb-3">
                             <CardTitle className="text-lg font-semibold text-card-foreground">
-                              {option.name}
+                              Write my own line
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
                             <CardDescription className="text-sm text-muted-foreground">
-                              {option.description}
+                              Enter your custom text directly
                             </CardDescription>
                           </CardContent>
-                        </Card>)}
-                    </div>
+                        </Card>
+                      </div>
+                    ) : (
+                      // Normal mode: Show all options
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center max-w-4xl mx-auto">
+                        {completionOptions.map(option => <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption(option.id)}>
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-lg font-semibold text-card-foreground">
+                                {option.name}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <CardDescription className="text-sm text-muted-foreground">
+                                {option.description}
+                              </CardDescription>
+                            </CardContent>
+                          </Card>)}
+                      </div>
+                    )}
                   </> : null}
 
                 {/* Show AI Assist form when selected and no options generated yet */}
