@@ -76,9 +76,8 @@ export function TextOverlay({ backgroundImageUrl, text, layoutSpec, onImageReady
     const textWidth = w - (2 * paddingX);
     const textHeight = h - (2 * paddingY);
 
-    // Calculate optimal font size
-    const maxFontSize = Math.min(textHeight * 0.6, textWidth * 0.1);
-    const fontSize = Math.max(16, Math.min(maxFontSize, 60));
+    // Auto-fit text with word wrapping
+    const { fontSize, lines } = calculateOptimalTextLayout(ctx, text, textWidth, textHeight);
 
     // Set text styles
     ctx.font = `bold ${fontSize}px Arial, sans-serif`;
@@ -87,20 +86,77 @@ export function TextOverlay({ backgroundImageUrl, text, layoutSpec, onImageReady
     ctx.lineWidth = Math.max(1, fontSize / 20);
     ctx.textAlign = zone.align === 'center' ? 'center' : 'left';
     
-    // Calculate text position based on alignment
-    const finalX = zone.align === 'center' ? textX + (textWidth / 2) : textX;
-    const finalY = zone.valign === 'middle' 
-      ? textY + (textHeight / 2) + (fontSize / 3)
+    // Calculate starting position for multiline text
+    const lineHeight = fontSize * 1.2;
+    const totalTextHeight = lines.length * lineHeight;
+    let startY = zone.valign === 'middle' 
+      ? textY + (textHeight / 2) - (totalTextHeight / 2) + fontSize
       : textY + fontSize;
 
-    // Apply text transform if specified
-    const displayText = zone.allCaps ? text.toUpperCase() : text;
+    // Draw each line
+    lines.forEach((line, index) => {
+      const displayText = zone.allCaps ? line.toUpperCase() : line;
+      const finalX = zone.align === 'center' ? textX + (textWidth / 2) : textX;
+      const finalY = startY + (index * lineHeight);
 
-    // Draw text with stroke for better visibility
-    if (zone.stroke) {
-      ctx.strokeText(displayText, finalX, finalY);
+      // Draw text with stroke for better visibility
+      if (zone.stroke) {
+        ctx.strokeText(displayText, finalX, finalY);
+      }
+      ctx.fillText(displayText, finalX, finalY);
+    });
+  };
+
+  // Helper function to calculate optimal text layout
+  const calculateOptimalTextLayout = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxHeight: number) => {
+    let fontSize = Math.min(maxHeight * 0.8, maxWidth * 0.08);
+    fontSize = Math.max(12, Math.min(fontSize, 80));
+    
+    let lines: string[] = [];
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (attempts < maxAttempts) {
+      ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+      lines = wrapText(ctx, text, maxWidth);
+      
+      const lineHeight = fontSize * 1.2;
+      const totalHeight = lines.length * lineHeight;
+      
+      if (totalHeight <= maxHeight || fontSize <= 12) {
+        break;
+      }
+      
+      fontSize *= 0.9;
+      attempts++;
     }
-    ctx.fillText(displayText, finalX, finalY);
+    
+    return { fontSize, lines };
+  };
+
+  // Helper function to wrap text into lines
+  const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const metrics = ctx.measureText(testLine);
+      
+      if (metrics.width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+    
+    return lines;
   };
 
   const handleDownload = () => {
