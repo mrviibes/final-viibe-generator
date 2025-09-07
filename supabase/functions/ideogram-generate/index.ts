@@ -20,21 +20,39 @@ serve(async (req) => {
   try {
     console.log('Starting ideogram generation request...');
     
-    const supabaseClient = createClient(
+    // Create service role client for database/storage operations
+    const serviceRoleClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get user from auth
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      console.error('Authentication error:', userError);
-      return new Response('Unauthorized', { status: 401, headers: corsHeaders });
+    // Try to get user from auth (if JWT provided)
+    let userId = null;
+    let guestId = null;
+    
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader) {
+      const userClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: {
+            headers: { Authorization: authHeader },
+          },
+        }
+      );
+      
+      const { data: { user }, error: userError } = await userClient.auth.getUser();
+      if (!userError && user) {
+        userId = user.id;
+        console.log('Authenticated user:', userId);
+      }
+    }
+    
+    // If no authenticated user, generate a guest ID
+    if (!userId) {
+      guestId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      console.log('Using guest ID:', guestId);
     }
 
     const body = await req.json();
@@ -47,10 +65,10 @@ serve(async (req) => {
     }
 
     // Insert job record
-    const { data: job, error: jobError } = await supabaseClient
+    const { data: job, error: jobError } = await serviceRoleClient
       .from('gen_jobs')
       .insert({
-        user_id: user.id,
+        user_id: userId || guestId,
         prompt,
         negative_prompt: negative_prompt || '',
         style: style_type || 'DESIGN',
@@ -121,10 +139,10 @@ serve(async (req) => {
       const imageBytes = new Uint8Array(imageBuffer);
 
       // Upload to Supabase Storage
-      const storagePath = `${user.id}/${job.id}.png`;
+      const storagePath = `${userId || guestId}/${job.id}.png`;
       console.log('Uploading to storage path:', storagePath);
       
-      const { error: uploadError } = await supabaseClient.storage
+      const { error: uploadError } = await serviceRoleClient.storage
         .from('gen-images')
         .upload(storagePath, imageBytes, {
           contentType: 'image/png',
@@ -137,7 +155,7 @@ serve(async (req) => {
       }
 
       // Create signed URL
-      const { data: signedUrlData, error: signedUrlError } = await supabaseClient.storage
+      const { data: signedUrlData, error: signedUrlError } = await serviceRoleClient.storage
         .from('gen-images')
         .createSignedUrl(storagePath, 3600); // 1 hour expiry
 
@@ -147,7 +165,7 @@ serve(async (req) => {
       }
 
       // Update job with success
-      const { error: updateError } = await supabaseClient
+      const { error: updateError } = await serviceRoleClient
         .from('gen_jobs')
         .update({
           status: 'done',
@@ -171,7 +189,7 @@ serve(async (req) => {
       console.error('Generation error:', error);
       
       // Update job with error
-      await supabaseClient
+      await serviceRoleClient
         .from('gen_jobs')
         .update({
           status: 'error',
