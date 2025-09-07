@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X, Download, Settings } from "lucide-react";
+import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X, Download } from "lucide-react";
 import { openAIService, OpenAISearchResult } from "@/lib/openai";
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
 import { IdeogramKeyDialog } from "@/components/IdeogramKeyDialog";
@@ -4858,66 +4858,6 @@ const Index = () => {
             )}
           </div>
           
-          {/* Settings Menu */}
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>AI Settings</SheetTitle>
-                <SheetDescription>
-                  Configure how AI assistance works in your workflow
-                </SheetDescription>
-              </SheetHeader>
-              <div className="space-y-6 mt-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <label className="text-base font-medium">Barebones Mode</label>
-                    <p className="text-sm text-muted-foreground">
-                      Disable all AI assistance and use direct prompts only
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={barebonesMode} 
-                    onCheckedChange={setBarebonesMode}
-                  />
-                </div>
-                
-                {!barebonesMode && (
-                  <>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">AI Models</label>
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p>• Text Generation: OpenAI GPT-4o</p>
-                        <p>• Image Generation: Ideogram V2 Turbo</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setShowApiKeyDialog(true)}
-                        className="w-full"
-                      >
-                        Manage OpenAI API Key
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setShowIdeogramKeyDialog(true)}
-                        className="w-full"
-                      >
-                        Manage Ideogram API Key
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
         </div>
         
         {/* Step Progress Header */}
