@@ -4723,7 +4723,9 @@ const Index = () => {
         return;
       }
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
-      const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
+      // Default to DESIGN style for better text rendering when text is present
+      const hasText = finalText && finalText.trim();
+      const styleForIdeogram = hasText ? 'DESIGN' : getStyleTypeForIdeogram(visualStyle);
       console.log('=== Ideogram Generation Debug ===');
       console.log('Direct prompt provided:', !!directPrompt.trim());
       console.log('Final prompt:', prompt);
@@ -4736,19 +4738,17 @@ const Index = () => {
         magic_prompt_option: 'AUTO',
         style_type: styleForIdeogram
       });
+      const modelForIdeogram = hasText ? 'V_2A_TURBO' : 'V_2A_TURBO'; // V_2A_TURBO is good for both text and non-text
       const response = await generateIdeogramImage({
         prompt,
         aspect_ratio: aspectForIdeogram,
-        model: 'V_2A_TURBO',
+        model: modelForIdeogram,
         magic_prompt_option: 'AUTO',
         style_type: styleForIdeogram
       });
       if (response.data && response.data.length > 0) {
         setGeneratedImageUrl(response.data[0].url);
-        toast({
-          title: "Image Generated!",
-          description: "Your VIIBE has been successfully created with Ideogram Turbo."
-        });
+        sonnerToast.success("Your VIIBE has been generated successfully!");
       } else {
         throw new Error("No image data received from Ideogram API");
       }
@@ -4771,11 +4771,7 @@ const Index = () => {
       } else {
         setImageGenerationError('An unexpected error occurred while generating the image.');
       }
-      toast({
-        title: "Generation Failed",
-        description: imageGenerationError || "Failed to generate image. Please try again.",
-        variant: "destructive"
-      });
+      sonnerToast.error(imageGenerationError || "Failed to generate image. Please try again.");
     } finally {
       setIsGeneratingImage(false);
     }

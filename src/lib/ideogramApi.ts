@@ -131,10 +131,8 @@ export async function findBestProxy(): Promise<ProxySettings['type']> {
 }
 
 export async function generateIdeogramImage(request: IdeogramGenerateRequest): Promise<IdeogramGenerateResponse> {
-  const key = getIdeogramApiKey();
-  if (!key) {
-    throw new IdeogramAPIError('No API key provided');
-  }
+  // Remove client-side API key check - let backend handle it
+  // This prevents blocking calls when backend generation succeeds
 
   // Import supabase client dynamically
   const { supabase } = await import('@/integrations/supabase/client');
