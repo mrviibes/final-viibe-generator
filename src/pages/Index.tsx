@@ -27,8 +27,11 @@ import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
 
-// Layout-aware visual validation
-function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: string }>, layoutId: string): Array<{ lane: string; prompt: string }> {
+// Layout-aware visual validation with relaxed rules
+function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: string }>, layoutId: string): { 
+  validOptions: Array<{ lane: string; prompt: string }>, 
+  reasons: string[] 
+} {
   const layoutTokens = {
     negativeSpace: ["clear empty area near largest margin"],
     memeTopBottom: ["clear top band", "clear bottom band"], // both required
@@ -39,28 +42,65 @@ function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: strin
   };
 
   const requiredTokens = layoutTokens[layoutId as keyof typeof layoutTokens] || layoutTokens.negativeSpace;
+  const validOptions: Array<{ lane: string; prompt: string }> = [];
+  const reasons: string[] = [];
   
-  return options.filter(option => {
-    if (!option.prompt) return false;
+  options.forEach(option => {
+    if (!option.prompt) {
+      reasons.push(`${option.lane}: No prompt provided`);
+      return;
+    }
     
-    // Check token requirements
+    let isValid = true;
+    const issues: string[] = [];
+    
+    // Check token requirements - auto-append if missing
     const hasAllTokens = requiredTokens.every(token => 
       option.prompt.toLowerCase().includes(token.toLowerCase())
     );
-    if (!hasAllTokens) return false;
     
-    // Check word count (3-6 words)
-    const wordCount = option.prompt.trim().split(/\s+/).length;
-    if (wordCount < 3 || wordCount > 6) return false;
+    if (!hasAllTokens) {
+      // Auto-append missing tokens
+      const missingTokens = requiredTokens.filter(token => 
+        !option.prompt.toLowerCase().includes(token.toLowerCase())
+      );
+      option.prompt = `${option.prompt}, ${missingTokens.join(', ')}`;
+      console.log(`🔧 Auto-appended tokens to ${option.lane}: ${missingTokens.join(', ')}`);
+    }
+    
+    // Check word count (2-10 words for subject, excluding layout tokens)
+    let promptWithoutTokens = option.prompt.toLowerCase();
+    requiredTokens.forEach(token => {
+      promptWithoutTokens = promptWithoutTokens.replace(token.toLowerCase(), '');
+    });
+    promptWithoutTokens = promptWithoutTokens.replace(/,\s*/g, ' ').trim();
+    
+    const subjectWordCount = promptWithoutTokens.split(/\s+/).filter(w => w.length > 0).length;
+    if (subjectWordCount < 2 || subjectWordCount > 10) {
+      issues.push(`word count: ${subjectWordCount} (need 2-10)`);
+      isValid = false;
+    }
     
     // Check for text-like terms
-    if (/(text|typography|letter|letters|word|words|caption|quote|slogan)/i.test(option.prompt)) return false;
+    if (/(text|typography|letter|letters|word|words|caption|quote|slogan)/i.test(option.prompt)) {
+      issues.push('contains text-like terms');
+      isValid = false;
+    }
     
     // Check for all-caps "text-looking" tokens
-    if (/\b[A-Z]{2,}\b/.test(option.prompt)) return false;
+    if (/\b[A-Z]{2,}\b/.test(option.prompt)) {
+      issues.push('contains all-caps text');
+      isValid = false;
+    }
     
-    return true;
+    if (isValid) {
+      validOptions.push(option);
+    } else {
+      reasons.push(`${option.lane}: ${issues.join(', ')}`);
+    }
   });
+  
+  return { validOptions, reasons };
 }
 const styleOptions = [{
   id: "celebrations",
@@ -4116,19 +4156,27 @@ const Index = () => {
           });
           
           // Validate layout-aware options
-          const validOptions = validateLayoutAwareVisuals(result.visualOptions, selectedTextLayout || "negativeSpace");
-          if (validOptions.length === 0) {
-            sonnerToast.error("Visuals not layout-safe — please regenerate");
+          const validation = validateLayoutAwareVisuals(result.visualOptions, selectedTextLayout || "negativeSpace");
+          
+          if (validation.validOptions.length === 0) {
+            console.warn('🚨 No valid visuals:', validation.reasons);
+            sonnerToast.error(`Visuals not layout-safe: ${validation.reasons.slice(0, 2).join('; ')}`);
             setIsLoadingRecommendations(false);
             return;
           }
           
+          // Log any filtered options
+          if (validation.reasons.length > 0) {
+            console.warn('⚠️ Some visuals filtered:', validation.reasons);
+            sonnerToast.warning(`${validation.validOptions.length}/4 visuals passed validation`);
+          }
+          
           // Ensure all 4 lanes are present
-          const lanes = new Set(validOptions.map(opt => opt.lane));
+          const lanes = new Set(validation.validOptions.map(opt => opt.lane));
           if (lanes.size < 4) {
             sonnerToast.warning("Some visual options were filtered out for layout safety");
           }
-          const mappedOptions = validOptions.map((option) => ({
+          const mappedOptions = validation.validOptions.map((option) => ({
             subject: option.prompt || (option.lane === 'objects' ? 'Objects and environment' : 
                     option.lane === 'group' ? 'Group of people, candid gestures' :
                     option.lane === 'solo' ? 'One person — clear action' :
@@ -4550,18 +4598,25 @@ const Index = () => {
       });
       
       // Validate layout-aware options
-      const validOptions = validateLayoutAwareVisuals(result.visualOptions, selectedTextLayout || "negativeSpace");
-      if (validOptions.length === 0) {
-        sonnerToast.error("Visuals not layout-safe — please regenerate");
+      const validation = validateLayoutAwareVisuals(result.visualOptions, selectedTextLayout || "negativeSpace");
+      
+      if (validation.validOptions.length === 0) {
+        console.warn('🚨 No valid visuals:', validation.reasons);
+        sonnerToast.error(`Visuals not layout-safe: ${validation.reasons.slice(0, 2).join('; ')}`);
         return null;
       }
       
-      // Ensure all 4 lanes are present
-      const lanes = new Set(validOptions.map(opt => opt.lane));
-      if (lanes.size < 4) {
-        sonnerToast.warning("Some visual options were filtered out for layout safety");
+      // Log any filtered options
+      if (validation.reasons.length > 0) {
+        console.warn('⚠️ Some visuals filtered:', validation.reasons);
       }
-      const mappedOptions = validOptions.map((option) => ({
+      
+      // Ensure all 4 lanes are present
+      const lanes = new Set(validation.validOptions.map(opt => opt.lane));
+      if (lanes.size < 4) {
+        console.warn(`🎯 Missing lanes:`, Array.from(['literal', 'supportive', 'alternate', 'creative']).filter(l => !lanes.has(l)));
+      }
+      const mappedOptions = validation.validOptions.map((option) => ({
         subject: option.prompt || (option.lane === 'objects' ? 'Objects and environment' : 
                 option.lane === 'group' ? 'Group of people, candid gestures' :
                 option.lane === 'solo' ? 'One person — clear action' :
