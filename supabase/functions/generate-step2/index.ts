@@ -8,10 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SYSTEM_PROMPT = `You are a text line generator for memes and image overlays. Your job is to create exactly 4 one-liners based on the given category, subcategory, tone, and tags.
-
-STRICT RULES:
-1. Output ONLY valid JSON in this exact format:
+const SYSTEM_PROMPT = `Return ONLY JSON:
 {
   "lines": [
     {"lane":"option1","text":"..."},
@@ -21,32 +18,31 @@ STRICT RULES:
   ]
 }
 
-2. CONTENT RULES:
-- Max 70 characters per line
-- Vary lengths: some ~40, some ~55-60, some ~65-70
-- All 4 lines must be completely different
-- Use simple punctuation: commas, periods, colons
-- NO em-dashes (—) or double dashes (--)
-- Ban clichés like "timing is everything", "truth hurts", "laughter is the best medicine"
+RULES:
+- 4 one-liners, max 70 chars each
+- Vary length (~40, ~55-60, ~65-70)
+- Subcategory anchors required: cake, candles, balloons, confetti, party hats, gifts for Birthday
+- If TAGS provided, at least 3 of 4 must include them literally. Place tags differently each time
+- No em-dash or "--"
+- Ban generic phrases: "another year," "getting older," "best medicine," "timing is everything"
+- All 4 lines must be distinct (different angles: props, crowd, skills, absurd twist)
 
-3. CATEGORY/SUBCATEGORY:
-- Subcategory drives context (Birthday > Celebration)
-- Each line must include relevant anchors (cake, candles, balloons for birthday)
+TONE SAVAGE = Comedy Central roast. Brutal, clever, no clichés.
+Must be funny, human, and harsh, not generic birthday lines.
+Write like a roast comic: punchlines must sting. Avoid Hallmark card style.
+Every line should feel like a roast, not a dad joke.`;
 
-4. TONE HANDLING:
-- Savage/Humorous/Playful → funny, roast-style, witty
-- Serious/Sentimental/Nostalgic/Romantic/Inspirational → sincere, heartfelt, uplifting
-
-5. TAG RULES:
-- If no tags → generate normally
-- If tags exist: At least 3 out of 4 lines must include ALL tags literally (no synonyms)
-- Tags must appear in different spots in the line
-- Trait tags (gay, bald, vegan): Savage → roast or playful twist, Serious → affirming, Romantic → highlight positively
-
-6. VARIETY:
-- Randomize levels of savageness (light jab → brutal burn)
-- No clones or near-duplicates
-- Conversational, natural, human-sounding`;
+// Savage roast templates for birthday fallbacks
+const SAVAGE_BIRTHDAY_TEMPLATES = [
+  "{name}'s birthday cake collapsed harder than {pronoun} career.",
+  "Even the balloons left, {name}. Happy birthday to a ghost town.",
+  "{name} blew the candles. The fire marshal called it arson.",
+  "Confetti refused to drop, {name}. Happy birthday, you flop.",
+  "The cake's sweeter than {name}'s personality, somehow.",
+  "{name}'s candles burned out faster than {pronoun} last relationship.",
+  "Balloons have more life than {name}'s birthday party energy.",
+  "The gift that keeps giving? {name}'s endless disappointments."
+];
 
 const FALLBACK_LINES = {
   lines: [
@@ -57,12 +53,54 @@ const FALLBACK_LINES = {
   ]
 };
 
+function generateSavageFallback(inputs: any): any {
+  if (inputs.subcategory === "Birthday" && inputs.tone === "Savage") {
+    const templates = [...SAVAGE_BIRTHDAY_TEMPLATES];
+    const lines = [];
+    
+    for (let i = 0; i < 4; i++) {
+      const template = templates.splice(Math.floor(Math.random() * templates.length), 1)[0];
+      let text = template;
+      
+      // Replace with tags if available
+      if (inputs.tags && inputs.tags.length > 0) {
+        const name = inputs.tags.find((tag: string) => tag.toLowerCase() !== 'happy birthday') || inputs.tags[0];
+        text = text.replace(/{name}/g, name);
+        text = text.replace(/{pronoun}/g, 'their');
+      } else {
+        text = text.replace(/{name}/g, 'Birthday person');
+        text = text.replace(/{pronoun}/g, 'their');
+      }
+      
+      // Ensure under 70 chars
+      if (text.length > 70) {
+        text = text.substring(0, 67) + "...";
+      }
+      
+      lines.push({
+        lane: `option${i + 1}`,
+        text: text
+      });
+    }
+    
+    return { lines };
+  }
+  
+  return FALLBACK_LINES;
+}
+
 function buildUserMessage(inputs: any): string {
   const tagsStr = inputs.tags && inputs.tags.length > 0 ? `, tags: [${inputs.tags.map((t: string) => `"${t}"`).join(",")}]` : "";
+  
+  let anchorsStr = "";
+  if (inputs.subcategory === "Birthday") {
+    anchorsStr = "\nANCHORS: cake, candles, balloons, confetti, party hats, gifts";
+  }
+  
   return `Generate 4 one-liners for:
 Category: ${inputs.category}
 Subcategory: ${inputs.subcategory}
-Tone: ${inputs.tone}${tagsStr}`;
+Tone: ${inputs.tone}${tagsStr}${anchorsStr}`;
 }
 
 function normalizeAndRepairText(rawText: string, inputs: any): { lines: any[], repairs: string[] } {
@@ -109,7 +147,22 @@ function normalizeAndRepairText(rawText: string, inputs: any): { lines: any[], r
     repairs.push("Added missing lines to reach 4");
   }
   
-  // Repair each line
+  // Check for banned generic phrases (aggressive filtering)
+  const bannedPhrases = [
+    "another year", "getting older", "best medicine", "timing is everything",
+    "truth hurts", "laughter is", "birthday wishes", "special day",
+    "one more year", "growing older", "age is just", "celebrate you"
+  ];
+  
+  const hasGenericContent = parsed.lines.some((line: any) => 
+    bannedPhrases.some(phrase => line.text.toLowerCase().includes(phrase.toLowerCase()))
+  );
+  
+  if (hasGenericContent && inputs.tone === "Savage") {
+    throw new Error("Generic birthday content detected in savage mode");
+  }
+  
+  // Repair each line with strict enforcement
   const targetLengths = [40, 58, 66, 70]; // Target variety
   const processedLines = parsed.lines.map((line: any, index: number) => {
     let text = line.text || "";
@@ -155,29 +208,48 @@ function normalizeAndRepairText(rawText: string, inputs: any): { lines: any[], r
       repairs.push(`Truncated line ${index + 1} from ${originalText.length} to ${text.length} chars`);
     }
     
-    // Ensure birthday anchors if needed
+    // STRICT: Ensure birthday anchors on ALL lines if Birthday
     if (inputs.subcategory === "Birthday") {
-      const anchors = ["cake", "candles", "balloons", "party", "birthday", "wish"];
-      const hasAnchor = anchors.some(anchor => text.toLowerCase().includes(anchor));
-      if (!hasAnchor && index < 3) {
-        // Add a birthday anchor if line is short enough
+      const anchors = ["cake", "candles", "balloons", "confetti", "party hats", "gifts"];
+      const hasAnchor = anchors.some(anchor => text.toLowerCase().includes(anchor.toLowerCase()));
+      if (!hasAnchor) {
+        // Force add an anchor 
         const anchor = anchors[index % anchors.length];
-        if (text.length + anchor.length + 5 <= 70) {
-          text = text.replace(/\.$/, `, ${anchor} included.`);
-          repairs.push(`Added birthday anchor "${anchor}" to line ${index + 1}`);
+        if (text.length + anchor.length + 8 <= 70) {
+          text = text.replace(/[.!]$/, '') + ` with ${anchor}.`;
+          repairs.push(`Force-added birthday anchor "${anchor}" to line ${index + 1}`);
         }
       }
     }
     
-    // Ensure tags if provided
+    // STRICT: Ensure tags on 3 of 4 lines if provided
     if (inputs.tags && inputs.tags.length > 0 && index < 3) {
-      const missingTags = inputs.tags.filter((tag: string) => 
-        !text.toLowerCase().includes(tag.toLowerCase())
+      const allTagsPresent = inputs.tags.every((tag: string) => 
+        text.toLowerCase().includes(tag.toLowerCase())
       );
       
-      if (missingTags.length > 0 && text.length + missingTags[0].length + 5 <= 70) {
-        text = text.replace(/\.$/, `, ${missingTags[0]} vibes.`);
-        repairs.push(`Added missing tag "${missingTags[0]}" to line ${index + 1}`);
+      if (!allTagsPresent) {
+        const missingTags = inputs.tags.filter((tag: string) => 
+          !text.toLowerCase().includes(tag.toLowerCase())
+        );
+        
+        if (missingTags.length > 0) {
+          const tag = missingTags[0];
+          if (text.length + tag.length + 5 <= 70) {
+            // Strategic placement: beginning, middle, or end
+            const placements = [
+              `${tag}, ${text.replace(/^[A-Z]/, (m) => m.toLowerCase())}`,
+              text.replace(/,/, `, ${tag},`),
+              text.replace(/[.!]$/, '') + `, ${tag}.`
+            ];
+            
+            const placement = placements[index % placements.length];
+            if (placement.length <= 70) {
+              text = placement;
+              repairs.push(`Force-added tag "${tag}" to line ${index + 1}`);
+            }
+          }
+        }
       }
     }
     
@@ -187,26 +259,42 @@ function normalizeAndRepairText(rawText: string, inputs: any): { lines: any[], r
     };
   });
   
-  // Final length variety adjustment
+  // STRICT length variety enforcement
   const lengths = processedLines.map(line => line.text.length);
   const minLen = Math.min(...lengths);
   const maxLen = Math.max(...lengths);
   
-  if (maxLen - minLen < 15) {
-    // Artificially adjust lengths to create variety
+  // Must have at least 20 char spread for variety
+  if (maxLen - minLen < 20) {
+    // Force variety by adjusting to target bands
+    const targetBands = [
+      { min: 35, max: 45 },  // Short
+      { min: 50, max: 60 },  // Medium
+      { min: 60, max: 68 },  // Long
+      { min: 68, max: 70 }   // Max
+    ];
+    
     processedLines.forEach((line, index) => {
-      const targetRange = [35, 55, 65, 70][index] || 60;
-      if (Math.abs(line.text.length - targetRange) > 10) {
-        if (line.text.length < targetRange - 5) {
-          // Expand if too short
-          line.text += index % 2 === 0 ? ", right?" : ", obviously.";
-        } else if (line.text.length > targetRange + 5) {
-          // Contract if too long
-          line.text = line.text.substring(0, targetRange - 3) + "...";
+      const targetBand = targetBands[index];
+      const currentLen = line.text.length;
+      
+      if (currentLen < targetBand.min) {
+        // Expand
+        const additions = [", obviously", ", naturally", ", clearly", ", honestly"];
+        const addition = additions[index % additions.length];
+        if (currentLen + addition.length <= targetBand.max) {
+          line.text += addition;
         }
+      } else if (currentLen > targetBand.max) {
+        // Contract by removing words from end
+        const words = line.text.split(' ');
+        while (words.join(' ').length > targetBand.max && words.length > 3) {
+          words.pop();
+        }
+        line.text = words.join(' ') + '.';
       }
     });
-    repairs.push("Adjusted line lengths for better variety");
+    repairs.push("Force-adjusted line lengths for strict variety");
   }
   
   return { lines: processedLines, repairs };
@@ -222,7 +310,7 @@ function sanitizeAndValidate(text: string, inputs: any): { result: any | null; e
       console.log('Post-processing repairs applied:', repairs);
     }
     
-    // Basic validation on repaired lines
+    // STRICT validation
     const lengths: number[] = [];
     
     for (const line of lines) {
@@ -233,18 +321,41 @@ function sanitizeAndValidate(text: string, inputs: any): { result: any | null; e
         errors.push(`Line still too long after repair (${length} chars): "${line.text}"`);
       }
       
-      if (length < 20) {
+      if (length < 25) {
         errors.push(`Line too short (${length} chars): "${line.text}"`);
       }
     }
     
-    // Check basic variety
+    // STRICT variety check - must have at least 15 char spread
     const minLength = Math.min(...lengths);
     const maxLength = Math.max(...lengths);
     const lengthRange = maxLength - minLength;
     
-    if (lengthRange < 10) {
-      errors.push(`Insufficient length variety after repair. Range: ${lengthRange}`);
+    if (lengthRange < 15) {
+      errors.push(`Insufficient length variety after repair. Range: ${lengthRange}, need ≥15`);
+    }
+    
+    // STRICT tag validation for Savage Birthday
+    if (inputs.tags && inputs.tags.length > 0 && inputs.tone === "Savage") {
+      const linesWithAllTags = lines.filter((line: any) => 
+        inputs.tags.every((tag: string) => line.text.toLowerCase().includes(tag.toLowerCase()))
+      );
+      
+      if (linesWithAllTags.length < 3) {
+        errors.push(`Only ${linesWithAllTags.length}/4 lines contain all tags. Need ≥3 for Savage mode`);
+      }
+    }
+    
+    // STRICT anchor validation for Birthday
+    if (inputs.subcategory === "Birthday") {
+      const anchors = ["cake", "candles", "balloons", "confetti", "party", "gifts"];
+      const linesWithAnchors = lines.filter((line: any) => 
+        anchors.some(anchor => line.text.toLowerCase().includes(anchor.toLowerCase()))
+      );
+      
+      if (linesWithAnchors.length < 4) {
+        errors.push(`Only ${linesWithAnchors.length}/4 lines contain birthday anchors. All must have anchors`);
+      }
     }
     
     return { result: errors.length === 0 ? { lines } : null, errors };
@@ -265,8 +376,9 @@ serve(async (req) => {
     
     if (!openAIApiKey) {
       console.log('No OpenAI API key found, returning fallback lines');
+      const fallback = generateSavageFallback({ category, subcategory, tone, tags });
       return new Response(JSON.stringify({
-        lines: FALLBACK_LINES.lines,
+        lines: fallback.lines,
         model: "fallback"
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -290,12 +402,13 @@ serve(async (req) => {
       try {
         const promptToUse = attempt === 1 ? userMessage : `${userMessage}
 
-PREVIOUS ATTEMPT HAD ISSUES. Please generate 4 completely different lines that strictly follow these rules:
-- Max 70 characters each
-- Vary lengths: ~40, ~55-60, ~65-70 characters  
-- Use only simple punctuation (no em-dashes or --)
-- Include birthday anchors if subcategory is Birthday
-- Include all tags if provided`;
+PREVIOUS ATTEMPT FAILED VALIDATION. Generate 4 COMPLETELY DIFFERENT savage roast lines:
+- MUST be Comedy Central roast style, not dad jokes
+- EXACTLY 70 chars max, vary lengths: one ~40, one ~55-60, one ~65-70  
+- ALL 4 lines must include birthday anchors (cake/candles/balloons/confetti/party hats/gifts)
+- 3 of 4 lines must include ALL tags literally if provided
+- NO generic phrases like "another year", "getting older"
+- BRUTAL and CLEVER, not Hallmark card style`;
 
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -303,14 +416,15 @@ PREVIOUS ATTEMPT HAD ISSUES. Please generate 4 completely different lines that s
             'Authorization': `Bearer ${openAIApiKey}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            model: 'gpt-4.1-2025-04-14',
-            messages: [
-              { role: 'system', content: SYSTEM_PROMPT },
-              { role: 'user', content: promptToUse }
-            ],
-            max_completion_tokens: 500
-          }),
+            body: JSON.stringify({
+              model: 'gpt-4.1-2025-04-14',
+              messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user', content: promptToUse }
+              ],
+              max_completion_tokens: 500,
+              response_format: { type: "json_object" }
+            }),
         });
 
         if (!response.ok) {
@@ -352,9 +466,10 @@ PREVIOUS ATTEMPT HAD ISSUES. Please generate 4 completely different lines that s
       });
     } else {
       console.log('All attempts failed, returning fallback lines with errors:', allErrors);
+      const fallback = generateSavageFallback({ category, subcategory, tone, tags });
       return new Response(JSON.stringify({
-        lines: FALLBACK_LINES.lines,
-        model: "fallback",
+        lines: fallback.lines,
+        model: "savage-fallback",
         errors: allErrors
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -363,9 +478,10 @@ PREVIOUS ATTEMPT HAD ISSUES. Please generate 4 completely different lines that s
 
   } catch (error) {
     console.error('Error in generate-step2 function:', error);
+    const fallback = generateSavageFallback({ category: "Celebrations", subcategory: "Birthday", tone: "Savage", tags: [] });
     return new Response(JSON.stringify({
-      lines: FALLBACK_LINES.lines,
-      model: "fallback",
+      lines: fallback.lines,
+      model: "error-fallback",
       error: error.message
     }), {
       status: 500,
