@@ -5915,13 +5915,6 @@ const Index = () => {
                           {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
                         </Button>
                       </div>
-                      {textGenerationModel && (
-                        <div className="mb-3">
-                          <Badge variant={textGenerationModel === 'fallback' ? 'secondary' : 'default'} className="text-xs">
-                            {textGenerationModel === 'fallback' ? 'Fallback' : textGenerationModel}
-                          </Badge>
-                        </div>
-                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">

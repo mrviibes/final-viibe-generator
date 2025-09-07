@@ -49,7 +49,7 @@ STYLE RULES:
 • Do not use multiple commas or break sentences into fragments
 • Prefer single clean sentences over stacked phrases
 • Conversational, natural phrasing (sounds human, not robotic)
-• No em-dashes (—) or double dashes (--)
+• No em-dashes (—) or double dashes (--) - use commas instead
 • Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"
 
 TAG RULES (CRITICAL):
@@ -415,6 +415,16 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       }
     });
     
+    // Final sanitization - remove em-dashes from ALL lines (even if validation failed)
+    processedLines.forEach(line => {
+      // Replace em-dashes and double dashes with commas
+      line.text = line.text.replace(/—/g, ', ').replace(/--/g, ', ');
+      // Clean up multiple consecutive commas or spaces
+      line.text = line.text.replace(/,\s*,+/g, ',').replace(/\s+/g, ' ').trim();
+      // Remove leading/trailing commas and spaces
+      line.text = line.text.replace(/^[,\s]+|[,\s]+$/g, '');
+    });
+    
     if (errors.length === 0) {
       return {
         result: { lines: processedLines },
@@ -639,8 +649,21 @@ serve(async (req) => {
     // If validation failed, return the model's raw output anyway (no generic fallback)
     if (!finalResult && lastAttemptResult && lastAttemptResult.rawLines) {
       console.log("Validation failed but returning model's raw output instead of fallback");
+      
+      // Apply em-dash sanitization to raw output
+      const sanitizedRawLines = lastAttemptResult.rawLines.map(line => ({
+        ...line,
+        text: line.text
+          .replace(/—/g, ', ')
+          .replace(/--/g, ', ')
+          .replace(/,\s*,+/g, ',')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .replace(/^[,\s]+|[,\s]+$/g, '')
+      }));
+      
       finalResult = {
-        lines: lastAttemptResult.rawLines,
+        lines: sanitizedRawLines,
         model: `${lastAttemptResult.model || 'unknown'} (raw-unvalidated)`,
         validated: false,
         validation_errors: allErrors,
