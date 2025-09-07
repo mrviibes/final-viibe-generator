@@ -22,7 +22,7 @@ OUTPUT FORMAT: JSON only with this exact schema:
 }
 
 ROAST REQUIREMENTS:
-- Each line must include at least one anchor; rotate anchors across lines (cake, candles, balloons, confetti, party hats, gifts)
+- Each line must include at least one anchor if anchors are provided; rotate anchors across lines
 - If tags provided: at least 3 of 4 lines must include ALL tags literally (not synonyms)
 - Length bands: 35-45, 50-60, 60-70, 65-70 chars (MAX 70)
 - ESCALATING SAVAGENESS: light jab → medium roast → heavy burn → nuclear destruction
@@ -37,8 +37,16 @@ SAVAGE COMEDY STYLE:
 - Examples: "Even your cake is embarrassed to be here" or "Your balloons deflated faster than your last relationship"
 - Be merciless but witty — think roast comic destroying someone on stage`;
 
-// Enhanced birthday anchors
-const BIRTHDAY_ANCHORS = ["cake", "candles", "balloons", "confetti", "party hats", "gifts"];
+// Category-specific anchor dictionaries
+const ANCHORS = {
+  "celebrations.birthday": ["cake", "candles", "balloons", "confetti", "party hats", "gifts"],
+  "celebrations.wedding": ["ring", "vows", "champagne", "roses", "bride", "groom"],
+  "sports.hockey": ["ice rink", "stick", "puck", "goal net", "helmets", "locker room"],
+  "sports.basketball": ["court", "hoop", "net", "sneakers", "scoreboard", "bench"],
+  "vibes & punchlines.dad jokes": [], // No anchors for dad jokes
+  "vibes & punchlines.puns": [], // No anchors for puns
+  "pop culture.celebrities": [] // Context comes from entity
+};
 
 // Banned phrases that should be filtered (but NOT user tags)
 const BANNED_PHRASES = [
@@ -52,7 +60,8 @@ function generateSavageFallback(inputs: any): any {
   console.log("Using deterministic savage fallback v4");
   
   const { tags = [] } = inputs;
-  const anchors = ["cake", "candles", "balloons", "confetti"];
+  const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
+  const anchors = ANCHORS[ctxKey] || ["cake", "candles", "balloons", "confetti"]; // fallback for safety
   
   // Templates designed to leave slack for tags and never exceed 70 chars
   let baseTemplates: string[] = [];
@@ -133,9 +142,13 @@ Category: ${category}
 Subcategory: ${subcategory}
 Tone: ${tone}`;
 
-  // Always include birthday anchors for birthday subcategory
-  if (subcategory?.toLowerCase() === 'birthday') {
-    message += `\nBIRTHDAY ANCHORS: ${BIRTHDAY_ANCHORS.join(", ")} (rotate across lines, one per line)`;
+  // Get category-specific anchors
+  const ctxKey = `${category.toLowerCase()}.${subcategory.toLowerCase()}`;
+  const anchors = ANCHORS[ctxKey] || [];
+  
+  // Only include anchors if they exist for this category/subcategory
+  if (anchors.length > 0) {
+    message += `\nANCHORS: ${anchors.join(", ")} (rotate across lines, one per line)`;
   }
   
   // Include tags if provided
@@ -221,19 +234,24 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       }
     }
     
-    // Anchor enforcement with polite repair
-    processedLines.forEach((line, index) => {
-      const hasAnchor = BIRTHDAY_ANCHORS.some(anchor => 
-        line.text.toLowerCase().includes(anchor.toLowerCase())
-      );
-      
-      if (!hasAnchor) {
-        const anchor = BIRTHDAY_ANCHORS[index % BIRTHDAY_ANCHORS.length];
-        const anchorPhrase = ` with ${anchor}`;
-        line.text = line.text.replace(/\.$/, `${anchorPhrase}.`);
-        repairs.push(`Line ${index + 1}: Added anchor "${anchor}"`);
-      }
-    });
+    // Anchor enforcement with polite repair (only if anchors exist for this category)
+    const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
+    const anchors = ANCHORS[ctxKey] || [];
+    
+    if (anchors.length > 0) {
+      processedLines.forEach((line, index) => {
+        const hasAnchor = anchors.some(anchor => 
+          line.text.toLowerCase().includes(anchor.toLowerCase())
+        );
+        
+        if (!hasAnchor) {
+          const anchor = anchors[index % anchors.length];
+          const anchorPhrase = ` with ${anchor}`;
+          line.text = line.text.replace(/\.$/, `${anchorPhrase}.`);
+          repairs.push(`Line ${index + 1}: Added anchor "${anchor}"`);
+        }
+      });
+    }
     
     // Length validation - NO TRUNCATION, mark as invalid if over limit
     const targetBands = [[35, 45], [55, 60], [65, 70], [68, 70]];
