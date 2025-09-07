@@ -64,15 +64,13 @@ async function generateImageWithGemini(request: ImagenRequest): Promise<string> 
     style: request.style_type
   });
 
-  // Use Google Generative Language Images API
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImage?key=${GEMINI_API_KEY}`;
+  // Use correct Google Images API endpoint
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/images:generate?key=${GEMINI_API_KEY}`;
   
   const payload = {
     prompt: finalPrompt,
-    config: {
-      aspectRatio: aspectRatio,
-      sampleCount: 1
-    }
+    aspectRatio: aspectRatio,
+    sampleCount: 1
   };
 
   const response = await fetch(endpoint, {
@@ -88,24 +86,39 @@ async function generateImageWithGemini(request: ImagenRequest): Promise<string> 
   console.log('Google API response headers:', Object.fromEntries(response.headers.entries()));
 
   if (!response.ok) {
-    console.error('Google Generative Language API error:', response.status, responseText);
+    console.error('Google Images API error:', response.status, responseText);
     
-    // Parse error response for better error messages
+    // Detailed error handling for different status codes
     let errorMessage = `Image generation failed: ${response.status}`;
+    let errorType = 'transient';
+    
     try {
       const errorData = JSON.parse(responseText);
       if (errorData.error) {
-        if (response.status === 401 || response.status === 403) {
-          errorMessage = 'Gemini API key is invalid or Generative Language API is not enabled for your project. Please check your API key and ensure the Google Generative Language API is enabled.';
-        } else {
-          errorMessage = errorData.error.message || errorMessage;
-        }
+        errorMessage = errorData.error.message || errorMessage;
       }
     } catch (parseError) {
       console.error('Failed to parse error response:', parseError);
     }
     
-    throw new Error(errorMessage);
+    // Categorize errors for better handling
+    if (response.status === 401 || response.status === 403) {
+      errorType = 'auth';
+      errorMessage = 'Gemini API key is invalid or Google Generative Language API is not enabled. Please check your credentials and enable the API.';
+    } else if (response.status === 404) {
+      errorType = 'config';
+      errorMessage = 'Gemini image generation model not found. The Generative Language API may not be available in your region or project.';
+    } else if (response.status === 429) {
+      errorType = 'quota';
+      errorMessage = 'Gemini API quota exceeded. Please check your usage limits.';
+    } else if (response.status >= 500) {
+      errorType = 'server';
+      errorMessage = 'Gemini API server error. Please try again.';
+    }
+    
+    const error = new Error(errorMessage);
+    (error as any).type = errorType;
+    throw error;
   }
 
   let data;
@@ -116,10 +129,10 @@ async function generateImageWithGemini(request: ImagenRequest): Promise<string> 
     throw new Error('Invalid response from Google Generative Language API');
   }
   
-  console.log('Image generation successful with Google Generative Language API');
+  console.log('Image generation successful with Google Images API');
   
   if (!data.generatedImages || data.generatedImages.length === 0) {
-    throw new Error('No images returned from Google Generative Language API');
+    throw new Error('No images returned from Google Images API');
   }
 
   return data.generatedImages[0].bytesBase64Encoded;

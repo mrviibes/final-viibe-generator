@@ -5035,14 +5035,21 @@ const Index = () => {
             sonnerToast.success("Your VIIBE has been generated with Google Gemini!");
           }
         } catch (imagenError) {
-          console.warn('⚠️ Gemini failed, falling back to Ideogram:', imagenError);
+          console.warn('⚠️ Gemini failed:', imagenError);
           
-          // Check if it's a configuration error that should not trigger fallback
+          // Check error type to determine if fallback should be used
           const errorMessage = imagenError instanceof Error ? imagenError.message : String(imagenError);
-          if (errorMessage.includes('Gemini API key is invalid') || errorMessage.includes('Generative Language API is not enabled')) {
-            // For API key/configuration errors, show specific error without fallback
-            throw new Error(`Gemini configuration error: ${errorMessage}`);
+          const errorType = (imagenError as any)?.type;
+          
+          // Don't fallback for configuration errors (auth, config issues)
+          if (errorType === 'auth' || errorType === 'config' || 
+              errorMessage.includes('API key is invalid') || 
+              errorMessage.includes('not enabled') ||
+              errorMessage.includes('not found')) {
+            throw new Error(`Gemini configuration error: ${errorMessage}. Please check your Google Cloud project settings and API access.`);
           }
+          
+          console.log('⚠️ Gemini failed with transient error, falling back to Ideogram');
           
           // Fall back to Ideogram for other errors (network, quota, etc.)
           const apiKey = getIdeogramApiKey();
