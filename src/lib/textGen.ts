@@ -1,4 +1,4 @@
-import { openAIService } from "./openai";
+import { supabase } from "@/integrations/supabase/client";
 
 const SYSTEM_PROMPT = `You are a text line generator for memes and image overlays. Your job is to create exactly 4 one-liners based on the given category, subcategory, tone, and tags.
 
@@ -110,41 +110,24 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
   model: string;
 }> {
   try {
-    // Check if OpenAI API key is available
-    if (!openAIService.hasApiKey()) {
+    console.log("Calling Supabase Edge Function for text generation");
+    
+    const { data, error } = await supabase.functions.invoke('generate-step2', {
+      body: inputs
+    });
+
+    if (error) {
+      console.error("Edge function error:", error);
       return {
         lines: FALLBACK_LINES.lines,
         model: "fallback"
       };
     }
 
-    const userMessage = buildUserMessage(inputs);
-    
-    const response = await openAIService.chatJSON(
-      [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userMessage }
-      ],
-      {
-        model: "gpt-4.1-mini-2025-04-14",
-        temperature: 0.9,
-        max_completion_tokens: 500
-      }
-    );
-
-    const validated = sanitizeAndValidate(JSON.stringify(response));
-    
-    if (validated) {
-      return {
-        lines: validated.lines,
-        model: "gpt-4.1-mini-2025-04-14"
-      };
-    } else {
-      return {
-        lines: FALLBACK_LINES.lines,
-        model: "fallback"
-      };
-    }
+    return {
+      lines: data.lines,
+      model: data.model
+    };
   } catch (error) {
     console.error("Text generation error:", error);
     return {
