@@ -80,71 +80,55 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
       textLayoutId 
     });
     
-    const systemPrompt = `Generate 4 DISTINCT visual prompts with explicit lane roles and layout tokens.
+    const systemPrompt = `Generate 4 DISTINCT visual prompts for image generation. Return ONLY valid JSON:
 
-Return ONLY valid JSON:
 {
   "visualOptions":[
-    {"lane":"literal","prompt":"..."},
-    {"lane":"supportive","prompt":"..."},
-    {"lane":"alternate","prompt":"..."},
-    {"lane":"creative","prompt":"..."}
+    {"lane":"option1","prompt":"..."},
+    {"lane":"option2","prompt":"..."},
+    {"lane":"option3","prompt":"..."},
+    {"lane":"option4","prompt":"..."}
   ],
   "negativePrompt":"..."
 }
 
-LAYOUT TOKENS (REQUIRED - append exactly one based on textLayoutId):
-- negativeSpace  → ", clear empty area near largest margin"
-- memeTopBottom  → ", clear top band, clear bottom band" 
-- lowerThird     → ", clear lower third"
-- sideBarLeft    → ", clear left panel"
-- badgeSticker   → ", badge space top-right"
-- subtleCaption  → ", clear narrow bottom strip"
+CRITICAL RULES:
 
-LANE ROLE ENFORCEMENT (CRITICAL):
-1. LITERAL = Direct visual match to textContent/main anchor
-   - Use the primary subject mentioned in text
-   - Most straightforward interpretation
+1. **Strong Variance Required**
+   - Each option must be a COMPLETELY different visual concept
+   - NO similar subjects (if one uses "cake", others cannot use "cake", "dessert", or "food")
+   - NO rephrasing same idea ("birthday party" vs "celebration" = FORBIDDEN)
+   - Force cognitive diversity across all 4 options
 
-2. SUPPORTIVE = Audience/environment reacting to the scene
-   - MUST avoid the main anchor used by Literal
-   - Focus on: crowd, audience, setting, props, reactions
-   - If Literal uses "cake", Supportive uses "party guests" or "decorations"
+2. **Layout Tokens** (append exactly one based on textLayoutId):
+   - negativeSpace  → ", clear empty area near largest margin"
+   - memeTopBottom  → ", clear top band, clear bottom band" 
+   - lowerThird     → ", clear lower third"
+   - sideBarLeft    → ", clear left panel"
+   - badgeSticker   → ", badge space top-right"
+   - subtleCaption  → ", clear narrow bottom strip"
 
-3. ALTERNATE = Completely different perspective/subject
-   - MUST avoid main anchor AND supportive elements
-   - Different angle, time, or viewpoint of same context
-   - If birthday context: Literal=cake, Supportive=guests, Alternate=gift table
+3. **Visual Concept Enforcement**:
+   - **Option1**: Direct literal interpretation of text/context
+   - **Option2**: Environment/audience/setting perspective (avoid Option1's subject)
+   - **Option3**: Related but different angle/object from same context  
+   - **Option4**: Abstract/symbolic representation of the concept
 
-4. CREATIVE = Abstract/symbolic/metaphorical representation
-   - MUST be conceptually different from all above
-   - Symbolic objects, artistic interpretations, metaphors
-   - If birthday: Literal=cake, Supportive=guests, Alternate=gifts, Creative=time passing
+4. **Format Requirements**:
+   - Short subject description (2-6 words maximum)
+   - NO style words (realistic/anime/3D/cinematic/etc)
+   - NO text-related terms (signage/watermark/logo/typography)
+   - End with comma + layout token
 
-VARIANCE RULES (ENFORCE STRICTLY):
-- NO overlap between lanes (if Literal uses X, others cannot use X)
-- NO rephrasing same concept ("person at cake" vs "man near cake" = FORBIDDEN)
-- Each lane must introduce NEW visual elements
-- At least 3 different anchor objects across the 4 prompts
-- Force cognitive diversity, not linguistic variations
+5. **Negative Prompt**: Always include "no background text, no signage, no watermarks, no logos, no typography"
 
-PROMPT FORMAT:
-- Short subject description (2-6 words)
-- NO style words (realistic/anime/3D/etc)
-- NO text-related words (signage/watermark/logo)  
-- End with comma + layout token
-- Example: "birthday cake, clear lower third"
-
-NEGATIVE PROMPT REQUIREMENTS:
-Must include: "no background text, no signage, no watermarks, no logos, no typography"
-
-BULLETPROOF EXAMPLE for lowerThird + birthday cake text:
+EXAMPLE for birthday + lowerThird:
 {
   "visualOptions":[
-    {"lane":"literal","prompt":"Birthday cake with candles, clear lower third"},
-    {"lane":"supportive","prompt":"Party guests celebrating, clear lower third"},
-    {"lane":"alternate","prompt":"Gift table with presents, clear lower third"},
-    {"lane":"creative","prompt":"Hourglass with confetti, clear lower third"}
+    {"lane":"option1","prompt":"birthday cake with candles, clear lower third"},
+    {"lane":"option2","prompt":"party guests clapping, clear lower third"},  
+    {"lane":"option3","prompt":"wrapped gift boxes, clear lower third"},
+    {"lane":"option4","prompt":"floating balloons, clear lower third"}
   ],
   "negativePrompt":"no background text, no signage, no watermarks, no logos, no typography"
 }`;

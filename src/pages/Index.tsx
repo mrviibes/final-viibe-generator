@@ -94,9 +94,9 @@ function ensureVisualVariance(
   const diversifiedOptions: Array<{ lane: string; prompt: string }> = [];
   const reasons: string[] = [];
   
-  // Find literal lane and extract main anchor
-  const literalOption = options.find(opt => opt.lane === 'literal');
-  const mainAnchor = literalOption ? getMainAnchor(literalOption.prompt) : '';
+  // Find main option and extract main anchor
+  const mainOption = options.find(opt => opt.lane === 'option1') || options[0];
+  const mainAnchor = mainOption ? getMainAnchor(mainOption.prompt) : '';
   
   // Process each option
   options.forEach((option, index) => {
@@ -112,24 +112,24 @@ function ensureVisualVariance(
       }
     }
     
-    // Check if non-literal lanes contain the main anchor
-    if (option.lane !== 'literal' && mainAnchor && normalizePrompt(currentPrompt).includes(mainAnchor)) {
+    // Check if non-primary options contain the main anchor
+    if (option.lane !== 'option1' && mainAnchor && normalizePrompt(currentPrompt).includes(mainAnchor)) {
       needsRewrite = true;
     }
     
-    // Rewrite if needed (but never rewrite literal)
-    if (needsRewrite && option.lane !== 'literal') {
+    // Rewrite if needed (but never rewrite option1)
+    if (needsRewrite && option.lane !== 'option1') {
       const templates = {
-        supportive: ['people laughing', 'audience clapping', 'family smiling', 'friends cheering', 'crowd enjoying'],
-        alternate: ['related object close-up', 'empty scene with props', 'worn items', 'equipment on table', 'background setting'],
-        creative: ['symbolic metaphor', 'abstract shapes', 'artistic representation', 'conceptual imagery', 'geometric forms']
+        option2: ['people laughing', 'audience clapping', 'family smiling', 'friends cheering', 'crowd enjoying'],
+        option3: ['related object close-up', 'empty scene with props', 'worn items', 'equipment on table', 'background setting'],
+        option4: ['symbolic metaphor', 'abstract shapes', 'artistic representation', 'conceptual imagery', 'geometric forms']
       };
       
-      const laneTemplates = templates[option.lane as keyof typeof templates] || templates.creative;
+      const laneTemplates = templates[option.lane as keyof typeof templates] || templates.option4;
       const templateIndex = Math.abs(mainAnchor.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % laneTemplates.length;
       currentPrompt = `${laneTemplates[templateIndex]}, ${tokenSuffix}`;
       
-      reasons.push(`Rewrote ${option.lane} lane to avoid similarity/anchor conflict`);
+      reasons.push(`Rewrote ${option.lane} option to avoid similarity/anchor conflict`);
     }
     
     diversifiedOptions.push({ lane: option.lane, prompt: currentPrompt });
@@ -211,10 +211,10 @@ function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: strin
     const tokenSuffix = requiredTokens.join(', ');
     
     const fallbacks = [
-      { lane: "literal", prompt: `simple object, ${tokenSuffix}` },
-      { lane: "supportive", prompt: `colorful background, ${tokenSuffix}` },
-      { lane: "alternate", prompt: `minimal scene, ${tokenSuffix}` },
-      { lane: "creative", prompt: `abstract shapes, ${tokenSuffix}` }
+      { lane: "option1", prompt: `simple object, ${tokenSuffix}` },
+      { lane: "option2", prompt: `colorful background, ${tokenSuffix}` },
+      { lane: "option3", prompt: `minimal scene, ${tokenSuffix}` },
+      { lane: "option4", prompt: `abstract shapes, ${tokenSuffix}` }
     ];
     
     validOptions.push(...fallbacks);
@@ -4204,7 +4204,7 @@ const Index = () => {
   const [selectedTextStyle, setSelectedTextStyle] = useState<string | null>(null);
   const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
   const [selectedVisualStyle, setSelectedVisualStyle] = useState<string | null>(null);
-  const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>(null);
+  const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>("design-myself");
   const [visualOptions, setVisualOptions] = useState<Array<{ subject: string; background: string; prompt: string; slot: string }>>([]);
   const [selectedVisualIndex, setSelectedVisualIndex] = useState<number | null>(null);
   const [visualModel, setVisualModel] = useState<string | null>(null); // Track which model was used
@@ -4766,18 +4766,17 @@ const Index = () => {
         console.warn('⚠️ Some visuals filtered:', validation.reasons);
       }
       
-      // Ensure all 4 lanes are present
+      // Ensure all 4 options are present
       const lanes = new Set(validation.validOptions.map(opt => opt.lane));
       if (lanes.size < 4) {
-        console.warn(`🎯 Missing lanes:`, Array.from(['literal', 'supportive', 'alternate', 'creative']).filter(l => !lanes.has(l)));
+        console.warn(`🎯 Missing options:`, Array.from(['option1', 'option2', 'option3', 'option4']).filter(l => !lanes.has(l)));
       }
       const mappedOptions = validation.validOptions.map((option) => ({
-        subject: option.prompt || (option.lane === 'objects' ? 'Objects and environment' : 
-                option.lane === 'group' ? 'Group of people, candid gestures' :
-                option.lane === 'solo' ? 'One person — clear action' :
-                'Symbolic/abstract arrangement'),
-        background: option.lane === 'objects' ? 'Arranged props with text-safe area' :
-                   `Context: ${subcategory}`,
+        subject: option.prompt || (option.lane === 'option1' ? 'Direct visual concept' : 
+                option.lane === 'option2' ? 'Environmental perspective' :
+                option.lane === 'option3' ? 'Alternative viewpoint' :
+                'Abstract interpretation'),
+        background: `Context: ${subcategory}`,
         prompt: option.prompt,
         slot: option.lane
       }));
