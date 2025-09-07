@@ -4350,6 +4350,21 @@ const Index = () => {
     generateRecommendations();
   }, [currentStep, visualRecommendations, isLoadingRecommendations, selectedStyle, selectedSubOption, selectedTextStyle, tags, selectedVisualStyle, selectedGeneratedOption]);
 
+  // Auto-start image generation when reaching step 4
+  useEffect(() => {
+    if (currentStep === 4 && autoStartImageGen && !isGeneratingImage && !generatedImageUrl) {
+      // Guard for barebones mode without prompt
+      if (barebonesMode && !directPrompt.trim()) {
+        sonnerToast.error("Please provide a direct prompt in barebones mode.");
+        setAutoStartImageGen(false);
+        return;
+      }
+      
+      handleGenerateImage();
+      setAutoStartImageGen(false);
+    }
+  }, [currentStep, autoStartImageGen, isGeneratingImage, generatedImageUrl, barebonesMode, directPrompt]);
+
   // Visual AI recommendations state
   const [isTestingProxy, setIsTestingProxy] = useState(false);
   const navigate = useNavigate();
@@ -4986,9 +5001,8 @@ const Index = () => {
         return;
       }
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
-      // Default to DESIGN style for better text rendering when text is present
-      const hasText = finalText && finalText.trim();
-      const styleForIdeogram = hasText ? 'DESIGN' : getStyleTypeForIdeogram(visualStyle);
+      // Always respect the selected visual style
+      const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
       console.log('=== Ideogram Generation Debug ===');
       console.log('Direct prompt provided:', !!directPrompt.trim());
       console.log('Final prompt:', prompt);
@@ -5001,7 +5015,7 @@ const Index = () => {
         magic_prompt_option: 'AUTO',
         style_type: styleForIdeogram
       });
-      const modelForIdeogram = hasText ? 'V_2A_TURBO' : 'V_2A_TURBO'; // V_2A_TURBO is good for both text and non-text
+      const modelForIdeogram = 'V_2A_TURBO'; // V_2A_TURBO is good for both text and non-text
       const response = await generateIdeogramImage({
         prompt,
         aspect_ratio: aspectForIdeogram,
@@ -6372,20 +6386,20 @@ const Index = () => {
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium text-foreground">Preview</h3>
                   <div className="flex items-center gap-2 flex-wrap">
-                    {!isGeneratingImage && !generatedImageUrl && <>
-                        <Button onClick={handleGenerateImage} variant="brand" className="flex items-center gap-2">
-                          <Download className="h-4 w-4" />
-                          Generate VIIBE
-                        </Button>
-                      </>}
+                    {/* Manual generate button removed - auto-starts on step 4 */}
                   </div>
                 </div>
                 
                 <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
-                  {isGeneratingImage ? <div className="flex flex-col items-center gap-4">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <p className="text-muted-foreground text-lg">Generating image with Ideogram Turbo...</p>
-                    </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
+                  {isGeneratingImage ? (
+                    <div className="text-center">
+                      <Button variant="brand" disabled className="mb-4">
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generating VIIBE...
+                      </Button>
+                      <p className="text-sm text-muted-foreground">This may take a few moments</p>
+                    </div>
+                  ) : generatedImageUrl ? <div className="max-w-full max-h-full">
                       <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
                     </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
                       <AlertCircle className="h-8 w-8 text-destructive" />
@@ -6694,9 +6708,8 @@ const Index = () => {
 
                 // Calculate the exact same parameters used for generation
                 const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
-                const hasText = finalText && finalText.trim();
-                const styleForIdeogram = hasText ? 'DESIGN' : getStyleTypeForIdeogram(visualStyle);
-                const modelForIdeogram = hasText ? 'V_2A_TURBO' : 'V_2A_TURBO';
+                const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
+                const modelForIdeogram = 'V_2A_TURBO';
 
                 // Handle spelling guarantee mode modifications
                 let finalPrompt = prompt;
