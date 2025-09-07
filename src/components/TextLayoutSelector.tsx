@@ -33,12 +33,6 @@ const layoutOptions: LayoutOption[] = [
     bestFor: "Professional announcements"
   },
   {
-    id: "centerBlock",
-    name: "Center Block",
-    description: "Text block in the center of image",
-    bestFor: "Short quotes, key messages"
-  },
-  {
     id: "sideBarLeft",
     name: "Side Bar (Left)",
     description: "Text panel on the left side",

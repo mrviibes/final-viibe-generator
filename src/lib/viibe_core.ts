@@ -17,20 +17,14 @@ export const LAYOUTS = {
   memeTopBottom: {
     type: "memeTopBottom",
     zones: [
-      { pos: "top", x: 0, y: 0, w: "100%", h: "18%", align: "center", allCaps: true, stroke: true },
-      { pos: "bottom", x: 0, y: "82%", w: "100%", h: "18%", align: "center", allCaps: true, stroke: true },
+      { pos: "top", x: 0, y: 0, w: "100%", h: "18%", align: "center", allCaps: true, stroke: "2px black" },
+      { pos: "bottom", x: 0, y: "82%", w: "100%", h: "18%", align: "center", allCaps: true, stroke: "2px black" },
     ],
   },
   lowerThird: { 
     type: "lowerThirdBanner",
     zones: [
       { pos: "bottom", x: 0, y: "75%", w: "100%", h: "25%", align: "center", valign: "middle", padding: "5%" }
-    ]
-  },
-  centerBlock: {
-    type: "centerBlock", 
-    zones: [
-      { pos: "center", x: "25%", y: "35%", w: "50%", h: "30%", align: "center", valign: "middle", padding: "8%" }
     ]
   },
   sideBarLeft: { 
@@ -130,7 +124,6 @@ CRITICAL RULES:
    - negativeSpace  → ", clear empty area near largest margin"
    - memeTopBottom  → ", clear top band, clear bottom band" 
    - lowerThird     → ", leave bottom 25% completely clear and uncluttered for text banner"
-   - centerBlock    → ", leave central area completely clear for text block"
    - sideBarLeft    → ", clear left panel"
    - badgeSticker   → ", badge space top-right"
    - subtleCaption  → ", clear narrow bottom strip"
@@ -164,7 +157,7 @@ EXAMPLE for birthday + lowerThird:
 Subcategory: ${session.subcategory}
 Tone: ${tone}
 TextContent: "${textContent}"
-TextLayoutId: ${textLayoutId}  # one of: negativeSpace|memeTopBottom|lowerThird|centerBlock|sideBarLeft|badgeSticker|subtleCaption
+TextLayoutId: ${textLayoutId}  # one of: negativeSpace|memeTopBottom|lowerThird|sideBarLeft|badgeSticker|subtleCaption
 Tags: ${tags.join(', ')}
 ${session.entity ? `Entity: ${session.entity}` : ''}`;
 

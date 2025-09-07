@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -25,31 +25,28 @@ interface ImagenResponse {
   }>;
 }
 
-async function generateImageWithGemini(request: ImagenRequest): Promise<string> {
-  if (!GEMINI_API_KEY) {
-    const error = new Error('GEMINI_API_KEY not configured');
-    (error as any).type = 'config';
-    throw error;
+async function callGoogleImagesAPI(request: ImagenRequest): Promise<string[]> {
+  if (!GOOGLE_API_KEY) {
+    throw new Error('GOOGLE_API_KEY not configured');
   }
 
-  // Map aspect ratio to Google Imagen format
-  const aspectRatioMap: { [key: string]: string } = {
-    'ASPECT_1_1': '1:1',
-    'ASPECT_16_9': '16:9',
-    'ASPECT_9_16': '9:16',
-    'ASPECT_10_16': '10:16',
-    'ASPECT_16_10': '16:10'
-  };
+  const endpoint = `https://aiplatform.googleapis.com/v1/projects/${GOOGLE_API_KEY.split('-')[0]}/locations/us-central1/publishers/google/models/imagen-3.0-generate-001:predict`;
   
-  const aspectRatio = aspectRatioMap[request.aspect_ratio || 'ASPECT_1_1'] || '1:1';
+  // Map aspect ratio from Ideogram format to Google format
+  let aspectRatio = "1:1";
+  if (request.aspect_ratio === "ASPECT_1_1") aspectRatio = "1:1";
+  else if (request.aspect_ratio === "ASPECT_16_9") aspectRatio = "16:9";
+  else if (request.aspect_ratio === "ASPECT_9_16") aspectRatio = "9:16";
+  else if (request.aspect_ratio === "ASPECT_10_16") aspectRatio = "9:16"; // closest match
+  else if (request.aspect_ratio === "ASPECT_16_10") aspectRatio = "16:9"; // closest match
   
-  // Build detailed prompt
+  // Build prompt with style and negative
   let finalPrompt = request.prompt;
   if (request.style_type) {
     const styleMap: { [key: string]: string } = {
-      'REALISTIC': 'photorealistic style',
-      'DESIGN': 'modern graphic design style',
-      'RENDER_3D': '3D render style',
+      'REALISTIC': 'realistic photography style',
+      'DESIGN': 'clean design style',
+      'RENDER_3D': '3D rendered style',
       'ANIME': 'anime illustration style'
     };
     const stylePrefix = styleMap[request.style_type] || request.style_type.toLowerCase() + ' style';
@@ -60,140 +57,43 @@ async function generateImageWithGemini(request: ImagenRequest): Promise<string> 
     finalPrompt += `. Avoid: ${request.negative_prompt}`;
   }
 
-  console.log('Generating image with Google Generative Language Images API:', { 
-    prompt: finalPrompt.substring(0, 100) + '...', 
-    aspectRatio,
-    style: request.style_type
+  const payload = {
+    instances: [{
+      prompt: finalPrompt,
+      aspect_ratio: aspectRatio,
+      safety_filter_level: "block_some",
+      person_generation: "dont_allow"
+    }],
+    parameters: {
+      sampleCount: 1
+    }
+  };
+
+  console.log('Calling Google Images API with payload:', JSON.stringify(payload, null, 2));
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${GOOGLE_API_KEY}`,
+    },
+    body: JSON.stringify(payload),
   });
 
-  // Dual-endpoint strategy: try both endpoints
-  const endpoints = [
-    `https://generativelanguage.googleapis.com/v1beta/images:generate?key=${GEMINI_API_KEY}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/imagegeneration:generateImage?key=${GEMINI_API_KEY}`
-  ];
-  
-  const payloads = [
-    {
-      prompt: finalPrompt,
-      aspectRatio: aspectRatio,
-      sampleCount: 1
-    },
-    {
-      model: 'models/imagegeneration',
-      prompt: {
-        text: finalPrompt
-      },
-      config: {
-        aspectRatio: aspectRatio,
-        sampleCount: 1
-      }
-    }
-  ];
-
-  let lastError: any = null;
-
-  for (let i = 0; i < endpoints.length; i++) {
-    try {
-      console.log(`Attempting endpoint ${i + 1}:`, endpoints[i]);
-      
-      const response = await fetch(endpoints[i], {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payloads[i]),
-      });
-
-      const responseText = await response.text();
-      console.log(`Endpoint ${i + 1} response status:`, response.status);
-      console.log(`Endpoint ${i + 1} response headers:`, Object.fromEntries(response.headers.entries()));
-
-      if (!response.ok) {
-        console.error(`Endpoint ${i + 1} failed:`, response.status, responseText);
-        
-        // Parse error details
-        let errorMessage = `Image generation failed: ${response.status}`;
-        let errorType = 'transient';
-        
-        try {
-          const errorData = JSON.parse(responseText);
-          if (errorData.error) {
-            errorMessage = errorData.error.message || errorMessage;
-          }
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError);
-        }
-        
-        // Categorize errors for better handling
-        if (response.status === 401 || response.status === 403) {
-          errorType = 'auth';
-          errorMessage = 'Gemini API key is invalid or Google Generative Language API is not enabled. Please check your credentials and enable the API.';
-        } else if (response.status === 404) {
-          errorType = 'config';
-          errorMessage = 'Gemini image generation model not found. The Generative Language API may not be available in your region or project.';
-        } else if (response.status === 429) {
-          errorType = 'quota';
-          errorMessage = 'Gemini API quota exceeded. Please check your usage limits.';
-        } else if (response.status >= 500) {
-          errorType = 'server';
-          errorMessage = 'Gemini API server error. Please try again.';
-        }
-        
-        const error = new Error(errorMessage);
-        (error as any).type = errorType;
-        lastError = error;
-        
-        // If this is a non-transient error, don't try other endpoints
-        if (errorType !== 'transient' && errorType !== 'server') {
-          throw error;
-        }
-        
-        continue; // Try next endpoint
-      }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse response JSON:', parseError);
-        const error = new Error('Invalid response from Google Generative Language API');
-        (error as any).type = 'server';
-        lastError = error;
-        continue; // Try next endpoint
-      }
-      
-      // Try different response formats
-      let base64Image = null;
-      
-      if (data.generatedImages && data.generatedImages.length > 0) {
-        base64Image = data.generatedImages[0].bytesBase64Encoded;
-      } else if (data.candidates && data.candidates.length > 0) {
-        base64Image = data.candidates[0].content?.parts?.[0]?.inlineData?.data;
-      } else if (data.images && data.images.length > 0) {
-        base64Image = data.images[0].bytesBase64Encoded;
-      }
-      
-      if (base64Image) {
-        console.log(`Image generation successful with endpoint ${i + 1}`);
-        return base64Image;
-      } else {
-        console.error(`No images returned from endpoint ${i + 1}:`, data);
-        const error = new Error('No images returned from Google Images API');
-        (error as any).type = 'server';
-        lastError = error;
-        continue; // Try next endpoint
-      }
-      
-    } catch (error) {
-      console.error(`Endpoint ${i + 1} threw error:`, error);
-      lastError = error;
-      continue; // Try next endpoint
-    }
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Google Images API error:', response.status, errorText);
+    throw new Error(`Google Images API error: ${response.status} - ${errorText}`);
   }
 
-  // If we get here, all endpoints failed
-  console.error('All Gemini endpoints failed, throwing last error:', lastError);
-  throw lastError || new Error('All Gemini API endpoints failed');
+  const data: ImagenResponse = await response.json();
+  console.log('Google Images API response received');
+  
+  if (!data.predictions || data.predictions.length === 0) {
+    throw new Error('No images returned from Google Images API');
+  }
+
+  return data.predictions.map(prediction => prediction.bytesBase64Encoded);
 }
 
 serve(async (req) => {
@@ -273,11 +173,11 @@ serve(async (req) => {
     jobId = job.id;
     console.log('Created job:', jobId);
 
-    // Generate image with Gemini/OpenAI integration
-    const base64Image = await generateImageWithGemini(requestBody);
+    // Generate image with Google Images API
+    const base64Images = await callGoogleImagesAPI(requestBody);
     
-    // Upload image to storage
-    const imageBytes = Uint8Array.from(atob(base64Image), c => c.charCodeAt(0));
+    // Upload first image to storage
+    const imageBytes = Uint8Array.from(atob(base64Images[0]), c => c.charCodeAt(0));
     const fileName = `${userId || guestId}/${jobId}.png`;
     
     const { error: uploadError } = await supabase.storage
@@ -342,13 +242,8 @@ serve(async (req) => {
       }
     }
 
-    // Always return JSON with error type for frontend handling
-    const errorType = (error as any).type || 'unknown';
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        type: errorType
-      }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

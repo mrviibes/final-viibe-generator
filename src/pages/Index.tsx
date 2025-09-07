@@ -17,10 +17,9 @@ import { CorsRetryDialog } from "@/components/CorsRetryDialog";
 import { StepProgress } from "@/components/StepProgress";
 import { StackedSelectionCard } from "@/components/StackedSelectionCard";
 import { TextLayoutSelector } from "@/components/TextLayoutSelector";
-import { TextOverlay } from "@/components/TextOverlay";
 import { useNavigate } from "react-router-dom";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
-import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe, LAYOUTS } from "@/lib/viibe_core";
+import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
 import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { generateImagenImage, ImagenAPIError, mapIdeogramToImagen } from "@/lib/imagenApi";
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
@@ -4228,7 +4227,6 @@ const Index = () => {
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
   const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
-  const [selectedImageService, setSelectedImageService] = useState<string>("gemini"); // Default to Gemini
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
@@ -4591,34 +4589,36 @@ const Index = () => {
 
   // Helper function to check if Step 3 is complete
   const isStep3Complete = (): boolean => {
-    // In barebones mode, just need direct prompt, dimensions, and image service
+    // In barebones mode, just need direct prompt and dimensions
     if (barebonesMode) {
-      return !!directPrompt.trim() && !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight)) && !!selectedImageService;
+      return !!directPrompt.trim() && !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
     }
     
     if (!selectedVisualStyle || !selectedSubjectOption) return false;
 
-    // All paths require dimensions and image service selection
-    const hasDimensions = !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
-    const hasImageService = !!selectedImageService;
-    
-    if (!hasDimensions || !hasImageService) return false;
-
-    // If AI Assist is selected, require visual option selection
+    // If AI Assist is selected, require visual option selection and dimensions
     if (selectedSubjectOption === "ai-assist") {
-      return selectedVisualIndex !== null;
+      const hasVisualSelection = selectedVisualIndex !== null;
+      const hasDimensions = !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
+      return hasVisualSelection && hasDimensions;
     }
 
-    // If Design Myself is selected, require confirmed description
+    // If Design Myself is selected, require confirmed description and dimensions
     if (selectedSubjectOption === "design-myself") {
-      return subjectDescription.trim().length > 0 && isSubjectDescriptionConfirmed;
+      const hasConfirmedDescription = subjectDescription.trim().length > 0 && isSubjectDescriptionConfirmed;
+      const hasDimensions = !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
+      return hasConfirmedDescription && hasDimensions;
     }
 
-    // For single-person, multiple-people, and no-subject, just need dimensions and service
-    if (["single-person", "multiple-people", "no-subject"].includes(selectedSubjectOption)) {
-      return true;
+    // For single-person and multiple-people, just need dimensions
+    if (selectedSubjectOption === "single-person" || selectedSubjectOption === "multiple-people") {
+      return !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
     }
-    
+
+    // For "no-subject", just need dimensions
+    if (selectedSubjectOption === "no-subject") {
+      return !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
+    }
     return true;
   };
 
@@ -5016,80 +5016,33 @@ const Index = () => {
       let imageGenerated = false;
       let finalImageUrl = null;
       
-      // Use the selected image service
-      if (selectedImageService === "gemini") {
-        // Try Gemini first
-        try {
-          console.log('🚀 Using Gemini/OpenAI API...');
-          const imagenRequest = {
-            prompt,
-            aspect_ratio: aspectForIdeogram,
-            style_type: styleForIdeogram
-          };
-          
-          const imagenResponse = await generateImagenImage(imagenRequest);
-          if (imagenResponse.image_url) {
-            finalImageUrl = imagenResponse.image_url;
-            imageGenerated = true;
-            console.log('✅ Gemini generation successful');
-            sonnerToast.success("Your VIIBE has been generated with Google Gemini!");
-          }
-        } catch (imagenError) {
-          console.warn('⚠️ Gemini failed:', imagenError);
-          
-          // Check error type to determine if fallback should be used
-          const errorMessage = imagenError instanceof Error ? imagenError.message : String(imagenError);
-          const errorType = (imagenError as any)?.type;
-          
-          // Don't fallback for configuration errors (auth, config issues)
-          if (errorType === 'auth' || errorType === 'config' || 
-              errorMessage.includes('API key is invalid') || 
-              errorMessage.includes('not enabled') ||
-              errorMessage.includes('not found')) {
-            throw new Error(`Gemini configuration error: ${errorMessage}. Please check your Google Cloud project settings and API access.`);
-          }
-          
-          console.log('⚠️ Gemini failed with transient error, falling back to Ideogram');
-          
-          // Fall back to Ideogram for other errors (network, quota, etc.)
-          const apiKey = getIdeogramApiKey();
-          if (!apiKey) {
-            throw new Error('Gemini failed and no Ideogram API key available. Please add an Ideogram API key for fallback.');
-          }
+      // Try Google Imagen first
+      try {
+        console.log('🚀 Trying Google Imagen API first...');
+        const imagenRequest = {
+          prompt,
+          aspect_ratio: aspectForIdeogram,
+          style_type: styleForIdeogram
+        };
         
-          try {
-            console.log('🔄 Falling back to Ideogram API...');
-            const modelForIdeogram = 'V_2A_TURBO';
-            const ideogramResponse = await generateIdeogramImage({
-              prompt,
-              aspect_ratio: aspectForIdeogram,
-              model: modelForIdeogram,
-              magic_prompt_option: 'AUTO',
-              style_type: styleForIdeogram
-            });
-            
-            if (ideogramResponse.data && ideogramResponse.data.length > 0) {
-              finalImageUrl = ideogramResponse.data[0].url;
-              imageGenerated = true;
-              console.log('✅ Ideogram fallback successful');
-              sonnerToast.success("Your VIIBE has been generated with Ideogram (fallback)!");
-            } else {
-              throw new Error("No image data received from Ideogram API");
-            }
-          } catch (ideogramError) {
-            console.error('❌ Both Gemini and Ideogram failed');
-            throw ideogramError; // Re-throw the Ideogram error for handling below
-          }
+        const imagenResponse = await generateImagenImage(imagenRequest);
+        if (imagenResponse.image_url) {
+          finalImageUrl = imagenResponse.image_url;
+          imageGenerated = true;
+          console.log('✅ Google Imagen generation successful');
+          sonnerToast.success("Your VIIBE has been generated with Google Imagen!");
         }
-      } else {
-        // User selected Ideogram as primary service
+      } catch (imagenError) {
+        console.warn('⚠️ Google Imagen failed, falling back to Ideogram:', imagenError);
+        
+        // Only proceed to Ideogram fallback if we have an API key
+        const apiKey = getIdeogramApiKey();
+        if (!apiKey) {
+          throw new Error('Google Imagen failed and no Ideogram API key available. Please add an Ideogram API key for fallback.');
+        }
+        
         try {
-          console.log('🚀 Using Ideogram API (user preference)...');
-          const apiKey = getIdeogramApiKey();
-          if (!apiKey) {
-            throw new Error('Ideogram API key not available. Please add an Ideogram API key.');
-          }
-          
+          console.log('🔄 Falling back to Ideogram API...');
           const modelForIdeogram = 'V_2A_TURBO';
           const ideogramResponse = await generateIdeogramImage({
             prompt,
@@ -5102,21 +5055,21 @@ const Index = () => {
           if (ideogramResponse.data && ideogramResponse.data.length > 0) {
             finalImageUrl = ideogramResponse.data[0].url;
             imageGenerated = true;
-            console.log('✅ Ideogram generation successful');
-            sonnerToast.success("Your VIIBE has been generated with Ideogram!");
+            console.log('✅ Ideogram fallback successful');
+            sonnerToast.success("Your VIIBE has been generated with Ideogram (fallback)!");
           } else {
             throw new Error("No image data received from Ideogram API");
           }
         } catch (ideogramError) {
-          console.error('❌ Ideogram generation failed');
-          throw ideogramError;
+          console.error('❌ Both Google Imagen and Ideogram failed');
+          throw ideogramError; // Re-throw the Ideogram error for handling below
         }
       }
       
       if (imageGenerated && finalImageUrl) {
         setGeneratedImageUrl(finalImageUrl);
       } else {
-        throw new Error("Failed to generate image");
+        throw new Error("Failed to generate image with both Google Imagen and Ideogram");
       }
     } catch (error) {
       console.error('Image generation failed:', error);
@@ -6440,53 +6393,6 @@ const Index = () => {
               </div>)}
           </>}
 
-        {/* Image Service Selection - Show when dimensions are selected but before final generation */}
-        {currentStep === 3 && selectedDimension && (
-          <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="text-center mb-6">
-              <p className="text-xl text-muted-foreground">Choose your image generation service</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-3xl mx-auto">
-              <Card 
-                className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full max-w-md ${
-                  selectedImageService === "gemini" ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "hover:bg-accent/50"
-                }`} 
-                onClick={() => setSelectedImageService("gemini")}
-              >
-                <CardHeader className="pb-3 text-center">
-                  <CardTitle className="text-lg font-semibold text-card-foreground">
-                    Gemini Pro (Recommended)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm text-muted-foreground text-center">
-                    Google's advanced AI for high-quality, creative image generation with better understanding of complex prompts
-                  </CardDescription>
-                </CardContent>
-              </Card>
-              
-              <Card 
-                className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full max-w-md ${
-                  selectedImageService === "ideogram" ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "hover:bg-accent/50"
-                }`} 
-                onClick={() => setSelectedImageService("ideogram")}
-              >
-                <CardHeader className="pb-3 text-center">
-                  <CardTitle className="text-lg font-semibold text-card-foreground">
-                    Ideogram Turbo
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm text-muted-foreground text-center">
-                    Fast and reliable image generation with excellent text rendering capabilities
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
-
         {currentStep === 4 && <>
             <div className="text-center mb-8">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">
@@ -6558,15 +6464,6 @@ const Index = () => {
                       <Download className="h-4 w-4" />
                       Download Image
                     </Button>
-                    {selectedTextLayout && (selectedGeneratedOption || stepTwoText) && (
-                      <Button 
-                        variant="secondary" 
-                        className="flex items-center gap-2" 
-                        onClick={() => setShowTextOverlay(true)}
-                      >
-                        Apply Text Layout
-                      </Button>
-                    )}
                     <Button variant="brand" className="flex items-center gap-2" onClick={handleGenerateImage} disabled={isGeneratingImage}>
                       {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -6580,31 +6477,6 @@ const Index = () => {
                       Start Over
                     </Button>
                   </div>}
-
-                  {/* Text Overlay Component */}
-                  {showTextOverlay && generatedImageUrl && selectedTextLayout && (selectedGeneratedOption || stepTwoText) && (
-                    <div className="mt-8">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold">Applying Text Layout</h3>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => setShowTextOverlay(false)}
-                        >
-                          <X className="h-4 w-4" />
-                          Back to Image
-                        </Button>
-                      </div>
-                      <TextOverlay
-                        backgroundImageUrl={generatedImageUrl}
-                        text={selectedGeneratedOption || stepTwoText}
-                        layoutSpec={LAYOUTS[selectedTextLayout as keyof typeof LAYOUTS]}
-                        onImageReady={(finalImageUrl) => {
-                          setFinalImageWithText(finalImageUrl);
-                        }}
-                      />
-                    </div>
-                  )}
               </div>
               
               {/* Proxy Settings Dialog */}
@@ -6944,7 +6816,7 @@ const Index = () => {
                 setCurrentStep(prev => prev + 1);
               }
             }} disabled={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete()}>
-                {currentStep === 3 && isStep3Complete() && selectedDimension && selectedImageService ? "Generate VIIBE" : <>
+                {currentStep === 3 && isStep3Complete() && selectedDimension ? "Generate VIIBE" : <>
                     Continue
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </>}

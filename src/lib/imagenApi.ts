@@ -13,18 +13,9 @@ export interface ImagenGenerateResponse {
 }
 
 export class ImagenAPIError extends Error {
-  public type?: string;
-  
-  constructor(message: string, public statusCode?: number, context?: any) {
+  constructor(message: string, public statusCode?: number) {
     super(message);
     this.name = 'ImagenAPIError';
-    
-    // Extract error type from context if available
-    if (context?.error?.type) {
-      this.type = context.error.type;
-    } else if (context?.type) {
-      this.type = context.type;
-    }
   }
 }
 
@@ -47,7 +38,7 @@ export async function generateImagenImage(request: ImagenGenerateRequest): Promi
 
     if (error) {
       console.error('Imagen generation error:', error);
-      throw new ImagenAPIError(error.message || 'Failed to generate image with Imagen', undefined, error);
+      throw new ImagenAPIError(error.message || 'Failed to generate image with Imagen');
     }
 
     if (!data || !data.job_id || !data.image_url) {
