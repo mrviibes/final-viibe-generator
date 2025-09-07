@@ -84,10 +84,19 @@ function sanitizeAndValidate(text: string): TextGenOutput | null {
         return null;
       }
       
-      // Check character limit
-      if (line.text.length > 70) {
+      // Updated character limit for longer options
+      if (line.text.length > 100) {
         return null;
       }
+    }
+    
+    // Check for length variety
+    const lengths = parsed.lines.map((line: any) => line.text.length);
+    const lengthRange = Math.max(...lengths) - Math.min(...lengths);
+    
+    // Require at least 30 characters difference between shortest and longest
+    if (lengthRange < 30) {
+      return null;
     }
     
     return parsed as TextGenOutput;

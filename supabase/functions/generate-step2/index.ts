@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Updated comprehensive system prompt with bulletproof rules
+// New system prompt enforcing distinct text options with proper length and tonal variety
 const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY valid JSON:
 {
   "lines": [
@@ -19,47 +19,44 @@ const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY valid JSON:
   ]
 }
 
-STRICT RULES:
-1. LENGTH:
-   - Each line ≤ 70 characters
-   - Must vary: one short (~35–40), one medium (~50–55), one longer (~65–70)
+CRITICAL: Generate 4 DISTINCT text options that feel completely different in tone, pacing, and length.
 
-2. CATEGORY & SUBCATEGORY:
-   - Subcategory drives anchors (Birthday → cake, candles, balloons, confetti, gifts)
-   - At least 1 anchor word in every line
+LENGTH VARIETY (ENFORCED):
+• Option 1 → Short quip (under 40 characters)
+• Option 2 → Medium playful line (40–70 characters)  
+• Option 3 → Longer, storylike gag (70–100 characters)
+• Option 4 → Wildcard length (different rhythm than others)
 
-3. TONE:
-   - Respect the chosen tone:
-     * Humorous = silly, playful, witty wordplay (NOT savage roasts)
-     * Savage = roast comic energy (sharp, biting)
-     * Sentimental = warm, heartfelt
-     * Romantic = affectionate, dreamy
-     * Inspirational = uplifting, positive
-   - Don't mix tones. Stay consistent with the one selected.
+TONAL VARIETY (ENFORCED):
+Must include at least one from each angle:
+• Literal/safe (cake, balloons, candles, birthday basics)
+• Supportive/celebratory (warm, congratulatory, positive)  
+• Alternate playful (quirky metaphor, silly twist, object humor)
+• Roast/mischievous (light jab, but not mean-spirited)
 
-4. TAGS:
-   - If no tags: generate normally
-   - If tags exist:
-     * At least 3 of 4 lines must include ALL tags literally
-     * Tags must appear naturally (not all crammed together)
-     * Trait tags (e.g. gay, bald, vegan):
-       - Humorous/Playful → lighthearted, campy, silly
-       - Savage → roast or biting
-       - Sentimental/Romantic/Inspirational → affirming, positive
+TAG HANDLING:
+• Rotate tags across options so one concept doesn't dominate all four
+• Use 2–3 different tags per generation when available
+• Natural integration, not forced cramming
 
-5. VARIETY:
-   - All 4 lines must be different angles, not rephrasings
-   - Force lane diversity:
-     * Option1 (literal) = directly matches text/anchor
-     * Option2 (supportive) = audience or props reacting
-     * Option3 (alternate) = different perspective/subject
-     * Option4 (creative) = abstract or absurd metaphor
+CATEGORY & SUBCATEGORY:
+• Subcategory drives anchors (Birthday → cake, candles, balloons, confetti, gifts)
+• At least 1 anchor word in every line when anchors available
 
-6. STYLE:
-   - Conversational, natural phrasing (sounds human, not robotic)
-   - Simple punctuation: commas, periods, colons only
-   - No em-dashes (—) or double dashes (--)
-   - Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"`;
+TONE CONSISTENCY:
+• Respect the chosen tone as the base, but allow variety within it:
+  * Humorous = silly, playful, witty wordplay
+  * Savage = roast comic energy (sharp, biting) 
+  * Sentimental = warm, heartfelt
+  * Romantic = affectionate, dreamy
+  * Inspirational = uplifting, positive
+
+STYLE RULES:
+• Conversational, natural phrasing (sounds human, not robotic)
+• Simple punctuation: commas, periods, colons only
+• No em-dashes (—) or double dashes (--)
+• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"
+• NO SINGLE-TAG DOMINANCE - vary your approaches across all 4 options`;
 
 // System prompt for categories WITHOUT anchors
 const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY valid JSON:
@@ -72,47 +69,44 @@ const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY valid JSON:
   ]
 }
 
-STRICT RULES:
-1. LENGTH:
-   - Each line ≤ 70 characters
-   - Must vary: one short (~35–40), one medium (~50–55), one longer (~65–70)
+CRITICAL: Generate 4 DISTINCT text options that feel completely different in tone, pacing, and length.
 
-2. CATEGORY & SUBCATEGORY:
-   - Do NOT force props or scene objects for this subcategory
-   - Focus on the concept/theme instead
+LENGTH VARIETY (ENFORCED):
+• Option 1 → Short quip (under 40 characters)
+• Option 2 → Medium playful line (40–70 characters)
+• Option 3 → Longer, storylike gag (70–100 characters)  
+• Option 4 → Wildcard length (different rhythm than others)
 
-3. TONE:
-   - Respect the chosen tone:
-     * Humorous = silly, playful, witty wordplay (NOT savage roasts)
-     * Savage = roast comic energy (sharp, biting)
-     * Sentimental = warm, heartfelt
-     * Romantic = affectionate, dreamy
-     * Inspirational = uplifting, positive
-   - Don't mix tones. Stay consistent with the one selected.
+TONAL VARIETY (ENFORCED):
+Must include at least one from each angle:
+• Literal/safe (concept basics)
+• Supportive/celebratory (warm, congratulatory, positive)
+• Alternate playful (quirky metaphor, silly twist, conceptual humor)
+• Roast/mischievous (light jab, but not mean-spirited)
 
-4. TAGS:
-   - If no tags: generate normally
-   - If tags exist:
-     * At least 3 of 4 lines must include ALL tags literally
-     * Tags must appear naturally (not all crammed together)
-     * Trait tags (e.g. gay, bald, vegan):
-       - Humorous/Playful → lighthearted, campy, silly
-       - Savage → roast or biting
-       - Sentimental/Romantic/Inspirational → affirming, positive
+TAG HANDLING:
+• Rotate tags across options so one concept doesn't dominate all four
+• Use 2–3 different tags per generation when available
+• Natural integration, not forced cramming
 
-5. VARIETY:
-   - All 4 lines must be different angles, not rephrasings
-   - Force lane diversity:
-     * Option1 (literal) = directly matches text/anchor
-     * Option2 (supportive) = audience or props reacting
-     * Option3 (alternate) = different perspective/subject
-     * Option4 (creative) = abstract or absurd metaphor
+CATEGORY & SUBCATEGORY:
+• Do NOT force props or scene objects for this subcategory
+• Focus on the concept/theme instead
 
-6. STYLE:
-   - Conversational, natural phrasing (sounds human, not robotic)
-   - Simple punctuation: commas, periods, colons only
-   - No em-dashes (—) or double dashes (--)
-   - Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"`;
+TONE CONSISTENCY:
+• Respect the chosen tone as the base, but allow variety within it:
+  * Humorous = silly, playful, witty wordplay
+  * Savage = roast comic energy (sharp, biting)
+  * Sentimental = warm, heartfelt  
+  * Romantic = affectionate, dreamy
+  * Inspirational = uplifting, positive
+
+STYLE RULES:
+• Conversational, natural phrasing (sounds human, not robotic)
+• Simple punctuation: commas, periods, colons only
+• No em-dashes (—) or double dashes (--)
+• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"
+• NO SINGLE-TAG DOMINANCE - vary your approaches across all 4 options`;
 
 // Category-specific anchor dictionaries
 const ANCHORS = {
@@ -349,8 +343,8 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       });
     }
     
-    // Enhanced length validation with proper bands enforcement
-    const targetBands = [[35, 40], [50, 55], [65, 70], [68, 70]];
+    // Updated length validation for new variety system
+    const targetBands = [[20, 39], [40, 69], [70, 100], [20, 100]]; // Short, Medium, Long, Wildcard
     
     processedLines.forEach((line, index) => {
       const [minLen, maxLen] = targetBands[index];
@@ -377,11 +371,20 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       });
     });
     
-    // Check length variety (should span at least 20 chars)
+    // Enhanced length variety check - must span at least 30 chars and have distinct bands
     const lengths = processedLines.map(line => line.text.length);
     const lengthRange = Math.max(...lengths) - Math.min(...lengths);
-    if (lengthRange < 20) {
+    if (lengthRange < 30) {
       errors.push("Insufficient length variety");
+    }
+    
+    // Check for distinct length bands
+    const shortCount = lengths.filter(l => l <= 39).length;
+    const mediumCount = lengths.filter(l => l >= 40 && l <= 69).length; 
+    const longCount = lengths.filter(l => l >= 70).length;
+    
+    if (shortCount === 0 || (mediumCount === 0 && longCount === 0)) {
+      errors.push("Missing required length variety (need short + medium/long mix)");
     }
     
     if (errors.length === 0) {
