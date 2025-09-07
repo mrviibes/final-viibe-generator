@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
 import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
 import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
+import { generateImagenImage, ImagenAPIError, mapIdeogramToImagen } from "@/lib/imagenApi";
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
@@ -4940,11 +4941,8 @@ const Index = () => {
     });
   };
   const handleGenerateImage = async () => {
-    const apiKey = getIdeogramApiKey();
-    if (!apiKey) {
-      setShowIdeogramKeyDialog(true);
-      return;
-    }
+    // Google Imagen doesn't require user API key, but we'll try Ideogram as fallback if available
+    // No need to block generation if Ideogram key is missing
     setIsGeneratingImage(true);
     setImageGenerationError("");
     setGeneratedImageUrl(null);
@@ -5015,23 +5013,69 @@ const Index = () => {
         magic_prompt_option: 'AUTO',
         style_type: styleForIdeogram
       });
-      const modelForIdeogram = 'V_2A_TURBO'; // V_2A_TURBO is good for both text and non-text
-      const response = await generateIdeogramImage({
-        prompt,
-        aspect_ratio: aspectForIdeogram,
-        model: modelForIdeogram,
-        magic_prompt_option: 'AUTO',
-        style_type: styleForIdeogram
-      });
-      if (response.data && response.data.length > 0) {
-        setGeneratedImageUrl(response.data[0].url);
-        sonnerToast.success("Your VIIBE has been generated successfully!");
+      let imageGenerated = false;
+      let finalImageUrl = null;
+      
+      // Try Google Imagen first
+      try {
+        console.log('🚀 Trying Google Imagen API first...');
+        const imagenRequest = {
+          prompt,
+          aspect_ratio: aspectForIdeogram,
+          style_type: styleForIdeogram
+        };
+        
+        const imagenResponse = await generateImagenImage(imagenRequest);
+        if (imagenResponse.image_url) {
+          finalImageUrl = imagenResponse.image_url;
+          imageGenerated = true;
+          console.log('✅ Google Imagen generation successful');
+          sonnerToast.success("Your VIIBE has been generated with Google Imagen!");
+        }
+      } catch (imagenError) {
+        console.warn('⚠️ Google Imagen failed, falling back to Ideogram:', imagenError);
+        
+        // Only proceed to Ideogram fallback if we have an API key
+        const apiKey = getIdeogramApiKey();
+        if (!apiKey) {
+          throw new Error('Google Imagen failed and no Ideogram API key available. Please add an Ideogram API key for fallback.');
+        }
+        
+        try {
+          console.log('🔄 Falling back to Ideogram API...');
+          const modelForIdeogram = 'V_2A_TURBO';
+          const ideogramResponse = await generateIdeogramImage({
+            prompt,
+            aspect_ratio: aspectForIdeogram,
+            model: modelForIdeogram,
+            magic_prompt_option: 'AUTO',
+            style_type: styleForIdeogram
+          });
+          
+          if (ideogramResponse.data && ideogramResponse.data.length > 0) {
+            finalImageUrl = ideogramResponse.data[0].url;
+            imageGenerated = true;
+            console.log('✅ Ideogram fallback successful');
+            sonnerToast.success("Your VIIBE has been generated with Ideogram (fallback)!");
+          } else {
+            throw new Error("No image data received from Ideogram API");
+          }
+        } catch (ideogramError) {
+          console.error('❌ Both Google Imagen and Ideogram failed');
+          throw ideogramError; // Re-throw the Ideogram error for handling below
+        }
+      }
+      
+      if (imageGenerated && finalImageUrl) {
+        setGeneratedImageUrl(finalImageUrl);
       } else {
-        throw new Error("No image data received from Ideogram API");
+        throw new Error("Failed to generate image with both Google Imagen and Ideogram");
       }
     } catch (error) {
       console.error('Image generation failed:', error);
-      if (error instanceof IdeogramAPIError) {
+      if (error instanceof ImagenAPIError) {
+        setImageGenerationError(`Google Imagen error: ${error.message}`);
+      } else if (error instanceof IdeogramAPIError) {
         // Handle specific CORS demo activation error
         if (error.message === 'CORS_DEMO_REQUIRED') {
           setShowCorsRetryDialog(true);
@@ -5043,7 +5087,7 @@ const Index = () => {
           setImageGenerationError('Connection failed. Trying alternative proxy methods automatically...');
           setTimeout(() => setShowProxySettingsDialog(true), 2000);
         } else {
-          setImageGenerationError(error.message);
+          setImageGenerationError(`Ideogram fallback error: ${error.message}`);
         }
       } else {
         setImageGenerationError('An unexpected error occurred while generating the image.');
