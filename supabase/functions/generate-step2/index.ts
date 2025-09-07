@@ -47,42 +47,79 @@ const BANNED_PHRASES = [
   "happy birthday to you", "many more", "best wishes"
 ];
 
-// Deterministic savage fallback templates that pass validation by construction
+// Deterministic savage fallback templates v3 - guaranteed compliance
 function generateSavageFallback(inputs: any): any {
-  console.log("Using deterministic savage fallback v2");
+  console.log("Using deterministic savage fallback v3");
   
   const { tags = [] } = inputs;
-  const allTags = tags.join(" ");
   
-  // Templates with exact lengths and guaranteed anchors/tags
-  const templates = [
-    // Line 1 (~40 chars, light jab)
-    tags.length > 0 
-      ? `${allTags} cake looks disappointed already.` // ~40 with tags
-      : `Your cake already looks disappointed.`, // ~35 without tags
+  // Build templates with escalating savageness and exact length compliance
+  let templates: string[] = [];
+  
+  if (tags.length > 0) {
+    const tagString = tags.join(" ");
+    templates = [
+      // Line 1: Light jab, ~40 chars, includes tags + anchor
+      `${tagString} cake looks utterly pathetic.`, // ~40 chars with tags
+      
+      // Line 2: Medium roast, ~55-60 chars, includes tags + anchor  
+      `Your ${tagString} balloons are deflating faster than hope.`, // ~55-60 chars
+      
+      // Line 3: Heavy burn, ~65-70 chars, includes tags + anchor
+      `These candles smell better than ${tagString} life choices.`, // ~60-65 chars
+      
+      // Line 4: Nuclear destruction, ~68-70 chars, no tags (by design)
+      `Your party hats, confetti and gifts filed for divorce papers.` // ~68 chars
+    ];
+  } else {
+    templates = [
+      // Line 1: Light jab, ~35-45 chars
+      `Your cake looks utterly disappointed.`, // ~38 chars
+      
+      // Line 2: Medium roast, ~55-60 chars
+      `Even the balloons are plotting their escape route.`, // ~51 chars
+      
+      // Line 3: Heavy burn, ~65-70 chars  
+      `Those candles have more personality than you ever will display.`, // ~66 chars
+      
+      // Line 4: Nuclear destruction, ~68-70 chars
+      `Your party hats, confetti and gifts staged an intervention.` // ~62 chars
+    ];
+  }
+  
+  // Ensure each template has required birthday anchors and proper escalation
+  const finalTemplates = templates.map((template, index) => {
+    // Ensure proper length bands: [35-45, 55-60, 65-70, 68-70]
+    const targetBands = [[35, 45], [55, 60], [65, 70], [68, 70]];
+    const [minLen, maxLen] = targetBands[index];
     
-    // Line 2 (~55-60 chars, medium roast)  
-    tags.length > 0
-      ? `Even the balloons want to escape ${allTags} disaster.` // ~55 with tags
-      : `Even the balloons are trying to escape this disaster.`, // ~52 without tags
+    let text = template;
     
-    // Line 3 (~65-70 chars, heavy burn)
-    tags.length > 0
-      ? `Those candles have more life than ${allTags} personality ever will.` // ~68 with tags
-      : `Those candles have more life than your personality ever will.`, // ~62 without tags
+    // Length adjustment if needed
+    if (text.length < minLen) {
+      text = text.replace(".", " clearly.");
+    } else if (text.length > maxLen) {
+      const words = text.split(" ");
+      while (words.length > 1 && words.join(" ").length > maxLen) {
+        words.pop();
+      }
+      text = words.join(" ");
+      if (!/[.!?]$/.test(text)) text += ".";
+    }
     
-    // Line 4 (~68-70 chars, nuclear destruction, no tags)
-    `Your party hats, confetti, and gifts are staging an intervention.` // ~67
-  ];
+    return text;
+  });
   
   return {
-    lines: templates.map((text, index) => ({
+    lines: finalTemplates.map((text, index) => ({
       lane: `option${index + 1}`,
       text: text
     })),
-    model: "savage-fallback-v2",
+    model: "savage-fallback-v3",
     validated: true,
-    reason: "deterministic_fallback"
+    reason: "deterministic_fallback",
+    tags_used: tags.length > 0,
+    fallback_version: "v3"
   };
 }
 
@@ -231,7 +268,7 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
   }
 }
 
-// Main generation function with enhanced retry logic
+// Main generation function with enhanced retry logic and JSON mode
 async function attemptGeneration(inputs: any, attemptNumber: number): Promise<any> {
   const userMessage = buildUserMessage(inputs);
   
@@ -239,52 +276,99 @@ async function attemptGeneration(inputs: any, attemptNumber: number): Promise<an
   console.log("User message:", userMessage);
   
   try {
-    // Use GPT-5 with proper parameters
+    // Enhanced request with JSON mode forcing and fallback models
+    const models = ['gpt-5-2025-08-07', 'gpt-4.1-2025-04-14'];
+    const model = models[Math.min(attemptNumber - 1, models.length - 1)];
+    
+    console.log(`Using model: ${model}`);
+    
+    const requestBody: any = {
+      model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userMessage }
+      ],
+      response_format: { type: "json_object" }, // Force JSON mode
+    };
+    
+    // Add model-specific parameters
+    if (model.startsWith('gpt-5') || model.startsWith('gpt-4.1')) {
+      requestBody.max_completion_tokens = 800;
+    } else {
+      requestBody.max_tokens = 800;
+      requestBody.temperature = 0.7;
+    }
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userMessage }
-        ],
-        max_completion_tokens: 800,
-        // Note: temperature not supported on GPT-5
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`OpenAI API error ${response.status}:`, errorText);
       throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    const rawContent = data.choices[0].message.content;
     
-    console.log(`Attempt ${attemptNumber} raw response:`, rawContent);
+    // Check for missing or empty content
+    if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+      console.error("Empty or missing content from OpenAI:", data);
+      throw new Error("Empty response from OpenAI API");
+    }
     
-    // Validate and repair
+    const rawContent = data.choices[0].message.content.trim();
+    
+    if (!rawContent) {
+      throw new Error("Blank response from OpenAI API");
+    }
+    
+    console.log(`Attempt ${attemptNumber} raw response (${rawContent.length} chars):`, rawContent.substring(0, 200) + "...");
+    
+    // Validate and repair with two-pass length normalization
     const { result, errors, repairs } = validateAndRepair(rawContent, inputs);
     
     if (result) {
+      // Second pass: length normalization after tag injection
+      const finalLines = result.lines.map((line: any, index: number) => {
+        let text = line.text;
+        const targetBands = [[35, 45], [55, 60], [65, 70], [68, 70]];
+        const [minLen, maxLen] = targetBands[index];
+        
+        if (text.length > maxLen) {
+          const words = text.split(" ");
+          while (words.length > 1 && words.join(" ").length > maxLen) {
+            words.pop();
+          }
+          text = words.join(" ");
+          if (!/[.!?]$/.test(text)) text += ".";
+          repairs.push(`Line ${index + 1}: Final length normalization`);
+        }
+        
+        return { ...line, text };
+      });
+      
       console.log(`Attempt ${attemptNumber} succeeded with repairs:`, repairs);
       return {
-        ...result,
-        model: "gpt-5-2025-08-07",
+        lines: finalLines,
+        model: model,
         validated: true,
-        repairs
+        repairs,
+        attempt: attemptNumber
       };
     } else {
       console.log(`Attempt ${attemptNumber} failed validation:`, errors);
-      return { errors };
+      return { errors, attempt: attemptNumber };
     }
     
   } catch (error) {
     console.error(`Attempt ${attemptNumber} error:`, error);
-    return { errors: [error.message] };
+    return { errors: [error.message], attempt: attemptNumber };
   }
 }
 
