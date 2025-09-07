@@ -331,7 +331,12 @@ Return pure JSON only.`;
       model: result._apiMeta?.modelUsed || 'gpt-5-mini-2025-08-07'
     };
   } catch (error) {
-    console.error('Error generating visual recommendations:', error);
+    console.error('❌ Visual generation failed:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      inputs: { category, subcategory, tone, tags: tags.slice(0, 3) }
+    });
     
     // Determine specific error type for better user guidance
     let errorCode: 'timeout' | 'unauthorized' | 'network' | 'parse_error' = 'network';

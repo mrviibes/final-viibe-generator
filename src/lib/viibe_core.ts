@@ -70,6 +70,14 @@ export async function generateVisualOptions(session: Session, { tone, tags = [] 
   model: string;
 }> {
   try {
+    console.log('🎨 generateVisualOptions called with:', { 
+      category: session.category, 
+      subcategory: session.subcategory, 
+      tone, 
+      tags, 
+      entity: session.entity 
+    });
+    
     const result = await generateVisualRecommendations({
       category: session.category,
       subcategory: session.subcategory,
