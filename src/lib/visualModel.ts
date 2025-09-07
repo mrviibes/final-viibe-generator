@@ -259,40 +259,61 @@ Return pure JSON only.`;
     const startTime = Date.now();
     console.log('🚀 Starting visual generation with optimized settings...');
     
-    // Helper to create a fresh timeout promise for each attempt
-    const makeTimeoutPromise = (ms = 30000) => new Promise((_, reject) => {
+    // Helper to create a fresh timeout promise for each attempt (increased to 45s for reliability)
+    const makeTimeoutPromise = (ms = 45000) => new Promise((_, reject) => {
       setTimeout(() => reject(new Error('TIMEOUT')), ms);
     });
 
-    // Primary attempt with optimized settings
+    // Primary attempt with GPT-4.1 for better reliability
     let result;
     try {
+      console.log('🎯 Using GPT-4.1 for visual generation...');
       result = await Promise.race([
         openAIService.chatJSON([
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ], {
-          max_completion_tokens: 900,
-          model: 'gpt-5-mini-2025-08-07'
+          max_completion_tokens: 500,
+          model: 'gpt-4.1-2025-04-14'
         }),
         makeTimeoutPromise()
       ]);
     } catch (firstError) {
-      // Automatic retry with larger model and compact prompt on parse failure
-      if (firstError instanceof Error && (firstError.message.includes('JSON') || firstError.message.includes('parse'))) {
-        console.log('🔄 Retrying with larger model due to parse error...');
-        const compactUserPrompt = `${category}>${subcategory}, ${tone}, ${tags.slice(0,3).join(',')}. Generate 4 compact visual JSON concepts. Pure JSON only.`;
-        
-        result = await Promise.race([
-          openAIService.chatJSON([
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: compactUserPrompt }
-          ], {
-            max_completion_tokens: 1000,
-            model: 'gpt-5-2025-08-07'
-          }),
-          makeTimeoutPromise()
-        ]);
+      console.error('❌ Primary attempt failed:', firstError);
+      
+      // Check for specific error types and retry appropriately
+      if (firstError instanceof Error) {
+        if (firstError.message.includes('truncated') || firstError.message.includes('length')) {
+          console.log('🔄 Retrying with shorter prompt due to truncation...');
+          const compactUserPrompt = `${category}>${subcategory}, ${tone}, ${tags.slice(0,2).join(',')}. Generate 4 visual JSON concepts. Pure JSON only.`;
+          
+          result = await Promise.race([
+            openAIService.chatJSON([
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: compactUserPrompt }
+            ], {
+              max_completion_tokens: 400,
+              model: 'gpt-4.1-2025-04-14'
+            }),
+            makeTimeoutPromise()
+          ]);
+        } else if (firstError.message.includes('JSON') || firstError.message.includes('parse')) {
+          console.log('🔄 Retrying with minimal prompt due to parse error...');
+          const minimalPrompt = `${category}, ${tone}. Generate 4 visual concepts as JSON.`;
+          
+          result = await Promise.race([
+            openAIService.chatJSON([
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: minimalPrompt }
+            ], {
+              max_completion_tokens: 600,
+              model: 'gpt-4.1-2025-04-14'
+            }),
+            makeTimeoutPromise()
+          ]);
+        } else {
+          throw firstError;
+        }
       } else {
         throw firstError;
       }
@@ -337,17 +358,17 @@ Return pure JSON only.`;
     });
     
     // Determine specific error type for better user guidance
-    let errorCode: 'timeout' | 'unauthorized' | 'network' | 'parse_error' = 'network';
+    let errorCode: 'TIMEOUT' | 'TRUNCATED' | 'PARSE_ERROR' | 'GENERATION_FAILED' = 'GENERATION_FAILED';
     
     if (error instanceof Error) {
       if (error.message === 'TIMEOUT') {
-        errorCode = 'timeout';
-        console.warn('⚠️ Visual generation timed out after 30s');
-      } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
-        errorCode = 'unauthorized';
-        console.warn('⚠️ API key issue detected');
+        errorCode = 'TIMEOUT';
+        console.warn('⚠️ Visual generation timed out after 45s');
+      } else if (error.message.includes('truncated') || error.message.includes('length')) {
+        errorCode = 'TRUNCATED';
+        console.warn('⚠️ Response was truncated - prompt too long');
       } else if (error.message.includes('JSON') || error.message.includes('parse')) {
-        errorCode = 'parse_error';
+        errorCode = 'PARSE_ERROR';
         console.warn('⚠️ Response parsing failed');
       }
     }
@@ -358,7 +379,7 @@ Return pure JSON only.`;
     return {
       options: fallbackOptions,
       model: 'fallback',
-      errorCode
+      errorCode: errorCode as any
     };
   }
 }

@@ -99,19 +99,25 @@ export async function generateVisualOptions(session: Session, { tone, tags = [] 
       prompt: option.prompt
     }));
 
-    return {
+    const finalResult = {
       visualOptions,
       negativePrompt: "",
       model: result.model
     };
+    if ((result as any).errorCode) {
+      (finalResult as any).errorCode = (result as any).errorCode;
+    }
+    return finalResult;
   } catch (error) {
     console.error('Error in generateVisualOptions:', error);
     // Fallback to empty options on error
-    return {
+    const errorResult = {
       visualOptions: [],
       negativePrompt: "",
       model: "error"
     };
+    (errorResult as any).errorCode = "GENERATION_FAILED";
+    return errorResult;
   }
 }
 

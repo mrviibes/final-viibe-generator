@@ -4090,12 +4090,23 @@ const Index = () => {
           setVisualRecommendations(recommendations);
         } catch (error) {
           console.error('Failed to generate visual recommendations:', error);
-          const {
-            toast
-          } = useToast();
+          
+          // Show specific error message based on error type
+          let errorMessage = "Failed to generate visual recommendations";
+          if (error instanceof Error) {
+            if (error.message.includes('TIMEOUT')) {
+              errorMessage = "Visual generation timed out. Please try again.";
+            } else if (error.message.includes('TRUNCATED')) {
+              errorMessage = "Request too complex. Try simpler tags.";
+            } else if (error.message.includes('PARSE_ERROR')) {
+              errorMessage = "AI response format error. Please retry.";
+            }
+          }
+          
+          const { toast } = useToast();
           toast({
-            title: "Error",
-            description: "Failed to generate visual recommendations",
+            title: "Visual Generation Error",
+            description: errorMessage,
             variant: "destructive"
           });
         }
@@ -4516,9 +4527,19 @@ const Index = () => {
         slots: visualResult.options.map(opt => opt.slot)
       });
 
-      // Warn if fallbacks were used
-      if (visualResult.model === 'fallback') {
-        console.warn('⚠️ Visual generation used fallback options. API may be unavailable or having issues.');
+      // Show appropriate feedback based on generation result
+      const errorCode = (result as any).errorCode;
+      if (errorCode) {
+        const fallbackMessages: Record<string, string> = {
+          'TIMEOUT': 'Visual generation timed out - using fallback options',
+          'TRUNCATED': 'Request too complex - using fallback options', 
+          'PARSE_ERROR': 'AI response error - using fallback options',
+          'ALL_REJECTED': 'AI options failed quality check - using fallback options',
+          'GENERATION_FAILED': 'Visual generation failed - using fallback options'
+        };
+        sonnerToast.warning(fallbackMessages[errorCode] || 'Using fallback visual options');
+      } else {
+        sonnerToast.success("Visual recommendations generated successfully!");
       }
     } catch (error) {
       console.error('Error generating visual recommendations:', error);
