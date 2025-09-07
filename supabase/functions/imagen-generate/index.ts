@@ -19,8 +19,9 @@ interface ImagenRequest {
 }
 
 interface ImagenResponse {
-  images: Array<{
-    byteContent: string;
+  predictions: Array<{
+    bytesBase64Encoded: string;
+    mimeType: string;
   }>;
 }
 
@@ -29,7 +30,7 @@ async function callGoogleImagesAPI(request: ImagenRequest): Promise<string[]> {
     throw new Error('GOOGLE_API_KEY not configured');
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/images:generate?key=${GOOGLE_API_KEY}`;
+  const endpoint = `https://aiplatform.googleapis.com/v1/projects/${GOOGLE_API_KEY.split('-')[0]}/locations/us-central1/publishers/google/models/imagen-3.0-generate-001:predict`;
   
   // Map aspect ratio from Ideogram format to Google format
   let aspectRatio = "1:1";
@@ -57,13 +58,15 @@ async function callGoogleImagesAPI(request: ImagenRequest): Promise<string[]> {
   }
 
   const payload = {
-    model: "imagen-3.0-generate-001",
-    prompt: {
-      text: finalPrompt
-    },
-    aspectRatio: aspectRatio,
-    safetyFilterLevel: "block_some",
-    numberOfImages: 1
+    instances: [{
+      prompt: finalPrompt,
+      aspect_ratio: aspectRatio,
+      safety_filter_level: "block_some",
+      person_generation: "dont_allow"
+    }],
+    parameters: {
+      sampleCount: 1
+    }
   };
 
   console.log('Calling Google Images API with payload:', JSON.stringify(payload, null, 2));
@@ -72,6 +75,7 @@ async function callGoogleImagesAPI(request: ImagenRequest): Promise<string[]> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${GOOGLE_API_KEY}`,
     },
     body: JSON.stringify(payload),
   });
@@ -85,11 +89,11 @@ async function callGoogleImagesAPI(request: ImagenRequest): Promise<string[]> {
   const data: ImagenResponse = await response.json();
   console.log('Google Images API response received');
   
-  if (!data.images || data.images.length === 0) {
+  if (!data.predictions || data.predictions.length === 0) {
     throw new Error('No images returned from Google Images API');
   }
 
-  return data.images.map(img => img.byteContent);
+  return data.predictions.map(prediction => prediction.bytesBase64Encoded);
 }
 
 serve(async (req) => {
