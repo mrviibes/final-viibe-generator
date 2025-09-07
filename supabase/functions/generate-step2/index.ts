@@ -44,10 +44,19 @@ TONE CONSISTENCY:
   * Inspirational = uplifting, positive
 
 STYLE RULES:
+• Each line must read like natural speech
+• Use at most one pause (comma OR colon) per line
+• Do not use multiple commas or break sentences into fragments
+• Prefer single clean sentences over stacked phrases
 • Conversational, natural phrasing (sounds human, not robotic)
-• Simple punctuation: commas, periods, colons only
 • No em-dashes (—) or double dashes (--)
-• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"`;
+• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"
+
+PUNCTUATION EXAMPLES:
+✓ Good: "Happy birthday Jesse, you shine brighter than the candles."
+✓ Good: "Balloons rise for Jesse: my finest gift is you."
+✗ Bad: "Jesse, like fine wine, and birthday cake, you only get sweeter."
+✗ Bad: "Candles glow, balloons dance, gifts surround you."`;
 
 // System prompt for categories WITHOUT anchors
 const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY valid JSON:
@@ -85,10 +94,19 @@ TONE CONSISTENCY:
   * Inspirational = uplifting, positive
 
 STYLE RULES:
+• Each line must read like natural speech
+• Use at most one pause (comma OR colon) per line
+• Do not use multiple commas or break sentences into fragments
+• Prefer single clean sentences over stacked phrases
 • Conversational, natural phrasing (sounds human, not robotic)
-• Simple punctuation: commas, periods, colons only
 • No em-dashes (—) or double dashes (--)
-• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"`;
+• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"
+
+PUNCTUATION EXAMPLES:
+✓ Good: "Happy birthday Jesse, you shine brighter than the candles."
+✓ Good: "Balloons rise for Jesse: my finest gift is you."
+✗ Bad: "Jesse, like fine wine, and birthday cake, you only get sweeter."
+✗ Bad: "Candles glow, balloons dance, gifts surround you."`;
 
 // Category-specific anchor dictionaries
 const ANCHORS = {
