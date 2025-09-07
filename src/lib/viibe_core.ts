@@ -21,10 +21,30 @@ export const LAYOUTS = {
       { pos: "bottom", x: 0, y: "82%", w: "100%", h: "18%", align: "center", allCaps: true, stroke: "2px black" },
     ],
   },
-  lowerThird: { type: "lowerThirdBanner" },
-  sideBarLeft: { type: "sideBarLeft" },
-  badgeSticker: { type: "badgeStickerCallout" },
-  subtleCaption: { type: "subtleCaption" },
+  lowerThird: { 
+    type: "lowerThirdBanner",
+    zones: [
+      { pos: "bottom", x: 0, y: "75%", w: "100%", h: "25%", align: "center", valign: "middle", padding: "5%" }
+    ]
+  },
+  sideBarLeft: { 
+    type: "sideBarLeft",
+    zones: [
+      { pos: "left", x: 0, y: 0, w: "25%", h: "100%", align: "center", valign: "middle", padding: "5%" }
+    ]
+  },
+  badgeSticker: { 
+    type: "badgeStickerCallout",
+    zones: [
+      { pos: "top-right", x: "75%", y: 0, w: "25%", h: "25%", align: "center", valign: "middle", padding: "10%" }
+    ]
+  },
+  subtleCaption: { 
+    type: "subtleCaption",
+    zones: [
+      { pos: "bottom", x: 0, y: "90%", w: "100%", h: "10%", align: "center", valign: "middle", padding: "2%" }
+    ]
+  },
 };
 
 /* -----------------------------
@@ -103,7 +123,7 @@ CRITICAL RULES:
 2. **Layout Tokens** (append exactly one based on textLayoutId):
    - negativeSpace  → ", clear empty area near largest margin"
    - memeTopBottom  → ", clear top band, clear bottom band" 
-   - lowerThird     → ", clear lower third"
+   - lowerThird     → ", leave bottom 25% completely clear and uncluttered for text banner"
    - sideBarLeft    → ", clear left panel"
    - badgeSticker   → ", badge space top-right"
    - subtleCaption  → ", clear narrow bottom strip"
@@ -125,10 +145,10 @@ CRITICAL RULES:
 EXAMPLE for birthday + lowerThird:
 {
   "visualOptions":[
-    {"lane":"option1","prompt":"birthday cake with candles, clear lower third"},
-    {"lane":"option2","prompt":"party guests clapping, clear lower third"},  
-    {"lane":"option3","prompt":"wrapped gift boxes, clear lower third"},
-    {"lane":"option4","prompt":"floating balloons, clear lower third"}
+    {"lane":"option1","prompt":"birthday cake with candles, leave bottom 25% completely clear and uncluttered for text banner"},
+    {"lane":"option2","prompt":"party guests clapping, leave bottom 25% completely clear and uncluttered for text banner"},  
+    {"lane":"option3","prompt":"wrapped gift boxes, leave bottom 25% completely clear and uncluttered for text banner"},
+    {"lane":"option4","prompt":"floating balloons, leave bottom 25% completely clear and uncluttered for text banner"}
   ],
   "negativePrompt":"no background text, no signage, no watermarks, no logos, no typography"
 }`;
