@@ -14,7 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      gen_jobs: {
+        Row: {
+          aspect: string
+          created_at: string
+          error: string | null
+          id: string
+          image_url: string | null
+          negative_prompt: string | null
+          prompt: string
+          status: string
+          style: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aspect: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          image_url?: string | null
+          negative_prompt?: string | null
+          prompt: string
+          status?: string
+          style: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aspect?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          image_url?: string | null
+          negative_prompt?: string | null
+          prompt?: string
+          status?: string
+          style?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

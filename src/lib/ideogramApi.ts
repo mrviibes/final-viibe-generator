@@ -20,6 +20,7 @@ export interface IdeogramGenerateRequest {
   magic_prompt_option: 'AUTO';
   seed?: number;
   style_type?: 'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME';
+  negative_prompt?: string;
 }
 
 export interface IdeogramGenerateResponse {
@@ -135,188 +136,57 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
     throw new IdeogramAPIError('No API key provided');
   }
 
-  const settings = getProxySettings();
+  // Import supabase client dynamically
+  const { supabase } = await import('@/integrations/supabase/client');
   
-  const makeRequest = async (proxyType: ProxySettings['type'], currentModel: string): Promise<Response> => {
-    let url = IDEOGRAM_API_BASE;
-    const headers: Record<string, string> = {
-      'Api-Key': key,
-      'Content-Type': 'application/json',
-    };
-
-    // Configure URL and headers based on proxy type
-    switch (proxyType) {
-      case 'cors-anywhere':
-        url = PROXY_CONFIGS['cors-anywhere'] + IDEOGRAM_API_BASE;
-        headers['X-Requested-With'] = 'XMLHttpRequest';
-        break;
-      case 'proxy-cors-sh':
-        url = PROXY_CONFIGS['proxy-cors-sh'] + IDEOGRAM_API_BASE;
-        if (settings.apiKey) {
-          headers['x-cors-api-key'] = settings.apiKey;
-        }
-        break;
-      case 'allorigins':
-        url = PROXY_CONFIGS['allorigins'] + encodeURIComponent(IDEOGRAM_API_BASE);
-        break;
-      case 'thingproxy':
-        url = PROXY_CONFIGS['thingproxy'] + IDEOGRAM_API_BASE;
-        break;
-      case 'direct':
-      default:
-        // Use direct URL
-        break;
-    }
-
-    // Always use JSON format wrapped in image_request
-    const payload: any = {
-      prompt: request.prompt,
-      aspect_ratio: request.aspect_ratio,
-      model: currentModel,
-      magic_prompt_option: request.magic_prompt_option,
-    };
+  try {
+    console.log('Calling Supabase Edge Function for Ideogram generation...');
     
-    if (request.seed !== undefined) {
-      payload.seed = request.seed;
-    }
-    
-    if (request.style_type) {
-      payload.style_type = request.style_type;
-    }
-
-    const requestBody = JSON.stringify({ image_request: payload });
-
-    // Debug log the request structure (without sensitive headers)
-    console.log('Ideogram API request:', { 
-      url: url.replace(key, '[REDACTED]'), 
-      model: currentModel,
-      payload: { ...payload, prompt: payload.prompt.substring(0, 50) + '...' }
+    const { data, error } = await supabase.functions.invoke('ideogram-generate', {
+      body: {
+        prompt: request.prompt,
+        aspect_ratio: request.aspect_ratio,
+        model: request.model,
+        magic_prompt_option: request.magic_prompt_option,
+        style_type: request.style_type,
+        negative_prompt: request.negative_prompt
+      }
     });
 
-    return fetch(url, {
-      method: 'POST',
-      headers,
-      body: requestBody,
-    });
-  };
-
-  let currentModel = request.model;
-  let lastError: Error | null = null;
-
-  // Auto-retry logic with model downgrade
-  const tryRequest = async (proxyType: ProxySettings['type'], model: string): Promise<IdeogramGenerateResponse> => {
-    try {
-      const response = await makeRequest(proxyType, model);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log(`Request failed with ${response.status}:`, errorText);
-        
-        let errorMessage = `HTTP ${response.status}`;
-        
-        // Check for specific CORS demo error
-        if (response.status === 403 && errorText.includes('corsdemo')) {
-          throw new IdeogramAPIError(
-            'CORS_DEMO_REQUIRED',
-            403
-          );
-        }
-        
-        // Check for 415 errors (common with proxy issues)
-        if (response.status === 415) {
-          throw new IdeogramAPIError(
-            'Media type error (415). This may be a proxy configuration issue.',
-            415
-          );
-        }
-        
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error?.message || errorMessage;
-        } catch {
-          errorMessage = errorText || errorMessage;
-        }
-        
-        throw new IdeogramAPIError(errorMessage, response.status);
-      }
-
-      const data = await response.json();
-      return data as IdeogramGenerateResponse;
-    } catch (error) {
-      if (error instanceof IdeogramAPIError) {
-        throw error;
-      }
-      throw new Error(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    if (error) {
+      console.error('Supabase function error:', error);
+      throw new IdeogramAPIError(`Generation failed: ${error.message}`, 500);
     }
-  };
 
-  // Auto-select best proxy if user hasn't manually configured one
-  let proxyMethods: ProxySettings['type'][];
-  
-  if (settings.type === 'direct') {
-    // If user selected direct, try auto-selection first, then fallbacks
-    const bestProxy = await findBestProxy();
-    proxyMethods = [bestProxy];
-    if (bestProxy !== 'proxy-cors-sh') proxyMethods.push('proxy-cors-sh');
-    if (bestProxy !== 'allorigins') proxyMethods.push('allorigins');
-    if (bestProxy !== 'thingproxy') proxyMethods.push('thingproxy');
-    if (bestProxy !== 'cors-anywhere') proxyMethods.push('cors-anywhere');
-  } else {
-    // User has specific preference, try it first then fallbacks
-    proxyMethods = [settings.type];
-    const fallbacks: ProxySettings['type'][] = ['proxy-cors-sh', 'allorigins', 'thingproxy', 'cors-anywhere', 'direct'];
-    for (const fallback of fallbacks) {
-      if (fallback !== settings.type) {
-        proxyMethods.push(fallback);
-      }
+    if (data.error) {
+      console.error('Generation error from edge function:', data.error);
+      throw new IdeogramAPIError(data.error, 500);
     }
-  }
 
-  for (const proxyType of proxyMethods) {
-    try {
-      return await tryRequest(proxyType, currentModel);
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Unknown error');
-      console.log(`${proxyType} failed with model ${currentModel}:`, lastError.message);
-      
-      // If V3 failed and we haven't tried V2A_TURBO yet, try downgrading
-      if (currentModel === 'V_3' && (error as any).status !== 403) {
-        try {
-          console.log('Retrying with V_2A_TURBO model...');
-          return await tryRequest(proxyType, 'V_2A_TURBO');
-        } catch (downgradeError) {
-          console.log(`${proxyType} also failed with V_2A_TURBO:`, downgradeError);
-        }
-      }
+    if (!data.image_url) {
+      throw new IdeogramAPIError('No image URL returned from generation', 500);
     }
-  }
-  // If all methods failed, throw the last error
-  if (lastError instanceof IdeogramAPIError) {
-    throw lastError;
-  }
-  
-  // Check if it's a CORS error
-  if (lastError instanceof TypeError && lastError.message.includes('Failed to fetch')) {
+
+    // Return in the expected format
+    return {
+      created: new Date().toISOString(),
+      data: [{
+        prompt: request.prompt,
+        resolution: request.aspect_ratio,
+        url: data.image_url,
+        is_image_safe: true
+      }]
+    };
+
+  } catch (error) {
+    if (error instanceof IdeogramAPIError) {
+      throw error;
+    }
+    
+    console.error('Unexpected error calling edge function:', error);
     throw new IdeogramAPIError(
-      'CORS error: Unable to connect to Ideogram API directly. Try enabling a CORS proxy in settings.',
-      0
+      `Failed to generate image: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      500
     );
   }
-  
-  // Check for common content filtering keywords that might cause issues
-  const contentFilteringKeywords = ['marijuana', 'cannabis', 'weed', 'joint', 'drug', 'smoking'];
-  const hasFilteredContent = contentFilteringKeywords.some(keyword => 
-    request.prompt.toLowerCase().includes(keyword)
-  );
-  
-  if (hasFilteredContent) {
-    throw new IdeogramAPIError(
-      'Content may have been flagged by content filters. Try using different words or themes to test if the API is working.',
-      400
-    );
-  }
-  
-  throw new IdeogramAPIError(
-    `All connection methods failed. Last error: ${lastError?.message || 'Unknown error'}`
-  );
 }
