@@ -80,52 +80,73 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
       textLayoutId 
     });
     
-    const systemPrompt = `You MUST generate layout-safe visual prompts. Each prompt MUST end with the required layout token(s).
+    const systemPrompt = `Generate 4 DISTINCT visual prompts with explicit lane roles and layout tokens.
 
-Layout tokens (REQUIRED - apply exactly one based on textLayoutId):
-- negativeSpace  -> MUST end with "clear empty area near largest margin"
-- memeTopBottom  -> MUST end with "clear top band, clear bottom band" 
-- lowerThird     -> MUST end with "clear lower third"
-- sideBarLeft    -> MUST end with "clear left panel"
-- badgeSticker   -> MUST end with "badge space top-right"
-- subtleCaption  -> MUST end with "clear narrow bottom strip"
-
-CRITICAL REQUIREMENTS:
-- Return ONLY JSON:
+Return ONLY valid JSON:
 {
   "visualOptions":[
-    {"lane":"literal","prompt":""},
-    {"lane":"supportive","prompt":""},
-    {"lane":"alternate","prompt":""},
-    {"lane":"creative","prompt":""}
+    {"lane":"literal","prompt":"..."},
+    {"lane":"supportive","prompt":"..."},
+    {"lane":"alternate","prompt":"..."},
+    {"lane":"creative","prompt":"..."}
   ],
-  "negativePrompt":""
+  "negativePrompt":"..."
 }
-- EVERY prompt MUST end with the layout token for the specified textLayoutId
-- Subject prompts: short (2-6 words), avoid typography/signage/watermark/logo words, no style words (realistic/anime/3D)
-- negativePrompt must include: "no background text, no signage, no watermarks, no logos"
 
-Rules for variance:
-- You must generate 4 DISTINCT visual ideas
-- Each lane must focus on a DIFFERENT element:
-  * Literal = direct match to the textContent
-  * Supportive = audience/props connected to the text (must avoid main anchor used by Literal)
-  * Alternate = completely different perspective or subject in the same context (must avoid main anchor)
-  * Creative = symbolic or metaphorical representation
-- Do not simply rephrase the same idea (e.g. "person near stairs", "man at stairs", "looking at stairs")
-- If Literal uses stairs, Supportive MUST NOT use stairs
-- At least 2 options must avoid the main anchor and introduce fresh elements
-- Example format: "birthday cake, clear lower third" (subject + comma + layout token)
+LAYOUT TOKENS (REQUIRED - append exactly one based on textLayoutId):
+- negativeSpace  → ", clear empty area near largest margin"
+- memeTopBottom  → ", clear top band, clear bottom band" 
+- lowerThird     → ", clear lower third"
+- sideBarLeft    → ", clear left panel"
+- badgeSticker   → ", badge space top-right"
+- subtleCaption  → ", clear narrow bottom strip"
 
-EXAMPLE for lowerThird layout:
+LANE ROLE ENFORCEMENT (CRITICAL):
+1. LITERAL = Direct visual match to textContent/main anchor
+   - Use the primary subject mentioned in text
+   - Most straightforward interpretation
+
+2. SUPPORTIVE = Audience/environment reacting to the scene
+   - MUST avoid the main anchor used by Literal
+   - Focus on: crowd, audience, setting, props, reactions
+   - If Literal uses "cake", Supportive uses "party guests" or "decorations"
+
+3. ALTERNATE = Completely different perspective/subject
+   - MUST avoid main anchor AND supportive elements
+   - Different angle, time, or viewpoint of same context
+   - If birthday context: Literal=cake, Supportive=guests, Alternate=gift table
+
+4. CREATIVE = Abstract/symbolic/metaphorical representation
+   - MUST be conceptually different from all above
+   - Symbolic objects, artistic interpretations, metaphors
+   - If birthday: Literal=cake, Supportive=guests, Alternate=gifts, Creative=time passing
+
+VARIANCE RULES (ENFORCE STRICTLY):
+- NO overlap between lanes (if Literal uses X, others cannot use X)
+- NO rephrasing same concept ("person at cake" vs "man near cake" = FORBIDDEN)
+- Each lane must introduce NEW visual elements
+- At least 3 different anchor objects across the 4 prompts
+- Force cognitive diversity, not linguistic variations
+
+PROMPT FORMAT:
+- Short subject description (2-6 words)
+- NO style words (realistic/anime/3D/etc)
+- NO text-related words (signage/watermark/logo)  
+- End with comma + layout token
+- Example: "birthday cake, clear lower third"
+
+NEGATIVE PROMPT REQUIREMENTS:
+Must include: "no background text, no signage, no watermarks, no logos, no typography"
+
+BULLETPROOF EXAMPLE for lowerThird + birthday cake text:
 {
   "visualOptions":[
-    {"lane":"literal","prompt":"Person blowing out candles, clear lower third"},
-    {"lane":"supportive","prompt":"Friends around cake, clear lower third"},
-    {"lane":"alternate","prompt":"Room with balloons, clear lower third"},
-    {"lane":"creative","prompt":"Cake shaped like star, clear lower third"}
+    {"lane":"literal","prompt":"Birthday cake with candles, clear lower third"},
+    {"lane":"supportive","prompt":"Party guests celebrating, clear lower third"},
+    {"lane":"alternate","prompt":"Gift table with presents, clear lower third"},
+    {"lane":"creative","prompt":"Hourglass with confetti, clear lower third"}
   ],
-  "negativePrompt":"no background text, no signage, no watermarks, no logos"
+  "negativePrompt":"no background text, no signage, no watermarks, no logos, no typography"
 }`;
 
     const userPrompt = `Category: ${session.category}

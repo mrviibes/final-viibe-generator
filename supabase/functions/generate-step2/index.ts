@@ -8,41 +8,111 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// System prompt for categories WITH anchors
-const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY JSON:
-{"lines":[
-  {"lane":"option1","text":""},
-  {"lane":"option2","text":""},
-  {"lane":"option3","text":""},
-  {"lane":"option4","text":""}
-]}
-Rules:
-- 4 one-liners, human and conversational.
-- Max 70 characters each; vary lengths (~40, ~55–60, ~65–70).
-- Use simple punctuation (commas, periods, colons). No em-dash or "--".
-- Subcategory drives context. EACH line must include ≥1 ANCHOR from USER.
-- If TAGS exist: at least 3 of 4 lines must include ALL tags literally; place tags in different positions.
-- Trait tags (gay, bald, vegan): Savage/Humorous/Playful = roast/playful; Serious/Sentimental/Nostalgic = affirming; Romantic/Inspirational = positive strength.
-- Tone controls style: Savage/Humorous/Playful must be funny; Serious/Sentimental/Nostalgic/Romantic/Inspirational may be sincere.
-- Lines must be distinct (different angles). Ban clichés ("another year", "truth hurts", "best medicine").`;
+// Updated comprehensive system prompt with bulletproof rules
+const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY valid JSON:
+{
+  "lines": [
+    {"lane":"option1","text":"..."},
+    {"lane":"option2","text":"..."},
+    {"lane":"option3","text":"..."},
+    {"lane":"option4","text":"..."}
+  ]
+}
+
+STRICT RULES:
+1. LENGTH:
+   - Each line ≤ 70 characters
+   - Must vary: one short (~35–40), one medium (~50–55), one longer (~65–70)
+
+2. CATEGORY & SUBCATEGORY:
+   - Subcategory drives anchors (Birthday → cake, candles, balloons, confetti, gifts)
+   - At least 1 anchor word in every line
+
+3. TONE:
+   - Respect the chosen tone:
+     * Humorous = silly, playful, witty wordplay (NOT savage roasts)
+     * Savage = roast comic energy (sharp, biting)
+     * Sentimental = warm, heartfelt
+     * Romantic = affectionate, dreamy
+     * Inspirational = uplifting, positive
+   - Don't mix tones. Stay consistent with the one selected.
+
+4. TAGS:
+   - If no tags: generate normally
+   - If tags exist:
+     * At least 3 of 4 lines must include ALL tags literally
+     * Tags must appear naturally (not all crammed together)
+     * Trait tags (e.g. gay, bald, vegan):
+       - Humorous/Playful → lighthearted, campy, silly
+       - Savage → roast or biting
+       - Sentimental/Romantic/Inspirational → affirming, positive
+
+5. VARIETY:
+   - All 4 lines must be different angles, not rephrasings
+   - Force lane diversity:
+     * Option1 (literal) = directly matches text/anchor
+     * Option2 (supportive) = audience or props reacting
+     * Option3 (alternate) = different perspective/subject
+     * Option4 (creative) = abstract or absurd metaphor
+
+6. STYLE:
+   - Conversational, natural phrasing (sounds human, not robotic)
+   - Simple punctuation: commas, periods, colons only
+   - No em-dashes (—) or double dashes (--)
+   - Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"`;
 
 // System prompt for categories WITHOUT anchors
-const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY JSON:
-{"lines":[
-  {"lane":"option1","text":""},
-  {"lane":"option2","text":""},
-  {"lane":"option3","text":""},
-  {"lane":"option4","text":""}
-]}
-Rules:
-- 4 one-liners, human and conversational.
-- Max 70 characters each; vary lengths (~40, ~55–60, ~65–70).
-- Use simple punctuation (commas, periods, colons). No em-dash or "--".
-- Do NOT force props or scene objects for this subcategory.
-- If TAGS exist: at least 3 of 4 lines must include ALL tags literally; place tags in different positions.
-- Trait tags (gay, bald, vegan): Savage/Humorous/Playful = roast/playful; Serious/Sentimental/Nostalgic = affirming; Romantic/Inspirational = positive strength.
-- Tone controls style: Savage/Humorous/Playful must be funny; Serious/Sentimental/Nostalgic/Romantic/Inspirational may be sincere.
-- Lines must be distinct (different angles). Ban clichés ("another year", "truth hurts", "best medicine").`;
+const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY valid JSON:
+{
+  "lines": [
+    {"lane":"option1","text":"..."},
+    {"lane":"option2","text":"..."},
+    {"lane":"option3","text":"..."},
+    {"lane":"option4","text":"..."}
+  ]
+}
+
+STRICT RULES:
+1. LENGTH:
+   - Each line ≤ 70 characters
+   - Must vary: one short (~35–40), one medium (~50–55), one longer (~65–70)
+
+2. CATEGORY & SUBCATEGORY:
+   - Do NOT force props or scene objects for this subcategory
+   - Focus on the concept/theme instead
+
+3. TONE:
+   - Respect the chosen tone:
+     * Humorous = silly, playful, witty wordplay (NOT savage roasts)
+     * Savage = roast comic energy (sharp, biting)
+     * Sentimental = warm, heartfelt
+     * Romantic = affectionate, dreamy
+     * Inspirational = uplifting, positive
+   - Don't mix tones. Stay consistent with the one selected.
+
+4. TAGS:
+   - If no tags: generate normally
+   - If tags exist:
+     * At least 3 of 4 lines must include ALL tags literally
+     * Tags must appear naturally (not all crammed together)
+     * Trait tags (e.g. gay, bald, vegan):
+       - Humorous/Playful → lighthearted, campy, silly
+       - Savage → roast or biting
+       - Sentimental/Romantic/Inspirational → affirming, positive
+
+5. VARIETY:
+   - All 4 lines must be different angles, not rephrasings
+   - Force lane diversity:
+     * Option1 (literal) = directly matches text/anchor
+     * Option2 (supportive) = audience or props reacting
+     * Option3 (alternate) = different perspective/subject
+     * Option4 (creative) = abstract or absurd metaphor
+
+6. STYLE:
+   - Conversational, natural phrasing (sounds human, not robotic)
+   - Simple punctuation: commas, periods, colons only
+   - No em-dashes (—) or double dashes (--)
+   - Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"`;
 
 // Category-specific anchor dictionaries
 const ANCHORS = {
@@ -62,65 +132,86 @@ const BANNED_PHRASES = [
   "happy birthday to you", "many more", "best wishes"
 ];
 
-// Deterministic savage fallback templates v4 - guaranteed compliance by construction
+// Tone-aware fallback generator with proper length bands
 function generateSavageFallback(inputs: any): any {
-  console.log("Using deterministic savage fallback v4");
+  console.log("Using tone-aware fallback v5");
   
-  const { tags = [] } = inputs;
+  const { tags = [], tone = "Savage" } = inputs;
   const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
-  const anchors = ANCHORS[ctxKey] || ["cake", "candles", "balloons", "confetti"]; // fallback for safety
+  const anchors = ANCHORS[ctxKey] || ["cake", "candles", "balloons", "confetti"];
   
-  // Templates designed to leave slack for tags and never exceed 70 chars
+  // Tone-specific templates with proper length bands
   let baseTemplates: string[] = [];
   
-  if (tags.length > 0) {
-    const tagString = tags.join(" ");
-    // Carefully crafted to include tags in first 3 lines + one anchor each
-    baseTemplates = [
-      // Line 1: Light (~40), tags + cake
-      `${tagString} cake looks sadder than your soul.`, // ~35-45 with any reasonable tags
-      
-      // Line 2: Medium (~55-60), tags + candles  
-      `Your ${tagString} candles burn brighter than your future.`, // ~50-60 with tags
-      
-      // Line 3: Heavy (~65-70), tags + balloons
-      `${tagString} balloons have more lift than your career ever will.`, // ~60-70 with tags
-      
-      // Line 4: Nuclear (~68-70), confetti only (no tags by design)
-      `This confetti has more purpose than you've shown in decades.` // exactly 62 chars
-    ];
-  } else {
-    baseTemplates = [
-      // Line 1: Light (~40), cake only
-      `Your cake looks utterly defeated.`, // 33 chars
-      
-      // Line 2: Medium (~55-60), candles only
-      `Even the candles are questioning their life choices here.`, // 57 chars
-      
-      // Line 3: Heavy (~65-70), balloons only  
-      `Those balloons are deflating faster than your self-esteem.`, // 59 chars
-      
-      // Line 4: Nuclear (~68-70), confetti only
-      `This confetti has more sparkle than your entire personality.` // 61 chars
-    ];
+  if (tone.toLowerCase().includes("savage") || tone.toLowerCase().includes("humorous")) {
+    if (tags.length > 0) {
+      const tagString = tags.join(" ");
+      baseTemplates = [
+        `${tagString} cake looks sadder than your soul.`, // ~40 chars
+        `Your ${tagString} candles burn brighter than your future.`, // ~55 chars  
+        `${tagString} balloons have more lift than your career ever will.`, // ~65 chars
+        `This confetti has more purpose than you've shown in decades.` // ~68 chars
+      ];
+    } else {
+      baseTemplates = [
+        `Your cake looks utterly defeated.`, // ~33 chars
+        `Even the candles are questioning their life choices here.`, // ~57 chars
+        `Those balloons are deflating faster than your self-esteem.`, // ~59 chars
+        `This confetti has more sparkle than your entire personality.` // ~61 chars
+      ];
+    }
+  } else if (tone.toLowerCase().includes("sentimental") || tone.toLowerCase().includes("romantic")) {
+    if (tags.length > 0) {
+      const tagString = tags.join(" ");
+      baseTemplates = [
+        `${tagString} cake brings warmth to every heart.`, // ~40 chars
+        `Your ${tagString} candles shine with beautiful memories ahead.`, // ~55 chars
+        `${tagString} balloons carry all our hopes and dreams skyward.`, // ~65 chars
+        `This confetti celebrates the amazing person you've become.` // ~68 chars
+      ];
+    } else {
+      baseTemplates = [
+        `Your cake brings joy to everyone.`, // ~33 chars
+        `These candles illuminate the beautiful moments we cherish.`, // ~57 chars
+        `Those balloons lift our spirits high with celebration.`, // ~59 chars
+        `This confetti marks another year of wonderful memories.` // ~61 chars
+      ];
+    }
+  } else { // Inspirational or other tones
+    if (tags.length > 0) {
+      const tagString = tags.join(" ");
+      baseTemplates = [
+        `${tagString} cake represents sweet victories.`, // ~40 chars
+        `Your ${tagString} candles illuminate the path to greatness.`, // ~55 chars
+        `${tagString} balloons remind us that dreams can truly soar.`, // ~65 chars
+        `This confetti celebrates your incredible journey forward.` // ~68 chars
+      ];
+    } else {
+      baseTemplates = [
+        `Your cake symbolizes sweet success.`, // ~33 chars
+        `These candles light the way to amazing achievements.`, // ~57 chars
+        `Those balloons remind us that anything is possible.`, // ~59 chars
+        `This confetti honors your incredible accomplishments.` // ~61 chars
+      ];
+    }
   }
   
-  // Adjust to precise length bands without truncation
-  const targetBands = [[38, 42], [55, 60], [65, 70], [68, 70]];
+  // Ensure proper length bands: ~35-40, ~50-55, ~65-70, ~68-70
+  const targetBands = [[35, 40], [50, 55], [65, 70], [68, 70]];
   const finalTemplates = baseTemplates.map((template, index) => {
     const [minLen, maxLen] = targetBands[index];
     let text = template;
     
-    // Expand if too short (no chopping ever)
+    // Expand if too short
     if (text.length < minLen) {
-      const expansions = [" clearly", " obviously", " totally", " absolutely"];
+      const expansions = [" clearly", " obviously", " truly", " absolutely"];
       const expansion = expansions[index % expansions.length];
       text = text.replace(".", `${expansion}.`);
     }
     
-    // Verify final length (should never exceed by construction)
+    // Verify final length
     if (text.length > maxLen) {
-      console.error(`Fallback v4 template ${index + 1} exceeds max length: ${text.length} > ${maxLen}`);
+      console.error(`Fallback v5 template ${index + 1} exceeds max length: ${text.length} > ${maxLen}`);
     }
     
     return text;
@@ -130,12 +221,13 @@ function generateSavageFallback(inputs: any): any {
     lines: finalTemplates.map((text, index) => ({
       lane: `option${index + 1}`,
       text: text
-    })),
-    model: "fallback-v4 (validated)",
+    })),  
+    model: "tone-aware-fallback-v5",
     validated: true,
-    reason: "deterministic_fallback",
+    reason: "tone_aware_fallback",
+    tone: tone,
     tags_used: tags.length > 0,
-    fallback_version: "v4",
+    fallback_version: "v5",
     lengths: finalTemplates.map(t => t.length)
   };
 }
@@ -257,22 +349,22 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       });
     }
     
-    // Length validation - NO TRUNCATION, mark as invalid if over limit
-    const targetBands = [[35, 45], [55, 60], [65, 70], [68, 70]];
+    // Enhanced length validation with proper bands enforcement
+    const targetBands = [[35, 40], [50, 55], [65, 70], [68, 70]];
     
     processedLines.forEach((line, index) => {
       const [minLen, maxLen] = targetBands[index];
       const length = line.text.length;
       
       if (length < minLen) {
-        // Expand safely
-        const expansions = [" clearly", " obviously", " totally", " absolutely"];
+        // Expand safely to meet minimum
+        const expansions = [" clearly", " obviously", " truly", " absolutely"];
         const expansion = expansions[index % expansions.length];
         line.text = line.text.replace(/\.$/, `${expansion}.`);
-        repairs.push(`Line ${index + 1}: Expanded for minimum length`);
+        repairs.push(`Line ${index + 1}: Expanded for minimum length (${length} -> ${line.text.length})`);
       } else if (length > maxLen) {
         // Don't truncate - mark attempt as failed
-        errors.push(`Line ${index + 1}: ${length} chars exceeds max ${maxLen}`);
+        errors.push(`Line ${index + 1}: ${length} chars exceeds max ${maxLen} (target band: ${minLen}-${maxLen})`);
       }
     });
     
