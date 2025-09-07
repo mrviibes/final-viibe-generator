@@ -8,34 +8,41 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Enhanced system prompt with Comedy Central roast intensity
-const SYSTEM_PROMPT = `You are a Comedy Central roast comic delivering BRUTAL one-liners. Think Jeff Ross, Anthony Jeselnik, or Nikki Glaser level SAVAGE. This isn't friendly teasing — this is designed to DESTROY.
+// System prompt for categories WITH anchors
+const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY JSON:
+{"lines":[
+  {"lane":"option1","text":""},
+  {"lane":"option2","text":""},
+  {"lane":"option3","text":""},
+  {"lane":"option4","text":""}
+]}
+Rules:
+- 4 one-liners, human and conversational.
+- Max 70 characters each; vary lengths (~40, ~55–60, ~65–70).
+- Use simple punctuation (commas, periods, colons). No em-dash or "--".
+- Subcategory drives context. EACH line must include ≥1 ANCHOR from USER.
+- If TAGS exist: at least 3 of 4 lines must include ALL tags literally; place tags in different positions.
+- Trait tags (gay, bald, vegan): Savage/Humorous/Playful = roast/playful; Serious/Sentimental/Nostalgic = affirming; Romantic/Inspirational = positive strength.
+- Tone controls style: Savage/Humorous/Playful must be funny; Serious/Sentimental/Nostalgic/Romantic/Inspirational may be sincere.
+- Lines must be distinct (different angles). Ban clichés ("another year", "truth hurts", "best medicine").`;
 
-OUTPUT FORMAT: JSON only with this exact schema:
-{
-  "lines": [
-    {"lane":"option1","text":"[light jab ~35-45 chars]"},
-    {"lane":"option2","text":"[medium roast ~50-60 chars]"},
-    {"lane":"option3","text":"[heavy burn ~60-70 chars]"},
-    {"lane":"option4","text":"[nuclear destruction ~65-70 chars]"}
-  ]
-}
-
-ROAST REQUIREMENTS:
-- Each line must include at least one anchor if anchors are provided; rotate anchors across lines
-- If tags provided: at least 3 of 4 lines must include ALL tags literally (not synonyms)
-- Length bands: 35-45, 50-60, 60-70, 65-70 chars (MAX 70)
-- ESCALATING SAVAGENESS: light jab → medium roast → heavy burn → nuclear destruction
-- Each line must be DIFFERENT in style: personal attack, crowd observation, skill roast, absurd comparison
-- Complete sentences only. No "..." or em dashes "--"
-- Ban clichés: "another year older", "truth hurts", "best medicine", "special day"
-
-SAVAGE COMEDY STYLE:
-- Attack appearance, personality, life choices, relationships, career failures
-- Use unexpected brutal comparisons and absurd imagery  
-- Make it HURT but stay clever and conversational
-- Examples: "Even your cake is embarrassed to be here" or "Your balloons deflated faster than your last relationship"
-- Be merciless but witty — think roast comic destroying someone on stage`;
+// System prompt for categories WITHOUT anchors
+const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY JSON:
+{"lines":[
+  {"lane":"option1","text":""},
+  {"lane":"option2","text":""},
+  {"lane":"option3","text":""},
+  {"lane":"option4","text":""}
+]}
+Rules:
+- 4 one-liners, human and conversational.
+- Max 70 characters each; vary lengths (~40, ~55–60, ~65–70).
+- Use simple punctuation (commas, periods, colons). No em-dash or "--".
+- Do NOT force props or scene objects for this subcategory.
+- If TAGS exist: at least 3 of 4 lines must include ALL tags literally; place tags in different positions.
+- Trait tags (gay, bald, vegan): Savage/Humorous/Playful = roast/playful; Serious/Sentimental/Nostalgic = affirming; Romantic/Inspirational = positive strength.
+- Tone controls style: Savage/Humorous/Playful must be funny; Serious/Sentimental/Nostalgic/Romantic/Inspirational may be sincere.
+- Lines must be distinct (different angles). Ban clichés ("another year", "truth hurts", "best medicine").`;
 
 // Category-specific anchor dictionaries
 const ANCHORS = {
@@ -137,8 +144,7 @@ function generateSavageFallback(inputs: any): any {
 function buildUserMessage(inputs: any): string {
   const { category, subcategory, tone, tags = [] } = inputs;
   
-  let message = `ROAST TARGET:
-Category: ${category}
+  let message = `Category: ${category}
 Subcategory: ${subcategory}
 Tone: ${tone}`;
 
@@ -146,19 +152,17 @@ Tone: ${tone}`;
   const ctxKey = `${category.toLowerCase()}.${subcategory.toLowerCase()}`;
   const anchors = ANCHORS[ctxKey] || [];
   
-  // Only include anchors if they exist for this category/subcategory
-  if (anchors.length > 0) {
-    message += `\nANCHORS: ${anchors.join(", ")} (rotate across lines, one per line)`;
-  }
-  
   // Include tags if provided
   if (tags.length > 0) {
-    message += `\nTAGS: ${tags.join(", ")} (3 of 4 lines must include ALL tags literally, vary placement)`;
+    message += `\nTAGS (may be empty): ${tags.join(", ")}`;
+  } else {
+    message += `\nTAGS (may be empty): `;
   }
   
-  message += `\nSAVAGE LEVELS: Line 1=light jab (35-45 chars), Line 2=medium roast (50-60 chars), Line 3=heavy burn (60-70 chars), Line 4=nuclear destruction (65-70 chars)
-
-DELIVER COMEDY CENTRAL ROAST DESTRUCTION. Each line must be a DIFFERENT style of attack. Be merciless but clever.`;
+  // Only include anchors if they exist for this category/subcategory
+  if (anchors.length > 0) {
+    message += `\nANCHORS (use ≥1 per line): ${anchors.join(", ")}`;
+  }
   
   return message;
 }
@@ -332,10 +336,15 @@ EXAMPLE CORRECT FORMAT:
     
     console.log(`Using model: ${model}`);
     
+    // Choose system prompt based on whether anchors exist
+    const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
+    const anchors = ANCHORS[ctxKey] || [];
+    const systemPrompt = anchors.length > 0 ? SYSTEM_PROMPT_WITH_ANCHORS : SYSTEM_PROMPT_NO_ANCHORS;
+    
     const requestBody: any = {
       model,
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
       ],
       response_format: { type: "json_object" }, // Force JSON mode
