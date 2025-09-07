@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// New system prompt enforcing distinct text options with proper length and tonal variety
+// Updated system prompt with strict tag rules and hard character limit
 const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY valid JSON:
 {
   "lines": [
@@ -19,24 +19,16 @@ const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY valid JSON:
   ]
 }
 
-CRITICAL: Generate 4 DISTINCT text options that feel completely different in tone, pacing, and length.
+CRITICAL: Generate 4 DISTINCT text options that are creative and varied.
 
-LENGTH VARIETY (ENFORCED):
-• Option 1 → Short quip (under 40 characters)
-• Option 2 → Medium playful line (40–70 characters)  
-• Option 3 → Longer, storylike gag (70–100 characters)
-• Option 4 → Wildcard length (different rhythm than others)
+CHARACTER LIMIT:
+• Each line must be ≤ 70 characters
+• No exceptions - any line over 70 characters is invalid
 
-TONAL VARIETY (ENFORCED):
-Must include at least one from each angle:
-• Literal/safe (cake, balloons, candles, birthday basics)
-• Supportive/celebratory (warm, congratulatory, positive)  
-• Alternate playful (quirky metaphor, silly twist, object humor)
-• Roast/mischievous (light jab, but not mean-spirited)
-
-TAG HANDLING:
-• Rotate tags across options so one concept doesn't dominate all four
-• Use 2–3 different tags per generation when available
+TAG HANDLING (STRICTLY ENFORCED):
+• If tags exist: At least 3 of 4 lines must include ALL tags literally (not synonyms)
+• Tags must appear naturally and in different positions across lines
+• Do not skip tags in more than 1 line
 • Natural integration, not forced cramming
 
 CATEGORY & SUBCATEGORY:
@@ -44,7 +36,7 @@ CATEGORY & SUBCATEGORY:
 • At least 1 anchor word in every line when anchors available
 
 TONE CONSISTENCY:
-• Respect the chosen tone as the base, but allow variety within it:
+• Respect the chosen tone as the base:
   * Humorous = silly, playful, witty wordplay
   * Savage = roast comic energy (sharp, biting) 
   * Sentimental = warm, heartfelt
@@ -55,8 +47,7 @@ STYLE RULES:
 • Conversational, natural phrasing (sounds human, not robotic)
 • Simple punctuation: commas, periods, colons only
 • No em-dashes (—) or double dashes (--)
-• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"
-• NO SINGLE-TAG DOMINANCE - vary your approaches across all 4 options`;
+• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"`;
 
 // System prompt for categories WITHOUT anchors
 const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY valid JSON:
@@ -69,24 +60,16 @@ const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY valid JSON:
   ]
 }
 
-CRITICAL: Generate 4 DISTINCT text options that feel completely different in tone, pacing, and length.
+CRITICAL: Generate 4 DISTINCT text options that are creative and varied.
 
-LENGTH VARIETY (ENFORCED):
-• Option 1 → Short quip (under 40 characters)
-• Option 2 → Medium playful line (40–70 characters)
-• Option 3 → Longer, storylike gag (70–100 characters)  
-• Option 4 → Wildcard length (different rhythm than others)
+CHARACTER LIMIT:
+• Each line must be ≤ 70 characters
+• No exceptions - any line over 70 characters is invalid
 
-TONAL VARIETY (ENFORCED):
-Must include at least one from each angle:
-• Literal/safe (concept basics)
-• Supportive/celebratory (warm, congratulatory, positive)
-• Alternate playful (quirky metaphor, silly twist, conceptual humor)
-• Roast/mischievous (light jab, but not mean-spirited)
-
-TAG HANDLING:
-• Rotate tags across options so one concept doesn't dominate all four
-• Use 2–3 different tags per generation when available
+TAG HANDLING (STRICTLY ENFORCED):
+• If tags exist: At least 3 of 4 lines must include ALL tags literally (not synonyms)
+• Tags must appear naturally and in different positions across lines
+• Do not skip tags in more than 1 line
 • Natural integration, not forced cramming
 
 CATEGORY & SUBCATEGORY:
@@ -94,7 +77,7 @@ CATEGORY & SUBCATEGORY:
 • Focus on the concept/theme instead
 
 TONE CONSISTENCY:
-• Respect the chosen tone as the base, but allow variety within it:
+• Respect the chosen tone as the base:
   * Humorous = silly, playful, witty wordplay
   * Savage = roast comic energy (sharp, biting)
   * Sentimental = warm, heartfelt  
@@ -105,8 +88,7 @@ STYLE RULES:
 • Conversational, natural phrasing (sounds human, not robotic)
 • Simple punctuation: commas, periods, colons only
 • No em-dashes (—) or double dashes (--)
-• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"
-• NO SINGLE-TAG DOMINANCE - vary your approaches across all 4 options`;
+• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"`;
 
 // Category-specific anchor dictionaries
 const ANCHORS = {
@@ -253,7 +235,7 @@ Tone: ${tone}`;
   return message;
 }
 
-// Enhanced validator with smart repair - no destructive truncation
+// Updated validator with strict tag rules and hard character limit
 function validateAndRepair(rawText: string, inputs: any): { result: any | null; errors: string[]; repairs: string[] } {
   const errors: string[] = [];
   const repairs: string[] = [];
@@ -271,7 +253,7 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       !tags.some(tag => phrase.toLowerCase().includes(tag.toLowerCase()))
     );
     
-    // Process lines: tags first, then anchors, then length validation
+    // Process lines: basic cleanup first
     const processedLines = parsed.lines.map((line: any, index: number) => {
       let text = line.text || "";
       
@@ -293,38 +275,67 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       };
     });
     
-    // Early tag enforcement (before length checks)
+    // STRICT CHARACTER LIMIT: ≤70 characters per line (no exceptions)
+    processedLines.forEach((line, index) => {
+      if (line.text.length > 70) {
+        errors.push(`Line ${index + 1}: ${line.text.length} chars exceeds 70 character limit`);
+      }
+    });
+    
+    // STRICT TAG RULE: At least 3 of 4 lines must include ALL tags literally
     if (tags.length > 0) {
-      let tagCompliantLines = 0;
-      for (let i = 0; i < Math.min(3, processedLines.length); i++) {
-        const line = processedLines[i];
-        const hasAllTags = tags.every(tag => 
-          line.text.toLowerCase().includes(tag.toLowerCase())
-        );
+      const hasAllTags = (text: string, tags: string[]) =>
+        tags.every(tag => text.toLowerCase().includes(tag.toLowerCase()));
+      
+      const linesWithAllTags = processedLines.filter(line => hasAllTags(line.text, tags));
+      
+      if (linesWithAllTags.length < 3) {
+        errors.push(`Not enough lines with all tags - need 3 of 4, got ${linesWithAllTags.length}`);
         
-        if (!hasAllTags) {
-          // Inject tags at varied positions
-          const tagText = tags.join(" ");
-          const positions = ["start", "mid", "end"];
-          const position = positions[i % positions.length];
-          
-          if (position === "start") {
-            line.text = `${tagText} ${line.text.toLowerCase()}`;
-          } else if (position === "mid") {
-            const words = line.text.split(" ");
-            const midPoint = Math.floor(words.length / 2);
-            words.splice(midPoint, 0, tagText);
-            line.text = words.join(" ");
-          } else {
-            line.text = line.text.replace(/\.$/, ` ${tagText}.`);
+        // Repair attempt: inject tags into lines that need them (up to first 3 lines)
+        let repairCount = 0;
+        for (let i = 0; i < Math.min(3, processedLines.length) && linesWithAllTags.length + repairCount < 3; i++) {
+          const line = processedLines[i];
+          if (!hasAllTags(line.text, tags)) {
+            const tagText = tags.join(" ");
+            const positions = ["start", "mid", "end"];
+            const position = positions[i % positions.length];
+            
+            let newText = "";
+            if (position === "start") {
+              newText = `${tagText} ${line.text.toLowerCase()}`;
+            } else if (position === "mid") {
+              const words = line.text.split(" ");
+              const midPoint = Math.floor(words.length / 2);
+              words.splice(midPoint, 0, tagText);
+              newText = words.join(" ");
+            } else {
+              newText = line.text.replace(/\.$/, ` ${tagText}.`);
+            }
+            
+            // Check if repair would exceed 70 chars - if so, try compression
+            if (newText.length > 70) {
+              // Simple compression: remove filler words
+              newText = newText
+                .replace(/\b(really|honestly|clearly|obviously|absolutely|truly)\b/gi, "")
+                .replace(/\s+/g, " ")
+                .trim();
+              
+              // If still too long, skip this repair
+              if (newText.length > 70) {
+                continue;
+              }
+            }
+            
+            line.text = newText;
+            repairs.push(`Line ${i + 1}: Injected tags at ${position}`);
+            repairCount++;
           }
-          
-          repairs.push(`Line ${i + 1}: Injected tags at ${position}`);
         }
       }
     }
     
-    // Anchor enforcement with polite repair (only if anchors exist for this category)
+    // Anchor enforcement (only if anchors exist for this category)
     const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
     const anchors = ANCHORS[ctxKey] || [];
     
@@ -337,30 +348,16 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
         if (!hasAnchor) {
           const anchor = anchors[index % anchors.length];
           const anchorPhrase = ` with ${anchor}`;
-          line.text = line.text.replace(/\.$/, `${anchorPhrase}.`);
-          repairs.push(`Line ${index + 1}: Added anchor "${anchor}"`);
+          const newText = line.text.replace(/\.$/, `${anchorPhrase}.`);
+          
+          // Only apply if it doesn't exceed 70 chars
+          if (newText.length <= 70) {
+            line.text = newText;
+            repairs.push(`Line ${index + 1}: Added anchor "${anchor}"`);
+          }
         }
       });
     }
-    
-    // Updated length validation for new variety system
-    const targetBands = [[20, 39], [40, 69], [70, 100], [20, 100]]; // Short, Medium, Long, Wildcard
-    
-    processedLines.forEach((line, index) => {
-      const [minLen, maxLen] = targetBands[index];
-      const length = line.text.length;
-      
-      if (length < minLen) {
-        // Expand safely to meet minimum
-        const expansions = [" clearly", " obviously", " truly", " absolutely"];
-        const expansion = expansions[index % expansions.length];
-        line.text = line.text.replace(/\.$/, `${expansion}.`);
-        repairs.push(`Line ${index + 1}: Expanded for minimum length (${length} -> ${line.text.length})`);
-      } else if (length > maxLen) {
-        // Don't truncate - mark attempt as failed
-        errors.push(`Line ${index + 1}: ${length} chars exceeds max ${maxLen} (target band: ${minLen}-${maxLen})`);
-      }
-    });
     
     // Check banned phrases (excluding user tags)
     processedLines.forEach((line, index) => {
@@ -371,21 +368,23 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       });
     });
     
-    // Enhanced length variety check - must span at least 30 chars and have distinct bands
-    const lengths = processedLines.map(line => line.text.length);
-    const lengthRange = Math.max(...lengths) - Math.min(...lengths);
-    if (lengthRange < 30) {
-      errors.push("Insufficient length variety");
+    // Final validation: re-check tag rule and character limits after repairs
+    if (tags.length > 0) {
+      const hasAllTags = (text: string, tags: string[]) =>
+        tags.every(tag => text.toLowerCase().includes(tag.toLowerCase()));
+      
+      const finalLinesWithAllTags = processedLines.filter(line => hasAllTags(line.text, tags));
+      if (finalLinesWithAllTags.length < 3) {
+        errors.push(`Final check failed: only ${finalLinesWithAllTags.length} of 4 lines have all tags`);
+      }
     }
     
-    // Check for distinct length bands
-    const shortCount = lengths.filter(l => l <= 39).length;
-    const mediumCount = lengths.filter(l => l >= 40 && l <= 69).length; 
-    const longCount = lengths.filter(l => l >= 70).length;
-    
-    if (shortCount === 0 || (mediumCount === 0 && longCount === 0)) {
-      errors.push("Missing required length variety (need short + medium/long mix)");
-    }
+    // Final character limit check
+    processedLines.forEach((line, index) => {
+      if (line.text.length > 70) {
+        errors.push(`Final check failed: Line ${index + 1} still exceeds 70 chars (${line.text.length})`);
+      }
+    });
     
     if (errors.length === 0) {
       return {
@@ -409,14 +408,24 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
   
   // Add structured feedback for retry attempts
   if (attemptNumber > 1 && previousErrors.length > 0) {
-    const feedback = `PREVIOUS ATTEMPT FAILED: ${previousErrors.join("; ")}
+    let feedback = `PREVIOUS ATTEMPT FAILED: ${previousErrors.join("; ")}`;
     
-EXAMPLE CORRECT FORMAT:
+    // Add specific guidance for tag rule failures
+    if (previousErrors.some(err => err.includes("tag"))) {
+      feedback += `\n\nCRITICAL: At least 3 lines must include ALL tags literally. Do not skip tags in more than one line.`;
+    }
+    
+    // Add specific guidance for character limit failures  
+    if (previousErrors.some(err => err.includes("70 char") || err.includes("exceeds"))) {
+      feedback += `\n\nCRITICAL: Each line must be ≤ 70 characters. No exceptions.`;
+    }
+    
+    feedback += `\n\nEXAMPLE CORRECT FORMAT:
 {"lines":[
   {"lane":"option1","text":"Happy birthday Mike, even your cake ghosted you."},
-  {"lane":"option2","text":"The balloons bailed faster than Mike's last date, happy birthday."},
-  {"lane":"option3","text":"Mike's candles begged OSHA for hazard pay, happy birthday."},
-  {"lane":"option4","text":"Confetti refused to drop, Mike. Even it knows this party sucks."}
+  {"lane":"option2","text":"The balloons bailed faster than Mike's last date."},
+  {"lane":"option3","text":"Mike's candles begged OSHA for hazard pay today."},
+  {"lane":"option4","text":"Confetti refused to drop, Mike. It knows better."}
 ]}`;
     userMessage += `\n\n${feedback}`;
   }

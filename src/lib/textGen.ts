@@ -14,8 +14,7 @@ STRICT RULES:
 }
 
 2. CONTENT RULES:
-- Max 70 characters per line
-- Vary lengths: some ~40, some ~55-60, some ~65-70
+- Each line must be ≤ 70 characters
 - All 4 lines must be completely different
 - Use simple punctuation: commas, periods, colons
 - NO em-dashes (—) or double dashes (--)
@@ -29,15 +28,14 @@ STRICT RULES:
 - Savage/Humorous/Playful → funny, roast-style, witty
 - Serious/Sentimental/Nostalgic/Romantic/Inspirational → sincere, heartfelt, uplifting
 
-5. TAG RULES:
+5. TAG RULES (STRICTLY ENFORCED):
 - If no tags → generate normally
-- If tags exist: At least 3 out of 4 lines must include ALL tags literally (no synonyms)
+- If tags exist: At least 3 out of 4 lines must include ALL tags literally (not synonyms)
 - Tags must appear in different spots in the line
-- Trait tags (gay, bald, vegan): Savage → roast or playful twist, Serious → affirming, Romantic → highlight positively
+- Do not skip tags in more than 1 line
 
 6. VARIETY:
-- Randomize levels of savageness (light jab → brutal burn)
-- No clones or near-duplicates
+- Create 4 distinct options with varied approaches
 - Conversational, natural, human-sounding`;
 
 interface TextGenInput {
@@ -52,14 +50,6 @@ interface TextGenOutput {
     lane: string;
     text: string;
   }>;
-}
-
-function buildUserMessage(inputs: TextGenInput): string {
-  const tagsStr = inputs.tags.length > 0 ? `, tags: [${inputs.tags.map(t => `"${t}"`).join(",")}]` : "";
-  return `Generate 4 one-liners for:
-Category: ${inputs.category}
-Subcategory: ${inputs.subcategory}
-Tone: ${inputs.tone}${tagsStr}`;
 }
 
 function sanitizeAndValidate(text: string): TextGenOutput | null {
@@ -84,25 +74,24 @@ function sanitizeAndValidate(text: string): TextGenOutput | null {
         return null;
       }
       
-      // Updated character limit for longer options
-      if (line.text.length > 100) {
+      // Hard character limit of 70
+      if (line.text.length > 70) {
         return null;
       }
-    }
-    
-    // Check for length variety
-    const lengths = parsed.lines.map((line: any) => line.text.length);
-    const lengthRange = Math.max(...lengths) - Math.min(...lengths);
-    
-    // Require at least 30 characters difference between shortest and longest
-    if (lengthRange < 30) {
-      return null;
     }
     
     return parsed as TextGenOutput;
   } catch {
     return null;
   }
+}
+
+function buildUserMessage(inputs: TextGenInput): string {
+  const tagsStr = inputs.tags.length > 0 ? `, tags: [${inputs.tags.map(t => `"${t}"`).join(",")}]` : "";
+  return `Generate 4 one-liners for:
+Category: ${inputs.category}
+Subcategory: ${inputs.subcategory}
+Tone: ${inputs.tone}${tagsStr}`;
 }
 
 const FALLBACK_LINES: TextGenOutput = {
