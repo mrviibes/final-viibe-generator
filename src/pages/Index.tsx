@@ -27,6 +27,16 @@ import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
 
+// Layout mappings for display
+const layoutMappings = {
+  negativeSpace: { label: "Negative Space", token: "clear empty area near largest margin" },
+  memeTopBottom: { label: "Meme Top/Bottom", token: "clear top band, clear bottom band" },
+  lowerThird: { label: "Lower Third Banner", token: "clear lower third" },
+  sideBarLeft: { label: "Side Bar (Left)", token: "clear left panel" },
+  badgeSticker: { label: "Badge/Sticker Callout", token: "badge space top-right" },
+  subtleCaption: { label: "Subtle Caption", token: "clear narrow bottom strip" }
+};
+
 // Visual variance enforcer to prevent duplicate/similar prompts
 function ensureVisualVariance(
   options: Array<{ lane: string; prompt: string }>, 
@@ -6585,6 +6595,18 @@ const Index = () => {
                         <td className="p-3 text-sm">Final Text</td>
                         <td className="p-3 text-sm">{selectedGeneratedOption || stepTwoText || "Not generated"}</td>
                       </tr>
+                      {(selectedGeneratedOption || stepTwoText) && selectedTextLayout && (
+                        <>
+                          <tr>
+                            <td className="p-3 text-sm">Text Placement</td>
+                            <td className="p-3 text-sm">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.label || selectedTextLayout}</td>
+                          </tr>
+                          <tr>
+                            <td className="p-3 text-sm">Layout Token</td>
+                            <td className="p-3 text-sm font-mono text-xs">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.token || "Unknown layout"}</td>
+                          </tr>
+                        </>
+                      )}
                       <tr>
                         <td className="p-3 text-sm">Visual Style</td>
                         <td className="p-3 text-sm">{selectedVisualStyle || "Not selected"}</td>
