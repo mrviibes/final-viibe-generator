@@ -6434,10 +6434,10 @@ const Index = () => {
 
                 {/* Generated Prompt */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-foreground">Generated Prompt</h3>
-                  <div className="bg-muted/30 rounded-lg p-6">
+                  <h3 className="text-lg font-medium text-foreground">Full Ideogram Request</h3>
+                  <div className="bg-muted/30 rounded-lg p-6 space-y-4">
                     {(() => {
-                // Build the same handoff structure we use for generation
+                // Build the exact same request that would be sent to Ideogram
                 const finalText = selectedGeneratedOption || stepTwoText || "";
                 const visualStyle = selectedVisualStyle || "";
                 const subcategory = (() => {
@@ -6455,12 +6455,17 @@ const Index = () => {
                 const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
                 const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "";
                 const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
-                const tempHandoff = buildIdeogramHandoff({
+
+                // Build the handoff payload
+                const allTags = [...tags, ...subjectTags];
+                const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : undefined;
+                const ideogramPayload = buildIdeogramHandoff({
                   visual_style: visualStyle,
                   subcategory: subcategory,
                   tone: tone.toLowerCase(),
                   final_line: finalText,
-                  tags_csv: [...tags, ...subjectTags].join(', '),
+                  tags_csv: allTags.join(', '),
+                  chosen_visual: chosenVisual,
                   category: categoryName,
                   subcategory_secondary: subcategorySecondary,
                   aspect_ratio: aspectRatio,
@@ -6471,10 +6476,80 @@ const Index = () => {
                   rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].subject : selectedSubjectOption === "design-myself" ? subjectDescription : undefined,
                   rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].background : undefined
                 });
-                const promptText = buildIdeogramPrompt(tempHandoff);
-                return <p className="text-sm text-foreground font-mono leading-relaxed">
-                          {promptText || "No prompt available"}
-                        </p>;
+
+                // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
+                let prompt = directPrompt.trim();
+                if (!prompt && selectedRecommendation !== null && visualRecommendations) {
+                  prompt = visualRecommendations.options[selectedRecommendation].prompt;
+                }
+                if (!prompt && !barebonesMode) {
+                  prompt = buildIdeogramPrompt(ideogramPayload);
+                }
+
+                // Calculate the exact same parameters used for generation
+                const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
+                const hasText = finalText && finalText.trim();
+                const styleForIdeogram = hasText ? 'DESIGN' : getStyleTypeForIdeogram(visualStyle);
+                const modelForIdeogram = hasText ? 'V_2A_TURBO' : 'V_2A_TURBO';
+
+                // Handle spelling guarantee mode modifications
+                let finalPrompt = prompt;
+                if (spellingGuaranteeMode && finalText && finalText.trim()) {
+                  finalPrompt = prompt.replace(/EXACT_TEXT \(VERBATIM\): ".*?"/g, '').replace(/Render this text EXACTLY.*?\./g, '').replace(/Use only standard ASCII.*?\./g, '').replace(/If you cannot render.*?\./g, '').replace(/Style and display this text.*?\./g, '').replace(/Ensure the text is.*?\./g, '').replace(/NEGATIVE PROMPTS:.*?\./g, '').replace(/\s+/g, ' ').trim() + ' No text, no typography, no words, no letters, no characters, no glyphs, no symbols, no UI elements overlaid on the image. Clean minimal background only.';
+                }
+
+                // Create the exact request object
+                const fullRequest = {
+                  prompt: finalPrompt,
+                  aspect_ratio: aspectForIdeogram,
+                  model: modelForIdeogram,
+                  magic_prompt_option: 'AUTO',
+                  style_type: styleForIdeogram
+                };
+
+                return (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2 text-foreground">Request Body:</h4>
+                      <div className="bg-background rounded-md p-4 border">
+                        <pre className="text-xs text-foreground whitespace-pre-wrap font-mono overflow-x-auto">
+                          {JSON.stringify(fullRequest, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(JSON.stringify(fullRequest, null, 2));
+                          sonnerToast.success("Request copied to clipboard!");
+                        }}
+                      >
+                        Copy Request
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(finalPrompt);
+                          sonnerToast.success("Prompt copied to clipboard!");
+                        }}
+                      >
+                        Copy Prompt Only
+                      </Button>
+                    </div>
+                    
+                    {spellingGuaranteeMode && (
+                      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          <strong>Spelling Guarantee Mode:</strong> Background-only version will be generated first, then text overlay applied.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
               })()}
                   </div>
                 </div>
