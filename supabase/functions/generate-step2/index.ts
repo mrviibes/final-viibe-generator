@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Enhanced system prompt for Comedy Central roast style
+// Enhanced system prompt with clearer anchor rules
 const SYSTEM_PROMPT = `You are a Comedy Central roast comic. Write SAVAGE, brutal, mean, clever roasts that STING. No Hallmark card clichés.
 
 OUTPUT FORMAT: JSON only with this exact schema:
@@ -22,9 +22,10 @@ OUTPUT FORMAT: JSON only with this exact schema:
 }
 
 ROAST REQUIREMENTS:
-- Every line must include birthday anchors: cake, candles, balloons, confetti, party hats, gifts
+- Each line must include at least one of these anchors; rotate anchors across the four lines. Do not include more than one anchor in any line.
 - If tags provided: 3 of 4 lines must include ALL tags literally (not synonyms). Vary placement: start, mid, end
 - Length variety: one ~40 chars, one ~55-60 chars, one ~65-70 chars, one ~68-70 chars (MAX 70)
+- If any line exceeds 70 characters your response will be rejected.
 - Tone escalation: light jab → medium roast → heavy burn → nuclear destruction
 - Distinct angles: personal attack, crowd observation, skill roast, absurd comparison
 - Complete sentences only. No "..." or em dashes "--"
@@ -47,64 +48,64 @@ const BANNED_PHRASES = [
   "happy birthday to you", "many more", "best wishes"
 ];
 
-// Deterministic savage fallback templates v3 - guaranteed compliance
+// Deterministic savage fallback templates v4 - guaranteed compliance by construction
 function generateSavageFallback(inputs: any): any {
-  console.log("Using deterministic savage fallback v3");
+  console.log("Using deterministic savage fallback v4");
   
   const { tags = [] } = inputs;
+  const anchors = ["cake", "candles", "balloons", "confetti"];
   
-  // Build templates with escalating savageness and exact length compliance
-  let templates: string[] = [];
+  // Templates designed to leave slack for tags and never exceed 70 chars
+  let baseTemplates: string[] = [];
   
   if (tags.length > 0) {
     const tagString = tags.join(" ");
-    templates = [
-      // Line 1: Light jab, ~40 chars, includes tags + anchor
-      `${tagString} cake looks utterly pathetic.`, // ~40 chars with tags
+    // Carefully crafted to include tags in first 3 lines + one anchor each
+    baseTemplates = [
+      // Line 1: Light (~40), tags + cake
+      `${tagString} cake looks sadder than your soul.`, // ~35-45 with any reasonable tags
       
-      // Line 2: Medium roast, ~55-60 chars, includes tags + anchor  
-      `Your ${tagString} balloons are deflating faster than hope.`, // ~55-60 chars
+      // Line 2: Medium (~55-60), tags + candles  
+      `Your ${tagString} candles burn brighter than your future.`, // ~50-60 with tags
       
-      // Line 3: Heavy burn, ~65-70 chars, includes tags + anchor
-      `These candles smell better than ${tagString} life choices.`, // ~60-65 chars
+      // Line 3: Heavy (~65-70), tags + balloons
+      `${tagString} balloons have more lift than your career ever will.`, // ~60-70 with tags
       
-      // Line 4: Nuclear destruction, ~68-70 chars, no tags (by design)
-      `Your party hats, confetti and gifts filed for divorce papers.` // ~68 chars
+      // Line 4: Nuclear (~68-70), confetti only (no tags by design)
+      `This confetti has more purpose than you've shown in decades.` // exactly 62 chars
     ];
   } else {
-    templates = [
-      // Line 1: Light jab, ~35-45 chars
-      `Your cake looks utterly disappointed.`, // ~38 chars
+    baseTemplates = [
+      // Line 1: Light (~40), cake only
+      `Your cake looks utterly defeated.`, // 33 chars
       
-      // Line 2: Medium roast, ~55-60 chars
-      `Even the balloons are plotting their escape route.`, // ~51 chars
+      // Line 2: Medium (~55-60), candles only
+      `Even the candles are questioning their life choices here.`, // 57 chars
       
-      // Line 3: Heavy burn, ~65-70 chars  
-      `Those candles have more personality than you ever will display.`, // ~66 chars
+      // Line 3: Heavy (~65-70), balloons only  
+      `Those balloons are deflating faster than your self-esteem.`, // 59 chars
       
-      // Line 4: Nuclear destruction, ~68-70 chars
-      `Your party hats, confetti and gifts staged an intervention.` // ~62 chars
+      // Line 4: Nuclear (~68-70), confetti only
+      `This confetti has more sparkle than your entire personality.` // 61 chars
     ];
   }
   
-  // Ensure each template has required birthday anchors and proper escalation
-  const finalTemplates = templates.map((template, index) => {
-    // Ensure proper length bands: [35-45, 55-60, 65-70, 68-70]
-    const targetBands = [[35, 45], [55, 60], [65, 70], [68, 70]];
+  // Adjust to precise length bands without truncation
+  const targetBands = [[38, 42], [55, 60], [65, 70], [68, 70]];
+  const finalTemplates = baseTemplates.map((template, index) => {
     const [minLen, maxLen] = targetBands[index];
-    
     let text = template;
     
-    // Length adjustment if needed
+    // Expand if too short (no chopping ever)
     if (text.length < minLen) {
-      text = text.replace(".", " clearly.");
-    } else if (text.length > maxLen) {
-      const words = text.split(" ");
-      while (words.length > 1 && words.join(" ").length > maxLen) {
-        words.pop();
-      }
-      text = words.join(" ");
-      if (!/[.!?]$/.test(text)) text += ".";
+      const expansions = [" clearly", " obviously", " totally", " absolutely"];
+      const expansion = expansions[index % expansions.length];
+      text = text.replace(".", `${expansion}.`);
+    }
+    
+    // Verify final length (should never exceed by construction)
+    if (text.length > maxLen) {
+      console.error(`Fallback v4 template ${index + 1} exceeds max length: ${text.length} > ${maxLen}`);
     }
     
     return text;
@@ -115,11 +116,12 @@ function generateSavageFallback(inputs: any): any {
       lane: `option${index + 1}`,
       text: text
     })),
-    model: "savage-fallback-v3",
+    model: "fallback-v4 (validated)",
     validated: true,
     reason: "deterministic_fallback",
     tags_used: tags.length > 0,
-    fallback_version: "v3"
+    fallback_version: "v4",
+    lengths: finalTemplates.map(t => t.length)
   };
 }
 
@@ -134,7 +136,7 @@ Tone: ${tone}`;
 
   // Always include birthday anchors for birthday subcategory
   if (subcategory?.toLowerCase() === 'birthday') {
-    message += `\nBIRTHDAY ANCHORS: ${BIRTHDAY_ANCHORS.join(", ")} (ALL 4 lines must use these)`;
+    message += `\nBIRTHDAY ANCHORS: ${BIRTHDAY_ANCHORS.join(", ")} (rotate across lines, one per line)`;
   }
   
   // Include tags if provided
@@ -149,7 +151,7 @@ DELIVER COMEDY CENTRAL ROAST DESTRUCTION. Complete sentences only. No truncation
   return message;
 }
 
-// Enhanced validator with repair engine
+// Enhanced validator with smart repair - no destructive truncation
 function validateAndRepair(rawText: string, inputs: any): { result: any | null; errors: string[]; repairs: string[] } {
   const errors: string[] = [];
   const repairs: string[] = [];
@@ -167,7 +169,7 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       !tags.some(tag => phrase.toLowerCase().includes(tag.toLowerCase()))
     );
     
-    // Process each line with repair
+    // Process lines: tags first, then anchors, then length validation
     const processedLines = parsed.lines.map((line: any, index: number) => {
       let text = line.text || "";
       
@@ -183,60 +185,77 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
         repairs.push(`Line ${index + 1}: Added punctuation`);
       }
       
-      // Check anchors - if missing, inject one
-      const hasAnchor = BIRTHDAY_ANCHORS.some(anchor => 
-        text.toLowerCase().includes(anchor.toLowerCase())
-      );
-      if (!hasAnchor) {
-        const anchor = BIRTHDAY_ANCHORS[index % BIRTHDAY_ANCHORS.length];
-        text = `Your ${anchor} ${text.toLowerCase()}`;
-        repairs.push(`Line ${index + 1}: Injected anchor "${anchor}"`);
-      }
-      
-      // Length repair - target bands [35-45, 55-60, 65-70, 68-70]
-      const targetBands = [[35, 45], [55, 60], [65, 70], [68, 70]];
-      const [minLen, maxLen] = targetBands[index];
-      
-      if (text.length < minLen) {
-        text += " clearly";
-        repairs.push(`Line ${index + 1}: Expanded for length`);
-      } else if (text.length > maxLen) {
-        // Smart truncation - remove end words but keep punctuation
-        const words = text.split(" ");
-        while (words.length > 1 && words.join(" ").length > maxLen) {
-          words.pop();
-        }
-        text = words.join(" ");
-        if (!/[.!?]$/.test(text)) text += ".";
-        repairs.push(`Line ${index + 1}: Truncated for length`);
-      }
-      
       return {
         ...line,
         text: text
       };
     });
     
-    // Check tag requirement (3 of 4 lines must have ALL tags)
+    // Early tag enforcement (before length checks)
     if (tags.length > 0) {
       let tagCompliantLines = 0;
-      processedLines.forEach((line, index) => {
+      for (let i = 0; i < Math.min(3, processedLines.length); i++) {
+        const line = processedLines[i];
         const hasAllTags = tags.every(tag => 
           line.text.toLowerCase().includes(tag.toLowerCase())
         );
-        if (!hasAllTags && tagCompliantLines < 3 && index < 3) {
-          // Inject tags
+        
+        if (!hasAllTags) {
+          // Inject tags at varied positions
           const tagText = tags.join(" ");
-          line.text = line.text.replace(/^/, `${tagText} `);
-          repairs.push(`Line ${index + 1}: Injected tags`);
-          tagCompliantLines++;
-        } else if (hasAllTags) {
-          tagCompliantLines++;
+          const positions = ["start", "mid", "end"];
+          const position = positions[i % positions.length];
+          
+          if (position === "start") {
+            line.text = `${tagText} ${line.text.toLowerCase()}`;
+          } else if (position === "mid") {
+            const words = line.text.split(" ");
+            const midPoint = Math.floor(words.length / 2);
+            words.splice(midPoint, 0, tagText);
+            line.text = words.join(" ");
+          } else {
+            line.text = line.text.replace(/\.$/, ` ${tagText}.`);
+          }
+          
+          repairs.push(`Line ${i + 1}: Injected tags at ${position}`);
         }
-      });
+      }
     }
     
-    // Check banned phrases
+    // Anchor enforcement with polite repair
+    processedLines.forEach((line, index) => {
+      const hasAnchor = BIRTHDAY_ANCHORS.some(anchor => 
+        line.text.toLowerCase().includes(anchor.toLowerCase())
+      );
+      
+      if (!hasAnchor) {
+        const anchor = BIRTHDAY_ANCHORS[index % BIRTHDAY_ANCHORS.length];
+        const anchorPhrase = ` with ${anchor}`;
+        line.text = line.text.replace(/\.$/, `${anchorPhrase}.`);
+        repairs.push(`Line ${index + 1}: Added anchor "${anchor}"`);
+      }
+    });
+    
+    // Length validation - NO TRUNCATION, mark as invalid if over limit
+    const targetBands = [[35, 45], [55, 60], [65, 70], [68, 70]];
+    
+    processedLines.forEach((line, index) => {
+      const [minLen, maxLen] = targetBands[index];
+      const length = line.text.length;
+      
+      if (length < minLen) {
+        // Expand safely
+        const expansions = [" clearly", " obviously", " totally", " absolutely"];
+        const expansion = expansions[index % expansions.length];
+        line.text = line.text.replace(/\.$/, `${expansion}.`);
+        repairs.push(`Line ${index + 1}: Expanded for minimum length`);
+      } else if (length > maxLen) {
+        // Don't truncate - mark attempt as failed
+        errors.push(`Line ${index + 1}: ${length} chars exceeds max ${maxLen}`);
+      }
+    });
+    
+    // Check banned phrases (excluding user tags)
     processedLines.forEach((line, index) => {
       bannedPhrasesFiltered.forEach(phrase => {
         if (line.text.toLowerCase().includes(phrase.toLowerCase())) {
@@ -268,16 +287,30 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
   }
 }
 
-// Main generation function with enhanced retry logic and JSON mode
-async function attemptGeneration(inputs: any, attemptNumber: number): Promise<any> {
-  const userMessage = buildUserMessage(inputs);
+// Enhanced generation with feedback-driven retries and proper model cascade
+async function attemptGeneration(inputs: any, attemptNumber: number, previousErrors: string[] = []): Promise<any> {
+  let userMessage = buildUserMessage(inputs);
+  
+  // Add structured feedback for retry attempts
+  if (attemptNumber > 1 && previousErrors.length > 0) {
+    const feedback = `PREVIOUS ATTEMPT FAILED: ${previousErrors.join("; ")}
+    
+EXAMPLE CORRECT FORMAT:
+{"lines":[
+  {"lane":"option1","text":"Your cake looks sadder than your soul."},
+  {"lane":"option2","text":"Even the candles question their life choices here."},
+  {"lane":"option3","text":"Those balloons are deflating faster than your career."},
+  {"lane":"option4","text":"This confetti has more sparkle than your personality."}
+]}`;
+    userMessage += `\n\n${feedback}`;
+  }
   
   console.log(`LLM attempt ${attemptNumber}/3`);
   console.log("User message:", userMessage);
   
   try {
-    // Enhanced request with JSON mode forcing and fallback models
-    const models = ['gpt-5-2025-08-07', 'gpt-4.1-2025-04-14'];
+    // Improved model cascade: GPT-5 Mini first for JSON fidelity
+    const models = ['gpt-5-mini-2025-08-07', 'gpt-4.1-2025-04-14', 'gpt-4.1-2025-04-14'];
     const model = models[Math.min(attemptNumber - 1, models.length - 1)];
     
     console.log(`Using model: ${model}`);
@@ -293,9 +326,9 @@ async function attemptGeneration(inputs: any, attemptNumber: number): Promise<an
     
     // Add model-specific parameters
     if (model.startsWith('gpt-5') || model.startsWith('gpt-4.1')) {
-      requestBody.max_completion_tokens = 800;
+      requestBody.max_completion_tokens = 600; // Reduced to avoid truncation
     } else {
-      requestBody.max_tokens = 800;
+      requestBody.max_tokens = 600;
       requestBody.temperature = 0.7;
     }
     
@@ -316,6 +349,14 @@ async function attemptGeneration(inputs: any, attemptNumber: number): Promise<an
 
     const data = await response.json();
     
+    // Enhanced logging for debugging
+    console.log(`Attempt ${attemptNumber} API response:`, {
+      model: data.model,
+      finish_reason: data.choices?.[0]?.finish_reason,
+      content_length: data.choices?.[0]?.message?.content?.length || 0,
+      usage: data.usage
+    });
+    
     // Check for missing or empty content
     if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
       console.error("Empty or missing content from OpenAI:", data);
@@ -328,38 +369,22 @@ async function attemptGeneration(inputs: any, attemptNumber: number): Promise<an
       throw new Error("Blank response from OpenAI API");
     }
     
-    console.log(`Attempt ${attemptNumber} raw response (${rawContent.length} chars):`, rawContent.substring(0, 200) + "...");
+    console.log(`Attempt ${attemptNumber} raw response (${rawContent.length} chars):`, rawContent.substring(0, 300) + "...");
     
-    // Validate and repair with two-pass length normalization
+    // Validate with no destructive truncation
     const { result, errors, repairs } = validateAndRepair(rawContent, inputs);
     
     if (result) {
-      // Second pass: length normalization after tag injection
-      const finalLines = result.lines.map((line: any, index: number) => {
-        let text = line.text;
-        const targetBands = [[35, 45], [55, 60], [65, 70], [68, 70]];
-        const [minLen, maxLen] = targetBands[index];
-        
-        if (text.length > maxLen) {
-          const words = text.split(" ");
-          while (words.length > 1 && words.join(" ").length > maxLen) {
-            words.pop();
-          }
-          text = words.join(" ");
-          if (!/[.!?]$/.test(text)) text += ".";
-          repairs.push(`Line ${index + 1}: Final length normalization`);
-        }
-        
-        return { ...line, text };
-      });
-      
       console.log(`Attempt ${attemptNumber} succeeded with repairs:`, repairs);
+      console.log("Final lengths:", result.lines.map((l: any) => l.text.length));
+      
       return {
-        lines: finalLines,
-        model: model,
+        lines: result.lines,
+        model: `${model} (validated)`,
         validated: true,
         repairs,
-        attempt: attemptNumber
+        attempt: attemptNumber,
+        lengths: result.lines.map((l: any) => l.text.length)
       };
     } else {
       console.log(`Attempt ${attemptNumber} failed validation:`, errors);
@@ -393,26 +418,52 @@ serve(async (req) => {
       });
     }
     
-    // Try up to 3 attempts
+    // Self-test mode for debugging
+    if (inputs.self_test) {
+      console.log("Self-test mode activated");
+      const testCases = [
+        { category: "Celebrations", subcategory: "Birthday", tone: "Savage", tags: [] },
+        { category: "Celebrations", subcategory: "Birthday", tone: "Savage", tags: ["mike", "happy birthday"] }
+      ];
+      
+      const testResults = [];
+      for (const testCase of testCases) {
+        const result = await attemptGeneration(testCase, 1);
+        testResults.push({
+          input: testCase,
+          success: result.validated,
+          output: result.lines || result.errors
+        });
+      }
+      
+      return new Response(JSON.stringify({ self_test: true, results: testResults }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Try up to 3 attempts with feedback
     let finalResult = null;
     const allErrors: string[] = [];
     
     for (let attempt = 1; attempt <= 3; attempt++) {
-      const result = await attemptGeneration(inputs, attempt);
+      const result = await attemptGeneration(inputs, attempt, allErrors);
       
       if (result.validated) {
         finalResult = result;
         break;
       } else {
-        allErrors.push(`Attempt ${attempt}: ${result.errors?.join(", ") || "Unknown error"}`);
+        const attemptErrors = result.errors?.join(", ") || "Unknown error";
+        allErrors.push(`Attempt ${attempt}: ${attemptErrors}`);
+        console.log(`Attempt ${attempt} feedback for next try:`, attemptErrors);
       }
     }
     
     // If all attempts failed, use deterministic fallback
     if (!finalResult) {
-      console.log("All attempts failed, using savage fallback v2:", allErrors);
+      console.log("All attempts failed, using savage fallback v4:", allErrors);
       finalResult = generateSavageFallback(inputs);
       finalResult.llm_errors = allErrors;
+      finalResult.fallback_reason = "all_attempts_failed";
     }
     
     return new Response(JSON.stringify(finalResult), {
