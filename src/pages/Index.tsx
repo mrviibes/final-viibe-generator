@@ -5032,12 +5032,19 @@ const Index = () => {
             finalImageUrl = imagenResponse.image_url;
             imageGenerated = true;
             console.log('✅ Gemini generation successful');
-            sonnerToast.success("Your VIIBE has been generated with Gemini!");
+            sonnerToast.success("Your VIIBE has been generated with Google Gemini!");
           }
         } catch (imagenError) {
           console.warn('⚠️ Gemini failed, falling back to Ideogram:', imagenError);
           
-          // Fall back to Ideogram if Gemini fails
+          // Check if it's a configuration error that should not trigger fallback
+          const errorMessage = imagenError instanceof Error ? imagenError.message : String(imagenError);
+          if (errorMessage.includes('Gemini API key is invalid') || errorMessage.includes('Generative Language API is not enabled')) {
+            // For API key/configuration errors, show specific error without fallback
+            throw new Error(`Gemini configuration error: ${errorMessage}`);
+          }
+          
+          // Fall back to Ideogram for other errors (network, quota, etc.)
           const apiKey = getIdeogramApiKey();
           if (!apiKey) {
             throw new Error('Gemini failed and no Ideogram API key available. Please add an Ideogram API key for fallback.');

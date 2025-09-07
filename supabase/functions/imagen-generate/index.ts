@@ -30,12 +30,16 @@ async function generateImageWithGemini(request: ImagenRequest): Promise<string> 
     throw new Error('GEMINI_API_KEY not configured');
   }
 
-  // Map aspect ratio to dimensions
-  let width = 1024, height = 1024;
-  if (request.aspect_ratio === "ASPECT_16_9") { width = 1024; height = 576; }
-  else if (request.aspect_ratio === "ASPECT_9_16") { width = 576; height = 1024; }
-  else if (request.aspect_ratio === "ASPECT_10_16") { width = 640; height = 1024; }
-  else if (request.aspect_ratio === "ASPECT_16_10") { width = 1024; height = 640; }
+  // Map aspect ratio to Google Imagen format
+  const aspectRatioMap: { [key: string]: string } = {
+    'ASPECT_1_1': '1:1',
+    'ASPECT_16_9': '16:9',
+    'ASPECT_9_16': '9:16',
+    'ASPECT_10_16': '10:16',
+    'ASPECT_16_10': '16:10'
+  };
+  
+  const aspectRatio = aspectRatioMap[request.aspect_ratio || 'ASPECT_1_1'] || '1:1';
   
   // Build detailed prompt
   let finalPrompt = request.prompt;
@@ -54,48 +58,71 @@ async function generateImageWithGemini(request: ImagenRequest): Promise<string> 
     finalPrompt += `. Avoid: ${request.negative_prompt}`;
   }
 
-  console.log('Generating image with Gemini/OpenAI integration:', { 
-    prompt: finalPrompt, 
-    dimensions: `${width}x${height}` 
+  console.log('Generating image with Google Generative Language Images API:', { 
+    prompt: finalPrompt.substring(0, 100) + '...', 
+    aspectRatio,
+    style: request.style_type
   });
 
-  // Use OpenAI's image generation with the Gemini API key
-  // This assumes the user has set up their GEMINI_API_KEY to actually be an OpenAI key
-  // or we're using a proxy service
-  const endpoint = 'https://api.openai.com/v1/images/generations';
+  // Use Google Generative Language Images API
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImage?key=${GEMINI_API_KEY}`;
   
   const payload = {
-    model: "dall-e-3",
-    prompt: finalPrompt.length > 1000 ? finalPrompt.substring(0, 1000) : finalPrompt,
-    n: 1,
-    size: width >= 1024 ? "1024x1024" : "512x512",
-    quality: "standard",
-    response_format: "b64_json"
+    prompt: finalPrompt,
+    config: {
+      aspectRatio: aspectRatio,
+      sampleCount: 1
+    }
   };
 
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GEMINI_API_KEY}`,
     },
     body: JSON.stringify(payload),
   });
 
+  const responseText = await response.text();
+  console.log('Google API response status:', response.status);
+  console.log('Google API response headers:', Object.fromEntries(response.headers.entries()));
+
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Image generation error:', response.status, errorText);
-    throw new Error(`Image generation failed: ${response.status} - Please check your API key configuration`);
+    console.error('Google Generative Language API error:', response.status, responseText);
+    
+    // Parse error response for better error messages
+    let errorMessage = `Image generation failed: ${response.status}`;
+    try {
+      const errorData = JSON.parse(responseText);
+      if (errorData.error) {
+        if (response.status === 401 || response.status === 403) {
+          errorMessage = 'Gemini API key is invalid or Generative Language API is not enabled for your project. Please check your API key and ensure the Google Generative Language API is enabled.';
+        } else {
+          errorMessage = errorData.error.message || errorMessage;
+        }
+      }
+    } catch (parseError) {
+      console.error('Failed to parse error response:', parseError);
+    }
+    
+    throw new Error(errorMessage);
   }
 
-  const data = await response.json();
-  console.log('Image generation successful');
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (parseError) {
+    console.error('Failed to parse response JSON:', parseError);
+    throw new Error('Invalid response from Google Generative Language API');
+  }
   
-  if (!data.data || data.data.length === 0) {
-    throw new Error('No images returned from generation API');
+  console.log('Image generation successful with Google Generative Language API');
+  
+  if (!data.generatedImages || data.generatedImages.length === 0) {
+    throw new Error('No images returned from Google Generative Language API');
   }
 
-  return data.data[0].b64_json;
+  return data.generatedImages[0].bytesBase64Encoded;
 }
 
 serve(async (req) => {
