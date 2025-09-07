@@ -19,6 +19,7 @@ export type Database = {
           aspect: string
           created_at: string
           error: string | null
+          guest_id: string | null
           id: string
           image_url: string | null
           negative_prompt: string | null
@@ -26,12 +27,13 @@ export type Database = {
           status: string
           style: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           aspect: string
           created_at?: string
           error?: string | null
+          guest_id?: string | null
           id?: string
           image_url?: string | null
           negative_prompt?: string | null
@@ -39,12 +41,13 @@ export type Database = {
           status?: string
           style: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           aspect?: string
           created_at?: string
           error?: string | null
+          guest_id?: string | null
           id?: string
           image_url?: string | null
           negative_prompt?: string | null
@@ -52,7 +55,7 @@ export type Database = {
           status?: string
           style?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

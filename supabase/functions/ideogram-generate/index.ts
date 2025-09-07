@@ -68,7 +68,8 @@ serve(async (req) => {
     const { data: job, error: jobError } = await serviceRoleClient
       .from('gen_jobs')
       .insert({
-        user_id: userId || guestId,
+        user_id: userId,
+        guest_id: guestId,
         prompt,
         negative_prompt: negative_prompt || '',
         style: style_type || 'DESIGN',
