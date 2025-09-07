@@ -64,22 +64,32 @@ export async function generateTextOptions(session: Session, { tone, tags = [] }:
 ========================================================= */
 import { openAIService } from './openai';
 
-export async function generateVisualOptions(session: Session, { tone, tags = [], textContent = "" }: { tone: string; tags?: string[]; textContent?: string }): Promise<{
+export async function generateVisualOptions(session: Session, { tone, tags = [], textContent = "", textLayoutId = "negativeSpace" }: { tone: string; tags?: string[]; textContent?: string; textLayoutId?: string }): Promise<{
   visualOptions: Array<{ lane: string; prompt: string }>;
   negativePrompt: string;
   model: string;
 }> {
   try {
-    console.log('🎨 generateVisualOptions called with:', { 
+        console.log('🎨 generateVisualOptions called with:', { 
       category: session.category, 
       subcategory: session.subcategory, 
       tone, 
       tags, 
       entity: session.entity,
-      textContent 
+      textContent,
+      textLayoutId 
     });
     
-    const systemPrompt = `Return ONLY JSON:
+    const systemPrompt = `Layout tokens (apply exactly one based on textLayoutId):
+- negativeSpace  -> "clear empty area near largest margin"
+- memeTopBottom  -> "clear top band" , "clear bottom band"
+- lowerThird     -> "clear lower third"
+- sideBarLeft    -> "clear left panel"
+- badgeSticker   -> "badge space top-right"
+- subtleCaption  -> "clear narrow bottom strip"
+
+Rules:
+- Return ONLY JSON:
 {
   "visualOptions":[
     {"lane":"literal","prompt":""},
@@ -89,21 +99,25 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
   ],
   "negativePrompt":""
 }
-Rules:
-- 4 short, simple options (3–6 words).
-- Option1 = literal match to the text.
-- Option2 = supportive (props/audience).
-- Option3 = alternate angle/perspective.
-- Option4 = creative/abstract idea.
-- All must align with category, subcategory, tone, tags, and textContent.
-- Prompts must be quick to scan (e.g. "Person blowing out candles").
-- No style words like realistic, anime, 3D, etc.
-- negativePrompt must always include: no background text, no watermarks, no signage, no logos.`;
+- Prompts: short (3–6 words), no style words (realistic/anime/3D).
+- Option1 literal=mirror textContent; Option2 supportive=audience/props; Option3 alternate=angle/perspective; Option4 creative=symbol/metaphor.
+- Include tone + tags naturally. 
+- Append the matching layout token to EVERY option (e.g., "clear lower third").
+- negativePrompt must include: "no background text, no signage, no watermarks, no logos".
+
+Optional: enforce per-layout wording:
+- negativeSpace → add "clear empty area near subject"
+- memeTopBottom → add both tokens: "clear top band", "clear bottom band"
+- lowerThird → add "clear lower third"
+- sideBarLeft → add "clear left panel"
+- badgeSticker → add "badge space top-right"
+- subtleCaption → add "clear narrow bottom strip"`;
 
     const userPrompt = `Category: ${session.category}
 Subcategory: ${session.subcategory}
 Tone: ${tone}
-Text: "${textContent}"
+TextContent: "${textContent}"
+TextLayoutId: ${textLayoutId}  # one of: negativeSpace|memeTopBottom|lowerThird|sideBarLeft|badgeSticker|subtleCaption
 Tags: ${tags.join(', ')}
 ${session.entity ? `Entity: ${session.entity}` : ''}`;
 

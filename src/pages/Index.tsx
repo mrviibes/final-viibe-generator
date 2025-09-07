@@ -26,6 +26,42 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
+
+// Layout-aware visual validation
+function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: string }>, layoutId: string): Array<{ lane: string; prompt: string }> {
+  const layoutTokens = {
+    negativeSpace: ["clear empty area near largest margin"],
+    memeTopBottom: ["clear top band", "clear bottom band"], // both required
+    lowerThird: ["clear lower third"],
+    sideBarLeft: ["clear left panel"],
+    badgeSticker: ["badge space top-right"],
+    subtleCaption: ["clear narrow bottom strip"]
+  };
+
+  const requiredTokens = layoutTokens[layoutId as keyof typeof layoutTokens] || layoutTokens.negativeSpace;
+  
+  return options.filter(option => {
+    if (!option.prompt) return false;
+    
+    // Check token requirements
+    const hasAllTokens = requiredTokens.every(token => 
+      option.prompt.toLowerCase().includes(token.toLowerCase())
+    );
+    if (!hasAllTokens) return false;
+    
+    // Check word count (3-6 words)
+    const wordCount = option.prompt.trim().split(/\s+/).length;
+    if (wordCount < 3 || wordCount > 6) return false;
+    
+    // Check for text-like terms
+    if (/(text|typography|letter|letters|word|words|caption|quote|slogan)/i.test(option.prompt)) return false;
+    
+    // Check for all-caps "text-looking" tokens
+    if (/\b[A-Z]{2,}\b/.test(option.prompt)) return false;
+    
+    return true;
+  });
+}
 const styleOptions = [{
   id: "celebrations",
   name: "Celebrations",
@@ -4075,9 +4111,24 @@ const Index = () => {
           const result = await generateVisualOptions(session, {
             tone: selectedTextStyle || 'humorous',
             tags: tags,
-            textContent: selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : "")
+            textContent: selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ""),
+            textLayoutId: selectedTextLayout || "negativeSpace"
           });
-          const mappedOptions = result.visualOptions.map((option) => ({
+          
+          // Validate layout-aware options
+          const validOptions = validateLayoutAwareVisuals(result.visualOptions, selectedTextLayout || "negativeSpace");
+          if (validOptions.length === 0) {
+            sonnerToast.error("Visuals not layout-safe — please regenerate");
+            setIsLoadingRecommendations(false);
+            return;
+          }
+          
+          // Ensure all 4 lanes are present
+          const lanes = new Set(validOptions.map(opt => opt.lane));
+          if (lanes.size < 4) {
+            sonnerToast.warning("Some visual options were filtered out for layout safety");
+          }
+          const mappedOptions = validOptions.map((option) => ({
             subject: option.prompt || (option.lane === 'objects' ? 'Objects and environment' : 
                     option.lane === 'group' ? 'Group of people, candid gestures' :
                     option.lane === 'solo' ? 'One person — clear action' :
@@ -4494,9 +4545,23 @@ const Index = () => {
       const result = await generateVisualOptions(session, {
         tone: tone.toLowerCase(),
         tags: finalTags,
-        textContent: finalLine || ""
+        textContent: finalLine || "",
+        textLayoutId: selectedTextLayout || "negativeSpace"
       });
-      const mappedOptions = result.visualOptions.map((option) => ({
+      
+      // Validate layout-aware options
+      const validOptions = validateLayoutAwareVisuals(result.visualOptions, selectedTextLayout || "negativeSpace");
+      if (validOptions.length === 0) {
+        sonnerToast.error("Visuals not layout-safe — please regenerate");
+        return null;
+      }
+      
+      // Ensure all 4 lanes are present
+      const lanes = new Set(validOptions.map(opt => opt.lane));
+      if (lanes.size < 4) {
+        sonnerToast.warning("Some visual options were filtered out for layout safety");
+      }
+      const mappedOptions = validOptions.map((option) => ({
         subject: option.prompt || (option.lane === 'objects' ? 'Objects and environment' : 
                 option.lane === 'group' ? 'Group of people, candid gestures' :
                 option.lane === 'solo' ? 'One person — clear action' :
