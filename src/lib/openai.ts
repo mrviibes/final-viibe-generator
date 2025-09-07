@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 export interface OpenAISearchResult {
@@ -58,10 +60,6 @@ export class OpenAIService {
     max_completion_tokens?: number;
     model?: string;
   } = {}): Promise<any> {
-    if (!this.apiKey) {
-      throw new Error('OpenAI API key not set');
-    }
-
     const {
       temperature = 0.8,
       max_tokens = 2500,
@@ -81,19 +79,52 @@ export class OpenAIService {
 
     for (const tryModel of retryModels) {
       try {
-        const result = await this.attemptChatJSON(messages, {
-          temperature,
-          max_tokens,
-          max_completion_tokens,
-          model: tryModel
-        });
+        let result;
+        
+        // Try Edge Function first (always available), fallback to direct API if user has key
+        try {
+          console.log(`Attempting Edge Function call with model: ${tryModel}`);
+          const { data, error } = await supabase.functions.invoke('ai-chat-json', {
+            body: {
+              messages,
+              options: {
+                temperature,
+                max_tokens,
+                max_completion_tokens,
+                model: tryModel
+              }
+            }
+          });
+
+          if (error) {
+            throw new Error(error.message || 'Edge Function error');
+          }
+
+          result = data;
+          console.log('Edge Function call successful');
+        } catch (edgeError) {
+          console.warn('Edge Function failed, trying direct API:', edgeError);
+          
+          // Fallback to direct API if user has a key
+          if (this.apiKey) {
+            result = await this.attemptChatJSON(messages, {
+              temperature,
+              max_tokens,
+              max_completion_tokens,
+              model: tryModel
+            });
+          } else {
+            throw edgeError;
+          }
+        }
         
         // Add metadata about the API call
         if (result && typeof result === 'object') {
           result._apiMeta = {
             modelUsed: tryModel,
             retryAttempt,
-            originalModel: model
+            originalModel: model,
+            method: this.apiKey && result._apiMeta ? 'direct' : 'edge-function'
           };
         }
         
