@@ -52,6 +52,16 @@ STYLE RULES:
 • No em-dashes (—) or double dashes (--)
 • Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"
 
+TAG RULES (CRITICAL):
+• If TAGS are provided: At least 3 of 4 lines MUST include ALL tags literally, not paraphrased
+• Tags must appear exactly as provided (respect capitalization, numbers, symbols)
+• Tags must be placed naturally in the sentence, but not skipped
+• Do not alter or abbreviate tags
+• Example:
+  Tags: 53% Off, FREE 1g Cherry Garcia Pre-Roll for Every $50 You Spend
+  ✓ Good: "Snag 53% Off today, plus a FREE 1g Cherry Garcia Pre-Roll for Every $50 You Spend."
+  ✗ Bad: "Get a discount and a free pre-roll" (fails because it didn't use tags literally)
+
 PUNCTUATION EXAMPLES:
 ✓ Good: "Happy birthday Jesse, you shine brighter than the candles."
 ✓ Good: "Balloons rise for Jesse: my finest gift is you."
@@ -76,10 +86,11 @@ CHARACTER LIMIT:
 • No exceptions - any line over 70 characters is invalid
 
 TAG HANDLING (STRICTLY ENFORCED):
-• If tags exist: At least 3 of 4 lines must include ALL tags literally (not synonyms)
+• If tags exist: At least 3 of 4 lines must include ALL tags literally (exact text, case-sensitive)
+• Tags must appear exactly as provided - no paraphrasing, abbreviating, or synonyms
 • Tags must appear naturally and in different positions across lines
 • Do not skip tags in more than 1 line
-• Natural integration, not forced cramming
+• Example: If tags are "53% Off" and "FREE 1g Cherry Garcia Pre-Roll for Every $50 You Spend", these exact phrases must appear in at least 3 lines
 
 CATEGORY & SUBCATEGORY:
 • Do NOT force props or scene objects for this subcategory
@@ -303,7 +314,7 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
     // STRICT TAG RULE: At least 3 of 4 lines must include ALL tags literally
     if (tags.length > 0) {
       const hasAllTags = (text: string, tags: string[]) =>
-        tags.every(tag => text.toLowerCase().includes(tag.toLowerCase()));
+        tags.every(tag => text.includes(tag));
       
       const linesWithAllTags = processedLines.filter(line => hasAllTags(line.text, tags));
       
