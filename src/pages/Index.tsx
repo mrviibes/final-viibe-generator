@@ -27,7 +27,7 @@ import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
 
-// Layout-aware visual validation with relaxed rules
+// Layout-aware visual validation with relaxed rules and fallbacks
 function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: string }>, layoutId: string): { 
   validOptions: Array<{ lane: string; prompt: string }>, 
   reasons: string[] 
@@ -68,7 +68,7 @@ function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: strin
       console.log(`🔧 Auto-appended tokens to ${option.lane}: ${missingTokens.join(', ')}`);
     }
     
-    // Check word count (2-10 words for subject, excluding layout tokens)
+    // Check word count (1-12 words for subject, excluding layout tokens)
     let promptWithoutTokens = option.prompt.toLowerCase();
     requiredTokens.forEach(token => {
       promptWithoutTokens = promptWithoutTokens.replace(token.toLowerCase(), '');
@@ -76,20 +76,14 @@ function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: strin
     promptWithoutTokens = promptWithoutTokens.replace(/,\s*/g, ' ').trim();
     
     const subjectWordCount = promptWithoutTokens.split(/\s+/).filter(w => w.length > 0).length;
-    if (subjectWordCount < 2 || subjectWordCount > 10) {
-      issues.push(`word count: ${subjectWordCount} (need 2-10)`);
+    if (subjectWordCount < 1 || subjectWordCount > 12) {
+      issues.push(`word count: ${subjectWordCount} (need 1-12)`);
       isValid = false;
     }
     
-    // Check for text-like terms
-    if (/(text|typography|letter|letters|word|words|caption|quote|slogan)/i.test(option.prompt)) {
-      issues.push('contains text-like terms');
-      isValid = false;
-    }
-    
-    // Check for all-caps "text-looking" tokens
-    if (/\b[A-Z]{2,}\b/.test(option.prompt)) {
-      issues.push('contains all-caps text');
+    // Check for specific text-like terms (narrowed list)
+    if (/(typography|signage|watermark|logo)/i.test(option.prompt)) {
+      issues.push('contains banned text terms');
       isValid = false;
     }
     
@@ -99,6 +93,22 @@ function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: strin
       reasons.push(`${option.lane}: ${issues.join(', ')}`);
     }
   });
+  
+  // If no valid options, generate deterministic fallbacks
+  if (validOptions.length === 0) {
+    console.log('🔄 Generating fallback prompts...');
+    const tokenSuffix = requiredTokens.join(', ');
+    
+    const fallbacks = [
+      { lane: "literal", prompt: `simple object, ${tokenSuffix}` },
+      { lane: "supportive", prompt: `colorful background, ${tokenSuffix}` },
+      { lane: "alternate", prompt: `minimal scene, ${tokenSuffix}` },
+      { lane: "creative", prompt: `abstract shapes, ${tokenSuffix}` }
+    ];
+    
+    validOptions.push(...fallbacks);
+    reasons.push('Auto-generated fallback prompts due to validation failures');
+  }
   
   return { validOptions, reasons };
 }
@@ -4158,11 +4168,12 @@ const Index = () => {
           // Validate layout-aware options
           const validation = validateLayoutAwareVisuals(result.visualOptions, selectedTextLayout || "negativeSpace");
           
-          if (validation.validOptions.length === 0) {
-            console.warn('🚨 No valid visuals:', validation.reasons);
-            sonnerToast.error(`Visuals not layout-safe: ${validation.reasons.slice(0, 2).join('; ')}`);
-            setIsLoadingRecommendations(false);
-            return;
+          if (validation.reasons.length > 0 && !validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
+            console.warn('⚠️ Some visuals filtered:', validation.reasons);
+            sonnerToast.warning('Some visual options were filtered - using best available');
+          } else if (validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
+            console.warn('🔄 Using fallback visuals:', validation.reasons);
+            sonnerToast.warning('Using fallback visuals - AI prompts needed adjustment');
           }
           
           // Log any filtered options
@@ -4600,10 +4611,12 @@ const Index = () => {
       // Validate layout-aware options
       const validation = validateLayoutAwareVisuals(result.visualOptions, selectedTextLayout || "negativeSpace");
       
-      if (validation.validOptions.length === 0) {
-        console.warn('🚨 No valid visuals:', validation.reasons);
-        sonnerToast.error(`Visuals not layout-safe: ${validation.reasons.slice(0, 2).join('; ')}`);
-        return null;
+      if (validation.reasons.length > 0 && !validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
+        console.warn('⚠️ Some visuals filtered:', validation.reasons);
+        sonnerToast.warning('Some visual options were filtered - using best available');
+      } else if (validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
+        console.warn('🔄 Using fallback visuals:', validation.reasons);
+        sonnerToast.warning('Using fallback visuals - AI prompts needed adjustment');
       }
       
       // Log any filtered options

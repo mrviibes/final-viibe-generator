@@ -99,7 +99,7 @@ Rules:
   ],
   "negativePrompt":""
 }
-- Subject prompts: short (2-8 words), no style words (realistic/anime/3D).
+- Subject prompts: short (2-6 words), avoid typography/signage/watermark/logo words, no style words (realistic/anime/3D).
 - Option1 literal=mirror textContent; Option2 supportive=audience/props; Option3 alternate=angle/perspective; Option4 creative=symbol/metaphor.
 - Include tone + tags naturally. 
 - Place layout tokens at the END of each prompt (e.g., "birthday cake, clear lower third").
