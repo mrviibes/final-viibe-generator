@@ -24,6 +24,7 @@ import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
+import { generateStep2Lines } from "@/lib/textGen";
 const styleOptions = [{
   id: "celebrations",
   name: "Celebrations",
@@ -4024,6 +4025,7 @@ const Index = () => {
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -4523,7 +4525,7 @@ const Index = () => {
     }
   };
 
-  // Generate text using Vibe Model
+  // Generate text using new text generator
   const handleGenerateText = async () => {
     // Skip AI generation in barebones mode
     if (barebonesMode) {
@@ -4531,45 +4533,35 @@ const Index = () => {
       return;
     }
     
-    if (!openAIService.hasApiKey()) {
-      setShowApiKeyDialog(true);
-      return;
-    }
     setIsGenerating(true);
     try {
-      // Map UI selections to vibe model inputs
+      // Map UI selections to text generator inputs
       let category = '';
       let subcategory = '';
-      let finalTags = [...tags];
       console.log('🏷️ Text generation started with tags:', tags);
-      console.log('🏷️ Current tags state:', {
-        tags,
-        tagsLength: tags.length
-      });
-      console.log('🏷️ Final tags for processing:', finalTags);
 
       // Map category
       switch (selectedStyle) {
         case 'celebrations':
-          category = 'celebrations';
+          category = 'Celebrations';
           break;
         case 'sports':
-          category = 'sports';
+          category = 'Sports';
           break;
         case 'daily-life':
-          category = 'daily life';
+          category = 'Daily Life';
           break;
         case 'vibes-punchlines':
-          category = 'vibes and punchlines';
+          category = 'Vibes & Punchlines';
           break;
         case 'pop-culture':
-          category = 'pop culture';
+          category = 'Pop Culture';
           break;
         case 'random':
-          category = 'no category';
+          category = 'General';
           break;
         default:
-          category = 'no category';
+          category = 'General';
       }
 
       // Get subcategory based on selected option
@@ -4579,50 +4571,49 @@ const Index = () => {
       } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
         const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
         subcategory = popOption?.name || selectedSubOption;
-        // Add specific pick to tags for pop culture
-        if (selectedPick) {
-          finalTags.push(selectedPick);
-        }
       } else if (selectedSubOption) {
         subcategory = selectedSubOption;
       } else {
-        subcategory = 'general';
+        subcategory = 'General';
       }
 
       // Get tone from text style
       const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
       const tone = selectedTextStyleObj?.name || 'Humorous';
 
-      // Filter out visual-only tags for text generation
-      // Only use the original text tags, not subject tags or visual-only tags
-      let finalTagsForGeneration = [...tags]; // Only use text tags, not subjectTags
+      // Prepare tags for generation
+      let finalTagsForGeneration = [...tags];
+      
+      // For pop culture entities, add the entity name as a tag if not already present
+      if (selectedStyle === 'pop-culture' && selectedPick) {
+        const entityTag = selectedPick.toLowerCase();
+        if (!finalTagsForGeneration.some(tag => tag.toLowerCase() === entityTag)) {
+          finalTagsForGeneration.push(selectedPick);
+        }
+      }
 
       console.log('📋 Final parameters for text generation:', {
         category,
         subcategory,
-        tone: tone.toLowerCase(),
-        tags: finalTagsForGeneration,
-        originalTags: tags,
-        tagCount: finalTagsForGeneration.length
-      });
-
-      // Ensure we have at least the basic tags
-      if (finalTagsForGeneration.length === 0 && tags.length > 0) {
-        console.warn('⚠️ finalTagsForGeneration is empty but original tags exist, using original tags');
-        finalTagsForGeneration = [...tags];
-      }
-      const session = createSession({ category, subcategory });
-      const textOptions = await generateTextOptions(session, {
-        tone: tone.toLowerCase(),
+        tone,
         tags: finalTagsForGeneration
       });
 
-      console.log('✅ Generated text options:', textOptions);
+      // Generate using new text generator
+      const result = await generateStep2Lines({
+        category,
+        subcategory,
+        tone,
+        tags: finalTagsForGeneration
+      });
+
+      console.log('✅ Generated text options:', result);
 
       // Clear previous selection when generating/regenerating
       setSelectedGeneratedOption(null);
       setSelectedGeneratedIndex(null);
-      setGeneratedOptions(textOptions.map(option => option.text));
+      setGeneratedOptions(result.lines.map(line => line.text));
+      setTextGenerationModel(result.model);
 
       // Show success toast
       sonnerToast.success("Generated new text options", {
@@ -5668,15 +5659,17 @@ const Index = () => {
                           </div>}
                       </div>
 
-                      {/* Generate Button */}
-                      <div className="text-center">
-                        <Button variant="brand" className="px-8 py-3 text-base font-medium rounded-lg" onClick={handleGenerateText} disabled={isGenerating}>
-                          {isGenerating ? <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Generating...
-                            </> : "Generate Text Now"}
-                        </Button>
-                      </div>
+                      {/* Generate Button - Hide in barebones mode */}
+                      {!barebonesMode && (
+                        <div className="text-center">
+                          <Button variant="brand" className="px-8 py-3 text-base font-medium rounded-lg" onClick={handleGenerateText} disabled={isGenerating}>
+                            {isGenerating ? <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Generating...
+                              </> : "Generate Text Now"}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>}
 
@@ -5688,7 +5681,19 @@ const Index = () => {
                 {/* Generated Text Options Grid - Show when options exist but no selection made */}
                 {generatedOptions.length > 0 && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
-                      <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
+                      <div className="flex items-center justify-center gap-3 mb-2">
+                        <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
+                        <Button variant="outline" size="sm" onClick={handleGenerateText} disabled={isGenerating} className="text-xs">
+                          {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
+                        </Button>
+                      </div>
+                      {textGenerationModel && (
+                        <div className="mb-3">
+                          <Badge variant={textGenerationModel === 'fallback' ? 'secondary' : 'default'} className="text-xs">
+                            {textGenerationModel === 'fallback' ? 'Fallback' : textGenerationModel}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
