@@ -60,11 +60,11 @@ export async function generateTextOptions(session: Session, { tone, tags = [] }:
 }
 
 /* =========================================================
-   STEP 3 – VISUALS (Re-enabled with AI Generation)  
+   STEP 3 – VISUALS (Direct GPT with User's Format)  
 ========================================================= */
-import { generateVisualRecommendations } from './visualModel';
+import { openAIService } from './openai';
 
-export async function generateVisualOptions(session: Session, { tone, tags = [] }: { tone: string; tags?: string[] }): Promise<{
+export async function generateVisualOptions(session: Session, { tone, tags = [], textContent = "" }: { tone: string; tags?: string[]; textContent?: string }): Promise<{
   visualOptions: Array<{ lane: string; prompt: string }>;
   negativePrompt: string;
   model: string;
@@ -75,45 +75,62 @@ export async function generateVisualOptions(session: Session, { tone, tags = [] 
       subcategory: session.subcategory, 
       tone, 
       tags, 
-      entity: session.entity 
+      entity: session.entity,
+      textContent 
     });
     
-    const result = await generateVisualRecommendations({
-      category: session.category,
-      subcategory: session.subcategory,
-      tone,
-      tags,
-      specificEntity: session.entity || undefined
+    const systemPrompt = `Return ONLY JSON:
+{
+  "visualOptions":[
+    {"lane":"literal","prompt":""},
+    {"lane":"supportive","prompt":""},
+    {"lane":"alternate","prompt":""},
+    {"lane":"creative","prompt":""}
+  ],
+  "negativePrompt":""
+}
+Rules:
+- 4 short, simple options (3–6 words).
+- Option1 = literal match to the text.
+- Option2 = supportive (props/audience).
+- Option3 = alternate angle/perspective.
+- Option4 = creative/abstract idea.
+- All must align with category, subcategory, tone, tags, and textContent.
+- Prompts must be quick to scan (e.g. "Person blowing out candles").
+- No style words like realistic, anime, 3D, etc.
+- negativePrompt must always include: no background text, no watermarks, no signage, no logos.`;
+
+    const userPrompt = `Category: ${session.category}
+Subcategory: ${session.subcategory}
+Tone: ${tone}
+Text: "${textContent}"
+Tags: ${tags.join(', ')}
+${session.entity ? `Entity: ${session.entity}` : ''}`;
+
+    console.log('🎯 Calling GPT directly for visual generation...');
+    const result = await openAIService.chatJSON([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ], {
+      model: 'gpt-4.1-2025-04-14',
+      max_completion_tokens: 300,
+      edgeOnly: true
     });
 
-    // Map visualModel slots to UI lanes
-    const laneMap: Record<string, string> = {
-      "background-only": "symbolic",
-      "subject+background": "group", 
-      "object": "objects",
-      "tone-twist": "solo"
-    };
-
-    const visualOptions = result.options.map(option => ({
-      lane: laneMap[option.slot || "background-only"] || "symbolic",
-      prompt: option.prompt
-    }));
-
     const finalResult = {
-      visualOptions,
-      negativePrompt: "",
-      model: result.model
+      visualOptions: result.visualOptions || [],
+      negativePrompt: result.negativePrompt || "no background text, no watermarks, no signage, no logos",
+      model: 'gpt-4.1-2025-04-14'
     };
-    if ((result as any).errorCode) {
-      (finalResult as any).errorCode = (result as any).errorCode;
-    }
+
+    console.log('✅ Visual generation successful:', finalResult);
     return finalResult;
   } catch (error) {
     console.error('Error in generateVisualOptions:', error);
     // Fallback to empty options on error
     const errorResult = {
       visualOptions: [],
-      negativePrompt: "",
+      negativePrompt: "no background text, no watermarks, no signage, no logos",
       model: "error"
     };
     (errorResult as any).errorCode = "GENERATION_FAILED";
@@ -142,7 +159,7 @@ export function composeFinalPayload({
     textLayoutSpec: LAYOUTS[textLayoutId as keyof typeof LAYOUTS] || LAYOUTS.negativeSpace,
     visualStyle,
     visualPrompt: chosenVisual?.prompt || "",
-    negativePrompt: negativePrompt || "",
+    negativePrompt: negativePrompt || "no background text, no watermarks, no signage, no logos",
     dimensions,
     contextId: session.contextId,
     tone: session.tone || "",

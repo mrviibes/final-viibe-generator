@@ -4074,13 +4074,14 @@ const Index = () => {
           });
           const result = await generateVisualOptions(session, {
             tone: selectedTextStyle || 'humorous',
-            tags: tags
+            tags: tags,
+            textContent: selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : "")
           });
           const mappedOptions = result.visualOptions.map((option) => ({
-            subject: option.lane === 'objects' ? 'Objects and environment' : 
+            subject: option.prompt || (option.lane === 'objects' ? 'Objects and environment' : 
                     option.lane === 'group' ? 'Group of people, candid gestures' :
                     option.lane === 'solo' ? 'One person — clear action' :
-                    'Symbolic/abstract arrangement',
+                    'Symbolic/abstract arrangement'),
             background: option.lane === 'objects' ? 'Arranged props with text-safe area' :
                        `Context: ${selectedSubOption || ''}`,
             prompt: option.prompt,
@@ -4492,13 +4493,14 @@ const Index = () => {
       const session = createSession({ category, subcategory });
       const result = await generateVisualOptions(session, {
         tone: tone.toLowerCase(),
-        tags: finalTags
+        tags: finalTags,
+        textContent: finalLine || ""
       });
       const mappedOptions = result.visualOptions.map((option) => ({
-        subject: option.lane === 'objects' ? 'Objects and environment' : 
+        subject: option.prompt || (option.lane === 'objects' ? 'Objects and environment' : 
                 option.lane === 'group' ? 'Group of people, candid gestures' :
                 option.lane === 'solo' ? 'One person — clear action' :
-                'Symbolic/abstract arrangement',
+                'Symbolic/abstract arrangement'),
         background: option.lane === 'objects' ? 'Arranged props with text-safe area' :
                    `Context: ${subcategory}`,
         prompt: option.prompt,
