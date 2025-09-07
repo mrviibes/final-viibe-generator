@@ -287,7 +287,7 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
   }
 }
 
-// Enhanced generation with feedback-driven retries and proper model cascade
+// Enhanced generation with feedback-driven retries and raw output preservation
 async function attemptGeneration(inputs: any, attemptNumber: number, previousErrors: string[] = []): Promise<any> {
   let userMessage = buildUserMessage(inputs);
   
@@ -297,20 +297,20 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     
 EXAMPLE CORRECT FORMAT:
 {"lines":[
-  {"lane":"option1","text":"Your cake looks sadder than your soul."},
-  {"lane":"option2","text":"Even the candles question their life choices here."},
-  {"lane":"option3","text":"Those balloons are deflating faster than your career."},
-  {"lane":"option4","text":"This confetti has more sparkle than your personality."}
+  {"lane":"option1","text":"Happy birthday Mike, even your cake ghosted you."},
+  {"lane":"option2","text":"The balloons bailed faster than Mike's last date, happy birthday."},
+  {"lane":"option3","text":"Mike's candles begged OSHA for hazard pay, happy birthday."},
+  {"lane":"option4","text":"Confetti refused to drop, Mike. Even it knows this party sucks."}
 ]}`;
     userMessage += `\n\n${feedback}`;
   }
   
-  console.log(`LLM attempt ${attemptNumber}/3`);
+  console.log(`LLM attempt ${attemptNumber}/2`);
   console.log("User message:", userMessage);
   
   try {
     // Improved model cascade: GPT-5 Mini first for JSON fidelity
-    const models = ['gpt-5-mini-2025-08-07', 'gpt-4.1-2025-04-14', 'gpt-4.1-2025-04-14'];
+    const models = ['gpt-5-mini-2025-08-07', 'gpt-4.1-2025-04-14'];
     const model = models[Math.min(attemptNumber - 1, models.length - 1)];
     
     console.log(`Using model: ${model}`);
@@ -371,7 +371,18 @@ EXAMPLE CORRECT FORMAT:
     
     console.log(`Attempt ${attemptNumber} raw response (${rawContent.length} chars):`, rawContent.substring(0, 300) + "...");
     
-    // Validate with no destructive truncation
+    // Parse raw response first to preserve it
+    let rawLines = null;
+    try {
+      const parsed = JSON.parse(rawContent);
+      if (parsed.lines && Array.isArray(parsed.lines)) {
+        rawLines = parsed.lines;
+      }
+    } catch (e) {
+      console.log("Failed to parse JSON, will return raw content");
+    }
+    
+    // Validate but preserve raw output
     const { result, errors, repairs } = validateAndRepair(rawContent, inputs);
     
     if (result) {
@@ -380,6 +391,7 @@ EXAMPLE CORRECT FORMAT:
       
       return {
         lines: result.lines,
+        rawLines: rawLines,
         model: `${model} (validated)`,
         validated: true,
         repairs,
@@ -388,7 +400,12 @@ EXAMPLE CORRECT FORMAT:
       };
     } else {
       console.log(`Attempt ${attemptNumber} failed validation:`, errors);
-      return { errors, attempt: attemptNumber };
+      return { 
+        errors, 
+        rawLines: rawLines, // Preserve raw output for potential use
+        model: model,
+        attempt: attemptNumber 
+      };
     }
     
   } catch (error) {
@@ -441,12 +458,14 @@ serve(async (req) => {
       });
     }
     
-    // Try up to 3 attempts with feedback
+    // Try up to 2 attempts, then return model's raw output (NO FALLBACK)
     let finalResult = null;
+    let lastAttemptResult = null;
     const allErrors: string[] = [];
     
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
       const result = await attemptGeneration(inputs, attempt, allErrors);
+      lastAttemptResult = result;
       
       if (result.validated) {
         finalResult = result;
@@ -454,16 +473,28 @@ serve(async (req) => {
       } else {
         const attemptErrors = result.errors?.join(", ") || "Unknown error";
         allErrors.push(`Attempt ${attempt}: ${attemptErrors}`);
-        console.log(`Attempt ${attempt} feedback for next try:`, attemptErrors);
+        console.log(`Attempt ${attempt} failed validation:`, attemptErrors);
       }
     }
     
-    // If all attempts failed, use deterministic fallback
+    // If validation failed, return the model's raw output anyway (no generic fallback)
+    if (!finalResult && lastAttemptResult && lastAttemptResult.rawLines) {
+      console.log("Validation failed but returning model's raw output instead of fallback");
+      finalResult = {
+        lines: lastAttemptResult.rawLines,
+        model: `${lastAttemptResult.model || 'unknown'} (raw-unvalidated)`,
+        validated: false,
+        validation_errors: allErrors,
+        note: "Returning model output despite validation issues"
+      };
+    }
+    
+    // ONLY use fallback if API completely failed (no model output at all)
     if (!finalResult) {
-      console.log("All attempts failed, using savage fallback v4:", allErrors);
+      console.log("API completely failed, using emergency fallback:", allErrors);
       finalResult = generateSavageFallback(inputs);
       finalResult.llm_errors = allErrors;
-      finalResult.fallback_reason = "all_attempts_failed";
+      finalResult.fallback_reason = "api_completely_failed";
     }
     
     return new Response(JSON.stringify(finalResult), {
