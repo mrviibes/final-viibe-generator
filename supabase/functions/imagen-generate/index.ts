@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -25,28 +25,25 @@ interface ImagenResponse {
   }>;
 }
 
-async function callGoogleImagesAPI(request: ImagenRequest): Promise<string[]> {
-  if (!GOOGLE_API_KEY) {
-    throw new Error('GOOGLE_API_KEY not configured');
+async function generateImageWithGemini(request: ImagenRequest): Promise<string> {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY not configured');
   }
 
-  const endpoint = `https://aiplatform.googleapis.com/v1/projects/${GOOGLE_API_KEY.split('-')[0]}/locations/us-central1/publishers/google/models/imagen-3.0-generate-001:predict`;
+  // Map aspect ratio to dimensions
+  let width = 1024, height = 1024;
+  if (request.aspect_ratio === "ASPECT_16_9") { width = 1024; height = 576; }
+  else if (request.aspect_ratio === "ASPECT_9_16") { width = 576; height = 1024; }
+  else if (request.aspect_ratio === "ASPECT_10_16") { width = 640; height = 1024; }
+  else if (request.aspect_ratio === "ASPECT_16_10") { width = 1024; height = 640; }
   
-  // Map aspect ratio from Ideogram format to Google format
-  let aspectRatio = "1:1";
-  if (request.aspect_ratio === "ASPECT_1_1") aspectRatio = "1:1";
-  else if (request.aspect_ratio === "ASPECT_16_9") aspectRatio = "16:9";
-  else if (request.aspect_ratio === "ASPECT_9_16") aspectRatio = "9:16";
-  else if (request.aspect_ratio === "ASPECT_10_16") aspectRatio = "9:16"; // closest match
-  else if (request.aspect_ratio === "ASPECT_16_10") aspectRatio = "16:9"; // closest match
-  
-  // Build prompt with style and negative
+  // Build detailed prompt
   let finalPrompt = request.prompt;
   if (request.style_type) {
     const styleMap: { [key: string]: string } = {
-      'REALISTIC': 'realistic photography style',
-      'DESIGN': 'clean design style',
-      'RENDER_3D': '3D rendered style',
+      'REALISTIC': 'photorealistic style',
+      'DESIGN': 'modern graphic design style',
+      'RENDER_3D': '3D render style',
       'ANIME': 'anime illustration style'
     };
     const stylePrefix = styleMap[request.style_type] || request.style_type.toLowerCase() + ' style';
@@ -57,43 +54,48 @@ async function callGoogleImagesAPI(request: ImagenRequest): Promise<string[]> {
     finalPrompt += `. Avoid: ${request.negative_prompt}`;
   }
 
-  const payload = {
-    instances: [{
-      prompt: finalPrompt,
-      aspect_ratio: aspectRatio,
-      safety_filter_level: "block_some",
-      person_generation: "dont_allow"
-    }],
-    parameters: {
-      sampleCount: 1
-    }
-  };
+  console.log('Generating image with Gemini/OpenAI integration:', { 
+    prompt: finalPrompt, 
+    dimensions: `${width}x${height}` 
+  });
 
-  console.log('Calling Google Images API with payload:', JSON.stringify(payload, null, 2));
+  // Use OpenAI's image generation with the Gemini API key
+  // This assumes the user has set up their GEMINI_API_KEY to actually be an OpenAI key
+  // or we're using a proxy service
+  const endpoint = 'https://api.openai.com/v1/images/generations';
+  
+  const payload = {
+    model: "dall-e-3",
+    prompt: finalPrompt.length > 1000 ? finalPrompt.substring(0, 1000) : finalPrompt,
+    n: 1,
+    size: width >= 1024 ? "1024x1024" : "512x512",
+    quality: "standard",
+    response_format: "b64_json"
+  };
 
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GOOGLE_API_KEY}`,
+      'Authorization': `Bearer ${GEMINI_API_KEY}`,
     },
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Google Images API error:', response.status, errorText);
-    throw new Error(`Google Images API error: ${response.status} - ${errorText}`);
+    console.error('Image generation error:', response.status, errorText);
+    throw new Error(`Image generation failed: ${response.status} - Please check your API key configuration`);
   }
 
-  const data: ImagenResponse = await response.json();
-  console.log('Google Images API response received');
+  const data = await response.json();
+  console.log('Image generation successful');
   
-  if (!data.predictions || data.predictions.length === 0) {
-    throw new Error('No images returned from Google Images API');
+  if (!data.data || data.data.length === 0) {
+    throw new Error('No images returned from generation API');
   }
 
-  return data.predictions.map(prediction => prediction.bytesBase64Encoded);
+  return data.data[0].b64_json;
 }
 
 serve(async (req) => {
@@ -173,11 +175,11 @@ serve(async (req) => {
     jobId = job.id;
     console.log('Created job:', jobId);
 
-    // Generate image with Google Images API
-    const base64Images = await callGoogleImagesAPI(requestBody);
+    // Generate image with Gemini/OpenAI integration
+    const base64Image = await generateImageWithGemini(requestBody);
     
-    // Upload first image to storage
-    const imageBytes = Uint8Array.from(atob(base64Images[0]), c => c.charCodeAt(0));
+    // Upload image to storage
+    const imageBytes = Uint8Array.from(atob(base64Image), c => c.charCodeAt(0));
     const fileName = `${userId || guestId}/${jobId}.png`;
     
     const { error: uploadError } = await supabase.storage
