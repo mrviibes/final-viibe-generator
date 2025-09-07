@@ -60,19 +60,51 @@ export async function generateTextOptions(session: Session, { tone, tags = [] }:
 }
 
 /* =========================================================
-   STEP 3 – VISUALS (Disabled - Manual Input Only)  
+   STEP 3 – VISUALS (Re-enabled with AI Generation)  
 ========================================================= */
+import { generateVisualRecommendations } from './visualModel';
+
 export async function generateVisualOptions(session: Session, { tone, tags = [] }: { tone: string; tags?: string[] }): Promise<{
   visualOptions: Array<{ lane: string; prompt: string }>;
   negativePrompt: string;
   model: string;
 }> {
-  // Always return empty options - forcing manual input
-  return {
-    visualOptions: [],
-    negativePrompt: "",
-    model: "manual"
-  };
+  try {
+    const result = await generateVisualRecommendations({
+      category: session.category,
+      subcategory: session.subcategory,
+      tone,
+      tags,
+      specificEntity: session.entity || undefined
+    });
+
+    // Map visualModel slots to UI lanes
+    const laneMap: Record<string, string> = {
+      "background-only": "symbolic",
+      "subject+background": "group", 
+      "object": "objects",
+      "tone-twist": "solo"
+    };
+
+    const visualOptions = result.options.map(option => ({
+      lane: laneMap[option.slot || "background-only"] || "symbolic",
+      prompt: option.prompt
+    }));
+
+    return {
+      visualOptions,
+      negativePrompt: "",
+      model: result.model
+    };
+  } catch (error) {
+    console.error('Error in generateVisualOptions:', error);
+    // Fallback to empty options on error
+    return {
+      visualOptions: [],
+      negativePrompt: "",
+      model: "error"
+    };
+  }
 }
 
 /* =========================================================
