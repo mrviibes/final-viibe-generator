@@ -103,10 +103,19 @@ CRITICAL REQUIREMENTS:
 }
 - EVERY prompt MUST end with the layout token for the specified textLayoutId
 - Subject prompts: short (2-6 words), avoid typography/signage/watermark/logo words, no style words (realistic/anime/3D)
-- Option1 literal=mirror textContent; Option2 supportive=audience/props; Option3 alternate=angle/perspective; Option4 creative=symbol/metaphor
-- Include tone + tags naturally
-- Example format: "birthday cake, clear lower third" (subject + comma + layout token)
 - negativePrompt must include: "no background text, no signage, no watermarks, no logos"
+
+Rules for variance:
+- You must generate 4 DISTINCT visual ideas
+- Each lane must focus on a DIFFERENT element:
+  * Literal = direct match to the textContent
+  * Supportive = audience/props connected to the text (must avoid main anchor used by Literal)
+  * Alternate = completely different perspective or subject in the same context (must avoid main anchor)
+  * Creative = symbolic or metaphorical representation
+- Do not simply rephrase the same idea (e.g. "person near stairs", "man at stairs", "looking at stairs")
+- If Literal uses stairs, Supportive MUST NOT use stairs
+- At least 2 options must avoid the main anchor and introduce fresh elements
+- Example format: "birthday cake, clear lower third" (subject + comma + layout token)
 
 EXAMPLE for lowerThird layout:
 {

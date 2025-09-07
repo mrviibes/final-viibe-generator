@@ -27,6 +27,107 @@ import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
 
+// Visual variance enforcer to prevent duplicate/similar prompts
+function ensureVisualVariance(
+  options: Array<{ lane: string; prompt: string }>, 
+  textContent: string, 
+  layoutId: string,
+  enforceVariety: boolean = true
+): { 
+  diversifiedOptions: Array<{ lane: string; prompt: string }>, 
+  reasons: string[] 
+} {
+  if (!enforceVariety) {
+    return { diversifiedOptions: options, reasons: [] };
+  }
+
+  const layoutTokens = {
+    negativeSpace: ["clear empty area near largest margin"],
+    memeTopBottom: ["clear top band", "clear bottom band"],
+    lowerThird: ["clear lower third"],
+    sideBarLeft: ["clear left panel"],
+    badgeSticker: ["badge space top-right"],
+    subtleCaption: ["clear narrow bottom strip"]
+  };
+
+  const requiredTokens = layoutTokens[layoutId as keyof typeof layoutTokens] || layoutTokens.negativeSpace;
+  const tokenSuffix = requiredTokens.join(', ');
+  
+  function normalizePrompt(prompt: string): string {
+    let normalized = prompt.toLowerCase();
+    // Remove layout tokens
+    requiredTokens.forEach(token => {
+      normalized = normalized.replace(token.toLowerCase(), '');
+    });
+    // Remove punctuation and clean up
+    normalized = normalized.replace(/[,.\-_]/g, ' ').replace(/\s+/g, ' ').trim();
+    // Remove common stopwords
+    const stopwords = ['a', 'an', 'the', 'with', 'and', 'or', 'but', 'at', 'on', 'in', 'of', 'to', 'for', 'by'];
+    return normalized.split(' ').filter(word => word.length > 2 && !stopwords.includes(word)).join(' ');
+  }
+
+  function getMainAnchor(literalPrompt: string): string {
+    const normalized = normalizePrompt(literalPrompt);
+    const words = normalized.split(' ').filter(w => w.length > 0);
+    // Return the most prominent word (longest or first meaningful noun)
+    return words.sort((a, b) => b.length - a.length)[0] || '';
+  }
+
+  function calculateSimilarity(prompt1: string, prompt2: string): number {
+    const words1 = new Set(normalizePrompt(prompt1).split(' '));
+    const words2 = new Set(normalizePrompt(prompt2).split(' '));
+    const intersection = new Set([...words1].filter(x => words2.has(x)));
+    const union = new Set([...words1, ...words2]);
+    return union.size > 0 ? intersection.size / union.size : 0;
+  }
+
+  const diversifiedOptions: Array<{ lane: string; prompt: string }> = [];
+  const reasons: string[] = [];
+  
+  // Find literal lane and extract main anchor
+  const literalOption = options.find(opt => opt.lane === 'literal');
+  const mainAnchor = literalOption ? getMainAnchor(literalOption.prompt) : '';
+  
+  // Process each option
+  options.forEach((option, index) => {
+    let needsRewrite = false;
+    let currentPrompt = option.prompt;
+    
+    // Check for high similarity with previous options
+    for (let i = 0; i < diversifiedOptions.length; i++) {
+      const similarity = calculateSimilarity(currentPrompt, diversifiedOptions[i].prompt);
+      if (similarity > 0.8) {
+        needsRewrite = true;
+        break;
+      }
+    }
+    
+    // Check if non-literal lanes contain the main anchor
+    if (option.lane !== 'literal' && mainAnchor && normalizePrompt(currentPrompt).includes(mainAnchor)) {
+      needsRewrite = true;
+    }
+    
+    // Rewrite if needed (but never rewrite literal)
+    if (needsRewrite && option.lane !== 'literal') {
+      const templates = {
+        supportive: ['people laughing', 'audience clapping', 'family smiling', 'friends cheering', 'crowd enjoying'],
+        alternate: ['related object close-up', 'empty scene with props', 'worn items', 'equipment on table', 'background setting'],
+        creative: ['symbolic metaphor', 'abstract shapes', 'artistic representation', 'conceptual imagery', 'geometric forms']
+      };
+      
+      const laneTemplates = templates[option.lane as keyof typeof templates] || templates.creative;
+      const templateIndex = Math.abs(mainAnchor.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % laneTemplates.length;
+      currentPrompt = `${laneTemplates[templateIndex]}, ${tokenSuffix}`;
+      
+      reasons.push(`Rewrote ${option.lane} lane to avoid similarity/anchor conflict`);
+    }
+    
+    diversifiedOptions.push({ lane: option.lane, prompt: currentPrompt });
+  });
+
+  return { diversifiedOptions, reasons };
+}
+
 // Layout-aware visual validation with relaxed rules and fallbacks
 function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: string }>, layoutId: string): { 
   validOptions: Array<{ lane: string; prompt: string }>, 
@@ -4147,6 +4248,7 @@ const Index = () => {
   const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
   const [selectedRecommendation, setSelectedRecommendation] = useState<number | null>(null);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+  const [enforceVariety, setEnforceVariety] = useState(true);
 
   // Generate visual recommendations when reaching step 4
   useEffect(() => {
@@ -4165,8 +4267,23 @@ const Index = () => {
             textLayoutId: selectedTextLayout || "negativeSpace"
           });
           
+          // Ensure visual variance
+          const varianceResult = ensureVisualVariance(
+            result.visualOptions, 
+            selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ""),
+            selectedTextLayout || "negativeSpace",
+            enforceVariety
+          );
+          
+          // Show variety improvements if any
+          if (varianceResult.reasons.length > 0) {
+            sonnerToast.info("Variety improved", {
+              description: `Enhanced visual diversity: ${varianceResult.reasons.join(', ')}`
+            });
+          }
+          
           // Validate layout-aware options
-          const validation = validateLayoutAwareVisuals(result.visualOptions, selectedTextLayout || "negativeSpace");
+          const validation = validateLayoutAwareVisuals(varianceResult.diversifiedOptions, selectedTextLayout || "negativeSpace");
           
           if (validation.reasons.length > 0 && !validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
             console.warn('⚠️ Some visuals filtered:', validation.reasons);
@@ -4608,8 +4725,23 @@ const Index = () => {
         textLayoutId: selectedTextLayout || "negativeSpace"
       });
       
+      // Ensure visual variance
+      const varianceResult = ensureVisualVariance(
+        result.visualOptions, 
+        finalLine || "",
+        selectedTextLayout || "negativeSpace",
+        enforceVariety
+      );
+      
+      // Show variety improvements if any
+      if (varianceResult.reasons.length > 0) {
+        sonnerToast.info("Variety improved", {
+          description: `Enhanced visual diversity: ${varianceResult.reasons.join(', ')}`
+        });
+      }
+      
       // Validate layout-aware options
-      const validation = validateLayoutAwareVisuals(result.visualOptions, selectedTextLayout || "negativeSpace");
+      const validation = validateLayoutAwareVisuals(varianceResult.diversifiedOptions, selectedTextLayout || "negativeSpace");
       
       if (validation.reasons.length > 0 && !validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
         console.warn('⚠️ Some visuals filtered:', validation.reasons);
@@ -5994,20 +6126,33 @@ const Index = () => {
                      {/* Visual AI recommendations - always show if available */}
                      {selectedSubjectOption === "ai-assist" && visualOptions.length > 0 && selectedVisualIndex === null && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                          <div className="text-center mb-6">
-                            <div className="flex items-center justify-center gap-3 mb-2">
-                              <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
-                              <Button variant="outline" size="sm" onClick={handleGenerateSubject} disabled={isGeneratingSubject} className="text-xs">
-                                {isGeneratingSubject ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
-                              </Button>
-                              {visualModel === 'fallback' && <Button variant="outline" size="sm" onClick={testAIConnection} disabled={isTestingProxy} className="text-xs">
-                                  {isTestingProxy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Test Connection"}
-                                </Button>}
-                            </div>
-                            {visualModel === 'fallback' && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-xs p-2 rounded-lg mb-3 max-w-md mx-auto">
-                                {getErrorMessage(visualRecommendations?.errorCode)}
-                              </div>}
-                           <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
-                         </div>
+                             <div className="flex items-center justify-center gap-3 mb-2">
+                               <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
+                               <Button variant="outline" size="sm" onClick={handleGenerateSubject} disabled={isGeneratingSubject} className="text-xs">
+                                 {isGeneratingSubject ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
+                               </Button>
+                               {visualModel === 'fallback' && <Button variant="outline" size="sm" onClick={testAIConnection} disabled={isTestingProxy} className="text-xs">
+                                   {isTestingProxy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Test Connection"}
+                                 </Button>}
+                             </div>
+                             
+                             {/* Variety Toggle */}
+                             <div className="flex items-center justify-center gap-2 mb-3">
+                               <Switch
+                                 id="enforce-variety"
+                                 checked={enforceVariety}
+                                 onCheckedChange={setEnforceVariety}
+                               />
+                               <label htmlFor="enforce-variety" className="text-xs text-muted-foreground cursor-pointer">
+                                 Enforce variety
+                               </label>
+                             </div>
+                             
+                             {visualModel === 'fallback' && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-xs p-2 rounded-lg mb-3 max-w-md mx-auto">
+                                 {getErrorMessage(visualRecommendations?.errorCode)}
+                               </div>}
+                            <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
+                          </div>
                         
                         <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
                           {visualOptions.map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50" onClick={() => {
