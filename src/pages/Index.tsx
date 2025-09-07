@@ -17,9 +17,10 @@ import { CorsRetryDialog } from "@/components/CorsRetryDialog";
 import { StepProgress } from "@/components/StepProgress";
 import { StackedSelectionCard } from "@/components/StackedSelectionCard";
 import { TextLayoutSelector } from "@/components/TextLayoutSelector";
+import { TextOverlay } from "@/components/TextOverlay";
 import { useNavigate } from "react-router-dom";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
-import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
+import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe, LAYOUTS } from "@/lib/viibe_core";
 import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { generateImagenImage, ImagenAPIError, mapIdeogramToImagen } from "@/lib/imagenApi";
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
@@ -6464,6 +6465,15 @@ const Index = () => {
                       <Download className="h-4 w-4" />
                       Download Image
                     </Button>
+                    {selectedTextLayout && (selectedGeneratedOption || stepTwoText) && (
+                      <Button 
+                        variant="secondary" 
+                        className="flex items-center gap-2" 
+                        onClick={() => setShowTextOverlay(true)}
+                      >
+                        Apply Text Layout
+                      </Button>
+                    )}
                     <Button variant="brand" className="flex items-center gap-2" onClick={handleGenerateImage} disabled={isGeneratingImage}>
                       {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -6477,6 +6487,31 @@ const Index = () => {
                       Start Over
                     </Button>
                   </div>}
+
+                  {/* Text Overlay Component */}
+                  {showTextOverlay && generatedImageUrl && selectedTextLayout && (selectedGeneratedOption || stepTwoText) && (
+                    <div className="mt-8">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold">Applying Text Layout</h3>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setShowTextOverlay(false)}
+                        >
+                          <X className="h-4 w-4" />
+                          Back to Image
+                        </Button>
+                      </div>
+                      <TextOverlay
+                        backgroundImageUrl={generatedImageUrl}
+                        text={selectedGeneratedOption || stepTwoText}
+                        layoutSpec={LAYOUTS[selectedTextLayout as keyof typeof LAYOUTS]}
+                        onImageReady={(finalImageUrl) => {
+                          setFinalImageWithText(finalImageUrl);
+                        }}
+                      />
+                    </div>
+                  )}
               </div>
               
               {/* Proxy Settings Dialog */}
