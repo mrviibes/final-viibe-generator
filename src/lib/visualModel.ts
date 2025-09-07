@@ -259,9 +259,9 @@ Return pure JSON only.`;
     const startTime = Date.now();
     console.log('🚀 Starting visual generation with optimized settings...');
     
-    // Create a timeout promise with increased timeout for better reliability
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('TIMEOUT')), 30000);
+    // Helper to create a fresh timeout promise for each attempt
+    const makeTimeoutPromise = (ms = 30000) => new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('TIMEOUT')), ms);
     });
 
     // Primary attempt with optimized settings
@@ -275,7 +275,7 @@ Return pure JSON only.`;
           max_completion_tokens: 900,
           model: 'gpt-5-mini-2025-08-07'
         }),
-        timeoutPromise
+        makeTimeoutPromise()
       ]);
     } catch (firstError) {
       // Automatic retry with larger model and compact prompt on parse failure
@@ -291,7 +291,7 @@ Return pure JSON only.`;
             max_completion_tokens: 1000,
             model: 'gpt-5-2025-08-07'
           }),
-          timeoutPromise
+          makeTimeoutPromise()
         ]);
       } else {
         throw firstError;
