@@ -114,13 +114,13 @@ function sanitizeAndValidate(text: string, inputs: any): { result: any | null; e
       }
     }
     
-    // Check length variety (should have some ~40, some ~55-60, some ~65-70)
-    const hasShort = lengths.some(l => l >= 35 && l <= 45);
-    const hasMedium = lengths.some(l => l >= 50 && l <= 65);
-    const hasLong = lengths.some(l => l >= 60 && l <= 70);
+    // Check length variety - relaxed (just need some variation)
+    const minLength = Math.min(...lengths);
+    const maxLength = Math.max(...lengths);
+    const lengthRange = maxLength - minLength;
     
-    if (!hasShort || !hasMedium || !hasLong) {
-      errors.push(`Poor length variety. Lengths: ${lengths.join(", ")}. Need some ~40, ~55-60, ~65-70`);
+    if (lengthRange < 15) {
+      errors.push(`Poor length variety. Lengths: ${lengths.join(", ")}. Need more variation (range: ${lengthRange})`);
     }
     
     // Check tag inclusion if tags exist
@@ -205,7 +205,6 @@ serve(async (req) => {
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userMessage }
         ],
-        temperature: 0.9,
         max_completion_tokens: 500
       }),
     });
@@ -257,7 +256,6 @@ Please fix these issues and generate 4 new lines that follow ALL the rules exact
               { role: 'system', content: SYSTEM_PROMPT },
               { role: 'user', content: repairPrompt }
             ],
-            temperature: 0.9,
             max_completion_tokens: 500
           }),
         });
