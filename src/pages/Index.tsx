@@ -4198,6 +4198,9 @@ const Index = () => {
   const [negativePrompt, setNegativePrompt] = useState<string>("");
   
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [autoStartImageGen, setAutoStartImageGen] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [selectedSubOption, setSelectedSubOption] = useState<string | null>(null);
   const [selectedPick, setSelectedPick] = useState<string | null>(null);
@@ -6380,8 +6383,12 @@ const Index = () => {
 
         {currentStep === 4 && <>
             <div className="text-center mb-8">
-              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Finished Design</h2>
-              <p className="text-xl text-muted-foreground">Your viibe is ready! Review the details and download your creation.</p>
+              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">
+                {isGeneratingImage ? "Generating your VIIBE..." : "Finished Design"}
+              </h2>
+              <p className="text-xl text-muted-foreground">
+                {isGeneratingImage ? "Please wait while we create your image..." : "Your viibe is ready! Review the details and download your creation."}
+              </p>
             </div>
             
             <div className="max-w-4xl mx-auto space-y-8">
@@ -6393,7 +6400,7 @@ const Index = () => {
                     {!isGeneratingImage && !generatedImageUrl && <>
                         <Button onClick={handleGenerateImage} variant="brand" className="flex items-center gap-2">
                           <Download className="h-4 w-4" />
-                          Generate with Ideogram
+                          Generate VIIBE
                         </Button>
                       </>}
                   </div>
@@ -6645,7 +6652,20 @@ const Index = () => {
 
                 {/* Generated Prompt */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-foreground">Full Ideogram Request</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium text-foreground">Technical Details</h3>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setShowAdvanced(!showAdvanced)}
+                      className="text-sm"
+                    >
+                      {showAdvanced ? "Hide" : "Show"} Advanced
+                    </Button>
+                  </div>
+                  
+                  {showAdvanced && <div className="space-y-4">
+                    <h4 className="text-base font-medium text-foreground">Full Ideogram Request</h4>
                   <div className="bg-muted/30 rounded-lg p-6 space-y-4">
                     {(() => {
                 // Build the exact same request that would be sent to Ideogram
@@ -6763,6 +6783,7 @@ const Index = () => {
                 );
               })()}
                   </div>
+                  </div>}
                 </div>
             </div>
           </>}
@@ -6779,11 +6800,12 @@ const Index = () => {
               <Button variant={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete() ? "outline" : "brand"} onClick={() => {
               if (currentStep === 3) {
                 setCurrentStep(4);
+                setAutoStartImageGen(true);
               } else {
                 setCurrentStep(prev => prev + 1);
               }
             }} disabled={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete()}>
-                {currentStep === 3 && isStep3Complete() && selectedDimension ? "Continue to Review" : <>
+                {currentStep === 3 && isStep3Complete() && selectedDimension ? "Generate VIIBE" : <>
                     Continue
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </>}
