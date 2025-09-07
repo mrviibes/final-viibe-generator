@@ -15,9 +15,8 @@ import { CorsRetryDialog } from "@/components/CorsRetryDialog";
 import { StepProgress } from "@/components/StepProgress";
 import { StackedSelectionCard } from "@/components/StackedSelectionCard";
 import { useNavigate } from "react-router-dom";
-import { generateCandidates, VibeResult } from "@/lib/vibeModel";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
-import { generateVisualRecommendations, VisualOption } from "@/lib/visualModel";
+import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
 import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { useToast } from "@/hooks/use-toast";
@@ -4000,7 +3999,7 @@ const Index = () => {
   const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
   const [selectedVisualStyle, setSelectedVisualStyle] = useState<string | null>(null);
   const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>(null);
-  const [visualOptions, setVisualOptions] = useState<VisualOption[]>([]);
+  const [visualOptions, setVisualOptions] = useState<Array<{ subject: string; background: string; prompt: string; slot: string }>>([]);
   const [selectedVisualIndex, setSelectedVisualIndex] = useState<number | null>(null);
   const [visualModel, setVisualModel] = useState<string | null>(null); // Track which model was used
   const [subjectTags, setSubjectTags] = useState<string[]>([]);
@@ -4059,16 +4058,25 @@ const Index = () => {
       if (currentStep === 4 && !visualRecommendations && !isLoadingRecommendations) {
         setIsLoadingRecommendations(true);
         try {
-          const recommendations = await generateVisualRecommendations({
+          const session = createSession({
             category: selectedStyle || 'general',
-            subcategory: selectedSubOption || '',
-            tone: selectedTextStyle || 'humorous',
-            tags: tags,
-            visualStyle: selectedVisualStyle || undefined,
-            finalLine: selectedGeneratedOption || undefined,
-            subjectOption: selectedSubjectOption || undefined,
-            dimensions: selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || undefined
+            subcategory: selectedSubOption || ''
           });
+          const result = await generateVisualOptions(session, {
+            tone: selectedTextStyle || 'humorous',
+            tags: tags
+          });
+          const mappedOptions = result.visualOptions.map((option) => ({
+            subject: option.lane === 'objects' ? 'Objects and environment' : 
+                    option.lane === 'group' ? 'Group of people, candid gestures' :
+                    option.lane === 'solo' ? 'One person — clear action' :
+                    'Symbolic/abstract arrangement',
+            background: option.lane === 'objects' ? 'Arranged props with text-safe area' :
+                       `Context: ${selectedSubOption || ''}`,
+            prompt: option.prompt,
+            slot: option.lane
+          }));
+          const recommendations = { options: mappedOptions, model: result.model };
           setVisualRecommendations(recommendations);
         } catch (error) {
           console.error('Failed to generate visual recommendations:', error);
@@ -4449,16 +4457,22 @@ const Index = () => {
 
       // Get final line from Step 2 if available
       const finalLine = selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : undefined);
-      const visualResult = await generateVisualRecommendations({
-        category,
-        subcategory,
+      const session = createSession({ category, subcategory });
+      const result = await generateVisualOptions(session, {
         tone: tone.toLowerCase(),
-        tags: finalTags,
-        visualStyle: selectedVisualStyle || undefined,
-        finalLine,
-        subjectOption: selectedSubjectOption || undefined,
-        dimensions: selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || undefined
-      }, 4);
+        tags: finalTags
+      });
+      const mappedOptions = result.visualOptions.map((option) => ({
+        subject: option.lane === 'objects' ? 'Objects and environment' : 
+                option.lane === 'group' ? 'Group of people, candid gestures' :
+                option.lane === 'solo' ? 'One person — clear action' :
+                'Symbolic/abstract arrangement',
+        background: option.lane === 'objects' ? 'Arranged props with text-safe area' :
+                   `Context: ${subcategory}`,
+        prompt: option.prompt,
+        slot: option.lane
+      }));
+      const visualResult = { options: mappedOptions, model: result.model };
       console.log('🎨 Visual generation completed with result:', {
         optionsCount: visualResult.options.length,
         model: visualResult.model,
@@ -4574,44 +4588,23 @@ const Index = () => {
         console.warn('⚠️ finalTagsForGeneration is empty but original tags exist, using original tags');
         finalTagsForGeneration = [...tags];
       }
-      const vibeResult: VibeResult = await generateCandidates({
-        category,
-        subcategory,
+      const session = createSession({ category, subcategory });
+      const textOptions = await generateTextOptions(session, {
         tone: tone.toLowerCase(),
         tags: finalTagsForGeneration
-      }, 4);
+      });
 
-      // Check for partial tag coverage and show notification
-      if (vibeResult.audit.reason?.includes('tag coverage') || vibeResult.audit.reason?.includes('partial tag coverage')) {
-        sonnerToast.info("Generated text with partial keyword match", {
-          description: "The AI created content that may not exactly match all your keywords but fits the tone and context."
-        });
-      }
-      console.log('Vibe generation audit:', vibeResult.audit);
-      console.log('✅ Generated text options:', vibeResult.candidates);
+      console.log('✅ Generated text options:', textOptions);
 
       // Clear previous selection when generating/regenerating
       setSelectedGeneratedOption(null);
       setSelectedGeneratedIndex(null);
-      setGeneratedOptions(vibeResult.candidates);
+      setGeneratedOptions(textOptions.map(option => option.text));
 
-      // Don't auto-select any option - let user choose
-
-      // Log audit info for debugging
-      console.log('🔍 Vibe generation audit:', vibeResult.audit);
-
-      // Show success toast with model information if retry occurred
-      if (vibeResult.audit.retryAttempt && vibeResult.audit.retryAttempt > 0) {
-        sonnerToast.success("Generated text with model fallback", {
-          description: `Switched from ${vibeResult.audit.originalModel} to ${vibeResult.audit.model} for better results.`
-        });
-      }
-
-      // Warn if fallbacks were used
-      if (vibeResult.audit.usedFallback) {
-        console.warn('⚠️ Text generation used fallback variants. API may be unavailable or having issues.');
-        sonnerToast.warning('Text generation used fallback. Results may be less relevant to your tags.');
-      }
+      // Show success toast
+      sonnerToast.success("Generated new text options", {
+        description: "4 new AI-generated options are ready for your review."
+      });
     } catch (error) {
       console.error('❌ Error generating text:', error);
       sonnerToast.error('Failed to generate text options. Please try again.');
