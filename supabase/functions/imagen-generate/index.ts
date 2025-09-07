@@ -27,7 +27,9 @@ interface ImagenResponse {
 
 async function generateImageWithGemini(request: ImagenRequest): Promise<string> {
   if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY not configured');
+    const error = new Error('GEMINI_API_KEY not configured');
+    (error as any).type = 'config';
+    throw error;
   }
 
   // Map aspect ratio to Google Imagen format
@@ -64,78 +66,134 @@ async function generateImageWithGemini(request: ImagenRequest): Promise<string> 
     style: request.style_type
   });
 
-  // Use correct Google Images API endpoint
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/images:generate?key=${GEMINI_API_KEY}`;
+  // Dual-endpoint strategy: try both endpoints
+  const endpoints = [
+    `https://generativelanguage.googleapis.com/v1beta/images:generate?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/imagegeneration:generateImage?key=${GEMINI_API_KEY}`
+  ];
   
-  const payload = {
-    prompt: finalPrompt,
-    aspectRatio: aspectRatio,
-    sampleCount: 1
-  };
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const payloads = [
+    {
+      prompt: finalPrompt,
+      aspectRatio: aspectRatio,
+      sampleCount: 1
     },
-    body: JSON.stringify(payload),
-  });
-
-  const responseText = await response.text();
-  console.log('Google API response status:', response.status);
-  console.log('Google API response headers:', Object.fromEntries(response.headers.entries()));
-
-  if (!response.ok) {
-    console.error('Google Images API error:', response.status, responseText);
-    
-    // Detailed error handling for different status codes
-    let errorMessage = `Image generation failed: ${response.status}`;
-    let errorType = 'transient';
-    
-    try {
-      const errorData = JSON.parse(responseText);
-      if (errorData.error) {
-        errorMessage = errorData.error.message || errorMessage;
+    {
+      model: 'models/imagegeneration',
+      prompt: {
+        text: finalPrompt
+      },
+      config: {
+        aspectRatio: aspectRatio,
+        sampleCount: 1
       }
-    } catch (parseError) {
-      console.error('Failed to parse error response:', parseError);
     }
-    
-    // Categorize errors for better handling
-    if (response.status === 401 || response.status === 403) {
-      errorType = 'auth';
-      errorMessage = 'Gemini API key is invalid or Google Generative Language API is not enabled. Please check your credentials and enable the API.';
-    } else if (response.status === 404) {
-      errorType = 'config';
-      errorMessage = 'Gemini image generation model not found. The Generative Language API may not be available in your region or project.';
-    } else if (response.status === 429) {
-      errorType = 'quota';
-      errorMessage = 'Gemini API quota exceeded. Please check your usage limits.';
-    } else if (response.status >= 500) {
-      errorType = 'server';
-      errorMessage = 'Gemini API server error. Please try again.';
+  ];
+
+  let lastError: any = null;
+
+  for (let i = 0; i < endpoints.length; i++) {
+    try {
+      console.log(`Attempting endpoint ${i + 1}:`, endpoints[i]);
+      
+      const response = await fetch(endpoints[i], {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payloads[i]),
+      });
+
+      const responseText = await response.text();
+      console.log(`Endpoint ${i + 1} response status:`, response.status);
+      console.log(`Endpoint ${i + 1} response headers:`, Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        console.error(`Endpoint ${i + 1} failed:`, response.status, responseText);
+        
+        // Parse error details
+        let errorMessage = `Image generation failed: ${response.status}`;
+        let errorType = 'transient';
+        
+        try {
+          const errorData = JSON.parse(responseText);
+          if (errorData.error) {
+            errorMessage = errorData.error.message || errorMessage;
+          }
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+        }
+        
+        // Categorize errors for better handling
+        if (response.status === 401 || response.status === 403) {
+          errorType = 'auth';
+          errorMessage = 'Gemini API key is invalid or Google Generative Language API is not enabled. Please check your credentials and enable the API.';
+        } else if (response.status === 404) {
+          errorType = 'config';
+          errorMessage = 'Gemini image generation model not found. The Generative Language API may not be available in your region or project.';
+        } else if (response.status === 429) {
+          errorType = 'quota';
+          errorMessage = 'Gemini API quota exceeded. Please check your usage limits.';
+        } else if (response.status >= 500) {
+          errorType = 'server';
+          errorMessage = 'Gemini API server error. Please try again.';
+        }
+        
+        const error = new Error(errorMessage);
+        (error as any).type = errorType;
+        lastError = error;
+        
+        // If this is a non-transient error, don't try other endpoints
+        if (errorType !== 'transient' && errorType !== 'server') {
+          throw error;
+        }
+        
+        continue; // Try next endpoint
+      }
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse response JSON:', parseError);
+        const error = new Error('Invalid response from Google Generative Language API');
+        (error as any).type = 'server';
+        lastError = error;
+        continue; // Try next endpoint
+      }
+      
+      // Try different response formats
+      let base64Image = null;
+      
+      if (data.generatedImages && data.generatedImages.length > 0) {
+        base64Image = data.generatedImages[0].bytesBase64Encoded;
+      } else if (data.candidates && data.candidates.length > 0) {
+        base64Image = data.candidates[0].content?.parts?.[0]?.inlineData?.data;
+      } else if (data.images && data.images.length > 0) {
+        base64Image = data.images[0].bytesBase64Encoded;
+      }
+      
+      if (base64Image) {
+        console.log(`Image generation successful with endpoint ${i + 1}`);
+        return base64Image;
+      } else {
+        console.error(`No images returned from endpoint ${i + 1}:`, data);
+        const error = new Error('No images returned from Google Images API');
+        (error as any).type = 'server';
+        lastError = error;
+        continue; // Try next endpoint
+      }
+      
+    } catch (error) {
+      console.error(`Endpoint ${i + 1} threw error:`, error);
+      lastError = error;
+      continue; // Try next endpoint
     }
-    
-    const error = new Error(errorMessage);
-    (error as any).type = errorType;
-    throw error;
   }
 
-  let data;
-  try {
-    data = JSON.parse(responseText);
-  } catch (parseError) {
-    console.error('Failed to parse response JSON:', parseError);
-    throw new Error('Invalid response from Google Generative Language API');
-  }
-  
-  console.log('Image generation successful with Google Images API');
-  
-  if (!data.generatedImages || data.generatedImages.length === 0) {
-    throw new Error('No images returned from Google Images API');
-  }
-
-  return data.generatedImages[0].bytesBase64Encoded;
+  // If we get here, all endpoints failed
+  console.error('All Gemini endpoints failed, throwing last error:', lastError);
+  throw lastError || new Error('All Gemini API endpoints failed');
 }
 
 serve(async (req) => {
@@ -284,8 +342,13 @@ serve(async (req) => {
       }
     }
 
+    // Always return JSON with error type for frontend handling
+    const errorType = (error as any).type || 'unknown';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        type: errorType
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
