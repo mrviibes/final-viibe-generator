@@ -80,15 +80,17 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
       textLayoutId 
     });
     
-    const systemPrompt = `Layout tokens (apply exactly one based on textLayoutId):
-- negativeSpace  -> "clear empty area near largest margin"
-- memeTopBottom  -> "clear top band" , "clear bottom band"
-- lowerThird     -> "clear lower third"
-- sideBarLeft    -> "clear left panel"
-- badgeSticker   -> "badge space top-right"
-- subtleCaption  -> "clear narrow bottom strip"
+    const systemPrompt = `You MUST generate layout-safe visual prompts. Each prompt MUST end with the required layout token(s).
 
-Rules:
+Layout tokens (REQUIRED - apply exactly one based on textLayoutId):
+- negativeSpace  -> MUST end with "clear empty area near largest margin"
+- memeTopBottom  -> MUST end with "clear top band, clear bottom band" 
+- lowerThird     -> MUST end with "clear lower third"
+- sideBarLeft    -> MUST end with "clear left panel"
+- badgeSticker   -> MUST end with "badge space top-right"
+- subtleCaption  -> MUST end with "clear narrow bottom strip"
+
+CRITICAL REQUIREMENTS:
 - Return ONLY JSON:
 {
   "visualOptions":[
@@ -99,19 +101,23 @@ Rules:
   ],
   "negativePrompt":""
 }
-- Subject prompts: short (2-6 words), avoid typography/signage/watermark/logo words, no style words (realistic/anime/3D).
-- Option1 literal=mirror textContent; Option2 supportive=audience/props; Option3 alternate=angle/perspective; Option4 creative=symbol/metaphor.
-- Include tone + tags naturally. 
-- Place layout tokens at the END of each prompt (e.g., "birthday cake, clear lower third").
-- negativePrompt must include: "no background text, no signage, no watermarks, no logos".
+- EVERY prompt MUST end with the layout token for the specified textLayoutId
+- Subject prompts: short (2-6 words), avoid typography/signage/watermark/logo words, no style words (realistic/anime/3D)
+- Option1 literal=mirror textContent; Option2 supportive=audience/props; Option3 alternate=angle/perspective; Option4 creative=symbol/metaphor
+- Include tone + tags naturally
+- Example format: "birthday cake, clear lower third" (subject + comma + layout token)
+- negativePrompt must include: "no background text, no signage, no watermarks, no logos"
 
-Optional: enforce per-layout wording:
-- negativeSpace → add "clear empty area near subject"
-- memeTopBottom → add both tokens: "clear top band", "clear bottom band"
-- lowerThird → add "clear lower third"
-- sideBarLeft → add "clear left panel"
-- badgeSticker → add "badge space top-right"
-- subtleCaption → add "clear narrow bottom strip"`;
+EXAMPLE for lowerThird layout:
+{
+  "visualOptions":[
+    {"lane":"literal","prompt":"Person blowing out candles, clear lower third"},
+    {"lane":"supportive","prompt":"Friends around cake, clear lower third"},
+    {"lane":"alternate","prompt":"Room with balloons, clear lower third"},
+    {"lane":"creative","prompt":"Cake shaped like star, clear lower third"}
+  ],
+  "negativePrompt":"no background text, no signage, no watermarks, no logos"
+}`;
 
     const userPrompt = `Category: ${session.category}
 Subcategory: ${session.subcategory}
