@@ -272,8 +272,7 @@ Return pure JSON only.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ], {
-          temperature: 0.7,
-          max_completion_tokens: 900, // Increased to prevent truncation
+          max_completion_tokens: 900,
           model: 'gpt-5-mini-2025-08-07'
         }),
         timeoutPromise
@@ -289,7 +288,6 @@ Return pure JSON only.`;
             { role: 'system', content: systemPrompt },
             { role: 'user', content: compactUserPrompt }
           ], {
-            temperature: 0.6,
             max_completion_tokens: 1000,
             model: 'gpt-5-2025-08-07'
           }),
