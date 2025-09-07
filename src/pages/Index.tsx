@@ -5725,11 +5725,6 @@ const Index = () => {
                       {generatedOptions.slice(0, 4).map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50" onClick={() => {
                 setSelectedGeneratedOption(option);
                 setSelectedGeneratedIndex(index);
-                // Auto-enable spelling guarantee and clean background when text is selected
-                if (option && option.trim()) {
-                  setSpellingGuaranteeMode(true);
-                  setCleanBackgroundMode(true);
-                }
               }}>
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
@@ -6169,29 +6164,6 @@ const Index = () => {
                   <h3 className="text-lg font-medium text-foreground">Preview</h3>
                   <div className="flex items-center gap-2 flex-wrap">
                     {!isGeneratingImage && !generatedImageUrl && <>
-                         {/* Spelling Guarantee Toggle */}
-                         {(selectedGeneratedOption || stepTwoText) && (selectedGeneratedOption || stepTwoText).trim() && <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
-                             <input type="checkbox" id="spelling-guarantee" checked={spellingGuaranteeMode} onChange={e => setSpellingGuaranteeMode(e.target.checked)} className="rounded" />
-                             <label htmlFor="spelling-guarantee" className="text-sm font-medium cursor-pointer">
-                               Spelling Guarantee
-                             </label>
-                           </div>}
-                         
-                         {/* Clean Background Toggle */}
-                         <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
-                           <input type="checkbox" id="clean-background" checked={cleanBackgroundMode} onChange={e => setCleanBackgroundMode(e.target.checked)} className="rounded" />
-                           <label htmlFor="clean-background" className="text-sm font-medium cursor-pointer">
-                             Clean Background (recommended)
-                           </label>
-                         </div>
-                        
-                        <Button onClick={() => setShowProxySettingsDialog(true)} variant="outline" size="sm" className="flex items-center gap-2">
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          Proxy Settings
-                        </Button>
                         <Button onClick={handleGenerateImage} variant="brand" className="flex items-center gap-2">
                           <Download className="h-4 w-4" />
                           Generate with Ideogram
@@ -6557,197 +6529,29 @@ const Index = () => {
           </>}
 
         {/* Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <Button variant="outline" onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))} className={currentStep === 1 ? "invisible" : ""} disabled={currentStep === 1}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            
-            <Button variant={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete() || currentStep === 4 && !isStep4Complete() ? "outline" : "brand"} onClick={async () => {
-            if (currentStep === 3 && isStep3Complete() && selectedDimension) {
-              // Move to Step 4 and automatically start generating the image
-              setCurrentStep(4);
-
-              // Start automatic image generation
-              setIsGeneratingImage(true);
-              try {
-                const finalText = selectedGeneratedOption || stepTwoText || "";
-                const visualStyle = selectedVisualStyle || "";
-                const subcategory = (() => {
-                  if (selectedStyle === 'celebrations' && selectedSubOption) {
-                    const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
-                    return celebOption?.name || selectedSubOption;
-                  } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
-                    const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
-                    return popOption?.name || selectedSubOption;
-                  }
-                  return selectedSubOption || 'general';
-                })();
-                const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
-                const tone = selectedTextStyleObj?.name || 'Humorous';
-                const allTags = [...tags, ...subjectTags];
-
-                // Get chosen visual concept if selected
-                const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : undefined;
-
-                // Build comprehensive Ideogram handoff payload
-                const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
-                const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "";
-
-                // Get secondary subcategory for pop culture
-                const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
-                const ideogramPayload = buildIdeogramHandoff({
-                  // Core parameters
-                  visual_style: visualStyle,
-                  subcategory: subcategory,
-                  tone: tone.toLowerCase(),
-                  final_line: finalText,
-                  tags_csv: allTags.join(', '),
-                  chosen_visual: chosenVisual,
-                  // Extended parameters
-                  category: categoryName,
-                  subcategory_secondary: subcategorySecondary,
-                  aspect_ratio: aspectRatio,
-                  text_tags_csv: tags.join(', '),
-                  visual_tags_csv: subjectTags.join(', '),
-                  ai_text_assist_used: selectedCompletionOption === "ai-assist",
-                  ai_visual_assist_used: selectedSubjectOption === "ai-assist",
-                  // Visual AI Recommendations
-                  rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].subject : selectedSubjectOption === "design-myself" ? subjectDescription : undefined,
-                  rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].background : undefined
-                });
-
-                // Generate the Ideogram prompt
-                const promptText = buildIdeogramPrompt(ideogramPayload);
-                const aspectRatioKey = getAspectRatioForIdeogram(selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "");
-                let styleType = getStyleTypeForIdeogram(visualStyle);
-                let model: 'V_1' | 'V_1_TURBO' | 'V_2' | 'V_2_TURBO' | 'V_2A' | 'V_2A_TURBO' | 'V_3' = 'V_2_TURBO';
-
-                // Optimize for text accuracy when text is present
-                if (finalText && finalText.trim()) {
-                  styleType = 'DESIGN'; // Better for text fidelity
-                  model = 'V_2A_TURBO'; // Better model for text
-                }
-
-                // Handle spelling guarantee mode
-                if (spellingGuaranteeMode && finalText && finalText.trim()) {
-                  // Generate background-only image first - remove ALL text-related instructions
-                  const backgroundPrompt = promptText.replace(/EXACT_TEXT \(VERBATIM\): ".*?"/g, '').replace(/Render this text EXACTLY.*?\./g, '').replace(/Use only standard ASCII.*?\./g, '').replace(/If you cannot render.*?\./g, '').replace(/Style and display this text.*?\./g, '').replace(/Ensure the text is.*?\./g, '').replace(/NEGATIVE PROMPTS:.*?\./g, '').replace(/\s+/g, ' ').trim() + ' No text, no typography, no words, no letters, no characters, no glyphs, no symbols, no UI elements overlaid on the image. Clean minimal background only.';
-                  const backgroundResult = await generateIdeogramImage({
-                    prompt: backgroundPrompt,
-                    aspect_ratio: aspectRatioKey,
-                    style_type: styleType,
-                    model: model,
-                    magic_prompt_option: 'AUTO'
-                  });
-                  if (backgroundResult.data?.[0]?.url) {
-                    setBackgroundOnlyImageUrl(backgroundResult.data[0].url);
-                    setShowTextOverlay(true);
-                    setIsGeneratingImage(false);
-                    return;
-                  }
-                }
-
-                // Generate the image normally
-                const result = await generateIdeogramImage({
-                  prompt: promptText,
-                  aspect_ratio: aspectRatioKey,
-                  style_type: styleType,
-                  model: model,
-                  magic_prompt_option: 'AUTO'
-                });
-                if (result.data?.[0]?.url) {
-                  setGeneratedImageUrl(result.data[0].url);
-                  sonnerToast.success("Your VIIBE has been generated successfully!");
-                } else {
-                  sonnerToast.error("Failed to generate your VIIBE. Please try again.");
-                }
-              } catch (error) {
-                console.error("Error generating image:", error);
-                sonnerToast.error("Failed to generate your VIIBE. Please try again.");
-              } finally {
-                setIsGeneratingImage(false);
+        {currentStep < 4 && (
+          <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4">
+            <div className="max-w-6xl mx-auto flex justify-between items-center">
+              <Button variant="outline" onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))} className={currentStep === 1 ? "invisible" : ""} disabled={currentStep === 1}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              
+              <Button variant={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete() ? "outline" : "brand"} onClick={() => {
+              if (currentStep === 3) {
+                setCurrentStep(4);
+              } else {
+                setCurrentStep(prev => prev + 1);
               }
-            } else if (currentStep === 4 && isStep4Complete()) {
-              // Generate VIIBE with Ideogram handoff
-              const finalText = selectedGeneratedOption || stepTwoText || "";
-              const visualStyle = selectedVisualStyle || "";
-              const subcategory = (() => {
-                if (selectedStyle === 'celebrations' && selectedSubOption) {
-                  const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
-                  return celebOption?.name || selectedSubOption;
-                } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
-                  const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
-                  return popOption?.name || selectedSubOption;
-                }
-                return selectedSubOption || 'general';
-              })();
-              const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
-              const tone = selectedTextStyleObj?.name || 'Humorous';
-              const allTags = [...tags, ...subjectTags];
-
-              // Get chosen visual concept if selected
-              const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : undefined;
-
-              // Build comprehensive Ideogram handoff payload
-              const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
-              const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "";
-
-              // Get secondary subcategory for pop culture
-              const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
-              const ideogramPayload = buildIdeogramHandoff({
-                // Core parameters
-                visual_style: visualStyle,
-                subcategory: subcategory,
-                tone: tone.toLowerCase(),
-                final_line: finalText,
-                tags_csv: allTags.join(', '),
-                chosen_visual: chosenVisual,
-                // Extended parameters
-                category: categoryName,
-                subcategory_secondary: subcategorySecondary,
-                aspect_ratio: aspectRatio,
-                text_tags_csv: tags.join(', '),
-                visual_tags_csv: subjectTags.join(', '),
-                ai_text_assist_used: selectedCompletionOption === "ai-assist",
-                ai_visual_assist_used: selectedSubjectOption === "ai-assist",
-                // Visual AI Recommendations
-                rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].subject : selectedSubjectOption === "design-myself" ? subjectDescription : undefined,
-                rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].background : undefined
-              });
-              console.log("VIIBE Generated!", {
-                category: selectedStyle || "",
-                subcategory: selectedSubOption || "",
-                pick: selectedPick || "",
-                textStyle: selectedTextStyle || "",
-                completionOption: selectedCompletionOption || "",
-                customText: stepTwoText || "",
-                finalText: finalText,
-                visualStyle: selectedVisualStyle || "",
-                subjectOption: selectedSubjectOption || "",
-                subjectDescription: subjectDescription || "",
-                dimensions: selectedDimension || "",
-                customWidth: customWidth || "",
-                customHeight: customHeight || "",
-                tags: tags.join(", "),
-                subjectTags: subjectTags.join(", "),
-                ideogramHandoff: ideogramPayload
-              });
-
-              // You can add your VIIBE generation logic here
-              alert("VIIBE Generated Successfully! Check console for Ideogram handoff payload.");
-            } else {
-              setCurrentStep(prev => prev + 1);
-            }
-          }} disabled={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete() || currentStep === 4 && !isStep4Complete()}>
-              {currentStep === 3 && isStep3Complete() && selectedDimension ? "GENERATE YOUR VIIBE" : currentStep === 4 && isStep4Complete() ? "GENERATE VIIBE NOW" : <>
-                  Continue
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </>}
-            </Button>
+            }} disabled={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete()}>
+                {currentStep === 3 && isStep3Complete() && selectedDimension ? "Continue to Review" : <>
+                    Continue
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </>}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* API Key Dialog */}
         <ApiKeyDialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog} onApiKeySet={handleApiKeySet} />
