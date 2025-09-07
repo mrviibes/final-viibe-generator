@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SYSTEM_PROMPT = `Return ONLY JSON:
+const SYSTEM_PROMPT = `You are a COMEDY CENTRAL ROAST COMIC. Return ONLY JSON:
 {
   "lines": [
     {"lane":"option1","text":"..."},
@@ -18,30 +18,37 @@ const SYSTEM_PROMPT = `Return ONLY JSON:
   ]
 }
 
-RULES:
-- 4 one-liners, max 70 chars each
-- Vary length (~40, ~55-60, ~65-70)
-- Subcategory anchors required: cake, candles, balloons, confetti, party hats, gifts for Birthday
-- If TAGS provided, at least 3 of 4 must include them literally. Place tags differently each time
-- No em-dash or "--"
-- Ban generic phrases: "another year," "getting older," "best medicine," "timing is everything"
-- All 4 lines must be distinct (different angles: props, crowd, skills, absurd twist)
+NUCLEAR SAVAGE RULES:
+- 4 BRUTAL roast lines, 25-70 chars each
+- Length BANDS required: one 35-45, one 50-60, one 60-68, one 68-70 chars
+- ALL 4 lines MUST include birthday anchors: cake, candles, balloons, confetti, party hats, gifts
+- If TAGS provided: at least 3 of 4 lines must include ALL tags literally
+- SAVAGENESS LEVELS: Line 1=light jab, Line 2=medium roast, Line 3=heavy burn, Line 4=nuclear destruction
+- NO truncation, NO "...", complete sentences only
+- Ban ALL generic phrases: "another year," "getting older," "best medicine," "timing," "wishes," "special day," "celebrate," "age is just"
+- Each line different savage angle: personal attack, crowd observation, skill roast, absurd comparison
 
-TONE SAVAGE = Comedy Central roast. Brutal, clever, no clichés.
-Must be funny, human, and harsh, not generic birthday lines.
-Write like a roast comic: punchlines must sting. Avoid Hallmark card style.
-Every line should feel like a roast, not a dad joke.`;
+COMEDY CENTRAL TONE = Jeff Ross/Don Rickles level brutality. Make it HURT.
+Not dad jokes, not sarcasm, not witty observations - pure ROAST COMIC DEVASTATION.
+Think: "Your birthday cake has more personality than you do."
+NOT: "Another year older, another year wiser!"
+
+COMPLETE SENTENCES. NO CUTTING OFF. BRUTAL BUT CLEVER.`;
 
 // Savage roast templates for birthday fallbacks
 const SAVAGE_BIRTHDAY_TEMPLATES = [
-  "{name}'s birthday cake collapsed harder than {pronoun} career.",
-  "Even the balloons left, {name}. Happy birthday to a ghost town.",
-  "{name} blew the candles. The fire marshal called it arson.",
-  "Confetti refused to drop, {name}. Happy birthday, you flop.",
-  "The cake's sweeter than {name}'s personality, somehow.",
-  "{name}'s candles burned out faster than {pronoun} last relationship.",
-  "Balloons have more life than {name}'s birthday party energy.",
-  "The gift that keeps giving? {name}'s endless disappointments."
+  "{name}'s birthday cake has more personality than {pronoun}.",
+  "Even the balloons are deflated, {name}. Happy birthday to disappointment.",
+  "{name}'s candles burned out faster than {pronoun} career prospects.",
+  "The confetti won't fall for {name}. Even party supplies have standards.",
+  "{name}, the gifts are here but the party guests called in sick.",
+  "Party hats refused to stay on {name}'s head. Smart fashion choice.",
+  "{name}'s birthday cake is sweeter than any compliment {pronoun} deserve.",
+  "Balloons have more lift than {name}'s life achievements, {name}.",
+  "{name} blew out candles, neighbors called the fire department.",
+  "The birthday song for {name}? Everyone sang off-key on purpose.",
+  "{name}'s party has more dead air than {pronoun} conversation skills.",
+  "Even the cake decorator spelled {name}'s name wrong. Intentionally."
 ];
 
 const FALLBACK_LINES = {
@@ -90,17 +97,23 @@ function generateSavageFallback(inputs: any): any {
 }
 
 function buildUserMessage(inputs: any): string {
-  const tagsStr = inputs.tags && inputs.tags.length > 0 ? `, tags: [${inputs.tags.map((t: string) => `"${t}"`).join(",")}]` : "";
-  
-  let anchorsStr = "";
-  if (inputs.subcategory === "Birthday") {
-    anchorsStr = "\nANCHORS: cake, candles, balloons, confetti, party hats, gifts";
-  }
-  
-  return `Generate 4 one-liners for:
+  let message = `ROAST TARGET:
 Category: ${inputs.category}
 Subcategory: ${inputs.subcategory}
-Tone: ${inputs.tone}${tagsStr}${anchorsStr}`;
+Tone: ${inputs.tone}`;
+
+  if (inputs.tags && inputs.tags.length > 0) {
+    message += `\nTAGS: ${inputs.tags.map((t: string) => `"${t}"`).join(", ")} (include literally in 3 of 4 lines)`;
+  }
+  
+  if (inputs.subcategory === "Birthday") {
+    message += `\nBIRTHDAY ANCHORS: cake, candles, balloons, confetti, party hats, gifts (ALL 4 lines must use these)`;
+    message += `\nSAVAGE LEVELS: Line 1=light jab (35-45 chars), Line 2=medium roast (50-60 chars), Line 3=heavy burn (60-68 chars), Line 4=nuclear destruction (68-70 chars)`;
+  }
+  
+  message += `\n\nDELIVER COMEDY CENTRAL ROAST DESTRUCTION. Complete sentences only. No truncation. Make it HURT.`;
+  
+  return message;
 }
 
 function normalizeAndRepairText(rawText: string, inputs: any): { lines: any[], repairs: string[] } {
@@ -147,11 +160,14 @@ function normalizeAndRepairText(rawText: string, inputs: any): { lines: any[], r
     repairs.push("Added missing lines to reach 4");
   }
   
-  // Check for banned generic phrases (aggressive filtering)
+    // Check for banned generic phrases (NUCLEAR filtering)
   const bannedPhrases = [
     "another year", "getting older", "best medicine", "timing is everything",
     "truth hurts", "laughter is", "birthday wishes", "special day",
-    "one more year", "growing older", "age is just", "celebrate you"
+    "one more year", "growing older", "age is just", "celebrate you",
+    "born to", "made for", "deserve", "birthday boy", "birthday girl",
+    "happy birthday", "many more", "blow out", "make a wish",
+    "party time", "let's celebrate", "cheers to", "here's to"
   ];
   
   const hasGenericContent = parsed.lines.some((line: any) => 
@@ -162,8 +178,13 @@ function normalizeAndRepairText(rawText: string, inputs: any): { lines: any[], r
     throw new Error("Generic birthday content detected in savage mode");
   }
   
-  // Repair each line with strict enforcement
-  const targetLengths = [40, 58, 66, 70]; // Target variety
+  // Repair each line with NUCLEAR STRICT enforcement
+  const targetBands = [
+    { min: 35, max: 45 },  // Light jab
+    { min: 50, max: 60 },  // Medium roast  
+    { min: 60, max: 68 },  // Heavy burn
+    { min: 68, max: 70 }   // Nuclear destruction
+  ];
   const processedLines = parsed.lines.map((line: any, index: number) => {
     let text = line.text || "";
     const originalText = text;
@@ -185,27 +206,33 @@ function normalizeAndRepairText(rawText: string, inputs: any): { lines: any[], r
              .replace(/\bdo not\b/gi, "don't")
              .replace(/\bwill not\b/gi, "won't");
     
-    // Smart truncation if too long
-    if (text.length > 70) {
-      const targetLen = Math.min(70, targetLengths[index] || 65);
-      // Try to cut at a word boundary near target
+    // NO TRUNCATION ALLOWED - Complete sentences only
+    const targetBand = targetBands[index];
+    if (text.length > targetBand.max) {
+      // Rewrite to fit band without truncation
       const words = text.split(' ');
-      let truncated = '';
+      let rebuilt = '';
       for (const word of words) {
-        if ((truncated + ' ' + word).length <= targetLen) {
-          truncated += (truncated ? ' ' : '') + word;
+        const test = rebuilt + (rebuilt ? ' ' : '') + word;
+        if (test.length <= targetBand.max) {
+          rebuilt = test;
         } else {
           break;
         }
       }
       
-      if (truncated.length < 30) {
-        // Fallback: hard truncate
-        truncated = text.substring(0, targetLen - 3) + '...';
+      // Ensure complete sentence
+      if (!rebuilt.match(/[.!?]$/)) {
+        rebuilt += '.';
       }
       
-      text = truncated;
-      repairs.push(`Truncated line ${index + 1} from ${originalText.length} to ${text.length} chars`);
+      if (rebuilt.length >= targetBand.min && rebuilt.length <= targetBand.max) {
+        text = rebuilt;
+        repairs.push(`Rebuilt line ${index + 1} to fit band ${targetBand.min}-${targetBand.max} chars`);
+      } else {
+        // Force into band with ellipsis ONLY if absolutely necessary
+        throw new Error(`Cannot fit line ${index + 1} into required band without truncation`);
+      }
     }
     
     // STRICT: Ensure birthday anchors on ALL lines if Birthday
