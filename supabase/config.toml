@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.ideogram-generate]
 verify_jwt = false
+
+[functions.imagen-generate]
+verify_jwt = false
