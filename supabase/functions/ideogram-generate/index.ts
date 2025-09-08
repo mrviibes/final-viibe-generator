@@ -93,130 +93,53 @@ serve(async (req) => {
         throw new Error('Ideogram API key not configured');
       }
 
-      console.log('Calling Ideogram API...');
-      const ideogramResponse = await fetch('https://api.ideogram.ai/generate', {
+      console.log('Calling Ideogram V3 API...');
+      
+      // Map aspect_ratio to V3 resolution format
+      const resolutionMap: { [key: string]: string } = {
+        'ASPECT_1_1': '1:1',
+        'ASPECT_10_16': '5:8', // portrait
+        'ASPECT_16_10': '8:5', // landscape
+        'ASPECT_9_16': '9:16', // vertical
+        'ASPECT_16_9': '16:9'  // horizontal
+      };
+      
+      const resolution = resolutionMap[aspect_ratio] || '1:1';
+      const seed = Math.floor(Math.random() * 1000000);
+      
+      // Build FormData for V3 API
+      const formData = new FormData();
+      formData.append('prompt', prompt);
+      formData.append('resolution', resolution);
+      formData.append('seed', seed.toString());
+      
+      console.log('V3 FormData:', { prompt, resolution, seed });
+      
+      const ideogramResponse = await fetch('https://api.ideogram.ai/generate-v3', {
         method: 'POST',
         headers: {
           'Api-Key': ideogramApiKey,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          image_request: {
-            prompt,
-            aspect_ratio,
-            model,
-            magic_prompt_option: "AUTO",
-            seed: Math.floor(Math.random() * 1000000),
-            style_type
-            // Removed negative_prompt as V_3 and newer models don't support it
-          }
-        }),
+        body: formData,
       });
 
       if (!ideogramResponse.ok) {
         const errorText = await ideogramResponse.text();
-        console.error('Ideogram API error:', errorText);
-        
-        // Handle negative prompts not supported error with retry
-        if (ideogramResponse.status === 400 && errorText.includes('Negative prompts are not supported')) {
-          console.log('Retrying without negative prompt...');
-          const retryResponse = await fetch('https://api.ideogram.ai/generate', {
-            method: 'POST',
-            headers: {
-              'Api-Key': ideogramApiKey,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              image_request: {
-                prompt,
-                aspect_ratio,
-                model,
-                magic_prompt_option: "AUTO",
-                seed: Math.floor(Math.random() * 1000000),
-                style_type
-                // Explicitly no negative_prompt for retry
-              }
-            }),
-          });
-          
-          if (retryResponse.ok) {
-            const retryData = await retryResponse.json();
-            console.log('Retry successful:', retryData);
-            if (retryData.data && retryData.data.length > 0) {
-              const imageUrl = retryData.data[0].url;
-              
-              // Continue with successful response processing...
-              console.log('Downloading image from:', imageUrl);
-              const imageResponse = await fetch(imageUrl);
-              if (!imageResponse.ok) {
-                throw new Error(`Failed to download image: ${imageResponse.status}`);
-              }
-
-              const imageBlob = await imageResponse.blob();
-              const imageBuffer = await imageBlob.arrayBuffer();
-              const imageBytes = new Uint8Array(imageBuffer);
-
-              // Upload to Supabase Storage
-              const storagePath = `${userId || guestId}/${job.id}.png`;
-              console.log('Uploading to storage path:', storagePath);
-              
-              const { error: uploadError } = await serviceRoleClient.storage
-                .from('gen-images')
-                .upload(storagePath, imageBytes, {
-                  contentType: 'image/png',
-                  upsert: true
-                });
-
-              if (uploadError) {
-                console.error('Upload error:', uploadError);
-                throw new Error(`Storage upload failed: ${uploadError.message}`);
-              }
-
-              // Create signed URL
-              const { data: signedUrlData, error: signedUrlError } = await serviceRoleClient.storage
-                .from('gen-images')
-                .createSignedUrl(storagePath, 3600); // 1 hour expiry
-
-              if (signedUrlError) {
-                console.error('Signed URL error:', signedUrlError);
-                throw new Error(`Failed to create signed URL: ${signedUrlError.message}`);
-              }
-
-              // Update job with success
-              const { error: updateError } = await serviceRoleClient
-                .from('gen_jobs')
-                .update({
-                  status: 'done',
-                  image_url: signedUrlData.signedUrl
-                })
-                .eq('id', job.id);
-
-              if (updateError) {
-                console.error('Job update error:', updateError);
-              }
-
-              console.log('Retry generation successful, returning signed URL');
-              return new Response(JSON.stringify({
-                job_id: job.id,
-                image_url: signedUrlData.signedUrl
-              }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              });
-            }
-          }
-        }
-        
-        throw new Error(`Ideogram API error: ${ideogramResponse.status} - ${errorText}`);
+        console.error('Ideogram V3 API error:', errorText);
+        console.error('Response status:', ideogramResponse.status);
+        console.error('Response headers:', Object.fromEntries(ideogramResponse.headers.entries()));
+        throw new Error(`Ideogram V3 API error: ${ideogramResponse.status} - ${errorText}`);
       }
 
       const ideogramData = await ideogramResponse.json();
-      console.log('Ideogram response:', ideogramData);
+      console.log('Ideogram V3 response:', ideogramData);
 
-      if (!ideogramData.data || ideogramData.data.length === 0) {
-        throw new Error('No images generated by Ideogram');
+      // Parse V3 response format
+      if (!ideogramData.generations || ideogramData.generations.length === 0) {
+        throw new Error('No images generated by Ideogram V3');
       }
 
-      const imageUrl = ideogramData.data[0].url;
+      const imageUrl = ideogramData.generations[0].url;
       
       // Download the image
       console.log('Downloading image from:', imageUrl);

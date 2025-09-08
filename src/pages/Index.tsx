@@ -5140,7 +5140,7 @@ const Index = () => {
             </Badge>
             {!barebonesMode && (
               <Badge variant="outline" className="text-xs">
-                GPT-4o + Ideogram V2
+                GPT-4o + Ideogram V3
               </Badge>
             )}
           </div>
