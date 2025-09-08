@@ -5021,18 +5021,17 @@ const Index = () => {
       console.log('Final payload:', {
         prompt,
         aspect_ratio: aspectForIdeogram,
-        model: 'V_2A_TURBO',
+        model: 'V_3',
         magic_prompt_option: 'AUTO',
         style_type: styleForIdeogram
       });
-      const modelForIdeogram = 'V_2A_TURBO'; // V_2A_TURBO is good for both text and non-text
+      const modelForIdeogram = 'V_3'; // V_3 model for better quality
       const response = await generateIdeogramImage({
         prompt,
         aspect_ratio: aspectForIdeogram,
         model: modelForIdeogram,
         magic_prompt_option: 'AUTO',
-        style_type: styleForIdeogram,
-        negative_prompt: "text, words, letters, typography, signs, writing, captions"
+        style_type: styleForIdeogram
       });
       if (response.data && response.data.length > 0) {
         setGeneratedImageUrl(response.data[0].url);
@@ -6730,7 +6729,7 @@ const Index = () => {
                 // Calculate the exact same parameters used for generation
                 const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
                 const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
-                const modelForIdeogram = 'V_2A_TURBO';
+                const modelForIdeogram = 'V_3';
 
                 // Handle spelling guarantee mode modifications
                 let finalPrompt = prompt;

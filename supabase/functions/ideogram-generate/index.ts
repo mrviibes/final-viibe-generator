@@ -107,8 +107,8 @@ serve(async (req) => {
             model,
             magic_prompt_option: "AUTO",
             seed: Math.floor(Math.random() * 1000000),
-            style_type,
-            negative_prompt: negative_prompt || "text, words, letters, typography, signs, writing, captions"
+            style_type
+            // Removed negative_prompt as V_3 and newer models don't support it
           }
         }),
       });
@@ -116,6 +116,96 @@ serve(async (req) => {
       if (!ideogramResponse.ok) {
         const errorText = await ideogramResponse.text();
         console.error('Ideogram API error:', errorText);
+        
+        // Handle negative prompts not supported error with retry
+        if (ideogramResponse.status === 400 && errorText.includes('Negative prompts are not supported')) {
+          console.log('Retrying without negative prompt...');
+          const retryResponse = await fetch('https://api.ideogram.ai/generate', {
+            method: 'POST',
+            headers: {
+              'Api-Key': ideogramApiKey,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              image_request: {
+                prompt,
+                aspect_ratio,
+                model,
+                magic_prompt_option: "AUTO",
+                seed: Math.floor(Math.random() * 1000000),
+                style_type
+                // Explicitly no negative_prompt for retry
+              }
+            }),
+          });
+          
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json();
+            console.log('Retry successful:', retryData);
+            if (retryData.data && retryData.data.length > 0) {
+              const imageUrl = retryData.data[0].url;
+              
+              // Continue with successful response processing...
+              console.log('Downloading image from:', imageUrl);
+              const imageResponse = await fetch(imageUrl);
+              if (!imageResponse.ok) {
+                throw new Error(`Failed to download image: ${imageResponse.status}`);
+              }
+
+              const imageBlob = await imageResponse.blob();
+              const imageBuffer = await imageBlob.arrayBuffer();
+              const imageBytes = new Uint8Array(imageBuffer);
+
+              // Upload to Supabase Storage
+              const storagePath = `${userId || guestId}/${job.id}.png`;
+              console.log('Uploading to storage path:', storagePath);
+              
+              const { error: uploadError } = await serviceRoleClient.storage
+                .from('gen-images')
+                .upload(storagePath, imageBytes, {
+                  contentType: 'image/png',
+                  upsert: true
+                });
+
+              if (uploadError) {
+                console.error('Upload error:', uploadError);
+                throw new Error(`Storage upload failed: ${uploadError.message}`);
+              }
+
+              // Create signed URL
+              const { data: signedUrlData, error: signedUrlError } = await serviceRoleClient.storage
+                .from('gen-images')
+                .createSignedUrl(storagePath, 3600); // 1 hour expiry
+
+              if (signedUrlError) {
+                console.error('Signed URL error:', signedUrlError);
+                throw new Error(`Failed to create signed URL: ${signedUrlError.message}`);
+              }
+
+              // Update job with success
+              const { error: updateError } = await serviceRoleClient
+                .from('gen_jobs')
+                .update({
+                  status: 'done',
+                  image_url: signedUrlData.signedUrl
+                })
+                .eq('id', job.id);
+
+              if (updateError) {
+                console.error('Job update error:', updateError);
+              }
+
+              console.log('Retry generation successful, returning signed URL');
+              return new Response(JSON.stringify({
+                job_id: job.id,
+                image_url: signedUrlData.signedUrl
+              }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              });
+            }
+          }
+        }
+        
         throw new Error(`Ideogram API error: ${ideogramResponse.status} - ${errorText}`);
       }
 
