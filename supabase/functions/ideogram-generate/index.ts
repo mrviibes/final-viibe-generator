@@ -115,10 +115,11 @@ serve(async (req) => {
       
       console.log('V3 FormData:', { prompt, resolution, seed });
       
-      const ideogramResponse = await fetch('https://api.ideogram.ai/generate-v3', {
+      const ideogramResponse = await fetch('https://api.ideogram.ai/v3/generate', {
         method: 'POST',
         headers: {
           'Api-Key': ideogramApiKey,
+          'Accept': 'application/json',
         },
         body: formData,
       });
