@@ -20,15 +20,12 @@ import { TextLayoutSelector } from "@/components/TextLayoutSelector";
 import { useNavigate } from "react-router-dom";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
 import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
-import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings, getIdeogramModel, setIdeogramModel } from "@/lib/ideogramApi";
+import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
-import { buildStep4Payload, type Step4BuilderInput } from "@/lib/step4Payload";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
-import { TextOverlay } from "@/components/TextOverlay";
-import { LAYOUTS } from "@/lib/viibe_core";
 
 // Layout mappings for display
 const layoutMappings = {
@@ -4210,7 +4207,7 @@ const Index = () => {
   const [selectedTextStyle, setSelectedTextStyle] = useState<string | null>(null);
   const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
   const [selectedVisualStyle, setSelectedVisualStyle] = useState<string | null>(null);
-  const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>(null);
+  const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>("design-myself");
   const [visualOptions, setVisualOptions] = useState<Array<{ subject: string; background: string; prompt: string; slot: string }>>([]);
   const [selectedVisualIndex, setSelectedVisualIndex] = useState<number | null>(null);
   const [visualModel, setVisualModel] = useState<string | null>(null); // Track which model was used
@@ -4943,7 +4940,6 @@ const Index = () => {
     });
   };
   const handleGenerateImage = async () => {
-    // Check if Ideogram API key is available
     const apiKey = getIdeogramApiKey();
     if (!apiKey) {
       setShowIdeogramKeyDialog(true);
@@ -4990,45 +4986,13 @@ const Index = () => {
         ai_visual_assist_used: selectedSubjectOption === "ai-assist"
       });
 
-      // Check if we should use overlay mode based on layout
-      const isOverlayLayout = selectedTextLayout && ['sideBarLeft', 'lowerThird', 'memeTopBottom', 'subtleCaption', 'badgeSticker'].includes(selectedTextLayout);
-      const shouldUseOverlay = isOverlayLayout && !barebonesMode;
-      
       // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
       let prompt = directPrompt.trim();
       if (!prompt && selectedRecommendation !== null && visualRecommendations) {
         prompt = visualRecommendations.options[selectedRecommendation].prompt;
       }
       if (!prompt && !barebonesMode) {
-        // Build Step-4 payload using the new structured approach
-        const step4Input: Step4BuilderInput = {
-          finalText: finalText || '',
-          visualStyle,
-          aspectRatio,
-          layoutId: selectedTextLayout,
-          chosenVisual: chosenVisual || '',
-          visualTags: visualRecommendations?.visualOptions?.map(v => v.prompt).join(', '),
-          negativePrompt: visualRecommendations?.negativePrompt,
-          category: categoryName,
-          subcategory: subcategory
-        };
-        
-        // Get selected model for Step4 payload
-        const urlParams = new URLSearchParams(window.location.search);
-        let selectedModel: 'V_2A_TURBO' | 'V_3' = 'V_2A_TURBO';
-        
-        if (urlParams.get('v3') === '1' || urlParams.get('ideogram') === 'v3') {
-          selectedModel = 'V_3';
-          setIdeogramModel('V_3');
-        } else {
-          selectedModel = getIdeogramModel();
-        }
-        
-        const step4Payload = buildStep4Payload(step4Input, selectedModel);
-        prompt = step4Payload.prompt;
-      } else {
-        // Fallback to legacy method for barebones mode
-        prompt = buildIdeogramPrompt(ideogramPayload, shouldUseOverlay, shouldUseOverlay);
+        prompt = buildIdeogramPrompt(ideogramPayload);
       }
       
       // In barebones mode, require direct prompt
@@ -5036,126 +5000,34 @@ const Index = () => {
         sonnerToast.error("Please provide a direct prompt in barebones mode.");
         return;
       }
-      
-      // Determine final generation parameters
-      let aspectForIdeogram, styleForIdeogram, negativePrompt;
-      
-      if (!prompt && !barebonesMode) {
-        // Use Step-4 payload values
-        const step4Input: Step4BuilderInput = {
-          finalText: finalText || '',
-          visualStyle,
-          aspectRatio,
-          layoutId: selectedTextLayout,
-          chosenVisual: chosenVisual || '',
-          visualTags: visualRecommendations?.visualOptions?.map(v => v.prompt).join(', '),
-          negativePrompt: visualRecommendations?.negativePrompt,
-          category: categoryName,
-          subcategory: subcategory
-        };
-        
-        // Get selected model for Step4 payload
-        const urlParams = new URLSearchParams(window.location.search);
-        let selectedModel: 'V_2A_TURBO' | 'V_3' = 'V_2A_TURBO';
-        
-        if (urlParams.get('v3') === '1' || urlParams.get('ideogram') === 'v3') {
-          selectedModel = 'V_3';
-          setIdeogramModel('V_3');
-        } else {
-          selectedModel = getIdeogramModel();
-        }
-        
-        const step4Payload = buildStep4Payload(step4Input, selectedModel);
-        aspectForIdeogram = step4Payload.aspect_ratio;
-        styleForIdeogram = step4Payload.style_type;
-        negativePrompt = step4Payload.negative_prompt || "no background text, no signage, no watermarks, no logos, no typography";
-        
-        console.log('=== Step-4 Generation Debug ===');
-        console.log('Step-4 Payload:', step4Payload);
-      } else {
-        // Use legacy method for values
-        aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
-        styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
-        negativePrompt = "no background text, no signage, no watermarks, no logos, no typography";
-        if (visualRecommendations?.negativePrompt) {
-          negativePrompt = visualRecommendations.negativePrompt;
-        }
-        if (shouldUseOverlay) {
-          negativePrompt += ", no speech bubbles, no text overlays, no captions";
-        }
-      }
-      
-      console.log('=== Final Generation Debug ===');
+      const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
+      // Always respect the selected visual style
+      const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
+      console.log('=== Ideogram Generation Debug ===');
       console.log('Direct prompt provided:', !!directPrompt.trim());
-      console.log('Using overlay mode:', shouldUseOverlay);
-      console.log('Layout:', selectedTextLayout);
       console.log('Final prompt:', prompt);
-      console.log('Negative prompt:', negativePrompt);
       console.log('Aspect ratio:', aspectForIdeogram);
       console.log('Style type:', styleForIdeogram);
-      let imageGenerated = false;
-      let finalImageUrl = null;
-      
-      // Generate image with Ideogram
-      const apiKey = getIdeogramApiKey();
-      if (!apiKey) {
-        throw new Error('Ideogram API key required. Please add an Ideogram API key.');
-      }
-      
-      try {
-        console.log('🚀 Generating image with Ideogram API...');
-        
-        // Dynamic model selection: URL params > localStorage > default
-        const urlParams = new URLSearchParams(window.location.search);
-        let modelForIdeogram: 'V_2A_TURBO' | 'V_3' = 'V_2A_TURBO';
-        
-        if (urlParams.get('v3') === '1' || urlParams.get('ideogram') === 'v3') {
-          modelForIdeogram = 'V_3';
-          setIdeogramModel('V_3');
-        } else {
-          modelForIdeogram = getIdeogramModel();
-        }
-        
-        console.log(`🤖 Using Ideogram model: ${modelForIdeogram}`);
-        
-        const ideogramResponse = await generateIdeogramImage({
-          prompt,
-          aspect_ratio: aspectForIdeogram,
-          model: modelForIdeogram,
-          magic_prompt_option: 'AUTO',
-          style_type: styleForIdeogram,
-          negative_prompt: negativePrompt
-        });
-        
-        if (ideogramResponse.data && ideogramResponse.data.length > 0) {
-          finalImageUrl = ideogramResponse.data[0].url;
-          imageGenerated = true;
-          console.log('✅ Ideogram generation successful');
-          sonnerToast.success("Your VIIBE has been generated!");
-        } else {
-          throw new Error("No image data received from Ideogram API");
-        }
-      } catch (ideogramError) {
-        console.error('❌ Ideogram generation failed');
-        throw ideogramError;
-      }
-      
-      if (imageGenerated && finalImageUrl) {
-        if (shouldUseOverlay && finalText) {
-          // Use overlay mode - store background image and setup overlay
-          setBackgroundOnlyImageUrl(finalImageUrl);
-          setShowTextOverlay(true);
-          setGeneratedImageUrl(null); // Clear this to show overlay instead
-          console.log('🎨 Generated background image for overlay mode');
-          sonnerToast.success("Background image generated! Text overlay applied automatically.");
-        } else {
-          // Normal mode - use image as-is
-          setGeneratedImageUrl(finalImageUrl);
-          setBackgroundOnlyImageUrl(null);
-          setShowTextOverlay(false);
-        }
+      console.log('Final payload:', {
+        prompt,
+        aspect_ratio: aspectForIdeogram,
+        model: 'V_2A_TURBO',
+        magic_prompt_option: 'AUTO',
+        style_type: styleForIdeogram
+      });
+      const modelForIdeogram = 'V_2A_TURBO'; // V_2A_TURBO is good for both text and non-text
+      const response = await generateIdeogramImage({
+        prompt,
+        aspect_ratio: aspectForIdeogram,
+        model: modelForIdeogram,
+        magic_prompt_option: 'AUTO',
+        style_type: styleForIdeogram
+      });
+      if (response.data && response.data.length > 0) {
+        setGeneratedImageUrl(response.data[0].url);
+        sonnerToast.success("Your VIIBE has been generated successfully!");
       } else {
-        throw new Error("Failed to generate image with Ideogram");
+        throw new Error("No image data received from Ideogram API");
       }
     } catch (error) {
       console.error('Image generation failed:', error);
@@ -5171,7 +5043,7 @@ const Index = () => {
           setImageGenerationError('Connection failed. Trying alternative proxy methods automatically...');
           setTimeout(() => setShowProxySettingsDialog(true), 2000);
         } else {
-          setImageGenerationError(`Ideogram error: ${error.message}`);
+          setImageGenerationError(error.message);
         }
       } else {
         setImageGenerationError('An unexpected error occurred while generating the image.');
@@ -5250,6 +5122,20 @@ const Index = () => {
   };
   return <div className="min-h-screen bg-background py-12 px-4 pb-32">
       <div className="max-w-6xl mx-auto">
+        {/* AI Status Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <Badge variant={barebonesMode ? "secondary" : "default"} className="text-sm">
+              AI: {barebonesMode ? "OFF (Barebones)" : "Connected"}
+            </Badge>
+            {!barebonesMode && (
+              <Badge variant="outline" className="text-xs">
+                GPT-4o + Ideogram V2
+              </Badge>
+            )}
+          </div>
+          
+        </div>
         
         {/* Step Progress Header */}
         <StepProgress currentStep={currentStep} />
@@ -6043,6 +5929,13 @@ const Index = () => {
                           {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
                         </Button>
                       </div>
+                      {textGenerationModel && (
+                        <div className="mb-3">
+                          <Badge variant={textGenerationModel === 'fallback' ? 'secondary' : 'default'} className="text-xs">
+                            {textGenerationModel === 'fallback' ? 'Fallback' : textGenerationModel}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
@@ -6506,17 +6399,6 @@ const Index = () => {
                       </Button>
                       <p className="text-sm text-muted-foreground">This may take a few moments</p>
                     </div>
-                  ) : backgroundOnlyImageUrl && showTextOverlay ? (
-                    <TextOverlay 
-                      backgroundImageUrl={backgroundOnlyImageUrl}
-                      text={selectedGeneratedOption || stepTwoText || ""}
-                      layoutSpec={LAYOUTS[selectedTextLayout || 'negativeSpace']}
-                      onImageReady={(imageUrl) => {
-                        setGeneratedImageUrl(imageUrl);
-                        setShowTextOverlay(false);
-                        setBackgroundOnlyImageUrl(null);
-                      }}
-                    />
                   ) : generatedImageUrl ? <div className="max-w-full max-h-full">
                       <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
                     </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">

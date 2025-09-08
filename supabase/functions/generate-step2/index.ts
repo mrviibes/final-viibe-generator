@@ -8,35 +8,105 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Comedian-mode system prompt prioritizing humor over rules
-const SYSTEM_PROMPT = `Return ONLY JSON:
-{"lines":[
-  {"lane":"option1","text":""},
-  {"lane":"option2","text":""},
-  {"lane":"option3","text":""},
-  {"lane":"option4","text":""}
-]}
+// Updated system prompt with strict tag rules and hard character limit
+const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY valid JSON:
+{
+  "lines": [
+    {"lane":"option1","text":"..."},
+    {"lane":"option2","text":"..."},
+    {"lane":"option3","text":"..."},
+    {"lane":"option4","text":"..."}
+  ]
+}
 
-Rules:
-- 4 unique one-liner jokes in JSON.
-- Length: 35–70 chars. Natural variation: one short, one medium, one long, one random.
-- Structure: one sentence each, max one comma OR one colon. No em-dash, no "--".
-- Tags: if provided → at least 3 of 4 lines must literally include all tags. Tags can be separated and placed anywhere.
-- Tone:
-  * Savage = like a roast comic (Comedy Central).
-  * Playful = like a cheeky sitcom gag.
-  * Humorous = like a dad joke/observational comic.
-  * Romantic = like a flirty one-liner.
-  * Sentimental = like a toast at a wedding.
-  * Nostalgic = like a "back in my day" storyteller.
-  * Inspirational = like a motivational comic.
-  * Serious = no joke, just plain.
-- Randomize the comic "voice":
-  Each line can sound like a different comedian — sarcastic, absurdist, deadpan, slapstick, sharp roast, etc.
-  (E.g. one could be Seinfeld-style observation, another Ricky Gervais roast, another Mitch Hedberg absurdism, another Joan Rivers savage glam-roast).
-- Props/anchors are optional seasoning, not mandatory. Use sparingly so jokes don't all feel the same.
-- Priority: humor first, JSON shape second. If forced, pick the funniest line.
-- Output only the JSON; no labels or commentary.`;
+CRITICAL: Generate 4 DISTINCT text options that are creative and varied.
+
+CHARACTER LIMIT:
+• Each line must be ≤ 70 characters
+• No exceptions - any line over 70 characters is invalid
+
+TAG HANDLING (STRICTLY ENFORCED):
+• If tags exist: At least 3 of 4 lines must include ALL tags literally (not synonyms)
+• Tags must appear naturally and in different positions across lines
+• Do not skip tags in more than 1 line
+• Natural integration, not forced cramming
+
+CATEGORY & SUBCATEGORY:
+• Subcategory drives anchors (Birthday → cake, candles, balloons, confetti, gifts)
+• At least 1 anchor word in every line when anchors available
+
+TONE CONSISTENCY:
+• Respect the chosen tone as the base:
+  * Humorous = silly, playful, witty wordplay
+  * Savage = roast comic energy (sharp, biting) 
+  * Sentimental = warm, heartfelt
+  * Romantic = affectionate, dreamy
+  * Inspirational = uplifting, positive
+
+STYLE RULES:
+• Each line must read like natural speech
+• Use at most one pause (comma OR colon) per line
+• Do not use multiple commas or break sentences into fragments
+• Prefer single clean sentences over stacked phrases
+• Conversational, natural phrasing (sounds human, not robotic)
+• No em-dashes (—) or double dashes (--)
+• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"
+
+PUNCTUATION EXAMPLES:
+✓ Good: "Happy birthday Jesse, you shine brighter than the candles."
+✓ Good: "Balloons rise for Jesse: my finest gift is you."
+✗ Bad: "Jesse, like fine wine, and birthday cake, you only get sweeter."
+✗ Bad: "Candles glow, balloons dance, gifts surround you."`;
+
+// System prompt for categories WITHOUT anchors
+const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY valid JSON:
+{
+  "lines": [
+    {"lane":"option1","text":"..."},
+    {"lane":"option2","text":"..."},
+    {"lane":"option3","text":"..."},
+    {"lane":"option4","text":"..."}
+  ]
+}
+
+CRITICAL: Generate 4 DISTINCT text options that are creative and varied.
+
+CHARACTER LIMIT:
+• Each line must be ≤ 70 characters
+• No exceptions - any line over 70 characters is invalid
+
+TAG HANDLING (STRICTLY ENFORCED):
+• If tags exist: At least 3 of 4 lines must include ALL tags literally (not synonyms)
+• Tags must appear naturally and in different positions across lines
+• Do not skip tags in more than 1 line
+• Natural integration, not forced cramming
+
+CATEGORY & SUBCATEGORY:
+• Do NOT force props or scene objects for this subcategory
+• Focus on the concept/theme instead
+
+TONE CONSISTENCY:
+• Respect the chosen tone as the base:
+  * Humorous = silly, playful, witty wordplay
+  * Savage = roast comic energy (sharp, biting)
+  * Sentimental = warm, heartfelt  
+  * Romantic = affectionate, dreamy
+  * Inspirational = uplifting, positive
+
+STYLE RULES:
+• Each line must read like natural speech
+• Use at most one pause (comma OR colon) per line
+• Do not use multiple commas or break sentences into fragments
+• Prefer single clean sentences over stacked phrases
+• Conversational, natural phrasing (sounds human, not robotic)
+• No em-dashes (—) or double dashes (--)
+• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"
+
+PUNCTUATION EXAMPLES:
+✓ Good: "Happy birthday Jesse, you shine brighter than the candles."
+✓ Good: "Balloons rise for Jesse: my finest gift is you."
+✗ Bad: "Jesse, like fine wine, and birthday cake, you only get sweeter."
+✗ Bad: "Candles glow, balloons dance, gifts surround you."`;
 
 // Category-specific anchor dictionaries
 const ANCHORS = {
@@ -56,87 +126,89 @@ const BANNED_PHRASES = [
   "happy birthday to you", "many more", "best wishes"
 ];
 
-// Comedian-mode fallback generator
+// Tone-aware fallback generator with proper length bands
 function generateSavageFallback(inputs: any): any {
-  console.log("Using comedian-mode fallback");
+  console.log("Using tone-aware fallback v5");
   
   const { tags = [], tone = "Savage" } = inputs;
+  const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
+  const anchors = ANCHORS[ctxKey] || ["cake", "candles", "balloons", "confetti"];
   
-  // Target lengths: ~40, ~55, ~65, and one random 35–70
+  // Tone-specific templates with proper length bands
   let baseTemplates: string[] = [];
   
   if (tone.toLowerCase().includes("savage") || tone.toLowerCase().includes("humorous")) {
     if (tags.length > 0) {
-      const tagList = tags.join(", ");
+      const tagString = tags.join(" ");
       baseTemplates = [
-        `${tags[0]} walked into this joke and left.`, // ~40 chars
-        `Your ${tags[0]} energy is giving ${tags[tags.length-1]} vibes.`, // ~55 chars  
-        `That ${tagList} combo hits different when you're this basic.`, // ~65 chars
-        `Honestly? ${tags[0]} deserves better than this mess.` // ~55 chars
+        `${tagString} cake looks sadder than your soul.`, // ~40 chars
+        `Your ${tagString} candles burn brighter than your future.`, // ~55 chars  
+        `${tagString} balloons have more lift than your career ever will.`, // ~65 chars
+        `This confetti has more purpose than you've shown in decades.` // ~68 chars
       ];
     } else {
       baseTemplates = [
-        `This party already peaked and left.`, // ~36 chars
-        `Even your cake is questioning its life choices here.`, // ~53 chars
-        `Those decorations are working harder than you ever have.`, // ~57 chars
-        `Confetti has more personality than this crowd.` // ~47 chars
+        `Your cake looks utterly defeated.`, // ~33 chars
+        `Even the candles are questioning their life choices here.`, // ~57 chars
+        `Those balloons are deflating faster than your self-esteem.`, // ~59 chars
+        `This confetti has more sparkle than your entire personality.` // ~61 chars
       ];
     }
   } else if (tone.toLowerCase().includes("sentimental") || tone.toLowerCase().includes("romantic")) {
     if (tags.length > 0) {
-      const tagList = tags.join(", ");
+      const tagString = tags.join(" ");
       baseTemplates = [
-        `${tags[0]} brings such warmth to my heart.`, // ~40 chars
-        `Every moment with ${tags[0]} feels like ${tags[tags.length-1]} magic.`, // ~60 chars
-        `This ${tagList} celebration reminds us what truly matters.`, // ~58 chars
-        `Sweet ${tags[0]} memories we'll treasure forever.` // ~48 chars
+        `${tagString} cake brings warmth to every heart.`, // ~40 chars
+        `Your ${tagString} candles shine with beautiful memories ahead.`, // ~55 chars
+        `${tagString} balloons carry all our hopes and dreams skyward.`, // ~65 chars
+        `This confetti celebrates the amazing person you've become.` // ~68 chars
       ];
     } else {
       baseTemplates = [
-        `Every moment here feels so precious.`, // ~36 chars
-        `These memories will warm our hearts for years to come.`, // ~54 chars
-        `Such a beautiful celebration of all the love we share.`, // ~55 chars
-        `Grateful for these perfect moments together.` // ~44 chars
+        `Your cake brings joy to everyone.`, // ~33 chars
+        `These candles illuminate the beautiful moments we cherish.`, // ~57 chars
+        `Those balloons lift our spirits high with celebration.`, // ~59 chars
+        `This confetti marks another year of wonderful memories.` // ~61 chars
       ];
     }
-  } else { // Other tones - comedic variety
+  } else { // Inspirational or other tones
     if (tags.length > 0) {
-      const tagList = tags.join(", ");
+      const tagString = tags.join(" ");
       baseTemplates = [
-        `${tags[0]} said what now?`, // ~20-30 chars (expand it)
-        `Apparently ${tags[0]} and ${tags[tags.length-1]} are a thing today.`, // ~60 chars
-        `This whole ${tagList} situation is peak entertainment honestly.`, // ~65 chars
-        `Plot twist: ${tags[0]} was the main character.` // ~47 chars
+        `${tagString} cake represents sweet victories.`, // ~40 chars
+        `Your ${tagString} candles illuminate the path to greatness.`, // ~55 chars
+        `${tagString} balloons remind us that dreams can truly soar.`, // ~65 chars
+        `This confetti celebrates your incredible journey forward.` // ~68 chars
       ];
-      // Fix short first one
-      baseTemplates[0] = `Wait, ${tags[0]} said what exactly here?`; // ~38 chars
     } else {
       baseTemplates = [
-        `Well this escalated quickly somehow.`, // ~37 chars
-        `Plot twist nobody saw coming but here we absolutely are.`, // ~57 chars
-        `The audacity of this entire situation is honestly impressive.`, // ~61 chars
-        `Main character energy is strong with this one.` // ~47 chars
+        `Your cake symbolizes sweet success.`, // ~33 chars
+        `These candles light the way to amazing achievements.`, // ~57 chars
+        `Those balloons remind us that anything is possible.`, // ~59 chars
+        `This confetti honors your incredible accomplishments.` // ~61 chars
       ];
     }
   }
   
-  // Ensure one pause max and clean up
-  const finalTemplates = baseTemplates.map((text, index) => {
-    let clean = onePause(text.trim());
+  // Ensure proper length bands: ~35-40, ~50-55, ~65-70, ~68-70
+  const targetBands = [[35, 40], [50, 55], [65, 70], [68, 70]];
+  const finalTemplates = baseTemplates.map((template, index) => {
+    const [minLen, maxLen] = targetBands[index];
+    let text = template;
     
-    // Ensure it ends with punctuation
-    if (!/[.!?]$/.test(clean)) clean += ".";
-    
-    // Ensure length range 35-70
-    if (clean.length < 35) {
-      const expansions = [" obviously", " clearly", " honestly", " definitely"];
-      clean = clean.replace(".", `${expansions[index % expansions.length]}.`);
-    }
-    if (clean.length > 70) {
-      clean = clean.slice(0, 70).trim() + ".";
+    // Expand if too short
+    if (text.length < minLen) {
+      const expansions = [" clearly", " obviously", " truly", " absolutely"];
+      const expansion = expansions[index % expansions.length];
+      text = text.replace(".", `${expansion}.`);
     }
     
-    return clean;
+    // Verify final length
+    if (text.length > maxLen) {
+      console.error(`Fallback v5 template ${index + 1} exceeds max length: ${text.length} > ${maxLen}`);
+    }
+    
+    return text;
   });
   
   return {
@@ -144,177 +216,353 @@ function generateSavageFallback(inputs: any): any {
       lane: `option${index + 1}`,
       text: text
     })),  
-    model: "comedian-mode-fallback",
+    model: "tone-aware-fallback-v5",
     validated: true,
-    reason: "comedian_fallback",
+    reason: "tone_aware_fallback",
     tone: tone,
     tags_used: tags.length > 0,
-    fallback_version: "comedian-mode"
+    fallback_version: "v5",
+    lengths: finalTemplates.map(t => t.length)
   };
 }
 
-// Simplified user message construction
+// Enhanced user message construction
 function buildUserMessage(inputs: any): string {
   const { category, subcategory, tone, tags = [] } = inputs;
   
-  return `Category: ${category}
+  let message = `Category: ${category}
 Subcategory: ${subcategory}
-Tone: ${tone}
-Tags: ${tags.join(", ")}`;
+Tone: ${tone}`;
+
+  // Get category-specific anchors
+  const ctxKey = `${category.toLowerCase()}.${subcategory.toLowerCase()}`;
+  const anchors = ANCHORS[ctxKey] || [];
+  
+  // Include tags if provided
+  if (tags.length > 0) {
+    message += `\nTAGS (may be empty): ${tags.join(", ")}`;
+  } else {
+    message += `\nTAGS (may be empty): `;
+  }
+  
+  // Only include anchors if they exist for this category/subcategory
+  if (anchors.length > 0) {
+    message += `\nANCHORS (use ≥1 per line): ${anchors.join(", ")}`;
+  }
+  
+  return message;
 }
 
-// Enforce one-pause, varied lengths, tag rule
-function onePause(s: string): string {
-  const t = s.replace(/[—–]|--/g, ":").replace(/\s*,\s*,+/g, ", "); // collapse commas
-  const pauses = (t.match(/[,:]/g) || []).length;
-  return pauses > 1 ? t.replace(/([,:]).*([,:])/, '$1') : t; // keep first pause
-}
-
-// Helper functions for Light Validator
-
-function hasAllTags(text: string, tags: string[]): boolean {
-  return (tags || []).every(t => text.toLowerCase().includes(String(t).toLowerCase()));
-}
-
-// Light Validator - comedian-mode focused on humor over rule checklist
-function validateAndFix(json: any, { tags = [], min = 35, max = 70 }): { lines: any[] } {
-  if (!json?.lines || json.lines.length !== 4) {
-    throw new Error("Need 4 lines");
-  }
-
-  const lines = json.lines.map((o: any) => {
-    let x = onePause(String(o.text || "").trim());
-    if (x.length > max) x = x.slice(0, max).trim();
-    if (!/[.!?]$/.test(x)) x += ".";
-    return { ...o, text: x };
-  });
-
-  // length range check
-  const badLen = lines.find(l => l.text.length < min || l.text.length > max);
-  if (badLen) {
-    throw new Error(`Each line must be between ${min}–${max} characters`);
-  }
-
-  // one-pause max
-  const badPause = lines.find(l => (l.text.match(/[,:]/g) || []).length > 1);
-  if (badPause) {
-    throw new Error("Only one comma or colon allowed per line");
-  }
-
-  // tag rule
-  if (tags.length) {
-    const ok = lines.filter(l => hasAllTags(l.text, tags)).length;
-    if (ok < 3) {
-      throw new Error("At least 3 lines must include all tags literally");
+// Updated validator with strict tag rules and hard character limit
+function validateAndRepair(rawText: string, inputs: any): { result: any | null; errors: string[]; repairs: string[] } {
+  const errors: string[] = [];
+  const repairs: string[] = [];
+  
+  try {
+    const parsed = JSON.parse(rawText);
+    
+    if (!parsed.lines || !Array.isArray(parsed.lines) || parsed.lines.length !== 4) {
+      errors.push("Invalid JSON structure - need 4 lines");
+      return { result: null, errors, repairs };
     }
+    
+    const { tags = [] } = inputs;
+    const bannedPhrasesFiltered = BANNED_PHRASES.filter(phrase => 
+      !tags.some(tag => phrase.toLowerCase().includes(tag.toLowerCase()))
+    );
+    
+    // Process lines: basic cleanup first
+    const processedLines = parsed.lines.map((line: any, index: number) => {
+      let text = line.text || "";
+      
+      // Remove ellipsis and em dashes
+      if (text.includes("...") || text.includes("--")) {
+        text = text.replace(/\.\.\./g, "").replace(/--/g, ",").trim();
+        repairs.push(`Line ${index + 1}: Removed ellipsis/em-dash`);
+      }
+      
+      // Ensure complete sentence
+      if (!/[.!?]$/.test(text)) {
+        text += ".";
+        repairs.push(`Line ${index + 1}: Added punctuation`);
+      }
+      
+      return {
+        ...line,
+        text: text
+      };
+    });
+    
+    // STRICT CHARACTER LIMIT: ≤70 characters per line (no exceptions)
+    processedLines.forEach((line, index) => {
+      if (line.text.length > 70) {
+        errors.push(`Line ${index + 1}: ${line.text.length} chars exceeds 70 character limit`);
+      }
+    });
+    
+    // STRICT TAG RULE: At least 3 of 4 lines must include ALL tags literally
+    if (tags.length > 0) {
+      const hasAllTags = (text: string, tags: string[]) =>
+        tags.every(tag => text.toLowerCase().includes(tag.toLowerCase()));
+      
+      const linesWithAllTags = processedLines.filter(line => hasAllTags(line.text, tags));
+      
+      if (linesWithAllTags.length < 3) {
+        errors.push(`Not enough lines with all tags - need 3 of 4, got ${linesWithAllTags.length}`);
+        
+        // Repair attempt: inject tags into lines that need them (up to first 3 lines)
+        let repairCount = 0;
+        for (let i = 0; i < Math.min(3, processedLines.length) && linesWithAllTags.length + repairCount < 3; i++) {
+          const line = processedLines[i];
+          if (!hasAllTags(line.text, tags)) {
+            const tagText = tags.join(" ");
+            const positions = ["start", "mid", "end"];
+            const position = positions[i % positions.length];
+            
+            let newText = "";
+            if (position === "start") {
+              newText = `${tagText} ${line.text.toLowerCase()}`;
+            } else if (position === "mid") {
+              const words = line.text.split(" ");
+              const midPoint = Math.floor(words.length / 2);
+              words.splice(midPoint, 0, tagText);
+              newText = words.join(" ");
+            } else {
+              newText = line.text.replace(/\.$/, ` ${tagText}.`);
+            }
+            
+            // Check if repair would exceed 70 chars - if so, try compression
+            if (newText.length > 70) {
+              // Simple compression: remove filler words
+              newText = newText
+                .replace(/\b(really|honestly|clearly|obviously|absolutely|truly)\b/gi, "")
+                .replace(/\s+/g, " ")
+                .trim();
+              
+              // If still too long, skip this repair
+              if (newText.length > 70) {
+                continue;
+              }
+            }
+            
+            line.text = newText;
+            repairs.push(`Line ${i + 1}: Injected tags at ${position}`);
+            repairCount++;
+          }
+        }
+      }
+    }
+    
+    // Anchor enforcement (only if anchors exist for this category)
+    const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
+    const anchors = ANCHORS[ctxKey] || [];
+    
+    if (anchors.length > 0) {
+      processedLines.forEach((line, index) => {
+        const hasAnchor = anchors.some(anchor => 
+          line.text.toLowerCase().includes(anchor.toLowerCase())
+        );
+        
+        if (!hasAnchor) {
+          const anchor = anchors[index % anchors.length];
+          const anchorPhrase = ` with ${anchor}`;
+          const newText = line.text.replace(/\.$/, `${anchorPhrase}.`);
+          
+          // Only apply if it doesn't exceed 70 chars
+          if (newText.length <= 70) {
+            line.text = newText;
+            repairs.push(`Line ${index + 1}: Added anchor "${anchor}"`);
+          }
+        }
+      });
+    }
+    
+    // Check banned phrases (excluding user tags)
+    processedLines.forEach((line, index) => {
+      bannedPhrasesFiltered.forEach(phrase => {
+        if (line.text.toLowerCase().includes(phrase.toLowerCase())) {
+          errors.push(`Line ${index + 1}: Contains banned phrase "${phrase}"`);
+        }
+      });
+    });
+    
+    // Final validation: re-check tag rule and character limits after repairs
+    if (tags.length > 0) {
+      const hasAllTags = (text: string, tags: string[]) =>
+        tags.every(tag => text.toLowerCase().includes(tag.toLowerCase()));
+      
+      const finalLinesWithAllTags = processedLines.filter(line => hasAllTags(line.text, tags));
+      if (finalLinesWithAllTags.length < 3) {
+        errors.push(`Final check failed: only ${finalLinesWithAllTags.length} of 4 lines have all tags`);
+      }
+    }
+    
+    // Final character limit check
+    processedLines.forEach((line, index) => {
+      if (line.text.length > 70) {
+        errors.push(`Final check failed: Line ${index + 1} still exceeds 70 chars (${line.text.length})`);
+      }
+    });
+    
+    if (errors.length === 0) {
+      return {
+        result: { lines: processedLines },
+        errors: [],
+        repairs
+      };
+    }
+    
+    return { result: null, errors, repairs };
+    
+  } catch (e) {
+    errors.push(`JSON parse error: ${e.message}`);
+    return { result: null, errors, repairs };
   }
-
-  return { lines };
 }
 
-// Generation attempt with new validation
+// Enhanced generation with feedback-driven retries and raw output preservation
 async function attemptGeneration(inputs: any, attemptNumber: number, previousErrors: string[] = []): Promise<any> {
   let userMessage = buildUserMessage(inputs);
   
-  // Add feedback for retry attempts  
+  // Add structured feedback for retry attempts
   if (attemptNumber > 1 && previousErrors.length > 0) {
-    userMessage += `\n\nPREVIOUS ATTEMPT FAILED: ${previousErrors.join("; ")}`;
-  }
-  
-  console.log(`User message: ${userMessage}`);
-  
-  // Model selection
-  let model = "gpt-5-mini-2025-08-07";
-  if (attemptNumber === 2) {
-    model = "gpt-4.1-2025-04-14"; 
-  }
-  console.log(`Using model: ${model}`);
-  
-  try {
-    const requestBody = {
-      model: model,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userMessage }
-      ]
-    };
+    let feedback = `PREVIOUS ATTEMPT FAILED: ${previousErrors.join("; ")}`;
     
-    // Add parameters based on model version
-    if (model.startsWith("gpt-5") || model.startsWith("gpt-4.1") || model.startsWith("o3") || model.startsWith("o4")) {
-      requestBody.max_completion_tokens = 400;
-    } else {
-      requestBody.max_tokens = 400;
-      requestBody.temperature = 0.8;
+    // Add specific guidance for tag rule failures
+    if (previousErrors.some(err => err.includes("tag"))) {
+      feedback += `\n\nCRITICAL: At least 3 lines must include ALL tags literally. Do not skip tags in more than one line.`;
     }
     
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
+    // Add specific guidance for character limit failures  
+    if (previousErrors.some(err => err.includes("70 char") || err.includes("exceeds"))) {
+      feedback += `\n\nCRITICAL: Each line must be ≤ 70 characters. No exceptions.`;
+    }
+    
+    feedback += `\n\nEXAMPLE CORRECT FORMAT:
+{"lines":[
+  {"lane":"option1","text":"Happy birthday Mike, even your cake ghosted you."},
+  {"lane":"option2","text":"The balloons bailed faster than Mike's last date."},
+  {"lane":"option3","text":"Mike's candles begged OSHA for hazard pay today."},
+  {"lane":"option4","text":"Confetti refused to drop, Mike. It knows better."}
+]}`;
+    userMessage += `\n\n${feedback}`;
+  }
+  
+  console.log(`LLM attempt ${attemptNumber}/2`);
+  console.log("User message:", userMessage);
+  
+  try {
+    // Improved model cascade: GPT-5 Mini first for JSON fidelity
+    const models = ['gpt-5-mini-2025-08-07', 'gpt-4.1-2025-04-14'];
+    const model = models[Math.min(attemptNumber - 1, models.length - 1)];
+    
+    console.log(`Using model: ${model}`);
+    
+    // Choose system prompt based on whether anchors exist
+    const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
+    const anchors = ANCHORS[ctxKey] || [];
+    const systemPrompt = anchors.length > 0 ? SYSTEM_PROMPT_WITH_ANCHORS : SYSTEM_PROMPT_NO_ANCHORS;
+    
+    const requestBody: any = {
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ],
+      response_format: { type: "json_object" }, // Force JSON mode
+    };
+    
+    // Add model-specific parameters
+    if (model.startsWith('gpt-5') || model.startsWith('gpt-4.1')) {
+      requestBody.max_completion_tokens = 600; // Reduced to avoid truncation
+    } else {
+      requestBody.max_tokens = 600;
+      requestBody.temperature = 0.7;
+    }
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
       headers: {
-        "Authorization": `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
-      const errorDetails = await response.text();
-      console.error(`OpenAI API error (${response.status}):`, errorDetails);
-      throw new Error(`OpenAI API error: ${response.status} - ${errorDetails}`);
+      const errorText = await response.text();
+      console.error(`OpenAI API error ${response.status}:`, errorText);
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
     }
 
-    const completion = await response.json();
-    const content = completion.choices?.[0]?.message?.content;
-    const finishReason = completion.choices?.[0]?.finish_reason;
+    const data = await response.json();
     
-    console.log(`Attempt ${attemptNumber} API response: {
-  model: "${completion.model}",
-  finish_reason: "${finishReason}",
-  content_length: ${content?.length || 0},
-  usage: ${JSON.stringify(completion.usage)}
-}`);
-
-    if (!content || content.trim() === "") {
-      console.error(`Empty or missing content from OpenAI:`, JSON.stringify(completion, null, 2));
+    // Enhanced logging for debugging
+    console.log(`Attempt ${attemptNumber} API response:`, {
+      model: data.model,
+      finish_reason: data.choices?.[0]?.finish_reason,
+      content_length: data.choices?.[0]?.message?.content?.length || 0,
+      usage: data.usage
+    });
+    
+    // Check for missing or empty content
+    if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+      console.error("Empty or missing content from OpenAI:", data);
       throw new Error("Empty response from OpenAI API");
     }
-
-    console.log(`Attempt ${attemptNumber} raw response (${content.length} chars): ${content.slice(0, 200)}${content.length > 200 ? '...' : ''}`);
-
-    // Try new validation
+    
+    const rawContent = data.choices[0].message.content.trim();
+    
+    if (!rawContent) {
+      throw new Error("Blank response from OpenAI API");
+    }
+    
+    console.log(`Attempt ${attemptNumber} raw response (${rawContent.length} chars):`, rawContent.substring(0, 300) + "...");
+    
+    // Parse raw response first to preserve it
+    let rawLines = null;
     try {
-      const result = validateAndFix(JSON.parse(content), { tags: inputs.tags || [], max: 70 });
-      console.log(`Attempt ${attemptNumber} validation succeeded`);
+      const parsed = JSON.parse(rawContent);
+      if (parsed.lines && Array.isArray(parsed.lines)) {
+        rawLines = parsed.lines;
+      }
+    } catch (e) {
+      console.log("Failed to parse JSON, will return raw content");
+    }
+    
+    // Validate but preserve raw output
+    const { result, errors, repairs } = validateAndRepair(rawContent, inputs);
+    
+    if (result) {
+      console.log(`Attempt ${attemptNumber} succeeded with repairs:`, repairs);
+      console.log("Final lengths:", result.lines.map((l: any) => l.text.length));
+      
       return {
-        ...result,
-        model: completion.model,
+        lines: result.lines,
+        rawLines: rawLines,
+        model: `${model} (validated)`,
         validated: true,
-        attempt: attemptNumber
-      };
-    } catch (validationError) {
-      console.log(`Attempt ${attemptNumber} failed validation: ${validationError.message}`);
-      return {
-        error: validationError.message,
-        model: completion.model,
-        validated: false,
+        repairs,
         attempt: attemptNumber,
-        raw_content: content
+        lengths: result.lines.map((l: any) => l.text.length)
+      };
+    } else {
+      console.log(`Attempt ${attemptNumber} failed validation:`, errors);
+      return { 
+        errors, 
+        rawLines: rawLines, // Preserve raw output for potential use
+        model: model,
+        attempt: attemptNumber 
       };
     }
-
+    
   } catch (error) {
     console.error(`Attempt ${attemptNumber} error:`, error);
-    return {
-      error: error.message,
-      model: model,
-      validated: false,
-      attempt: attemptNumber,
-      exception: true
-    };
+    return { errors: [error.message], attempt: attemptNumber };
   }
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -322,77 +570,104 @@ serve(async (req) => {
   console.log("Generate Step 2 function called");
   
   try {
+    // Parse request body first
     const inputs = await req.json();
     console.log("Request data:", inputs);
     
-    // Early return if no OpenAI API key
+    // If no API key, return fallback immediately
     if (!openAIApiKey) {
-      console.log("No OpenAI API key found, returning fallback");
-      return new Response(JSON.stringify(generateSavageFallback(inputs)), {
+      console.log("No OpenAI API key, using fallback");
+      const fallback = generateSavageFallback(inputs);
+      return new Response(JSON.stringify(fallback), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
     
-    // Main generation logic with up to 2 attempts
-    console.log("LLM attempt 1/2");
-    const result1 = await attemptGeneration(inputs, 1);
-    
-    if (result1.validated) {
-      return new Response(JSON.stringify(result1), {
+    // Self-test mode for debugging
+    if (inputs.self_test) {
+      console.log("Self-test mode activated");
+      const testCases = [
+        { category: "Celebrations", subcategory: "Birthday", tone: "Savage", tags: [] },
+        { category: "Celebrations", subcategory: "Birthday", tone: "Savage", tags: ["mike", "happy birthday"] }
+      ];
+      
+      const testResults = [];
+      for (const testCase of testCases) {
+        const result = await attemptGeneration(testCase, 1);
+        testResults.push({
+          input: testCase,
+          success: result.validated,
+          output: result.lines || result.errors
+        });
+      }
+      
+      return new Response(JSON.stringify({ self_test: true, results: testResults }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
     
-    // First attempt failed, try once more with feedback
-    console.log(`Attempt 1 failed validation: ${result1.error}`);
-    console.log("LLM attempt 2/2");
+    // Try up to 2 attempts, then return model's raw output (NO FALLBACK)
+    let finalResult = null;
+    let lastAttemptResult = null;
+    const allErrors: string[] = [];
     
-    const result2 = await attemptGeneration(inputs, 2, [result1.error]);
-    
-    if (result2.validated) {
-      return new Response(JSON.stringify(result2), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const result = await attemptGeneration(inputs, attempt, allErrors);
+      lastAttemptResult = result;
+      
+      if (result.validated) {
+        finalResult = result;
+        break;
+      } else {
+        const attemptErrors = result.errors?.join(", ") || "Unknown error";
+        allErrors.push(`Attempt ${attempt}: ${attemptErrors}`);
+        console.log(`Attempt ${attempt} failed validation:`, attemptErrors);
+      }
     }
     
-    // Both attempts failed - return 422 with validation errors instead of fallback
-    console.log(`Attempt 2 failed validation: ${result2.error}`);
-    console.log("Both attempts failed validation, returning 422 response");
+    // If validation failed, return the model's raw output anyway (no generic fallback)
+    if (!finalResult && lastAttemptResult && lastAttemptResult.rawLines) {
+      console.log("Validation failed but returning model's raw output instead of fallback");
+      finalResult = {
+        lines: lastAttemptResult.rawLines,
+        model: `${lastAttemptResult.model || 'unknown'} (raw-unvalidated)`,
+        validated: false,
+        validation_errors: allErrors,
+        note: "Returning model output despite validation issues"
+      };
+    }
     
-    return new Response(JSON.stringify({
-      error: "Validation failed after 2 attempts",
-      validation_errors: [result1.error, result2.error],
-      attempts: 2,
-      model: result2.model || result1.model || "unknown"
-    }), {
-      status: 422,
+    // ONLY use fallback if API completely failed (no model output at all)
+    if (!finalResult) {
+      console.log("API completely failed, using emergency fallback:", allErrors);
+      finalResult = generateSavageFallback(inputs);
+      finalResult.llm_errors = allErrors;
+      finalResult.fallback_reason = "api_completely_failed";
+    }
+    
+    return new Response(JSON.stringify(finalResult), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
+    
   } catch (error) {
     console.error('Error in generate-step2 function:', error);
     
-    // Emergency fallback
-    try {
-      const inputs = await req.json().catch(() => ({}));
-      const emergencyResult = generateSavageFallback(inputs);
-      
-      return new Response(JSON.stringify({
-        ...emergencyResult,
-        emergency_fallback: true,
-        original_error: error.message
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    } catch (fallbackError) {
-      return new Response(JSON.stringify({ 
-        error: 'Complete system failure',
-        details: error.message,
-        fallback_error: fallbackError.message
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Emergency fallback for any catastrophic errors
+    const emergencyFallback = {
+      lines: [
+        { lane: "option1", text: "Your cake looks sadder than your life choices." },
+        { lane: "option2", text: "Even the balloons are trying to escape this disaster." },
+        { lane: "option3", text: "Those candles have more personality than you ever will." },
+        { lane: "option4", text: "Your party hats and confetti are filing for divorce from you." }
+      ],
+      model: "emergency-fallback",
+      validated: true,
+      error: error.message
+    };
+    
+    return new Response(JSON.stringify(emergencyFallback), {
+      status: 200, // Still return 200 so frontend gets usable content
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

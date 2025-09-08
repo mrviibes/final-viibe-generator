@@ -84,16 +84,6 @@ export function getProxySettings(): ProxySettings {
   return proxySettings;
 }
 
-// Model management for V3 testing
-export function setIdeogramModel(model: 'V_2A_TURBO' | 'V_3') {
-  localStorage.setItem('ideogram_model', model);
-}
-
-export function getIdeogramModel(): 'V_2A_TURBO' | 'V_3' {
-  const stored = localStorage.getItem('ideogram_model');
-  return (stored === 'V_3') ? 'V_3' : 'V_2A_TURBO';
-}
-
 export async function testProxyConnection(proxyType: ProxySettings['type']): Promise<boolean> {
   try {
     const testUrls: Record<ProxySettings['type'], string> = {
@@ -151,14 +141,14 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
     console.log('Calling Supabase Edge Function for Ideogram generation...');
     
     const { data, error } = await supabase.functions.invoke('ideogram-generate', {
-        body: {
-          prompt: request.prompt,
-          aspect_ratio: request.aspect_ratio,
-          model: request.model,
-          magic_prompt_option: request.magic_prompt_option,
-          style_type: request.style_type,
-          negative_prompt: request.negative_prompt
-        }
+      body: {
+        prompt: request.prompt,
+        aspect_ratio: request.aspect_ratio,
+        model: request.model,
+        magic_prompt_option: request.magic_prompt_option,
+        style_type: request.style_type,
+        negative_prompt: request.negative_prompt
+      }
     });
 
     if (error) {
