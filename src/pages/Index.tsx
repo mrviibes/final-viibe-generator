@@ -5039,29 +5039,39 @@ const Index = () => {
       } else {
         throw new Error("No image data received from Ideogram API");
       }
-    } catch (error) {
-      console.error('Image generation failed:', error);
-      if (error instanceof IdeogramAPIError) {
-        // Handle specific CORS demo activation error
-        if (error.message === 'CORS_DEMO_REQUIRED') {
-          setShowCorsRetryDialog(true);
-          setImageGenerationError('CORS proxy needs activation. Click "Enable CORS Proxy" button below, then try again.');
-        } else if (error.message.includes('proxy.cors.sh') && !getProxySettings().apiKey) {
-          setImageGenerationError('Proxy.cors.sh selected but no API key provided. Add an API key in Proxy Settings for better reliability.');
-          setTimeout(() => setShowProxySettingsDialog(true), 2000);
-        } else if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
-          setImageGenerationError('Connection failed. Trying alternative proxy methods automatically...');
-          setTimeout(() => setShowProxySettingsDialog(true), 2000);
-        } else {
-          setImageGenerationError(error.message);
-        }
-      } else {
-        setImageGenerationError('An unexpected error occurred while generating the image.');
-      }
-      sonnerToast.error(imageGenerationError || "Failed to generate image. Please try again.");
-    } finally {
-      setIsGeneratingImage(false);
-    }
+     } catch (error) {
+       console.error('Image generation failed:', error);
+       
+       let errorMessage = 'Image generation failed';
+       
+       if (error instanceof IdeogramAPIError) {
+         // Handle specific CORS demo activation error
+         if (error.message === 'CORS_DEMO_REQUIRED') {
+           setShowCorsRetryDialog(true);
+           setImageGenerationError('CORS proxy needs activation. Click "Enable CORS Proxy" button below, then try again.');
+           return;
+         } else if (error.message.includes('proxy.cors.sh') && !getProxySettings().apiKey) {
+           errorMessage = 'Proxy.cors.sh selected but no API key provided. Add an API key in Proxy Settings for better reliability.';
+           setTimeout(() => setShowProxySettingsDialog(true), 2000);
+         } else if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+           errorMessage = 'Connection failed. Trying alternative proxy methods automatically...';
+           setTimeout(() => setShowProxySettingsDialog(true), 2000);
+         } else {
+           // Show the actual Ideogram API error message
+           errorMessage = error.message;
+         }
+       } else if (error instanceof Error) {
+         // Show the actual error message from the edge function
+         errorMessage = error.message;
+       } else {
+         errorMessage = 'An unexpected error occurred while generating the image.';
+       }
+       
+       setImageGenerationError(errorMessage);
+       sonnerToast.error(errorMessage);
+     } finally {
+       setIsGeneratingImage(false);
+     }
   };
   const handleDownloadImage = () => {
     if (!generatedImageUrl) return;
