@@ -19,6 +19,9 @@ serve(async (req) => {
 
   try {
     console.log('Starting ideogram generation request...');
+    console.log('Environment check - SUPABASE_URL:', Deno.env.get('SUPABASE_URL') ? 'SET' : 'MISSING');
+    console.log('Environment check - SUPABASE_SERVICE_ROLE_KEY:', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ? 'SET' : 'MISSING');
+    console.log('Environment check - IDEOGRAM_API_KEY:', Deno.env.get('IDEOGRAM_API_KEY') ? 'SET' : 'MISSING');
     
     // Create service role client for database/storage operations
     const serviceRoleClient = createClient(
@@ -56,15 +59,19 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    console.log('Request body:', body);
+    console.log('Request body received:', JSON.stringify(body, null, 2));
 
     const { prompt, aspect_ratio, style_type, model, negative_prompt } = body;
 
     if (!prompt) {
+      console.error('Missing prompt in request');
       return new Response('Missing prompt', { status: 400, headers: corsHeaders });
     }
 
+    console.log('Parsed request params:', { prompt, aspect_ratio, style_type, model, negative_prompt });
+
     // Insert job record
+    console.log('Creating job record with:', { userId, guestId, prompt, negative_prompt, style_type, aspect_ratio });
     const { data: job, error: jobError } = await serviceRoleClient
       .from('gen_jobs')
       .insert({
@@ -80,11 +87,14 @@ serve(async (req) => {
       .single();
 
     if (jobError) {
-      console.error('Job creation error:', jobError);
-      return new Response('Failed to create job', { status: 400, headers: corsHeaders });
+      console.error('Job creation error details:', JSON.stringify(jobError, null, 2));
+      return new Response(JSON.stringify({ error: 'Failed to create job', details: jobError }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    console.log('Created job:', job.id);
+    console.log('Created job successfully:', job.id);
 
     try {
       // Call Ideogram API
