@@ -1,33 +1,45 @@
 import { IdeogramHandoff } from './ideogram';
 import { normalizeTypography } from './textUtils';
 
-export function buildIdeogramPrompt(handoff: IdeogramHandoff, cleanBackground: boolean = false): string {
+// Layout-aware prompt builders for overlay layouts
+function buildLayoutAwarePrompt(layoutId: string, visualPrompt: string = ''): string {
+  const layoutPrompts = {
+    sideBarLeft: `${visualPrompt || 'family living room with cozy atmosphere'}, clear left panel (30-35% width), shift subject right`,
+    lowerThird: `${visualPrompt || 'family living room with cozy atmosphere'}, leave bottom 25% completely clear and uncluttered for text banner`,
+    memeTopBottom: `${visualPrompt || 'family living room with cozy atmosphere'}, clear top band and clear bottom band`,
+    subtleCaption: `${visualPrompt || 'family living room with cozy atmosphere'}, clear narrow bottom strip`,
+    badgeSticker: `${visualPrompt || 'family living room with cozy atmosphere'}, badge space top-right`,
+    negativeSpace: `${visualPrompt || 'family living room with cozy atmosphere'}, clear empty area near largest margin`
+  };
+  
+  return layoutPrompts[layoutId as keyof typeof layoutPrompts] || layoutPrompts.negativeSpace;
+}
+
+export function buildIdeogramPrompt(handoff: IdeogramHandoff, cleanBackground: boolean = false, noTextMode: boolean = false): string {
   const parts: string[] = [];
   
-  if (cleanBackground) {
-    // Clean background mode - remove potentially problematic content
-    // Only include basic text without sensitive terms
-    if (handoff.key_line && handoff.key_line.trim()) {
-      const cleanText = handoff.key_line
-        .replace(/\b(marijuana|cannabis|weed|hemp|THC|CBD|pre-roll|joint|bud|dispensary)\b/gi, '')
-        .replace(/\b\d+%\s*off\b/gi, 'SALE')
-        .replace(/\bfree\b/gi, 'bonus')
-        .trim();
-      
-      if (cleanText) {
-        const normalizedText = normalizeTypography(cleanText);
-        parts.push(`Text: "${normalizedText}"`);
-      }
+  if (cleanBackground || noTextMode) {
+    // Clean background mode - NO TEXT in prompt, layout-aware background only
+    const backgroundPrompt = handoff.chosen_visual || handoff.rec_background || 'family living room with cozy atmosphere';
+    
+    // Extract layout from design_notes if available
+    const layoutMatch = handoff.design_notes?.match(/clear\s+(left\s+panel|lower\s+third|top\s+band|bottom\s+strip|badge\s+space)/i);
+    let layoutId = 'negativeSpace';
+    
+    if (layoutMatch) {
+      const layoutText = layoutMatch[1].toLowerCase();
+      if (layoutText.includes('left panel')) layoutId = 'sideBarLeft';
+      else if (layoutText.includes('lower third')) layoutId = 'lowerThird';
+      else if (layoutText.includes('top band')) layoutId = 'memeTopBottom';
+      else if (layoutText.includes('bottom strip')) layoutId = 'subtleCaption';
+      else if (layoutText.includes('badge space')) layoutId = 'badgeSticker';
     }
     
-    // Force design style for clean background
-    parts.push(`Style: design`);
-    
-    // Use generic background
-    parts.push(`Background: clean modern design background`);
+    const layoutAwarePrompt = buildLayoutAwarePrompt(layoutId, backgroundPrompt);
+    parts.push(layoutAwarePrompt);
     
   } else {
-    // Normal mode - include all content
+    // Normal mode - include text in prompt (legacy mode)
     if (handoff.key_line && handoff.key_line.trim()) {
       const normalizedText = normalizeTypography(handoff.key_line);
       parts.push(`Text: "${normalizedText}"`);
@@ -76,7 +88,8 @@ export function getStyleTypeForIdeogram(visualStyle: string): 'AUTO' | 'GENERAL'
     'cartoon': 'ANIME',
     'design': 'DESIGN',
     '3d': 'RENDER_3D',
-    'general': 'GENERAL'
+    'general': 'GENERAL',
+    'pop-art': 'DESIGN'  // Fix: map pop-art to DESIGN
   };
   
   return styleMap[visualStyle?.toLowerCase()] || 'AUTO';

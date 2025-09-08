@@ -141,14 +141,14 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
     console.log('Calling Supabase Edge Function for Ideogram generation...');
     
     const { data, error } = await supabase.functions.invoke('ideogram-generate', {
-      body: {
-        prompt: request.prompt,
-        aspect_ratio: request.aspect_ratio,
-        model: request.model,
-        magic_prompt_option: request.magic_prompt_option,
-        style_type: request.style_type,
-        negative_prompt: request.negative_prompt
-      }
+        body: {
+          prompt: request.prompt,
+          aspect_ratio: request.aspect_ratio,
+          model: request.model,
+          magic_prompt_option: request.magic_prompt_option,
+          style_type: request.style_type,
+          negative_prompt: request.negative_prompt
+        }
     });
 
     if (error) {

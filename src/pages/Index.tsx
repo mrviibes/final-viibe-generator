@@ -27,6 +27,8 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
+import { TextOverlay } from "@/components/TextOverlay";
+import { LAYOUTS } from "@/lib/viibe_core";
 
 // Layout mappings for display
 const layoutMappings = {
@@ -4984,13 +4986,18 @@ const Index = () => {
         ai_visual_assist_used: selectedSubjectOption === "ai-assist"
       });
 
+      // Check if we should use overlay mode based on layout
+      const isOverlayLayout = selectedTextLayout && ['sideBarLeft', 'lowerThird', 'memeTopBottom', 'subtleCaption', 'badgeSticker'].includes(selectedTextLayout);
+      const shouldUseOverlay = isOverlayLayout && !barebonesMode;
+      
       // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
       let prompt = directPrompt.trim();
       if (!prompt && selectedRecommendation !== null && visualRecommendations) {
         prompt = visualRecommendations.options[selectedRecommendation].prompt;
       }
       if (!prompt && !barebonesMode) {
-        prompt = buildIdeogramPrompt(ideogramPayload);
+        // Use layout-aware clean background mode for overlay layouts
+        prompt = buildIdeogramPrompt(ideogramPayload, shouldUseOverlay, shouldUseOverlay);
       }
       
       // In barebones mode, require direct prompt
@@ -5001,9 +5008,22 @@ const Index = () => {
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
       // Always respect the selected visual style
       const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
+      
+      // Generate negative prompt based on visual recommendations
+      let negativePrompt = "no background text, no signage, no watermarks, no logos, no typography";
+      if (visualRecommendations?.negativePrompt) {
+        negativePrompt = visualRecommendations.negativePrompt;
+      }
+      if (shouldUseOverlay) {
+        negativePrompt += ", no speech bubbles, no text overlays, no captions";
+      }
+      
       console.log('=== Ideogram Generation Debug ===');
       console.log('Direct prompt provided:', !!directPrompt.trim());
+      console.log('Using overlay mode:', shouldUseOverlay);
+      console.log('Layout:', selectedTextLayout);
       console.log('Final prompt:', prompt);
+      console.log('Negative prompt:', negativePrompt);
       console.log('Aspect ratio:', aspectForIdeogram);
       console.log('Style type:', styleForIdeogram);
       console.log('Final payload:', {
@@ -5011,7 +5031,8 @@ const Index = () => {
         aspect_ratio: aspectForIdeogram,
         model: 'V_2A_TURBO',
         magic_prompt_option: 'AUTO',
-        style_type: styleForIdeogram
+        style_type: styleForIdeogram,
+        negative_prompt: negativePrompt
       });
       let imageGenerated = false;
       let finalImageUrl = null;
@@ -5022,7 +5043,8 @@ const Index = () => {
         const imagenRequest = {
           prompt,
           aspect_ratio: aspectForIdeogram,
-          style_type: styleForIdeogram
+          style_type: styleForIdeogram,
+          negative_prompt: negativePrompt
         };
         
         const imagenResponse = await generateImagenImage(imagenRequest);
@@ -5049,7 +5071,8 @@ const Index = () => {
             aspect_ratio: aspectForIdeogram,
             model: modelForIdeogram,
             magic_prompt_option: 'AUTO',
-            style_type: styleForIdeogram
+            style_type: styleForIdeogram,
+            negative_prompt: negativePrompt
           });
           
           if (ideogramResponse.data && ideogramResponse.data.length > 0) {
@@ -5067,7 +5090,19 @@ const Index = () => {
       }
       
       if (imageGenerated && finalImageUrl) {
-        setGeneratedImageUrl(finalImageUrl);
+        if (shouldUseOverlay && finalText) {
+          // Use overlay mode - store background image and setup overlay
+          setBackgroundOnlyImageUrl(finalImageUrl);
+          setShowTextOverlay(true);
+          setGeneratedImageUrl(null); // Clear this to show overlay instead
+          console.log('🎨 Generated background image for overlay mode');
+          sonnerToast.success("Background image generated! Text overlay applied automatically.");
+        } else {
+          // Normal mode - use image as-is
+          setGeneratedImageUrl(finalImageUrl);
+          setBackgroundOnlyImageUrl(null);
+          setShowTextOverlay(false);
+        }
       } else {
         throw new Error("Failed to generate image with both Google Imagen and Ideogram");
       }
