@@ -97,14 +97,14 @@ serve(async (req) => {
       
       // Map aspect_ratio to V3 resolution format
       const resolutionMap: { [key: string]: string } = {
-        'ASPECT_1_1': '1:1',
-        'ASPECT_10_16': '5:8', // portrait
-        'ASPECT_16_10': '8:5', // landscape
-        'ASPECT_9_16': '9:16', // vertical
-        'ASPECT_16_9': '16:9'  // horizontal
+        'ASPECT_1_1': '1024x1024',
+        'ASPECT_10_16': '832x1216', 
+        'ASPECT_16_10': '1216x832',
+        'ASPECT_9_16': '832x1216', 
+        'ASPECT_16_9': '1216x832'  
       };
       
-      const resolution = resolutionMap[aspect_ratio] || '1:1';
+      const resolution = resolutionMap[aspect_ratio] || '1024x1024';
       const seed = Math.floor(Math.random() * 1000000);
       
       // Build FormData for V3 API
@@ -115,7 +115,7 @@ serve(async (req) => {
       
       console.log('V3 FormData:', { prompt, resolution, seed });
       
-      const ideogramResponse = await fetch('https://api.ideogram.ai/v3/generate', {
+      const ideogramResponse = await fetch('https://api.ideogram.ai/generate', {
         method: 'POST',
         headers: {
           'Api-Key': ideogramApiKey,
