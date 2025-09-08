@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Updated system prompt with occasion throttle and optional anchors
+// System prompt with comedian style palette and Spartan writing rules
 const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY valid JSON:
 {
   "lines": [
@@ -19,46 +19,42 @@ const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY valid JSON:
   ]
 }
 
-CRITICAL: Generate 4 DISTINCT text options that are creative and varied.
+COMEDIAN STYLE PALETTE (MANDATORY - each option has specific voice):
+• Option 1: Deadpan/Spartan (20-35 chars) - Dry, matter-of-fact, minimal words
+• Option 2: Observational (36-50 chars) - "Have you noticed..." style, relatable observations  
+• Option 3: Extended thought (51-65 chars) - Longer setup, can roast IF tone allows
+• Option 4: Absurdist/Twist (66-70 chars) - Unexpected punchline, surreal logic
 
-CHARACTER LIMIT:
-• Each line must be ≤ 70 characters
-• No exceptions - any line over 70 characters is invalid
+TONE GATING (CRITICAL):
+• Option 3 can only roast/insult if tone is Savage/Humorous
+• For Sentimental/Romantic/Inspirational: Option 3 becomes thoughtful extended sentiment
+• All other options adapt to tone while keeping their style voice
 
 TAG HANDLING (STRICTLY ENFORCED):
-• If tags exist: At least 3 of 4 lines must include ALL tags literally (not synonyms)
-• Tags must appear naturally and in different positions across lines
+• If tags exist: At least 3 of 4 lines must include ALL tags literally
+• Tags appear naturally, different positions across lines
 • Do not skip tags in more than 1 line
-• Natural integration, not forced cramming
 
-OCCASION THROTTLE (CRITICAL):
-• Props/anchors are context, not punchlines - use sparingly
-• MAXIMUM one explicit occasion mention across all 4 lines
-• Avoid repetitive occasion words (birthday, cake, candles, etc.)
-• Focus on wit, roast, or sentiment over occasion details
+SPARTAN HOUSE RULES (NON-NEGOTIABLE):
+• No semicolons (;) or em dashes (—) ever
+• No markdown (*bold* #hashtag @mentions)  
+• No clichés or filler phrases
+• Max ONE pause per line (comma OR colon, not both)
+• Clean sentences, not fragments
 
-TONE CONSISTENCY:
-• Respect the chosen tone as the base:
-  * Humorous = silly, playful, witty wordplay
-  * Savage = roast comic energy (sharp, biting) 
-  * Sentimental = warm, heartfelt
-  * Romantic = affectionate, dreamy
-  * Inspirational = uplifting, positive
+BANNED WORDS (never use):
+can, may, just, really, literally, actually, probably, basically, maybe, utilize, moreover, additionally, furthermore, overall, ultimately, "in conclusion", "at the end of the day", "here's how", "let's explore"
 
-STYLE RULES:
-• Each line must read like natural speech
-• Use at most one pause (comma OR colon) per line
-• Do not use multiple commas or break sentences into fragments
-• Prefer single clean sentences over stacked phrases
-• Conversational, natural phrasing (sounds human, not robotic)
-• No em-dashes (—) or double dashes (--)
-• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"
+OCCASION THROTTLE:
+• Context props are background, not punchlines
+• Maximum 1 explicit occasion mention across all 4 lines
+• Focus on wit and personality over scene details
 
-PUNCTUATION EXAMPLES:
-✓ Good: "Happy birthday Jesse, you shine brighter than the candles."
-✓ Good: "Balloons rise for Jesse: my finest gift is you."
-✗ Bad: "Jesse, like fine wine, and birthday cake, you only get sweeter."
-✗ Bad: "Candles glow, balloons dance, gifts surround you."`;
+LENGTH EXAMPLES:
+✓ Option 1 (30 chars): "Your cake expired."
+✓ Option 2 (45 chars): "Why do birthday parties feel like job interviews?"
+✓ Option 3 (60 chars): "Your candles cost more than your last three relationships."
+✓ Option 4 (68 chars): "This confetti applied for witness protection after seeing you dance."`;
 
 // System prompt for categories WITHOUT anchors
 const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY valid JSON:
@@ -71,45 +67,42 @@ const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY valid JSON:
   ]
 }
 
-CRITICAL: Generate 4 DISTINCT text options that are creative and varied.
+COMEDIAN STYLE PALETTE (MANDATORY - each option has specific voice):
+• Option 1: Deadpan/Spartan (20-35 chars) - Dry, matter-of-fact, minimal words
+• Option 2: Observational (36-50 chars) - "Have you noticed..." style, relatable observations
+• Option 3: Extended thought (51-65 chars) - Longer setup, can roast IF tone allows  
+• Option 4: Absurdist/Twist (66-70 chars) - Unexpected punchline, surreal logic
 
-CHARACTER LIMIT:
-• Each line must be ≤ 70 characters
-• No exceptions - any line over 70 characters is invalid
+TONE GATING (CRITICAL):
+• Option 3 can only roast/insult if tone is Savage/Humorous
+• For Sentimental/Romantic/Inspirational: Option 3 becomes thoughtful extended sentiment
+• All other options adapt to tone while keeping their style voice
 
 TAG HANDLING (STRICTLY ENFORCED):
-• If tags exist: At least 3 of 4 lines must include ALL tags literally (not synonyms)
-• Tags must appear naturally and in different positions across lines
+• If tags exist: At least 3 of 4 lines must include ALL tags literally
+• Tags appear naturally, different positions across lines
 • Do not skip tags in more than 1 line
-• Natural integration, not forced cramming
 
-OCCASION THROTTLE (CRITICAL):
-• MAXIMUM one explicit occasion mention across all 4 lines
-• Avoid repetitive occasion words based on category/subcategory
-• Focus on wit, roast, or sentiment over occasion details
+SPARTAN HOUSE RULES (NON-NEGOTIABLE):
+• No semicolons (;) or em dashes (—) ever
+• No markdown (*bold* #hashtag @mentions)
+• No clichés or filler phrases  
+• Max ONE pause per line (comma OR colon, not both)
+• Clean sentences, not fragments
 
-TONE CONSISTENCY:
-• Respect the chosen tone as the base:
-  * Humorous = silly, playful, witty wordplay
-  * Savage = roast comic energy (sharp, biting)
-  * Sentimental = warm, heartfelt  
-  * Romantic = affectionate, dreamy
-  * Inspirational = uplifting, positive
+BANNED WORDS (never use):
+can, may, just, really, literally, actually, probably, basically, maybe, utilize, moreover, additionally, furthermore, overall, ultimately, "in conclusion", "at the end of the day", "here's how", "let's explore"
 
-STYLE RULES:
-• Each line must read like natural speech
-• Use at most one pause (comma OR colon) per line
-• Do not use multiple commas or break sentences into fragments
-• Prefer single clean sentences over stacked phrases
-• Conversational, natural phrasing (sounds human, not robotic)
-• No em-dashes (—) or double dashes (--)
-• Ban clichés: "truth hurts", "timing is everything", "laughter is the best medicine"
+OCCASION THROTTLE:
+• Context props are background, not punchlines
+• Maximum 1 explicit occasion mention across all 4 lines
+• Focus on wit and personality over scene details
 
-PUNCTUATION EXAMPLES:
-✓ Good: "Happy birthday Jesse, you shine brighter than the candles."
-✓ Good: "Balloons rise for Jesse: my finest gift is you."
-✗ Bad: "Jesse, like fine wine, and birthday cake, you only get sweeter."
-✗ Bad: "Candles glow, balloons dance, gifts surround you."`;
+LENGTH EXAMPLES:
+✓ Option 1 (30 chars): "Your cake expired."
+✓ Option 2 (45 chars): "Why do birthday parties feel like job interviews?"
+✓ Option 3 (60 chars): "Your candles cost more than your last three relationships."
+✓ Option 4 (68 chars): "This confetti applied for witness protection after seeing you dance."`;
 
 // Category-specific anchor dictionaries
 const ANCHORS = {
@@ -129,86 +122,52 @@ const BANNED_PHRASES = [
   "happy birthday to you", "many more", "best wishes"
 ];
 
-// Tone-aware fallback generator with proper length bands
+// Category-agnostic fallback with comedian style palette
 function generateSavageFallback(inputs: any): any {
-  console.log("Using tone-aware fallback v5");
+  console.log("Using comedian style fallback");
   
   const { tags = [], tone = "Savage" } = inputs;
-  const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
-  const anchors = ANCHORS[ctxKey] || ["cake", "candles", "balloons", "confetti"];
+  const tagString = tags.length > 0 ? tags.join(" ") : "";
   
-  // Tone-specific templates with proper length bands
-  let baseTemplates: string[] = [];
+  // Style-based templates (category-agnostic)
+  let styleTemplates: string[] = [];
   
   if (tone.toLowerCase().includes("savage") || tone.toLowerCase().includes("humorous")) {
-    if (tags.length > 0) {
-      const tagString = tags.join(" ");
-      baseTemplates = [
-        `${tagString} cake looks sadder than your soul.`, // ~40 chars
-        `Your ${tagString} candles burn brighter than your future.`, // ~55 chars  
-        `${tagString} balloons have more lift than your career ever will.`, // ~65 chars
-        `This confetti has more purpose than you've shown in decades.` // ~68 chars
-      ];
-    } else {
-      baseTemplates = [
-        `Your cake looks utterly defeated.`, // ~33 chars
-        `Even the candles are questioning their life choices here.`, // ~57 chars
-        `Those balloons are deflating faster than your self-esteem.`, // ~59 chars
-        `This confetti has more sparkle than your entire personality.` // ~61 chars
-      ];
-    }
+    styleTemplates = [
+      tagString ? `${tagString} expired.` : "That expired.", // Deadpan (20-35)
+      tagString ? `Why does ${tagString} feel like a job interview?` : "Why does this feel like a job interview?", // Observational (36-50)
+      tagString ? `${tagString} costs more than your last three relationships.` : "This costs more than your last three relationships.", // Extended roast (51-65)
+      tagString ? `${tagString} applied for witness protection after seeing you.` : "Everything here applied for witness protection after seeing you." // Absurdist (66-70)
+    ];
   } else if (tone.toLowerCase().includes("sentimental") || tone.toLowerCase().includes("romantic")) {
-    if (tags.length > 0) {
-      const tagString = tags.join(" ");
-      baseTemplates = [
-        `${tagString} cake brings warmth to every heart.`, // ~40 chars
-        `Your ${tagString} candles shine with beautiful memories ahead.`, // ~55 chars
-        `${tagString} balloons carry all our hopes and dreams skyward.`, // ~65 chars
-        `This confetti celebrates the amazing person you've become.` // ~68 chars
-      ];
-    } else {
-      baseTemplates = [
-        `Your cake brings joy to everyone.`, // ~33 chars
-        `These candles illuminate the beautiful moments we cherish.`, // ~57 chars
-        `Those balloons lift our spirits high with celebration.`, // ~59 chars
-        `This confetti marks another year of wonderful memories.` // ~61 chars
-      ];
-    }
+    styleTemplates = [
+      tagString ? `${tagString} warms hearts.` : "This warms hearts.", // Deadpan (20-35)
+      tagString ? `Have you noticed how ${tagString} brings people together?` : "Have you noticed how moments bring people together?", // Observational (36-50)
+      tagString ? `${tagString} represents all the beautiful memories we treasure.` : "This represents all the beautiful memories we treasure.", // Extended sentiment (51-65)
+      tagString ? `${tagString} whispers secrets of love that only true hearts understand.` : "This whispers secrets of love that only true hearts understand." // Absurdist (66-70)
+    ];
   } else { // Inspirational or other tones
-    if (tags.length > 0) {
-      const tagString = tags.join(" ");
-      baseTemplates = [
-        `${tagString} cake represents sweet victories.`, // ~40 chars
-        `Your ${tagString} candles illuminate the path to greatness.`, // ~55 chars
-        `${tagString} balloons remind us that dreams can truly soar.`, // ~65 chars
-        `This confetti celebrates your incredible journey forward.` // ~68 chars
-      ];
-    } else {
-      baseTemplates = [
-        `Your cake symbolizes sweet success.`, // ~33 chars
-        `These candles light the way to amazing achievements.`, // ~57 chars
-        `Those balloons remind us that anything is possible.`, // ~59 chars
-        `This confetti honors your incredible accomplishments.` // ~61 chars
-      ];
-    }
+    styleTemplates = [
+      tagString ? `${tagString} inspires.` : "This inspires.", // Deadpan (20-35)
+      tagString ? `Have you noticed how ${tagString} motivates us?` : "Have you noticed how moments motivate us?", // Observational (36-50)
+      tagString ? `${tagString} reminds us that anything is truly possible today.` : "This reminds us that anything is truly possible today.", // Extended thought (51-65)
+      tagString ? `${tagString} dances with possibilities that dreams never imagined before.` : "This dances with possibilities that dreams never imagined before." // Absurdist (66-70)
+    ];
   }
   
-  // Ensure proper length bands: ~35-40, ~50-55, ~65-70, ~68-70
-  const targetBands = [[35, 40], [50, 55], [65, 70], [68, 70]];
-  const finalTemplates = baseTemplates.map((template, index) => {
+  // Ensure proper length bands: 20-35, 36-50, 51-65, 66-70
+  const targetBands = [[20, 35], [36, 50], [51, 65], [66, 70]];
+  const finalTemplates = styleTemplates.map((template, index) => {
     const [minLen, maxLen] = targetBands[index];
     let text = template;
     
-    // Expand if too short
+    // Adjust length if needed
     if (text.length < minLen) {
-      const expansions = [" clearly", " obviously", " truly", " absolutely"];
-      const expansion = expansions[index % expansions.length];
-      text = text.replace(".", `${expansion}.`);
-    }
-    
-    // Verify final length
-    if (text.length > maxLen) {
-      console.error(`Fallback v5 template ${index + 1} exceeds max length: ${text.length} > ${maxLen}`);
+      const expansions = [" now", " here", " always", " forever"];
+      text = text.replace(".", `${expansions[index]}.`);
+    } else if (text.length > maxLen) {
+      // Truncate if too long
+      text = text.substring(0, maxLen - 1) + ".";
     }
     
     return text;
@@ -218,18 +177,17 @@ function generateSavageFallback(inputs: any): any {
     lines: finalTemplates.map((text, index) => ({
       lane: `option${index + 1}`,
       text: text
-    })),  
-    model: "tone-aware-fallback-v5",
+    })),
+    model: "comedian-fallback",
     validated: true,
-    reason: "tone_aware_fallback",
+    reason: "comedian_style_fallback",
     tone: tone,
     tags_used: tags.length > 0,
-    fallback_version: "v5",
     lengths: finalTemplates.map(t => t.length)
   };
 }
 
-// Enhanced user message construction with occasion throttle
+// Enhanced user message with style palette and tone gating
 function buildUserMessage(inputs: any): string {
   const { category, subcategory, tone, tags = [] } = inputs;
   
@@ -239,37 +197,45 @@ Tone: ${tone}`;
 
   // Include tags if provided
   if (tags.length > 0) {
-    message += `\nTAGS (may be empty): ${tags.join(", ")}`;
+    message += `\nTAGS: ${tags.join(", ")}`;
   } else {
-    message += `\nTAGS (may be empty): `;
+    message += `\nTAGS: (none)`;
   }
   
-  // Get category-specific anchors and mark as optional
+  // Get category-specific anchors and mark as optional context
   const ctxKey = `${category.toLowerCase()}.${subcategory.toLowerCase()}`;
   const anchors = ANCHORS[ctxKey] || [];
   
   if (anchors.length > 0) {
-    message += `\nOPTIONAL ANCHORS (use sparingly): ${anchors.join(", ")}`;
+    message += `\nCONTEXT PROPS: ${anchors.join(", ")} (use sparingly for context)`;
   }
   
-  // Add occasion throttle guidance based on category/subcategory tokens
-  const occasionTokens = [
-    category.toLowerCase(),
-    subcategory.toLowerCase(),
-    ...anchors
-  ].filter((token, index, arr) => arr.indexOf(token) === index); // dedupe
-  
-  if (occasionTokens.length > 0) {
-    message += `\nAVOID DIRECT MENTIONS: Limit explicit use of: ${occasionTokens.join(", ")} - max 1 mention total across all 4 lines`;
+  // Style palette reminder
+  message += `\n\nSTYLE PALETTE:
+• Option 1: Deadpan (20-35 chars) - Dry, minimal
+• Option 2: Observational (36-50 chars) - "Have you noticed..." 
+• Option 3: Extended (51-65 chars) - ${tone.toLowerCase().includes('savage') || tone.toLowerCase().includes('humorous') ? 'Can roast' : 'Thoughtful sentiment'}
+• Option 4: Absurdist (66-70 chars) - Surreal twist punchline`;
+
+  // Tone gating hint
+  if (!tone.toLowerCase().includes('savage') && !tone.toLowerCase().includes('humorous')) {
+    message += `\n\nTONE GATING: No roasts/insults - keep Option 3 as thoughtful extended sentiment`;
   }
   
   return message;
 }
 
-// Updated validator with strict tag rules and hard character limit
+// Enhanced validator with comedian style palette and Spartan rules
 function validateAndRepair(rawText: string, inputs: any): { result: any | null; errors: string[]; repairs: string[] } {
   const errors: string[] = [];
   const repairs: string[] = [];
+  
+  // Spartan banned words
+  const SPARTAN_BANNED_WORDS = [
+    'can', 'may', 'just', 'really', 'literally', 'actually', 'probably', 'basically', 'maybe', 
+    'utilize', 'moreover', 'additionally', 'furthermore', 'overall', 'ultimately',
+    'in conclusion', 'at the end of the day', 'here\'s how', 'let\'s explore'
+  ];
   
   try {
     const parsed = JSON.parse(rawText);
@@ -279,19 +245,22 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       return { result: null, errors, repairs };
     }
     
-    const { tags = [] } = inputs;
-    const bannedPhrasesFiltered = BANNED_PHRASES.filter(phrase => 
-      !tags.some(tag => phrase.toLowerCase().includes(tag.toLowerCase()))
-    );
+    const { tags = [], tone = "" } = inputs;
     
-    // Process lines: basic cleanup first
+    // Process lines: Spartan cleanup first
     const processedLines = parsed.lines.map((line: any, index: number) => {
       let text = line.text || "";
       
-      // Remove ellipsis and em dashes
-      if (text.includes("...") || text.includes("--")) {
-        text = text.replace(/\.\.\./g, "").replace(/--/g, ",").trim();
-        repairs.push(`Line ${index + 1}: Removed ellipsis/em-dash`);
+      // Remove Spartan violations
+      if (text.includes(";") || text.includes("—") || text.includes("--")) {
+        text = text.replace(/;/g, ",").replace(/—/g, " ").replace(/--/g, " ").replace(/\s+/g, " ").trim();
+        repairs.push(`Line ${index + 1}: Fixed Spartan punctuation`);
+      }
+      
+      // Remove markdown
+      if (text.includes("*") || text.includes("#") || text.includes("@")) {
+        text = text.replace(/[*#@]/g, "").replace(/\s+/g, " ").trim();
+        repairs.push(`Line ${index + 1}: Removed markdown`);
       }
       
       // Ensure complete sentence
@@ -306,113 +275,93 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       };
     });
     
-    // STRICT CHARACTER LIMIT: ≤70 characters per line (no exceptions)
+    // Length band validation (comedian style palette)
+    const lengthBands = [[20, 35], [36, 50], [51, 65], [66, 70]];
     processedLines.forEach((line, index) => {
-      if (line.text.length > 70) {
-        errors.push(`Line ${index + 1}: ${line.text.length} chars exceeds 70 character limit`);
+      const [minLen, maxLen] = lengthBands[index];
+      const lineLength = line.text.length;
+      
+      if (lineLength < minLen) {
+        errors.push(`Option ${index + 1}: Too short (${lineLength} chars) - need ${minLen}-${maxLen} for ${['Deadpan', 'Observational', 'Extended', 'Absurdist'][index]} style`);
+      } else if (lineLength > maxLen) {
+        errors.push(`Option ${index + 1}: Too long (${lineLength} chars) - max ${maxLen} for ${['Deadpan', 'Observational', 'Extended', 'Absurdist'][index]} style`);
       }
     });
     
-    // STRICT TAG RULE: At least 3 of 4 lines must include ALL tags literally
-    if (tags.length > 0) {
+    // Spartan banned words check
+    processedLines.forEach((line, index) => {
+      const lowerText = line.text.toLowerCase();
+      SPARTAN_BANNED_WORDS.forEach(word => {
+        const regex = new RegExp(`\\b${word.replace(/'/g, "\\'")}\\b`, 'i');
+        if (regex.test(lowerText)) {
+          errors.push(`Option ${index + 1}: Contains banned Spartan word "${word}"`);
+        }
+      });
+    });
+    
+    // Punctuation rules (max one pause per line)
+    processedLines.forEach((line, index) => {
+      const pauseCount = (line.text.match(/[,:]/g) || []).length;
+      if (pauseCount > 1) {
+        errors.push(`Option ${index + 1}: Too many pauses (${pauseCount}) - max 1 comma OR colon per line`);
+      }
+    });
+    
+    // Tone gating for Option 3 (Extended thought)
+    if (processedLines.length > 2 && !tone.toLowerCase().includes('savage') && !tone.toLowerCase().includes('humorous')) {
+      const option3Text = processedLines[2].text.toLowerCase();
+      const roastWords = ['stupid', 'ugly', 'loser', 'pathetic', 'failure', 'worst', 'terrible', 'awful', 'suck', 'hate'];
+      if (roastWords.some(word => option3Text.includes(word))) {
+        errors.push(`Option 3: Cannot roast with ${tone} tone - must be thoughtful sentiment instead`);
+      }
+    }
+    
+    // TAG HANDLING: At least 3 of 4 lines must include ALL tags literally
+    if (tags.length > 0) { 
       const hasAllTags = (text: string, tags: string[]) =>
         tags.every(tag => text.toLowerCase().includes(tag.toLowerCase()));
       
       const linesWithAllTags = processedLines.filter(line => hasAllTags(line.text, tags));
       
       if (linesWithAllTags.length < 3) {
-        errors.push(`Not enough lines with all tags - need 3 of 4, got ${linesWithAllTags.length}`);
+        errors.push(`Tag rule violation: Only ${linesWithAllTags.length} of 4 lines have all tags [${tags.join(', ')}] - need at least 3`);
         
-        // Repair attempt: inject tags into lines that need them (up to first 3 lines)
-        let repairCount = 0;
-        for (let i = 0; i < Math.min(3, processedLines.length) && linesWithAllTags.length + repairCount < 3; i++) {
+        // Simple repair attempt
+        for (let i = 0; i < 3 && linesWithAllTags.length < 3; i++) {
           const line = processedLines[i];
           if (!hasAllTags(line.text, tags)) {
             const tagText = tags.join(" ");
-            const positions = ["start", "mid", "end"];
-            const position = positions[i % positions.length];
+            const newText = `${tagText} ${line.text.toLowerCase()}`;
             
-            let newText = "";
-            if (position === "start") {
-              newText = `${tagText} ${line.text.toLowerCase()}`;
-            } else if (position === "mid") {
-              const words = line.text.split(" ");
-              const midPoint = Math.floor(words.length / 2);
-              words.splice(midPoint, 0, tagText);
-              newText = words.join(" ");
-            } else {
-              newText = line.text.replace(/\.$/, ` ${tagText}.`);
+            // Only apply if within length band
+            const [minLen, maxLen] = lengthBands[i];
+            if (newText.length >= minLen && newText.length <= maxLen) {
+              line.text = newText;
+              repairs.push(`Option ${i + 1}: Added tags at start`);
             }
-            
-            // Check if repair would exceed 70 chars - if so, try compression
-            if (newText.length > 70) {
-              // Simple compression: remove filler words
-              newText = newText
-                .replace(/\b(really|honestly|clearly|obviously|absolutely|truly)\b/gi, "")
-                .replace(/\s+/g, " ")
-                .trim();
-              
-              // If still too long, skip this repair
-              if (newText.length > 70) {
-                continue;
-              }
-            }
-            
-            line.text = newText;
-            repairs.push(`Line ${i + 1}: Injected tags at ${position}`);
-            repairCount++;
           }
         }
       }
     }
     
-    // Occasion throttle enforcement - count lines with occasion tokens
+    // Occasion throttle
     const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
     const anchors = ANCHORS[ctxKey] || [];
     const occasionTokens = [
       inputs.category?.toLowerCase(),
       inputs.subcategory?.toLowerCase(),
       ...anchors
-    ].filter((token, index, arr) => arr.indexOf(token) === index && token); // dedupe and filter falsy
+    ].filter((token, index, arr) => arr.indexOf(token) === index && token);
     
     if (occasionTokens.length > 0) {
       const linesWithOccasionTokens = processedLines.filter(line => 
-        occasionTokens.some(token => 
-          line.text.toLowerCase().includes(token.toLowerCase())
-        )
+        occasionTokens.some(token => line.text.toLowerCase().includes(token.toLowerCase()))
       );
       
       if (linesWithOccasionTokens.length > 1) {
-        errors.push(`Too many occasion mentions - max 1 allowed, found ${linesWithOccasionTokens.length} lines with: ${occasionTokens.join(", ")}`);
+        errors.push(`Occasion throttle: Found ${linesWithOccasionTokens.length} lines with occasion words - max 1 allowed`);
       }
     }
-    
-    // Check banned phrases (excluding user tags)
-    processedLines.forEach((line, index) => {
-      bannedPhrasesFiltered.forEach(phrase => {
-        if (line.text.toLowerCase().includes(phrase.toLowerCase())) {
-          errors.push(`Line ${index + 1}: Contains banned phrase "${phrase}"`);
-        }
-      });
-    });
-    
-    // Final validation: re-check tag rule and character limits after repairs
-    if (tags.length > 0) {
-      const hasAllTags = (text: string, tags: string[]) =>
-        tags.every(tag => text.toLowerCase().includes(tag.toLowerCase()));
-      
-      const finalLinesWithAllTags = processedLines.filter(line => hasAllTags(line.text, tags));
-      if (finalLinesWithAllTags.length < 3) {
-        errors.push(`Final check failed: only ${finalLinesWithAllTags.length} of 4 lines have all tags`);
-      }
-    }
-    
-    // Final character limit check
-    processedLines.forEach((line, index) => {
-      if (line.text.length > 70) {
-        errors.push(`Final check failed: Line ${index + 1} still exceeds 70 chars (${line.text.length})`);
-      }
-    });
     
     if (errors.length === 0) {
       return {
@@ -438,22 +387,36 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
   if (attemptNumber > 1 && previousErrors.length > 0) {
     let feedback = `PREVIOUS ATTEMPT FAILED: ${previousErrors.join("; ")}`;
     
-    // Add specific guidance for tag rule failures
+    // Add specific guidance for length band failures
+    if (previousErrors.some(err => err.includes("Too short") || err.includes("Too long"))) {
+      feedback += `\n\nCRITICAL LENGTH BANDS:
+• Option 1: 20-35 chars (Deadpan style)
+• Option 2: 36-50 chars (Observational style)
+• Option 3: 51-65 chars (Extended thought)
+• Option 4: 66-70 chars (Absurdist twist)`;
+    }
+    
+    // Add specific guidance for Spartan rule failures
+    if (previousErrors.some(err => err.includes("banned") || err.includes("punctuation"))) {
+      feedback += `\n\nSPARTAN RULES: No semicolons, em dashes, banned words, or multiple pauses per line`;
+    }
+    
+    // Add tag guidance
     if (previousErrors.some(err => err.includes("tag"))) {
-      feedback += `\n\nCRITICAL: At least 3 lines must include ALL tags literally. Do not skip tags in more than one line.`;
+      feedback += `\n\nTAG RULE: At least 3/4 lines must include ALL tags literally`;
     }
     
-    // Add specific guidance for character limit failures  
-    if (previousErrors.some(err => err.includes("70 char") || err.includes("exceeds"))) {
-      feedback += `\n\nCRITICAL: Each line must be ≤ 70 characters. No exceptions.`;
+    // Add tone gating guidance
+    if (previousErrors.some(err => err.includes("Cannot roast"))) {
+      feedback += `\n\nTONE GATING: Option 3 cannot roast with non-Savage tones`;
     }
     
-    feedback += `\n\nEXAMPLE CORRECT FORMAT:
+    feedback += `\n\nCORRECT FORMAT EXAMPLE:
 {"lines":[
-  {"lane":"option1","text":"Happy birthday Mike, even your cake ghosted you."},
-  {"lane":"option2","text":"The balloons bailed faster than Mike's last date."},
-  {"lane":"option3","text":"Mike's candles begged OSHA for hazard pay today."},
-  {"lane":"option4","text":"Confetti refused to drop, Mike. It knows better."}
+  {"lane":"option1","text":"That expired."}, 
+  {"lane":"option2","text":"Why does this feel like a job interview?"},
+  {"lane":"option3","text":"This costs more than your last relationship did."},
+  {"lane":"option4","text":"Everything here applied for witness protection after you arrived."}
 ]}`;
     userMessage += `\n\n${feedback}`;
   }
@@ -462,8 +425,8 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
   console.log("User message:", userMessage);
   
   try {
-    // Improved model cascade: GPT-5 Mini first for JSON fidelity
-    const models = ['gpt-5-mini-2025-08-07', 'gpt-4.1-2025-04-14'];
+    // Model cascade: GPT-5 flagship for comedian creativity, GPT-4.1 for retry  
+    const models = ['gpt-5-2025-08-07', 'gpt-4.1-2025-04-14'];
     const model = models[Math.min(attemptNumber - 1, models.length - 1)];
     
     console.log(`Using model: ${model}`);
