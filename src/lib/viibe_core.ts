@@ -84,13 +84,39 @@ export async function generateTextOptions(session: Session, { tone, tags = [] }:
 ========================================================= */
 import { openAIService } from './openai';
 
+// Post-processor for visual options
+function normalize(s: string): string {
+  return s.trim().replace(/\s{2,}/g, " ");
+}
+
+function okLen(s: string): boolean {
+  const n = s.split(/\s+/).length; 
+  return n >= 3 && n <= 6;
+}
+
+export function finalizeVisuals(json: any): any {
+  const seen = new Set();
+  json.visualOptions = json.visualOptions
+    .map((o: any) => ({ ...o, prompt: normalize(o.prompt) }))
+    .filter((o: any) => o.prompt && okLen(o.prompt))
+    .filter((o: any) => {
+      if (seen.has(o.prompt.toLowerCase())) return false; 
+      seen.add(o.prompt.toLowerCase()); 
+      return true;
+    });
+
+  // Light shuffle for randomness
+  json.visualOptions.sort(() => Math.random() - 0.5);
+  return json;
+}
+
 export async function generateVisualOptions(session: Session, { tone, tags = [], textContent = "", textLayoutId = "negativeSpace" }: { tone: string; tags?: string[]; textContent?: string; textLayoutId?: string }): Promise<{
   visualOptions: Array<{ lane: string; prompt: string }>;
   negativePrompt: string;
   model: string;
 }> {
   try {
-        console.log('🎨 generateVisualOptions called with:', { 
+    console.log('🎨 generateVisualOptions called with:', { 
       category: session.category, 
       subcategory: session.subcategory, 
       tone, 
@@ -100,68 +126,36 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
       textLayoutId 
     });
     
-    const systemPrompt = `Generate 4 DISTINCT visual prompts for image generation. Return ONLY valid JSON:
+    const systemPrompt = `Return ONLY JSON:
+{"visualOptions":[
+  {"lane":"literal","prompt":""},
+  {"lane":"supportive","prompt":""},
+  {"lane":"alternate","prompt":""},
+  {"lane":"creative","prompt":""}
+]}
 
-{
-  "visualOptions":[
-    {"lane":"option1","prompt":"..."},
-    {"lane":"option2","prompt":"..."},
-    {"lane":"option3","prompt":"..."},
-    {"lane":"option4","prompt":"..."}
-  ],
-  "negativePrompt":"..."
-}
-
-CRITICAL RULES:
-
-1. **Strong Variance Required**
-   - Each option must be a COMPLETELY different visual concept
-   - NO similar subjects (if one uses "cake", others cannot use "cake", "dessert", or "food")
-   - NO rephrasing same idea ("birthday party" vs "celebration" = FORBIDDEN)
-   - Force cognitive diversity across all 4 options
-
-2. **Layout Tokens** (append exactly one based on textLayoutId):
-   - negativeSpace  → ", clear empty area near largest margin"
-   - memeTopBottom  → ", clear top band, clear bottom band" 
-   - lowerThird     → ", leave bottom 25% completely clear and uncluttered for text banner"
-   - sideBarLeft    → ", clear left panel"
-   - badgeSticker   → ", badge space top-right"
-   - subtleCaption  → ", clear narrow bottom strip"
-
-3. **Visual Concept Enforcement**:
-   - **Option1**: Direct literal interpretation of text/context
-   - **Option2**: Environment/audience/setting perspective (avoid Option1's subject)
-   - **Option3**: Related but different angle/object from same context  
-   - **Option4**: Abstract/symbolic representation of the concept
-
-4. **Format Requirements**:
-   - Short subject description (2-6 words maximum)
-   - NO style words (realistic/anime/3D/cinematic/etc)
-   - NO text-related terms (signage/watermark/logo/typography)
-   - End with comma + layout token
-
-5. **Negative Prompt**: Always include "no background text, no signage, no watermarks, no logos, no typography"
-
-EXAMPLE for birthday + lowerThird:
-{
-  "visualOptions":[
-    {"lane":"option1","prompt":"birthday cake with candles, leave bottom 25% completely clear and uncluttered for text banner"},
-    {"lane":"option2","prompt":"party guests clapping, leave bottom 25% completely clear and uncluttered for text banner"},  
-    {"lane":"option3","prompt":"wrapped gift boxes, leave bottom 25% completely clear and uncluttered for text banner"},
-    {"lane":"option4","prompt":"floating balloons, leave bottom 25% completely clear and uncluttered for text banner"}
-  ],
-  "negativePrompt":"no background text, no signage, no watermarks, no logos, no typography"
-}`;
+Rules:
+- Each "prompt" is a SHORT subject (3–6 words). Natural, scannable.
+- NO extra words like "Context", "option1", layout tokens, commas-afterthoughts, or style words.
+- Align with category+subcategory, the selected tone, the user's text, and tags.
+- Lanes must be DISTINCT:
+  * literal = mirrors the text's main idea/action/object
+  * supportive = audience/props that reinforce the text
+  * alternate = different perspective/scene element from same context
+  * creative = symbolic/metaphoric idea
+- Randomize wording and focus each time (use synonyms and varied subjects). Avoid reusing the same noun/verb across options if possible.
+- Keep it positive/sincere for romantic/sentimental; playful for humorous; edgy for savage, etc.
+- Examples of good outputs (just the subject): 
+  "Person blowing out candles", "Friends cheering by cake",
+  "Room filled with balloons", "Confetti shaped like stars"`;
 
     const userPrompt = `Category: ${session.category}
 Subcategory: ${session.subcategory}
 Tone: ${tone}
 TextContent: "${textContent}"
-TextLayoutId: ${textLayoutId}  # one of: negativeSpace|memeTopBottom|lowerThird|sideBarLeft|badgeSticker|subtleCaption
-Tags: ${tags.join(', ')}
-${session.entity ? `Entity: ${session.entity}` : ''}`;
+Tags: ${tags.join(', ')}`;
 
-    console.log('🎯 Calling GPT directly for visual generation...');
+    console.log('🎯 Calling GPT for visual generation...');
     const result = await openAIService.chatJSON([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
@@ -171,9 +165,24 @@ ${session.entity ? `Entity: ${session.entity}` : ''}`;
       edgeOnly: true
     });
 
+    // Apply post-processor for clean, randomized results
+    const processedResult = finalizeVisuals(result);
+    
+    // Validate we have enough options
+    if (!processedResult.visualOptions || processedResult.visualOptions.length < 4) {
+      console.warn('⚠️ Insufficient visual options after processing, using fallback');
+      const fallbackOptions = [
+        { lane: "literal", prompt: "Simple visual concept" },
+        { lane: "supportive", prompt: "Supporting scene elements" },
+        { lane: "alternate", prompt: "Different perspective view" },
+        { lane: "creative", prompt: "Abstract symbolic representation" }
+      ];
+      processedResult.visualOptions = fallbackOptions;
+    }
+
     const finalResult = {
-      visualOptions: result.visualOptions || [],
-      negativePrompt: result.negativePrompt || "no background text, no watermarks, no signage, no logos",
+      visualOptions: processedResult.visualOptions || [],
+      negativePrompt: "no background text, no signage, no watermarks, no logos, no typography",
       model: 'gpt-4.1-2025-04-14'
     };
 
@@ -181,10 +190,15 @@ ${session.entity ? `Entity: ${session.entity}` : ''}`;
     return finalResult;
   } catch (error) {
     console.error('Error in generateVisualOptions:', error);
-    // Fallback to empty options on error
+    // Fallback to structured options on error
     const errorResult = {
-      visualOptions: [],
-      negativePrompt: "no background text, no watermarks, no signage, no logos",
+      visualOptions: [
+        { lane: "literal", prompt: "Main subject focus" },
+        { lane: "supportive", prompt: "Supporting elements scene" },
+        { lane: "alternate", prompt: "Alternative perspective view" },
+        { lane: "creative", prompt: "Creative symbolic approach" }
+      ],
+      negativePrompt: "no background text, no signage, no watermarks, no logos, no typography",
       model: "error"
     };
     (errorResult as any).errorCode = "GENERATION_FAILED";
