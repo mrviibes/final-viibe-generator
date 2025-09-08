@@ -95,7 +95,7 @@ serve(async (req) => {
 
       console.log('Calling Ideogram V3 API...');
       
-      // Map aspect_ratio to V3 resolution format
+      // Map aspect_ratio to V3 resolution format - V3 uses pixel dimensions
       const resolutionMap: { [key: string]: string } = {
         'ASPECT_1_1': '1024x1024',
         'ASPECT_10_16': '832x1216', 
@@ -107,21 +107,24 @@ serve(async (req) => {
       const resolution = resolutionMap[aspect_ratio] || '1024x1024';
       const seed = Math.floor(Math.random() * 1000000);
       
-      // Build FormData for V3 API
-      const formData = new FormData();
-      formData.append('prompt', prompt);
-      formData.append('resolution', resolution);
-      formData.append('seed', seed.toString());
+      // V3 API requires JSON payload, not FormData
+      const requestBody = {
+        prompt: prompt,
+        resolution: resolution,
+        seed: seed
+      };
       
-      console.log('V3 FormData:', { prompt, resolution, seed });
+      console.log('V3 Request Body:', requestBody);
       
+      // Use correct V3 endpoint with JSON payload
       const ideogramResponse = await fetch('https://api.ideogram.ai/generate', {
         method: 'POST',
         headers: {
           'Api-Key': ideogramApiKey,
+          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: formData,
+        body: JSON.stringify(requestBody),
       });
 
       if (!ideogramResponse.ok) {
