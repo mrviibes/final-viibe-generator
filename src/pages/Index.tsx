@@ -23,6 +23,7 @@ import { createSession, generateTextOptions, generateVisualOptions, type Session
 import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { generateImagenImage, ImagenAPIError, mapIdeogramToImagen } from "@/lib/imagenApi";
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
+import { buildStep4Payload, type Step4BuilderInput } from "@/lib/step4Payload";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
@@ -4996,7 +4997,21 @@ const Index = () => {
         prompt = visualRecommendations.options[selectedRecommendation].prompt;
       }
       if (!prompt && !barebonesMode) {
-        // Use layout-aware clean background mode for overlay layouts
+        // Build Step-4 payload using the new structured approach
+        const step4Input: Step4BuilderInput = {
+          finalText: finalText || '',
+          visualStyle,
+          aspectRatio,
+          layoutId: selectedTextLayout,
+          chosenVisual: chosenVisual || '',
+          visualTags: visualRecommendations?.visualOptions?.map(v => v.prompt).join(', '),
+          negativePrompt: visualRecommendations?.negativePrompt
+        };
+        
+        const step4Payload = buildStep4Payload(step4Input);
+        prompt = step4Payload.prompt;
+      } else {
+        // Fallback to legacy method for barebones mode
         prompt = buildIdeogramPrompt(ideogramPayload, shouldUseOverlay, shouldUseOverlay);
       }
       
@@ -5005,20 +5020,43 @@ const Index = () => {
         sonnerToast.error("Please provide a direct prompt in barebones mode.");
         return;
       }
-      const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
-      // Always respect the selected visual style
-      const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
       
-      // Generate negative prompt based on visual recommendations
-      let negativePrompt = "no background text, no signage, no watermarks, no logos, no typography";
-      if (visualRecommendations?.negativePrompt) {
-        negativePrompt = visualRecommendations.negativePrompt;
-      }
-      if (shouldUseOverlay) {
-        negativePrompt += ", no speech bubbles, no text overlays, no captions";
+      // Determine final generation parameters
+      let aspectForIdeogram, styleForIdeogram, negativePrompt;
+      
+      if (!prompt && !barebonesMode) {
+        // Use Step-4 payload values
+        const step4Input: Step4BuilderInput = {
+          finalText: finalText || '',
+          visualStyle,
+          aspectRatio,
+          layoutId: selectedTextLayout,
+          chosenVisual: chosenVisual || '',
+          visualTags: visualRecommendations?.visualOptions?.map(v => v.prompt).join(', '),
+          negativePrompt: visualRecommendations?.negativePrompt
+        };
+        
+        const step4Payload = buildStep4Payload(step4Input);
+        aspectForIdeogram = step4Payload.aspect_ratio;
+        styleForIdeogram = step4Payload.style_type;
+        negativePrompt = step4Payload.negative_prompt || "no background text, no signage, no watermarks, no logos, no typography";
+        
+        console.log('=== Step-4 Generation Debug ===');
+        console.log('Step-4 Payload:', step4Payload);
+      } else {
+        // Use legacy method for values
+        aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
+        styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
+        negativePrompt = "no background text, no signage, no watermarks, no logos, no typography";
+        if (visualRecommendations?.negativePrompt) {
+          negativePrompt = visualRecommendations.negativePrompt;
+        }
+        if (shouldUseOverlay) {
+          negativePrompt += ", no speech bubbles, no text overlays, no captions";
+        }
       }
       
-      console.log('=== Ideogram Generation Debug ===');
+      console.log('=== Final Generation Debug ===');
       console.log('Direct prompt provided:', !!directPrompt.trim());
       console.log('Using overlay mode:', shouldUseOverlay);
       console.log('Layout:', selectedTextLayout);
@@ -5026,14 +5064,6 @@ const Index = () => {
       console.log('Negative prompt:', negativePrompt);
       console.log('Aspect ratio:', aspectForIdeogram);
       console.log('Style type:', styleForIdeogram);
-      console.log('Final payload:', {
-        prompt,
-        aspect_ratio: aspectForIdeogram,
-        model: 'V_2A_TURBO',
-        magic_prompt_option: 'AUTO',
-        style_type: styleForIdeogram,
-        negative_prompt: negativePrompt
-      });
       let imageGenerated = false;
       let finalImageUrl = null;
       
