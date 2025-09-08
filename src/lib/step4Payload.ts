@@ -53,18 +53,66 @@ export function mapLayoutToStep4(layoutId: string): string {
   return layoutMap[layoutId] || 'negative_space';
 }
 
+// Sanitize prompt to remove any text/style labels and extract only visual scene
+function sanitizePromptForScene(prompt: string): string {
+  if (!prompt) return '';
+  
+  // Remove common labels like "Text: ...", "Style: ...", "Background: ..."
+  let sanitized = prompt
+    .replace(/Text:\s*[^,]*,?\s*/gi, '')
+    .replace(/Style:\s*[^,]*,?\s*/gi, '')
+    .replace(/Background:\s*[^,]*,?\s*/gi, '')
+    .replace(/Visual:\s*/gi, '');
+  
+  // Extract content after "Visual:" if present
+  const visualMatch = prompt.match(/Visual:\s*([^,]+)/i);
+  if (visualMatch) {
+    sanitized = visualMatch[1].trim();
+  }
+  
+  return sanitized.trim();
+}
+
+// Auto-inject birthday props for Celebrations → Birthday
+function injectBirthdayProps(scene: string, category?: string, subcategory?: string): string {
+  if (category?.toLowerCase() === 'celebrations' && subcategory?.toLowerCase() === 'birthday') {
+    const BIRTHDAY_PROPS = ['balloons', 'confetti', 'birthday cake', 'party hats', 'gifts', 'streamers'];
+    
+    // Check if scene already has birthday props
+    const hasExistingProps = BIRTHDAY_PROPS.some(prop => 
+      scene.toLowerCase().includes(prop.toLowerCase())
+    );
+    
+    if (!hasExistingProps) {
+      // Pick 2 random props (deterministic based on scene content)
+      const seed = scene.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const shuffled = [...BIRTHDAY_PROPS].sort(() => (seed % 13) / 13 - 0.5);
+      const selectedProps = shuffled.slice(0, 2);
+      
+      // Add party setting if missing
+      const hasPartySetting = /table|room|party|decor/i.test(scene);
+      const setting = hasPartySetting ? '' : ', on a party table';
+      
+      return `${scene}, surrounded by ${selectedProps.join(' and ')}${setting}`;
+    }
+  }
+  
+  return scene;
+}
+
 // Layout-aware prompt builder (visual scene only, no text injection)
-function buildLayoutAwarePrompt(layoutToken: string, chosenVisual: string, visualTags?: string): string {
-  // Use only the visual scene description, no text overlay content
-  const basePrompt = chosenVisual || 'family living room with cozy atmosphere';
+function buildLayoutAwarePrompt(layoutToken: string, chosenVisual: string, visualTags?: string, category?: string, subcategory?: string): string {
+  // Sanitize and inject birthday props if needed
+  let sanitizedVisual = sanitizePromptForScene(chosenVisual || 'family living room with cozy atmosphere');
+  sanitizedVisual = injectBirthdayProps(sanitizedVisual, category, subcategory);
   
   const layoutPrompts: Record<string, string> = {
-    'side_bar_left': `${basePrompt}, clear left panel`,
-    'lower_third': `${basePrompt}, clear lower third`,
-    'meme_top_bottom': `${basePrompt}, clear top band, clear bottom band`,
-    'subtle_caption': `${basePrompt}, clear narrow bottom strip`,
-    'badge_sticker': `${basePrompt}, badge space top-right`,
-    'negative_space': `${basePrompt}, clear empty area near largest margin`
+    'side_bar_left': `${sanitizedVisual}, clear left panel`,
+    'lower_third': `${sanitizedVisual}, clear lower third`,
+    'meme_top_bottom': `${sanitizedVisual}, clear top band, clear bottom band`,
+    'subtle_caption': `${sanitizedVisual}, clear narrow bottom strip`,
+    'badge_sticker': `${sanitizedVisual}, badge space top-right`,
+    'negative_space': `${sanitizedVisual}, clear empty area near largest margin`
   };
   
   let finalPrompt = layoutPrompts[layoutToken] || layoutPrompts['negative_space'];
@@ -106,13 +154,20 @@ export interface Step4BuilderInput {
   chosenVisual?: string;
   visualTags?: string;
   negativePrompt?: string;
+  category?: string;
+  subcategory?: string;
 }
 
 // Main Step-4 payload builder
 export function buildStep4Payload(input: Step4BuilderInput, model?: 'V_2A_TURBO' | 'V_3'): Step4Payload {
   const layoutToken = mapLayoutToStep4(input.layoutId);
-  const prompt = buildLayoutAwarePrompt(layoutToken, input.chosenVisual || '', input.visualTags);
-  const autoNegativePrompt = buildNegativePrompt(layoutToken);
+  const prompt = buildLayoutAwarePrompt(
+    layoutToken, 
+    input.chosenVisual || '', 
+    input.visualTags, 
+    input.category, 
+    input.subcategory
+  );
   
   const payload: Step4Payload = {
     prompt,
@@ -126,7 +181,11 @@ export function buildStep4Payload(input: Step4BuilderInput, model?: 'V_2A_TURBO'
   };
   
   // Log for debugging
-  console.log('Step-4 Payload:', JSON.stringify(payload, null, 2));
+  console.log('=== Step-4 Payload Debug ===');
+  console.log('Original visual:', input.chosenVisual);
+  console.log('Sanitized prompt:', prompt);
+  console.log('Category/Subcategory:', input.category, '/', input.subcategory);
+  console.log('Final payload:', JSON.stringify(payload, null, 2));
   
   return payload;
 }

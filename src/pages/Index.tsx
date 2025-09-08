@@ -5008,7 +5008,9 @@ const Index = () => {
           layoutId: selectedTextLayout,
           chosenVisual: chosenVisual || '',
           visualTags: visualRecommendations?.visualOptions?.map(v => v.prompt).join(', '),
-          negativePrompt: visualRecommendations?.negativePrompt
+          negativePrompt: visualRecommendations?.negativePrompt,
+          category: categoryName,
+          subcategory: subcategory
         };
         
         // Get selected model for Step4 payload
@@ -5047,7 +5049,9 @@ const Index = () => {
           layoutId: selectedTextLayout,
           chosenVisual: chosenVisual || '',
           visualTags: visualRecommendations?.visualOptions?.map(v => v.prompt).join(', '),
-          negativePrompt: visualRecommendations?.negativePrompt
+          negativePrompt: visualRecommendations?.negativePrompt,
+          category: categoryName,
+          subcategory: subcategory
         };
         
         // Get selected model for Step4 payload
