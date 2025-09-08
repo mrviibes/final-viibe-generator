@@ -26,74 +26,9 @@ interface ImagenResponse {
 }
 
 async function callGoogleImagesAPI(request: ImagenRequest): Promise<string[]> {
-  if (!GOOGLE_API_KEY) {
-    throw new Error('GOOGLE_API_KEY not configured');
-  }
-
-  const endpoint = `https://aiplatform.googleapis.com/v1/projects/${GOOGLE_API_KEY.split('-')[0]}/locations/us-central1/publishers/google/models/imagen-3.0-generate-001:predict`;
-  
-  // Map aspect ratio from Ideogram format to Google format
-  let aspectRatio = "1:1";
-  if (request.aspect_ratio === "ASPECT_1_1") aspectRatio = "1:1";
-  else if (request.aspect_ratio === "ASPECT_16_9") aspectRatio = "16:9";
-  else if (request.aspect_ratio === "ASPECT_9_16") aspectRatio = "9:16";
-  else if (request.aspect_ratio === "ASPECT_10_16") aspectRatio = "9:16"; // closest match
-  else if (request.aspect_ratio === "ASPECT_16_10") aspectRatio = "16:9"; // closest match
-  
-  // Build prompt with style and negative
-  let finalPrompt = request.prompt;
-  if (request.style_type) {
-    const styleMap: { [key: string]: string } = {
-      'REALISTIC': 'realistic photography style',
-      'DESIGN': 'clean design style',
-      'RENDER_3D': '3D rendered style',
-      'ANIME': 'anime illustration style'
-    };
-    const stylePrefix = styleMap[request.style_type] || request.style_type.toLowerCase() + ' style';
-    finalPrompt = `${stylePrefix}, ${finalPrompt}`;
-  }
-  
-  if (request.negative_prompt) {
-    finalPrompt += `. Avoid: ${request.negative_prompt}`;
-  }
-
-  const payload = {
-    instances: [{
-      prompt: finalPrompt,
-      aspect_ratio: aspectRatio,
-      safety_filter_level: "block_some",
-      person_generation: "dont_allow"
-    }],
-    parameters: {
-      sampleCount: 1
-    }
-  };
-
-  console.log('Calling Google Images API with payload:', JSON.stringify(payload, null, 2));
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GOOGLE_API_KEY}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Google Images API error:', response.status, errorText);
-    throw new Error(`Google Images API error: ${response.status} - ${errorText}`);
-  }
-
-  const data: ImagenResponse = await response.json();
-  console.log('Google Images API response received');
-  
-  if (!data.predictions || data.predictions.length === 0) {
-    throw new Error('No images returned from Google Images API');
-  }
-
-  return data.predictions.map(prediction => prediction.bytesBase64Encoded);
+  // Google Imagen 3 requires proper OAuth setup which is complex for this edge function
+  // For now, we'll disable Google Imagen and rely on Ideogram
+  throw new Error('Google Imagen API is not properly configured - falling back to Ideogram');
 }
 
 serve(async (req) => {

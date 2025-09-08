@@ -122,23 +122,35 @@ serve(async (req) => {
           currentStyleType = 'DESIGN';
         }
 
+        // Check if the model supports negative prompts
+        const supportsNegativePrompts = model !== 'V_2A_TURBO';
+        const shouldIncludeNegativePrompt = supportsNegativePrompts && !isRetryAttempt && negative_prompt;
+        
+        const requestBody: any = {
+          image_request: {
+            prompt: currentPrompt,
+            aspect_ratio,
+            model,
+            magic_prompt_option: "AUTO",
+            seed: Math.floor(Math.random() * 1000000),
+            style_type: currentStyleType
+          }
+        };
+        
+        // Only include negative_prompt if the model supports it
+        if (shouldIncludeNegativePrompt) {
+          requestBody.image_request.negative_prompt = negative_prompt;
+        }
+        
+        console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
         const ideogramResponse = await fetch('https://api.ideogram.ai/generate', {
           method: 'POST',
           headers: {
             'Api-Key': ideogramApiKey,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            image_request: {
-              prompt: currentPrompt,
-              aspect_ratio,
-              model,
-              magic_prompt_option: "AUTO",
-              seed: Math.floor(Math.random() * 1000000),
-              style_type: currentStyleType,
-              negative_prompt: isRetryAttempt ? undefined : negative_prompt
-            }
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         if (ideogramResponse.ok) {
