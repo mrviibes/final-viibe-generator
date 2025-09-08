@@ -107,24 +107,22 @@ serve(async (req) => {
       const resolution = resolutionMap[aspect_ratio] || '1024x1024';
       const seed = Math.floor(Math.random() * 1000000);
       
-      // V3 API requires JSON payload, not FormData
-      const requestBody = {
-        prompt: prompt,
-        resolution: resolution,
-        seed: seed
-      };
+      // V3 API requires multipart/form-data - use FormData with V3 endpoint
+      const formData = new FormData();
+      formData.append('prompt', prompt);
+      formData.append('resolution', resolution);
+      formData.append('seed', seed.toString());
       
-      console.log('V3 Request Body:', requestBody);
+      console.log('V3 FormData:', { prompt, resolution, seed });
       
-      // Use correct V3 endpoint with JSON payload
-      const ideogramResponse = await fetch('https://api.ideogram.ai/generate', {
+      // Use correct V3 endpoint - /generate-v3 expects multipart form data
+      const ideogramResponse = await fetch('https://api.ideogram.ai/generate-v3', {
         method: 'POST',
         headers: {
           'Api-Key': ideogramApiKey,
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: formData,
       });
 
       if (!ideogramResponse.ok) {
