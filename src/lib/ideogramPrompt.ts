@@ -4,11 +4,8 @@ import { normalizeTypography } from './textUtils';
 export function buildIdeogramPrompt(handoff: IdeogramHandoff, cleanBackground: boolean = false): string {
   const parts: string[] = [];
   
-  // Simple text handling - just add the text if present
-  if (handoff.key_line && handoff.key_line.trim()) {
-    const normalizedText = normalizeTypography(handoff.key_line);
-    parts.push(`Text: "${normalizedText}"`);
-  }
+  // REMOVED: No longer inject text into image prompt to prevent baked-in text
+  // Text will be overlaid separately to ensure clean backgrounds
   
   // Add basic visual elements if present
   if (handoff.visual_style) {
@@ -27,9 +24,14 @@ export function buildIdeogramPrompt(handoff: IdeogramHandoff, cleanBackground: b
     parts.push(`Visual tags: ${handoff.visual_tags_csv}`);
   }
   
-  // Simple background instruction
+  // Background-only instruction for clean overlay text
   const background = handoff.rec_background || handoff.chosen_visual || "appropriate background";
   parts.push(`Background: ${background}`);
+  
+  // Always append "no text" when finalText is present to ensure background-only
+  if (handoff.key_line && handoff.key_line.trim()) {
+    parts.push("no text, no words, no letters");
+  }
   
   return parts.join('. ');
 }

@@ -108,7 +108,7 @@ serve(async (req) => {
             magic_prompt_option: "AUTO",
             seed: Math.floor(Math.random() * 1000000),
             style_type,
-            negative_prompt
+            negative_prompt: negative_prompt || "text, words, letters, typography, signs, writing, captions"
           }
         }),
       });

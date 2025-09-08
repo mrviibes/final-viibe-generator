@@ -4988,6 +4988,16 @@ const Index = () => {
 
       // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
       let prompt = directPrompt.trim();
+      
+      // Sanitize direct prompt to remove text-generating terms
+      if (prompt) {
+        prompt = prompt.replace(/(text|caption|words|letters|typography|signage|watermark|logo)/gi, 'design');
+        // If we have finalText to overlay, ensure background-only generation
+        if (finalText && finalText.trim()) {
+          prompt += ", no text, no words, no letters, background only";
+        }
+      }
+      
       if (!prompt && selectedRecommendation !== null && visualRecommendations) {
         prompt = visualRecommendations.options[selectedRecommendation].prompt;
       }
@@ -5021,7 +5031,8 @@ const Index = () => {
         aspect_ratio: aspectForIdeogram,
         model: modelForIdeogram,
         magic_prompt_option: 'AUTO',
-        style_type: styleForIdeogram
+        style_type: styleForIdeogram,
+        negative_prompt: "text, words, letters, typography, signs, writing, captions"
       });
       if (response.data && response.data.length > 0) {
         setGeneratedImageUrl(response.data[0].url);
@@ -6699,6 +6710,16 @@ const Index = () => {
 
                 // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
                 let prompt = directPrompt.trim();
+                
+                // Sanitize direct prompt to remove text-generating terms
+                if (prompt) {
+                  prompt = prompt.replace(/(text|caption|words|letters|typography|signage|watermark|logo)/gi, 'design');
+                  // If we have finalText to overlay, ensure background-only generation
+                  if (finalText && finalText.trim()) {
+                    prompt += ", no text, no words, no letters, background only";
+                  }
+                }
+                
                 if (!prompt && selectedRecommendation !== null && visualRecommendations) {
                   prompt = visualRecommendations.options[selectedRecommendation].prompt;
                 }
