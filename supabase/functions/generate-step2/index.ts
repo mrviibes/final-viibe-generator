@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Updated system prompt with strict tag rules and hard character limit
+// Updated system prompt with occasion throttle and optional anchors
 const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY valid JSON:
 {
   "lines": [
@@ -31,9 +31,11 @@ TAG HANDLING (STRICTLY ENFORCED):
 • Do not skip tags in more than 1 line
 • Natural integration, not forced cramming
 
-CATEGORY & SUBCATEGORY:
-• Subcategory drives anchors (Birthday → cake, candles, balloons, confetti, gifts)
-• At least 1 anchor word in every line when anchors available
+OCCASION THROTTLE (CRITICAL):
+• Props/anchors are context, not punchlines - use sparingly
+• MAXIMUM one explicit occasion mention across all 4 lines
+• Avoid repetitive occasion words (birthday, cake, candles, etc.)
+• Focus on wit, roast, or sentiment over occasion details
 
 TONE CONSISTENCY:
 • Respect the chosen tone as the base:
@@ -81,9 +83,10 @@ TAG HANDLING (STRICTLY ENFORCED):
 • Do not skip tags in more than 1 line
 • Natural integration, not forced cramming
 
-CATEGORY & SUBCATEGORY:
-• Do NOT force props or scene objects for this subcategory
-• Focus on the concept/theme instead
+OCCASION THROTTLE (CRITICAL):
+• MAXIMUM one explicit occasion mention across all 4 lines
+• Avoid repetitive occasion words based on category/subcategory
+• Focus on wit, roast, or sentiment over occasion details
 
 TONE CONSISTENCY:
 • Respect the chosen tone as the base:
@@ -226,7 +229,7 @@ function generateSavageFallback(inputs: any): any {
   };
 }
 
-// Enhanced user message construction
+// Enhanced user message construction with occasion throttle
 function buildUserMessage(inputs: any): string {
   const { category, subcategory, tone, tags = [] } = inputs;
   
@@ -234,10 +237,6 @@ function buildUserMessage(inputs: any): string {
 Subcategory: ${subcategory}
 Tone: ${tone}`;
 
-  // Get category-specific anchors
-  const ctxKey = `${category.toLowerCase()}.${subcategory.toLowerCase()}`;
-  const anchors = ANCHORS[ctxKey] || [];
-  
   // Include tags if provided
   if (tags.length > 0) {
     message += `\nTAGS (may be empty): ${tags.join(", ")}`;
@@ -245,9 +244,23 @@ Tone: ${tone}`;
     message += `\nTAGS (may be empty): `;
   }
   
-  // Only include anchors if they exist for this category/subcategory
+  // Get category-specific anchors and mark as optional
+  const ctxKey = `${category.toLowerCase()}.${subcategory.toLowerCase()}`;
+  const anchors = ANCHORS[ctxKey] || [];
+  
   if (anchors.length > 0) {
-    message += `\nANCHORS (use ≥1 per line): ${anchors.join(", ")}`;
+    message += `\nOPTIONAL ANCHORS (use sparingly): ${anchors.join(", ")}`;
+  }
+  
+  // Add occasion throttle guidance based on category/subcategory tokens
+  const occasionTokens = [
+    category.toLowerCase(),
+    subcategory.toLowerCase(),
+    ...anchors
+  ].filter((token, index, arr) => arr.indexOf(token) === index); // dedupe
+  
+  if (occasionTokens.length > 0) {
+    message += `\nAVOID DIRECT MENTIONS: Limit explicit use of: ${occasionTokens.join(", ")} - max 1 mention total across all 4 lines`;
   }
   
   return message;
@@ -353,28 +366,25 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       }
     }
     
-    // Anchor enforcement (only if anchors exist for this category)
+    // Occasion throttle enforcement - count lines with occasion tokens
     const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
     const anchors = ANCHORS[ctxKey] || [];
+    const occasionTokens = [
+      inputs.category?.toLowerCase(),
+      inputs.subcategory?.toLowerCase(),
+      ...anchors
+    ].filter((token, index, arr) => arr.indexOf(token) === index && token); // dedupe and filter falsy
     
-    if (anchors.length > 0) {
-      processedLines.forEach((line, index) => {
-        const hasAnchor = anchors.some(anchor => 
-          line.text.toLowerCase().includes(anchor.toLowerCase())
-        );
-        
-        if (!hasAnchor) {
-          const anchor = anchors[index % anchors.length];
-          const anchorPhrase = ` with ${anchor}`;
-          const newText = line.text.replace(/\.$/, `${anchorPhrase}.`);
-          
-          // Only apply if it doesn't exceed 70 chars
-          if (newText.length <= 70) {
-            line.text = newText;
-            repairs.push(`Line ${index + 1}: Added anchor "${anchor}"`);
-          }
-        }
-      });
+    if (occasionTokens.length > 0) {
+      const linesWithOccasionTokens = processedLines.filter(line => 
+        occasionTokens.some(token => 
+          line.text.toLowerCase().includes(token.toLowerCase())
+        )
+      );
+      
+      if (linesWithOccasionTokens.length > 1) {
+        errors.push(`Too many occasion mentions - max 1 allowed, found ${linesWithOccasionTokens.length} lines with: ${occasionTokens.join(", ")}`);
+      }
     }
     
     // Check banned phrases (excluding user tags)
