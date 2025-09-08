@@ -5,7 +5,7 @@ export interface Step4Payload {
   text: string;
   style_type: 'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME';
   aspect_ratio: 'ASPECT_10_16' | 'ASPECT_16_10' | 'ASPECT_9_16' | 'ASPECT_16_9' | 'ASPECT_3_2' | 'ASPECT_2_3' | 'ASPECT_4_3' | 'ASPECT_3_4' | 'ASPECT_1_1' | 'ASPECT_1_3' | 'ASPECT_3_1';
-  model: 'V_2A_TURBO';
+  model: 'V_2A_TURBO' | 'V_3';
   layout_token: string;
   magic_prompt_option: 'AUTO';
   negative_prompt?: string;
@@ -104,7 +104,7 @@ export interface Step4BuilderInput {
 }
 
 // Main Step-4 payload builder
-export function buildStep4Payload(input: Step4BuilderInput): Step4Payload {
+export function buildStep4Payload(input: Step4BuilderInput, model?: 'V_2A_TURBO' | 'V_3'): Step4Payload {
   const layoutToken = mapLayoutToStep4(input.layoutId);
   const prompt = buildLayoutAwarePrompt(layoutToken, input.chosenVisual || '', input.visualTags);
   const autoNegativePrompt = buildNegativePrompt(layoutToken);
@@ -114,7 +114,7 @@ export function buildStep4Payload(input: Step4BuilderInput): Step4Payload {
     text: validateText(input.finalText),
     style_type: mapStyleToStep4(input.visualStyle),
     aspect_ratio: mapAspectRatioToStep4(input.aspectRatio),
-    model: 'V_2A_TURBO',
+    model: model || 'V_2A_TURBO',
     layout_token: layoutToken,
     magic_prompt_option: 'AUTO',
     negative_prompt: input.negativePrompt || autoNegativePrompt || undefined

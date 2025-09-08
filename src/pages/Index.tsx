@@ -20,7 +20,7 @@ import { TextLayoutSelector } from "@/components/TextLayoutSelector";
 import { useNavigate } from "react-router-dom";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
 import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
-import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
+import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings, getIdeogramModel, setIdeogramModel } from "@/lib/ideogramApi";
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { buildStep4Payload, type Step4BuilderInput } from "@/lib/step4Payload";
 import { useToast } from "@/hooks/use-toast";
@@ -5011,7 +5011,18 @@ const Index = () => {
           negativePrompt: visualRecommendations?.negativePrompt
         };
         
-        const step4Payload = buildStep4Payload(step4Input);
+        // Get selected model for Step4 payload
+        const urlParams = new URLSearchParams(window.location.search);
+        let selectedModel: 'V_2A_TURBO' | 'V_3' = 'V_2A_TURBO';
+        
+        if (urlParams.get('v3') === '1' || urlParams.get('ideogram') === 'v3') {
+          selectedModel = 'V_3';
+          setIdeogramModel('V_3');
+        } else {
+          selectedModel = getIdeogramModel();
+        }
+        
+        const step4Payload = buildStep4Payload(step4Input, selectedModel);
         prompt = step4Payload.prompt;
       } else {
         // Fallback to legacy method for barebones mode
@@ -5039,7 +5050,18 @@ const Index = () => {
           negativePrompt: visualRecommendations?.negativePrompt
         };
         
-        const step4Payload = buildStep4Payload(step4Input);
+        // Get selected model for Step4 payload
+        const urlParams = new URLSearchParams(window.location.search);
+        let selectedModel: 'V_2A_TURBO' | 'V_3' = 'V_2A_TURBO';
+        
+        if (urlParams.get('v3') === '1' || urlParams.get('ideogram') === 'v3') {
+          selectedModel = 'V_3';
+          setIdeogramModel('V_3');
+        } else {
+          selectedModel = getIdeogramModel();
+        }
+        
+        const step4Payload = buildStep4Payload(step4Input, selectedModel);
         aspectForIdeogram = step4Payload.aspect_ratio;
         styleForIdeogram = step4Payload.style_type;
         negativePrompt = step4Payload.negative_prompt || "no background text, no signage, no watermarks, no logos, no typography";
@@ -5078,7 +5100,20 @@ const Index = () => {
       
       try {
         console.log('🚀 Generating image with Ideogram API...');
-        const modelForIdeogram = 'V_2A_TURBO';
+        
+        // Dynamic model selection: URL params > localStorage > default
+        const urlParams = new URLSearchParams(window.location.search);
+        let modelForIdeogram: 'V_2A_TURBO' | 'V_3' = 'V_2A_TURBO';
+        
+        if (urlParams.get('v3') === '1' || urlParams.get('ideogram') === 'v3') {
+          modelForIdeogram = 'V_3';
+          setIdeogramModel('V_3');
+        } else {
+          modelForIdeogram = getIdeogramModel();
+        }
+        
+        console.log(`🤖 Using Ideogram model: ${modelForIdeogram}`);
+        
         const ideogramResponse = await generateIdeogramImage({
           prompt,
           aspect_ratio: aspectForIdeogram,

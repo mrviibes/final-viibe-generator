@@ -84,6 +84,16 @@ export function getProxySettings(): ProxySettings {
   return proxySettings;
 }
 
+// Model management for V3 testing
+export function setIdeogramModel(model: 'V_2A_TURBO' | 'V_3') {
+  localStorage.setItem('ideogram_model', model);
+}
+
+export function getIdeogramModel(): 'V_2A_TURBO' | 'V_3' {
+  const stored = localStorage.getItem('ideogram_model');
+  return (stored === 'V_3') ? 'V_3' : 'V_2A_TURBO';
+}
+
 export async function testProxyConnection(proxyType: ProxySettings['type']): Promise<boolean> {
   try {
     const testUrls: Record<ProxySettings['type'], string> = {
