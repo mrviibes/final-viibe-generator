@@ -15,15 +15,15 @@ export interface Step4Payload {
 export function mapStyleToStep4(visualStyle: string): Step4Payload['style_type'] {
   const styleMap: Record<string, Step4Payload['style_type']> = {
     'realistic': 'REALISTIC',
-    'caricature': 'DESIGN', // Ideogram limitation
+    'caricature': 'DESIGN',
     'anime': 'ANIME',
     '3d animated': 'RENDER_3D',
-    'illustrated': 'DESIGN', // Ideogram limitation
-    'pop art': 'DESIGN', // Ideogram limitation
+    'illustrated': 'DESIGN',
+    'pop art': 'DESIGN',
     'general': 'GENERAL'
   };
   
-  return styleMap[visualStyle?.toLowerCase()] || 'AUTO';
+  return styleMap[visualStyle?.toLowerCase()] || 'REALISTIC';
 }
 
 // Aspect ratio mapping for Step-4 payload
@@ -58,12 +58,12 @@ function buildLayoutAwarePrompt(layoutToken: string, chosenVisual: string, visua
   const basePrompt = chosenVisual || 'family living room with cozy atmosphere';
   
   const layoutPrompts: Record<string, string> = {
-    'side_bar_left': `${basePrompt}, clear left panel (30-35% width), shift subject right`,
-    'lower_third': `${basePrompt}, leave bottom 25% completely clear and uncluttered for text banner`,
-    'meme_top_bottom': `${basePrompt}, clear top band and clear bottom band`,
-    'subtle_caption': `${basePrompt}, clear narrow bottom strip`,
-    'badge_sticker': `${basePrompt}, badge space top-right`,
-    'negative_space': `${basePrompt}, clear empty area near largest margin`
+    'side_bar_left': `${basePrompt}, clear left panel`,
+    'lower_third': `${basePrompt}, clear lower third`,
+    'meme_top_bottom': `${basePrompt}, clear top and bottom`,
+    'subtle_caption': `${basePrompt}, clear bottom strip`,
+    'badge_sticker': `${basePrompt}, clear top right corner`,
+    'negative_space': `${basePrompt}, clear background space`
   };
   
   let finalPrompt = layoutPrompts[layoutToken] || layoutPrompts['negative_space'];
@@ -76,14 +76,8 @@ function buildLayoutAwarePrompt(layoutToken: string, chosenVisual: string, visua
   return finalPrompt;
 }
 
-// Auto-generate negative prompt for overlay layouts
+// V_2A_TURBO ignores negative prompts, so we no longer auto-generate them
 function buildNegativePrompt(layoutToken: string): string {
-  const overlayLayouts = ['side_bar_left', 'lower_third', 'meme_top_bottom', 'subtle_caption', 'badge_sticker'];
-  
-  if (overlayLayouts.includes(layoutToken)) {
-    return 'text, letters, words, captions, labels, writing, typography, subtitles';
-  }
-  
   return '';
 }
 
