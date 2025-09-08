@@ -66,21 +66,68 @@ export function TextOverlay({ backgroundImageUrl, text, layoutSpec, onImageReady
       ? (parseFloat(zone.h) / 100) * canvasHeight 
       : zone.h;
 
-    // Apply padding
-    const padding = zone.padding ? parseFloat(zone.padding.replace('%', '')) / 100 : 0.05;
-    const paddingX = w * padding;
-    const paddingY = h * padding;
+    // Enhanced padding for better text fitting
+    const basePadding = zone.padding ? parseFloat(zone.padding.replace('%', '')) / 100 : 0.05;
+    // Extra padding for meme layouts to prevent edge cut-off
+    const extraPadding = zone.layout === 'memeTopBottom' ? 0.02 : 0;
+    const totalPadding = basePadding + extraPadding;
+    
+    const paddingX = w * totalPadding;
+    const paddingY = h * totalPadding;
     
     const textX = x + paddingX;
     const textY = y + paddingY;
     const textWidth = w - (2 * paddingX);
     const textHeight = h - (2 * paddingY);
 
-    // Calculate optimal font size
-    const maxFontSize = Math.min(textHeight * 0.6, textWidth * 0.1);
-    const fontSize = Math.max(16, Math.min(maxFontSize, 60));
+    // Dynamic font sizing with text wrapping consideration
+    const words = text.split(' ');
+    let fontSize = Math.min(textHeight * 0.5, textWidth * 0.08);
+    fontSize = Math.max(12, Math.min(fontSize, 80));
+    
+    // Test if text fits, if not, reduce font size or wrap
+    ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+    const metrics = ctx.measureText(text);
+    
+    if (metrics.width > textWidth) {
+      // Try word wrapping first
+      const lines = wrapText(ctx, text, textWidth);
+      if (lines.length > 1) {
+        // Multi-line text - adjust font size for line height
+        fontSize = Math.min(fontSize, textHeight / (lines.length * 1.2));
+        fontSize = Math.max(10, fontSize);
+        
+        // Draw multiple lines
+        ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = Math.max(1, fontSize / 20);
+        ctx.textAlign = zone.align === 'center' ? 'center' : 'left';
+        
+        const lineHeight = fontSize * 1.2;
+        const totalTextHeight = lines.length * lineHeight;
+        const startY = zone.valign === 'middle' 
+          ? textY + (textHeight - totalTextHeight) / 2 + fontSize
+          : textY + fontSize;
+        
+        lines.forEach((line, index) => {
+          const lineX = zone.align === 'center' ? textX + (textWidth / 2) : textX;
+          const lineY = startY + (index * lineHeight);
+          
+          if (zone.stroke) {
+            ctx.strokeText(line, lineX, lineY);
+          }
+          ctx.fillText(line, lineX, lineY);
+        });
+        return;
+      } else {
+        // Single line too wide - reduce font size
+        fontSize = (textWidth / metrics.width) * fontSize * 0.9;
+        fontSize = Math.max(8, fontSize);
+      }
+    }
 
-    // Set text styles
+    // Set final text styles
     ctx.font = `bold ${fontSize}px Arial, sans-serif`;
     ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = '#000000';
@@ -101,6 +148,31 @@ export function TextOverlay({ backgroundImageUrl, text, layoutSpec, onImageReady
       ctx.strokeText(displayText, finalX, finalY);
     }
     ctx.fillText(displayText, finalX, finalY);
+  };
+
+  // Helper function for text wrapping
+  const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+
+    for (const word of words) {
+      const testLine = currentLine + (currentLine ? ' ' : '') + word;
+      const metrics = ctx.measureText(testLine);
+      
+      if (metrics.width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+    
+    return lines;
   };
 
   const handleDownload = () => {

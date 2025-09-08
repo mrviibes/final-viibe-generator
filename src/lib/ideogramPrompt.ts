@@ -88,9 +88,16 @@ export function getStyleTypeForIdeogram(visualStyle: string): 'AUTO' | 'GENERAL'
     'cartoon': 'ANIME',
     'design': 'DESIGN',
     '3d': 'RENDER_3D',
+    '3d-animated': 'RENDER_3D',
+    '3d animated': 'RENDER_3D',
+    '3d design': 'RENDER_3D',
+    'render_3d': 'RENDER_3D',
     'general': 'GENERAL',
-    'pop-art': 'DESIGN'  // Fix: map pop-art to DESIGN
+    'pop-art': 'DESIGN'
   };
   
-  return styleMap[visualStyle?.toLowerCase()] || 'AUTO';
+  const normalizedStyle = visualStyle?.toLowerCase().trim() || '';
+  console.log(`🎨 Style mapping: "${visualStyle}" -> "${normalizedStyle}" -> "${styleMap[normalizedStyle] || 'REALISTIC'}"`);
+  
+  return styleMap[normalizedStyle] || 'REALISTIC';
 }
