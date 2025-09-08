@@ -6467,6 +6467,17 @@ const Index = () => {
                       </Button>
                       <p className="text-sm text-muted-foreground">This may take a few moments</p>
                     </div>
+                  ) : backgroundOnlyImageUrl && showTextOverlay ? (
+                    <TextOverlay 
+                      backgroundImageUrl={backgroundOnlyImageUrl}
+                      text={selectedGeneratedOption || stepTwoText || ""}
+                      layoutSpec={LAYOUTS[selectedTextLayout || 'negativeSpace']}
+                      onImageReady={(imageUrl) => {
+                        setGeneratedImageUrl(imageUrl);
+                        setShowTextOverlay(false);
+                        setBackgroundOnlyImageUrl(null);
+                      }}
+                    />
                   ) : generatedImageUrl ? <div className="max-w-full max-h-full">
                       <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
                     </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
