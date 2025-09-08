@@ -53,32 +53,37 @@ export function mapLayoutToStep4(layoutId: string): string {
   return layoutMap[layoutId] || 'negative_space';
 }
 
-// Layout-aware prompt builder (visual only, no text injection)
+// Layout-aware prompt builder (visual scene only, no text injection)
 function buildLayoutAwarePrompt(layoutToken: string, chosenVisual: string, visualTags?: string): string {
+  // Use only the visual scene description, no text overlay content
   const basePrompt = chosenVisual || 'family living room with cozy atmosphere';
   
   const layoutPrompts: Record<string, string> = {
     'side_bar_left': `${basePrompt}, clear left panel`,
     'lower_third': `${basePrompt}, clear lower third`,
-    'meme_top_bottom': `${basePrompt}, clear top and bottom`,
-    'subtle_caption': `${basePrompt}, clear bottom strip`,
-    'badge_sticker': `${basePrompt}, clear top right corner`,
-    'negative_space': `${basePrompt}, clear background space`
+    'meme_top_bottom': `${basePrompt}, clear top band, clear bottom band`,
+    'subtle_caption': `${basePrompt}, clear narrow bottom strip`,
+    'badge_sticker': `${basePrompt}, badge space top-right`,
+    'negative_space': `${basePrompt}, clear empty area near largest margin`
   };
   
   let finalPrompt = layoutPrompts[layoutToken] || layoutPrompts['negative_space'];
   
-  // Add visual tags if available
-  if (visualTags && visualTags !== "None") {
-    finalPrompt += `, ${visualTags}`;
+  // Add visual tags only (never text overlay content)
+  if (visualTags && visualTags !== "None" && !visualTags.toLowerCase().includes('text:')) {
+    // Filter out any text-related content from visual tags
+    const cleanVisualTags = visualTags.replace(/text:\s*[^,]+,?\s*/gi, '').trim();
+    if (cleanVisualTags) {
+      finalPrompt += `, ${cleanVisualTags}`;
+    }
   }
   
   return finalPrompt;
 }
 
-// V_2A_TURBO ignores negative prompts, so we no longer auto-generate them
+// Enhanced negative prompt to block unwanted text generation
 function buildNegativePrompt(layoutToken: string): string {
-  return '';
+  return 'no background text, no watermarks, no signage, no logos, no typography, no written words, no captions, no labels, no UI elements';
 }
 
 // Validate final text (≤70 chars, basic punctuation rules)
@@ -117,7 +122,7 @@ export function buildStep4Payload(input: Step4BuilderInput, model?: 'V_2A_TURBO'
     model: model || 'V_2A_TURBO',
     layout_token: layoutToken,
     magic_prompt_option: 'AUTO',
-    negative_prompt: input.negativePrompt || autoNegativePrompt || undefined
+    negative_prompt: input.negativePrompt || buildNegativePrompt(layoutToken) || undefined
   };
   
   // Log for debugging
