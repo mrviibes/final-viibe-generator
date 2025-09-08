@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Single stricter system prompt with length diversity and one-pause rules
+// Comedian-mode system prompt prioritizing humor over rules
 const SYSTEM_PROMPT = `Return ONLY JSON:
 {"lines":[
   {"lane":"option1","text":""},
@@ -18,16 +18,24 @@ const SYSTEM_PROMPT = `Return ONLY JSON:
 ]}
 
 Rules:
-- Tone = Savage. Roast comic energy, but fluent and natural.
-- One sentence per line. Use at most ONE pause (comma OR colon). No em-dash, no "--".
-- Length cap = 70 chars. Lengths must vary: 
-  * one ~40–50, one ~51–60, one ~61–70, and the 4th anywhere ≤70.
-- Subcategory anchors: Birthday = cake, candles, balloons, confetti, gifts, party hats.
-  Include ≥1 anchor in every line.
-- Tags (if provided): at least 3 of 4 lines must include ALL tags literally.
-  Place tags in different positions; do not change their wording.
-- Lines must be DISTINCT (different angles: props, audience, skill, absurdity).
-- Ban clichés ("another year", "best medicine", "truth hurts").
+- 4 unique one-liner jokes in JSON.
+- Length: 35–70 chars. Natural variation: one short, one medium, one long, one random.
+- Structure: one sentence each, max one comma OR one colon. No em-dash, no "--".
+- Tags: if provided → at least 3 of 4 lines must literally include all tags. Tags can be separated and placed anywhere.
+- Tone:
+  * Savage = like a roast comic (Comedy Central).
+  * Playful = like a cheeky sitcom gag.
+  * Humorous = like a dad joke/observational comic.
+  * Romantic = like a flirty one-liner.
+  * Sentimental = like a toast at a wedding.
+  * Nostalgic = like a "back in my day" storyteller.
+  * Inspirational = like a motivational comic.
+  * Serious = no joke, just plain.
+- Randomize the comic "voice":
+  Each line can sound like a different comedian — sarcastic, absurdist, deadpan, slapstick, sharp roast, etc.
+  (E.g. one could be Seinfeld-style observation, another Ricky Gervais roast, another Mitch Hedberg absurdism, another Joan Rivers savage glam-roast).
+- Props/anchors are optional seasoning, not mandatory. Use sparingly so jokes don't all feel the same.
+- Priority: humor first, JSON shape second. If forced, pick the funniest line.
 - Output only the JSON; no labels or commentary.`;
 
 // Category-specific anchor dictionaries
@@ -48,89 +56,87 @@ const BANNED_PHRASES = [
   "happy birthday to you", "many more", "best wishes"
 ];
 
-// Tone-aware fallback generator with proper length bands
+// Comedian-mode fallback generator
 function generateSavageFallback(inputs: any): any {
-  console.log("Using tone-aware fallback v5");
+  console.log("Using comedian-mode fallback");
   
   const { tags = [], tone = "Savage" } = inputs;
-  const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
-  const anchors = ANCHORS[ctxKey] || ["cake", "candles", "balloons", "confetti"];
   
-  // Tone-specific templates with proper length bands
+  // Target lengths: ~40, ~55, ~65, and one random 35–70
   let baseTemplates: string[] = [];
   
   if (tone.toLowerCase().includes("savage") || tone.toLowerCase().includes("humorous")) {
     if (tags.length > 0) {
-      const tagString = tags.join(" ");
+      const tagList = tags.join(", ");
       baseTemplates = [
-        `${tagString} cake looks sadder than your soul.`, // ~40 chars
-        `Your ${tagString} candles burn brighter than your future.`, // ~55 chars  
-        `${tagString} balloons have more lift than your career ever will.`, // ~65 chars
-        `This confetti has more purpose than you've shown in decades.` // ~68 chars
+        `${tags[0]} walked into this joke and left.`, // ~40 chars
+        `Your ${tags[0]} energy is giving ${tags[tags.length-1]} vibes.`, // ~55 chars  
+        `That ${tagList} combo hits different when you're this basic.`, // ~65 chars
+        `Honestly? ${tags[0]} deserves better than this mess.` // ~55 chars
       ];
     } else {
       baseTemplates = [
-        `Your cake looks utterly defeated.`, // ~33 chars
-        `Even the candles are questioning their life choices here.`, // ~57 chars
-        `Those balloons are deflating faster than your self-esteem.`, // ~59 chars
-        `This confetti has more sparkle than your entire personality.` // ~61 chars
+        `This party already peaked and left.`, // ~36 chars
+        `Even your cake is questioning its life choices here.`, // ~53 chars
+        `Those decorations are working harder than you ever have.`, // ~57 chars
+        `Confetti has more personality than this crowd.` // ~47 chars
       ];
     }
   } else if (tone.toLowerCase().includes("sentimental") || tone.toLowerCase().includes("romantic")) {
     if (tags.length > 0) {
-      const tagString = tags.join(" ");
+      const tagList = tags.join(", ");
       baseTemplates = [
-        `${tagString} cake brings warmth to every heart.`, // ~40 chars
-        `Your ${tagString} candles shine with beautiful memories ahead.`, // ~55 chars
-        `${tagString} balloons carry all our hopes and dreams skyward.`, // ~65 chars
-        `This confetti celebrates the amazing person you've become.` // ~68 chars
+        `${tags[0]} brings such warmth to my heart.`, // ~40 chars
+        `Every moment with ${tags[0]} feels like ${tags[tags.length-1]} magic.`, // ~60 chars
+        `This ${tagList} celebration reminds us what truly matters.`, // ~58 chars
+        `Sweet ${tags[0]} memories we'll treasure forever.` // ~48 chars
       ];
     } else {
       baseTemplates = [
-        `Your cake brings joy to everyone.`, // ~33 chars
-        `These candles illuminate the beautiful moments we cherish.`, // ~57 chars
-        `Those balloons lift our spirits high with celebration.`, // ~59 chars
-        `This confetti marks another year of wonderful memories.` // ~61 chars
+        `Every moment here feels so precious.`, // ~36 chars
+        `These memories will warm our hearts for years to come.`, // ~54 chars
+        `Such a beautiful celebration of all the love we share.`, // ~55 chars
+        `Grateful for these perfect moments together.` // ~44 chars
       ];
     }
-  } else { // Inspirational or other tones
+  } else { // Other tones - comedic variety
     if (tags.length > 0) {
-      const tagString = tags.join(" ");
+      const tagList = tags.join(", ");
       baseTemplates = [
-        `${tagString} cake represents sweet victories.`, // ~40 chars
-        `Your ${tagString} candles illuminate the path to greatness.`, // ~55 chars
-        `${tagString} balloons remind us that dreams can truly soar.`, // ~65 chars
-        `This confetti celebrates your incredible journey forward.` // ~68 chars
+        `${tags[0]} said what now?`, // ~20-30 chars (expand it)
+        `Apparently ${tags[0]} and ${tags[tags.length-1]} are a thing today.`, // ~60 chars
+        `This whole ${tagList} situation is peak entertainment honestly.`, // ~65 chars
+        `Plot twist: ${tags[0]} was the main character.` // ~47 chars
       ];
+      // Fix short first one
+      baseTemplates[0] = `Wait, ${tags[0]} said what exactly here?`; // ~38 chars
     } else {
       baseTemplates = [
-        `Your cake symbolizes sweet success.`, // ~33 chars
-        `These candles light the way to amazing achievements.`, // ~57 chars
-        `Those balloons remind us that anything is possible.`, // ~59 chars
-        `This confetti honors your incredible accomplishments.` // ~61 chars
+        `Well this escalated quickly somehow.`, // ~37 chars
+        `Plot twist nobody saw coming but here we absolutely are.`, // ~57 chars
+        `The audacity of this entire situation is honestly impressive.`, // ~61 chars
+        `Main character energy is strong with this one.` // ~47 chars
       ];
     }
   }
   
-  // Ensure proper length bands: ~35-40, ~50-55, ~65-70, ~68-70
-  const targetBands = [[35, 40], [50, 55], [65, 70], [68, 70]];
-  const finalTemplates = baseTemplates.map((template, index) => {
-    const [minLen, maxLen] = targetBands[index];
-    let text = template;
+  // Ensure one pause max and clean up
+  const finalTemplates = baseTemplates.map((text, index) => {
+    let clean = onePause(text.trim());
     
-    // Expand if too short
-    if (text.length < minLen) {
-      const expansions = [" clearly", " obviously", " truly", " absolutely"];
-      const expansion = expansions[index % expansions.length];
-      text = text.replace(".", `${expansion}.`);
+    // Ensure it ends with punctuation
+    if (!/[.!?]$/.test(clean)) clean += ".";
+    
+    // Ensure length range 35-70
+    if (clean.length < 35) {
+      const expansions = [" obviously", " clearly", " honestly", " definitely"];
+      clean = clean.replace(".", `${expansions[index % expansions.length]}.`);
+    }
+    if (clean.length > 70) {
+      clean = clean.slice(0, 70).trim() + ".";
     }
     
-    // Verify final length
-    if (text.length > maxLen) {
-      console.error(`Fallback v5 template ${index + 1} exceeds max length: ${text.length} > ${maxLen}`);
-    }
-    
-    return text;
+    return clean;
   });
   
   return {
@@ -138,13 +144,12 @@ function generateSavageFallback(inputs: any): any {
       lane: `option${index + 1}`,
       text: text
     })),  
-    model: "tone-aware-fallback-v5",
+    model: "comedian-mode-fallback",
     validated: true,
-    reason: "tone_aware_fallback",
+    reason: "comedian_fallback",
     tone: tone,
     tags_used: tags.length > 0,
-    fallback_version: "v5",
-    lengths: finalTemplates.map(t => t.length)
+    fallback_version: "comedian-mode"
   };
 }
 
@@ -165,49 +170,43 @@ function onePause(s: string): string {
   return pauses > 1 ? t.replace(/([,:]).*([,:])/, '$1') : t; // keep first pause
 }
 
-function bucketLen(n: number): string {
-  if (n <= 50) return "A";
-  if (n <= 60) return "B"; 
-  if (n <= 70) return "C";
-  return "X";
-}
+// Helper functions for Light Validator
 
 function hasAllTags(text: string, tags: string[]): boolean {
   return (tags || []).every(t => text.toLowerCase().includes(String(t).toLowerCase()));
 }
 
-function validateAndFix(json: any, { tags = [], max = 70 }): { lines: any[] } {
+// Light Validator - comedian-mode focused on humor over rule checklist
+function validateAndFix(json: any, { tags = [], min = 35, max = 70 }): { lines: any[] } {
   if (!json?.lines || json.lines.length !== 4) {
     throw new Error("Need 4 lines");
   }
 
-  // clean punctuation + trim + cap
   const lines = json.lines.map((o: any) => {
     let x = onePause(String(o.text || "").trim());
     if (x.length > max) x = x.slice(0, max).trim();
-    // end with period if none
     if (!/[.!?]$/.test(x)) x += ".";
     return { ...o, text: x };
   });
 
-  // length diversity
-  const buckets = new Set(lines.map(l => bucketLen(l.text.length)));
-  if (!(buckets.has("A") && buckets.has("B") && buckets.has("C"))) {
-    throw new Error("Lengths must cover ~40–50, ~51–60, ~61–70");
+  // length range check
+  const badLen = lines.find(l => l.text.length < min || l.text.length > max);
+  if (badLen) {
+    throw new Error(`Each line must be between ${min}–${max} characters`);
   }
 
-  // tag rule: 3/4 lines must contain all tags (if tags exist)
+  // one-pause max
+  const badPause = lines.find(l => (l.text.match(/[,:]/g) || []).length > 1);
+  if (badPause) {
+    throw new Error("Only one comma or colon allowed per line");
+  }
+
+  // tag rule
   if (tags.length) {
     const ok = lines.filter(l => hasAllTags(l.text, tags)).length;
     if (ok < 3) {
       throw new Error("At least 3 lines must include all tags literally");
     }
-  }
-
-  // one pause max
-  const bad = lines.find(l => (l.text.match(/[,:]/g) || []).length > 1);
-  if (bad) {
-    throw new Error("Only one comma or colon allowed per line");
   }
 
   return { lines };
