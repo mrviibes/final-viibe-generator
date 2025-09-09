@@ -41,6 +41,7 @@ SPARTAN HOUSE RULES (NON-NEGOTIABLE):
 • No clichés or filler phrases
 • Options 1-3: Max ONE pause (comma OR colon), Option 4: Max TWO pauses
 • Clean sentences, not fragments
+• No dangling endings (and, or, the, with, etc.)
 
 BANNED WORDS (never use):
 can, may, just, really, literally, actually, probably, basically, maybe, utilize, moreover, additionally, furthermore, overall, ultimately, "in conclusion", "at the end of the day", "here's how", "let's explore"
@@ -89,6 +90,7 @@ SPARTAN HOUSE RULES (NON-NEGOTIABLE):
 • No clichés or filler phrases  
 • Options 1-3: Max ONE pause (comma OR colon), Option 4: Max TWO pauses
 • Clean sentences, not fragments
+• No dangling endings (and, or, the, with, etc.)
 
 BANNED WORDS (never use):
 can, may, just, really, literally, actually, probably, basically, maybe, utilize, moreover, additionally, furthermore, overall, ultimately, "in conclusion", "at the end of the day", "here's how", "let's explore"
@@ -305,6 +307,14 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       const maxPauses = index === 3 ? 2 : 1; // Option 4 gets 2, others get 1
       if (pauseCount > maxPauses) {
         errors.push(`Option ${index + 1}: Too many pauses (${pauseCount}) - max ${maxPauses} comma${maxPauses > 1 ? 's' : ''} OR colon${maxPauses > 1 ? 's' : ''} per line`);
+      }
+    });
+    
+    // Dangling endings check
+    processedLines.forEach((line, index) => {
+      const danglingPattern = /\b(and|or|but|the|a|an|in|on|at|to|for|of|with|by|from|up|about|into|through|during|before|after|above|below|between|among|since|until|while|where|when|why|how|if|because|although|though|unless|whether|that|which|who|whom|whose|this|these|those)[,:.]?\s*$/i;
+      if (danglingPattern.test(line.text)) {
+        errors.push(`Option ${index + 1}: Dangling ending detected - line ends with connector/preposition/article`);
       }
     });
     

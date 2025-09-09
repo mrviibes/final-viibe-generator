@@ -145,11 +145,18 @@ function gentleAutoFix(text: string, lane?: string): string {
       // Otherwise, hard truncate
       fixed = truncated;
     }
-    
-    // Ensure it ends with proper punctuation
-    if (!/[.!?]$/.test(fixed)) {
-      fixed += '.';
-    }
+  }
+  
+  // Remove dangling endings (trailing punctuation and connector words)
+  fixed = fixed.replace(/[,:]+$/, ''); // Remove trailing commas/colons
+  
+  // Remove dangling connector words, prepositions, and articles at the end
+  const danglingWords = /\b(and|or|but|the|a|an|in|on|at|to|for|of|with|by|from|up|about|into|through|during|before|after|above|below|between|among|since|until|while|where|when|why|how|if|because|although|though|unless|whether|that|which|who|whom|whose|this|these|those)\s*$/i;
+  fixed = fixed.replace(danglingWords, '').trim();
+  
+  // Ensure it ends with proper punctuation
+  if (!/[.!?]$/.test(fixed)) {
+    fixed += '.';
   }
   
   return fixed;
