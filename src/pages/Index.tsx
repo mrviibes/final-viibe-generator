@@ -4512,8 +4512,8 @@ const Index = () => {
       if (selectedVisualIndex !== null && visualOptions[selectedVisualIndex]) {
         // Show selected option
         const option = visualOptions[selectedVisualIndex];
-        const optionTitle = `Selected: Option ${selectedVisualIndex + 1} (${option.slot?.replace('-', ' ') || 'Visual'})`;
-        const compactDescription = `${option.subject} - ${option.background}`;
+        const optionTitle = `Selected: Option ${selectedVisualIndex + 1}`;
+        const compactDescription = cleanForDisplay(option.subject);
         selections.push({
           title: optionTitle,
           subtitle: compactDescription,
@@ -6251,7 +6251,7 @@ const Index = () => {
                               </CardHeader>
                               <CardContent className="pt-0">
                                 <p className="text-sm text-muted-foreground line-clamp-2">
-                                  {cleanForDisplay(option.subject)} - {cleanForDisplay(option.background)}
+                                  {cleanForDisplay(option.subject)}
                                 </p>
                               </CardContent>
                             </Card>)}
