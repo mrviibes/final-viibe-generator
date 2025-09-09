@@ -5216,20 +5216,6 @@ const Index = () => {
   };
   return <div className="min-h-screen bg-background py-12 px-4 pb-32">
       <div className="max-w-6xl mx-auto">
-        {/* AI Status Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-3">
-            <Badge variant={barebonesMode ? "secondary" : "default"} className="text-sm">
-              AI: {barebonesMode ? "OFF (Barebones)" : "Connected"}
-            </Badge>
-            {!barebonesMode && (
-              <Badge variant="outline" className="text-xs">
-                GPT-4o + Ideogram V3
-              </Badge>
-            )}
-          </div>
-          
-        </div>
         
         {/* Step Progress Header */}
         <StepProgress currentStep={currentStep} />
