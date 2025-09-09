@@ -6218,7 +6218,8 @@ const Index = () => {
                       </div>}
 
                      {/* Visual AI recommendations - always show if available */}
-                     {selectedSubjectOption === "ai-assist" && visualOptions.length > 0 && selectedVisualIndex === null && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      {selectedSubjectOption === "ai-assist" && visualOptions.length > 0 && selectedVisualIndex === null && (
+                        <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                          <div className="text-center mb-6">
                              <div className="flex items-center justify-center gap-3 mb-2">
                                <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
@@ -6238,43 +6239,47 @@ const Index = () => {
                           </div>
                         
                          <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
-                           {visualOptions.map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50" onClick={() => {
-                   setSelectedVisualIndex(index);
-                   setShowSubjectTagEditor(false); 
-                 }}>
-                               <CardHeader className="pb-2">
-                                 <CardTitle className="text-base font-semibold text-card-foreground flex items-center justify-between">
-                                   <span>Option {index + 1}</span>
-                                   <Button
-                                     variant="outline" 
-                                     size="sm"
-                                     className="text-xs h-6 px-2"
-                                     onClick={async (e) => {
-                                       e.stopPropagation();
-                                       try {
-                                         await navigator.clipboard.writeText(option.prompt);
-                                         sonnerToast.success('Exact prompt copied');
-                                       } catch (err) {
-                                         sonnerToast.error('Failed to copy');
-                                       }
-                                     }}
-                                   >
-                                     Copy prompt
-                                   </Button>
-                                 </CardTitle>
-                               </CardHeader>
-                               <CardContent className="pt-0">
-                                 <p className="text-sm text-muted-foreground line-clamp-2">
-                                   {cleanForDisplay(option.subject)}
-                                 </p>
-                               </CardContent>
-                             </Card>)}
+                            {visualOptions.map((option, index) => (
+                              <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50" onClick={() => {
+                                setSelectedVisualIndex(index);
+                                setShowSubjectTagEditor(false); 
+                              }}>
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-base font-semibold text-card-foreground flex items-center justify-between">
+                                    <span>Option {index + 1}</span>
+                                    <Button
+                                      variant="outline" 
+                                      size="sm"
+                                      className="text-xs h-6 px-2"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                          await navigator.clipboard.writeText(option.prompt);
+                                          sonnerToast.success('Exact prompt copied');
+                                        } catch (err) {
+                                          sonnerToast.error('Failed to copy');
+                                        }
+                                      }}
+                                    >
+                                      Copy prompt
+                                    </Button>
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-0">
+                                  <p className="text-sm text-muted-foreground line-clamp-2">
+                                    {cleanForDisplay(option.subject)}
+                                  </p>
+                                </CardContent>
+                              </Card>
+                            ))}
                          </div>
                         </div>
-                      </div>}
+                       </div>
+                      )}
 
                     {/* Dimensions Selection - Show when AI assist visual is selected */}
-                    {selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                     {selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null && (
+                       <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-6">
                           <p className="text-xl text-muted-foreground">Choose your dimensions</p>
                         </div>
@@ -6463,11 +6468,10 @@ const Index = () => {
                                 <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
                               </div>
                             </div>
-                          </div>}
-                      </div>}
-                  </div>}
-              </div>)}
-          </>}
+                           </div>}
+                       </div>}
+                   </div>}
+               </>}
 
         {currentStep === 4 && <>
             <div className="text-center mb-8">
@@ -6922,7 +6926,8 @@ const Index = () => {
               </Button>
             </div>
           </div>
-        )}
+           </>
+         )}
 
         {/* API Key Dialog */}
         <ApiKeyDialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog} onApiKeySet={handleApiKeySet} />
