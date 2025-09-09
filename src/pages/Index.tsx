@@ -28,14 +28,32 @@ import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/li
 import { generateStep2Lines } from "@/lib/textGen";
 import { addTextOverlay, cleanupBlobUrl } from "@/lib/textOverlay";
 
-// Layout mappings for display
+// Layout mappings with strengthened prompt tokens for better AI understanding
 const layoutMappings = {
-  negativeSpace: { label: "Negative Space", token: "clear empty area near largest margin" },
-  memeTopBottom: { label: "Meme Top/Bottom", token: "clear top band, clear bottom band" },
-  lowerThird: { label: "Lower Third Banner", token: "clear lower third" },
-  sideBarLeft: { label: "Side Bar (Left)", token: "clear left panel" },
-  badgeSticker: { label: "Badge/Sticker Callout", token: "badge space top-right" },
-  subtleCaption: { label: "Subtle Caption", token: "clear narrow bottom strip" }
+  negativeSpace: { 
+    label: "Negative Space", 
+    token: "subject off-center, large empty negative space on one side, clear open area for overlay text, asymmetrical composition with prominent empty space" 
+  },
+  memeTopBottom: { 
+    label: "Meme Top/Bottom", 
+    token: "clear horizontal bands at top and bottom edges, wide letterbox format, prominent empty text areas above and below main subject" 
+  },
+  lowerThird: { 
+    label: "Lower Third Banner", 
+    token: "clear horizontal stripe across bottom third, news broadcast style, empty banner space in lower portion, subject above the lower third area" 
+  },
+  sideBarLeft: { 
+    label: "Side Bar (Left)", 
+    token: "prominent empty vertical panel on left side, clear column space for text overlay, subject positioned right of center, sidebar composition" 
+  },
+  badgeSticker: { 
+    label: "Badge/Sticker Callout", 
+    token: "clear circular or oval space in top-right corner, badge placement area, sticker zone upper right, clean corner space for callout element" 
+  },
+  subtleCaption: { 
+    label: "Subtle Caption", 
+    token: "clean narrow horizontal strip at bottom edge, minimal caption space, thin text band at lower border, subtitle area bottom" 
+  }
 };
 
 // Visual variance enforcer to prevent duplicate/similar prompts
@@ -53,12 +71,12 @@ function ensureVisualVariance(
   }
 
   const layoutTokens = {
-    negativeSpace: ["clear empty area near largest margin"],
-    memeTopBottom: ["clear top band", "clear bottom band"],
-    lowerThird: ["clear lower third"],
-    sideBarLeft: ["clear left panel"],
-    badgeSticker: ["badge space top-right"],
-    subtleCaption: ["clear narrow bottom strip"]
+    negativeSpace: ["subject off-center", "large empty negative space", "clear open area for overlay text", "asymmetrical composition"],
+    memeTopBottom: ["clear horizontal bands", "letterbox format", "empty text areas above and below", "wide top and bottom margins"],
+    lowerThird: ["clear horizontal stripe across bottom third", "news broadcast style", "empty banner space in lower portion"],
+    sideBarLeft: ["prominent empty vertical panel on left", "clear column space", "sidebar composition", "subject positioned right"],
+    badgeSticker: ["clear circular space in top-right corner", "badge placement area", "sticker zone upper right", "clean corner space"],
+    subtleCaption: ["clean narrow horizontal strip at bottom", "minimal caption space", "thin text band at lower border"]
   };
 
   const requiredTokens = layoutTokens[layoutId as keyof typeof layoutTokens] || layoutTokens.negativeSpace;
@@ -145,12 +163,12 @@ function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: strin
   reasons: string[] 
 } {
   const layoutTokens = {
-    negativeSpace: ["clear empty area near largest margin"],
-    memeTopBottom: ["clear top band", "clear bottom band"], // both required
-    lowerThird: ["clear lower third"],
-    sideBarLeft: ["clear left panel"],
-    badgeSticker: ["badge space top-right"],
-    subtleCaption: ["clear narrow bottom strip"]
+    negativeSpace: ["subject off-center", "large empty negative space", "clear open area for overlay text", "asymmetrical composition"],
+    memeTopBottom: ["clear horizontal bands", "letterbox format", "empty text areas above and below", "wide top and bottom margins"], // both required
+    lowerThird: ["clear horizontal stripe across bottom third", "news broadcast style", "empty banner space in lower portion"],
+    sideBarLeft: ["prominent empty vertical panel on left", "clear column space", "sidebar composition", "subject positioned right"],
+    badgeSticker: ["clear circular space in top-right corner", "badge placement area", "sticker zone upper right", "clean corner space"],
+    subtleCaption: ["clean narrow horizontal strip at bottom", "minimal caption space", "thin text band at lower border"]
   };
 
   const requiredTokens = layoutTokens[layoutId as keyof typeof layoutTokens] || layoutTokens.negativeSpace;
