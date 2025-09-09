@@ -51,29 +51,6 @@ const layoutConfigs = {
     strokeWidth: 0,
     padding: 20
   },
-  sideBarLeft: {
-    position: 'left-panel',
-    fontSize: 28,
-    fontWeight: '500',
-    textAlign: 'left' as const,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    textColor: '#000000',
-    strokeColor: 'transparent',
-    strokeWidth: 0,
-    padding: 20
-  },
-  badgeSticker: {
-    position: 'top-right-badge',
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center' as const,
-    backgroundColor: '#ff6b6b',
-    textColor: '#ffffff',
-    strokeColor: 'transparent',
-    strokeWidth: 0,
-    borderRadius: 25,
-    padding: 15
-  },
   subtleCaption: {
     position: 'bottom-caption',
     fontSize: 20,

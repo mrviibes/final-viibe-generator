@@ -33,8 +33,6 @@ const layoutMappings = {
   negativeSpace: { label: "Negative Space", token: "clear empty area near largest margin" },
   memeTopBottom: { label: "Meme Top/Bottom", token: "clear top band, clear bottom band" },
   lowerThird: { label: "Lower Third Banner", token: "clear lower third" },
-  sideBarLeft: { label: "Side Bar (Left)", token: "clear left panel" },
-  badgeSticker: { label: "Badge/Sticker Callout", token: "badge space top-right" },
   subtleCaption: { label: "Subtle Caption", token: "clear narrow bottom strip" }
 };
 
@@ -56,8 +54,6 @@ function ensureVisualVariance(
     negativeSpace: ["clear empty area near largest margin"],
     memeTopBottom: ["clear top band", "clear bottom band"],
     lowerThird: ["clear lower third"],
-    sideBarLeft: ["clear left panel"],
-    badgeSticker: ["badge space top-right"],
     subtleCaption: ["clear narrow bottom strip"]
   };
 
@@ -148,8 +144,6 @@ function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: strin
     negativeSpace: ["clear empty area near largest margin"],
     memeTopBottom: ["clear top band", "clear bottom band"], // both required
     lowerThird: ["clear lower third"],
-    sideBarLeft: ["clear left panel"],
-    badgeSticker: ["badge space top-right"],
     subtleCaption: ["clear narrow bottom strip"]
   };
 
@@ -4227,6 +4221,15 @@ const Index = () => {
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
   const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
+
+  // Normalize legacy layout options
+  const normalizeLayoutId = (layoutId: string | null): string | null => {
+    if (!layoutId) return null;
+    if (layoutId === 'sideBarLeft' || layoutId === 'badgeSticker') {
+      return 'negativeSpace'; // Default fallback for removed options
+    }
+    return layoutId;
+  };
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
@@ -6115,8 +6118,6 @@ const Index = () => {
                             { id: "negativeSpace", name: "Negative Space" },
                             { id: "memeTopBottom", name: "Meme Top/Bottom" },
                             { id: "lowerThird", name: "Lower Third Banner" },
-                            { id: "sideBarLeft", name: "Side Bar (Left)" },
-                            { id: "badgeSticker", name: "Badge/Sticker Callout" },
                             { id: "subtleCaption", name: "Subtle Caption" }
                           ];
                           return layoutOptions.find(l => l.id === selectedTextLayout)?.name || selectedTextLayout;
