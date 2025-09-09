@@ -103,9 +103,26 @@ const FALLBACK_LINES: TextGenOutput = {
   ]
 };
 
+function gentleAutoFix(text: string): string {
+  return text
+    .trim() // Remove leading/trailing whitespace
+    .replace(/—/g, '-') // Replace em-dashes with hyphens
+    .replace(/--+/g, '-') // Replace multiple dashes with single dash
+    .substring(0, 70); // Hard cap at 70 characters
+}
+
+function parseModelResponse(modelString: string): { modelName: string; status: string | null } {
+  const parts = modelString.split(' (');
+  const modelName = parts[0];
+  const status = parts.length > 1 ? parts[1].replace(')', '') : null;
+  return { modelName, status };
+}
+
 export async function generateStep2Lines(inputs: TextGenInput): Promise<{
   lines: Array<{ lane: string; text: string }>;
   model: string;
+  modelName: string;
+  status: string | null;
 }> {
   try {
     console.log("Calling Supabase Edge Function for text generation");
@@ -118,19 +135,37 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
       console.error("Edge function error:", error);
       return {
         lines: FALLBACK_LINES.lines,
-        model: "fallback"
+        model: "fallback",
+        modelName: "fallback",
+        status: null
       };
     }
 
+    const { modelName, status } = parseModelResponse(data.model);
+    
+    // Apply gentle auto-fix for raw-unvalidated responses
+    let processedLines = data.lines;
+    if (status === 'raw-unvalidated') {
+      processedLines = data.lines.map(line => ({
+        ...line,
+        text: gentleAutoFix(line.text)
+      }));
+      console.log('🔧 Applied gentle auto-fix to raw-unvalidated lines');
+    }
+
     return {
-      lines: data.lines,
-      model: data.model
+      lines: processedLines,
+      model: data.model,
+      modelName,
+      status
     };
   } catch (error) {
     console.error("Text generation error:", error);
     return {
       lines: FALLBACK_LINES.lines,
-      model: "fallback"
+      model: "fallback",
+      modelName: "fallback",
+      status: null
     };
   }
 }
