@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -4246,6 +4246,13 @@ const Index = () => {
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
   const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
+  
+  // Safety check: Reset selectedTextLayout if it's one of the removed options
+  useEffect(() => {
+    if (selectedTextLayout === 'sideBarLeft' || selectedTextLayout === 'badgeSticker') {
+      setSelectedTextLayout(null);
+    }
+  }, [selectedTextLayout]);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
