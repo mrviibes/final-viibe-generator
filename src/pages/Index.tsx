@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X, Download } from "lucide-react";
@@ -4247,9 +4247,6 @@ const Index = () => {
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
   const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
-  const [textModelName, setTextModelName] = useState<string | null>(null);
-  const [textModelStatus, setTextModelStatus] = useState<string | null>(null);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -4948,9 +4945,6 @@ const Index = () => {
       setSelectedGeneratedOption(null);
       setSelectedGeneratedIndex(null);
       setGeneratedOptions(result.lines.map(line => line.text));
-      setTextGenerationModel(result.model);
-      setTextModelName(result.modelName);
-      setTextModelStatus(result.status);
 
       // Show success toast
       sonnerToast.success("Generated new text options", {
@@ -6014,27 +6008,6 @@ const Index = () => {
                           {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
                         </Button>
                       </div>
-                       {textModelName && (
-                         <div className="mb-3 flex items-center justify-center gap-2">
-                           <Badge variant={textModelName === 'fallback' ? 'secondary' : 'default'} className="text-xs">
-                             {textModelName === 'fallback' ? 'Fallback' : textModelName}
-                           </Badge>
-                           {textModelStatus === 'raw-unvalidated' && (
-                             <TooltipProvider>
-                               <Tooltip>
-                                 <TooltipTrigger asChild>
-                                   <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-700 dark:border-yellow-600 dark:text-yellow-400">
-                                     Needs review
-                                   </Badge>
-                                 </TooltipTrigger>
-                                 <TooltipContent>
-                                   <p>Output didn't pass all validation checks but was auto-fixed</p>
-                                 </TooltipContent>
-                               </Tooltip>
-                             </TooltipProvider>
-                           )}
-                         </div>
-                       )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
