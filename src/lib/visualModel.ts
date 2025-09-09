@@ -210,7 +210,10 @@ function getSlotBasedFallbacks(inputs: VisualInputs): VisualOption[] {
 
 // Utility function to clean visual text for user display
 export function cleanForDisplay(text: string): string {
-  return text
+  // First, extract only the subject part (before first comma)
+  const subjectOnly = text.split(',')[0].trim();
+  
+  return subjectOnly
     // Remove text placement directives
     .replace(/\b(positioned|anchored|placed)\s+(on|at|in|to)\s+(left|right|center|top|bottom|upper|lower)\s+(third|half|quarter|section)\b/gi, '')
     .replace(/\b(left|right|center|top|bottom)\s+(third|half|quarter|section)\b/gi, '')
