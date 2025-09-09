@@ -4961,7 +4961,9 @@ const Index = () => {
     setGeneratedImageUrl(null);
     try {
       // Build the handoff data using actual form values
-      const finalText = selectedGeneratedOption || stepTwoText || "";
+      // FIXED: Prioritize confirmed custom text over AI recommendations
+      const finalText = stepTwoText || selectedGeneratedOption || "";
+      console.log('🎯 Final text choice:', { stepTwoText, selectedGeneratedOption, finalText });
       const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
       const subcategory = (() => {
         if (selectedStyle === 'celebrations' && selectedSubOption) {
@@ -5065,7 +5067,9 @@ const Index = () => {
         setGeneratedImageUrl(backgroundImageUrl);
         
         // Add text overlay if there's text content
-        const finalText = selectedGeneratedOption || stepTwoText || "";
+        // FIXED: Prioritize confirmed custom text over AI recommendations
+        const finalText = stepTwoText || selectedGeneratedOption || "";
+        console.log('🎯 Final text for overlay:', { stepTwoText, selectedGeneratedOption, finalText });
         if (finalText && finalText.trim() && selectedTextLayout) {
           try {
             setIsAddingTextOverlay(true);
@@ -6058,6 +6062,10 @@ const Index = () => {
                         <Button variant="brand" className="px-8 py-3 text-base font-medium rounded-lg" onClick={() => {
                   if (stepTwoText.trim()) {
                     setIsCustomTextConfirmed(true);
+                    // Clear stale AI recommendations when custom text is confirmed
+                    setSelectedGeneratedOption(null);
+                    setSelectedGeneratedIndex(null);
+                    console.log('🎯 Custom text confirmed, cleared AI recommendations');
                   }
                 }} disabled={!stepTwoText.trim()}>
                           Save text
@@ -6730,7 +6738,8 @@ const Index = () => {
                   <div className="bg-muted/30 rounded-lg p-6 space-y-4">
                     {(() => {
                 // Build the exact same request that would be sent to Ideogram
-                const finalText = selectedGeneratedOption || stepTwoText || "";
+                // FIXED: Prioritize confirmed custom text over AI recommendations
+                const finalText = stepTwoText || selectedGeneratedOption || "";
                 const visualStyle = selectedVisualStyle || "";
                 const subcategory = (() => {
                   if (selectedStyle === 'celebrations' && selectedSubOption) {
