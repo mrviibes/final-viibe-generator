@@ -6011,8 +6011,10 @@ const Index = () => {
                       </div>
                       {textGenerationModel && (
                         <div className="mb-3">
-                          <Badge variant={textGenerationModel === 'fallback' ? 'secondary' : 'default'} className="text-xs">
-                            {textGenerationModel === 'fallback' ? 'Fallback' : textGenerationModel}
+                          <Badge variant={textGenerationModel === 'fallback' || textGenerationModel === 'comedian-fallback' ? 'secondary' : 'default'} className="text-xs">
+                            {textGenerationModel === 'fallback' ? 'Fallback' : 
+                             textGenerationModel === 'comedian-fallback' ? 'Comedian Mode' : 
+                             textGenerationModel}
                           </Badge>
                         </div>
                       )}

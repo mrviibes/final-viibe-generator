@@ -75,15 +75,15 @@ function generateComedianFallback(inputs: any): any {
     styleTemplates = [
       tagString ? `${tagString} got an upgrade.` : "That got an upgrade.", // Deadpan (20-35)
       tagString ? `Have you noticed ${tagString} comes with instructions?` : "Have you noticed everything comes with instructions?", // Observational (36-50)
-      tagString ? `${tagString} filed paperwork to become officially awesome.` : "This filed paperwork to become officially awesome.", // Extended wit (51-65)
-      tagString ? `${tagString} negotiates with reality like they're old college roommates.` : "Everything negotiates with reality like they're old college roommates." // Absurdist (66-70)
+      tagString ? `${tagString} got promoted to professional status.` : "This got promoted to professional status.", // Extended wit (51-65)
+      tagString ? `${tagString} now operates like they invented confidence last Tuesday.` : "This operates like it invented confidence last Tuesday." // Absurdist (66-70)
     ];
   } else { // Inspirational or other tones - comedian-first
     styleTemplates = [
       tagString ? `${tagString} leveled up.` : "That leveled up.", // Deadpan (20-35)
       tagString ? `Have you noticed how ${tagString} breaks physics?` : "Have you noticed how everything breaks physics?", // Observational (36-50)
-      tagString ? `${tagString} submitted applications to become legendary status.` : "This submitted applications to become legendary status.", // Extended thought (51-65)
-      tagString ? `${tagString} choreographs possibilities that dance beyond reason.` : "This choreographs possibilities that dance beyond reason." // Absurdist (66-70)
+      tagString ? `${tagString} got upgraded to legendary difficulty setting.` : "This got upgraded to legendary difficulty setting.", // Extended thought (51-65)
+      tagString ? `${tagString} operates like physics forgot to send the memo about limits.` : "This operates like physics forgot to send the memo about limits." // Absurdist (66-70)
     ];
   }
   
@@ -95,7 +95,7 @@ function generateComedianFallback(inputs: any): any {
     
     // Adjust length if needed
     if (text.length < minLen) {
-      const expansions = [" today", " here", " always", " forever"];
+      const expansions = [" now", " here", " today", " apparently"];
       text = text.replace(".", `${expansions[index]}.`);
     } else if (text.length > maxLen) {
       // Truncate if too long
