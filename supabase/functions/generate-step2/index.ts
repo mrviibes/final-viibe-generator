@@ -189,7 +189,7 @@ function generateSavageFallback(inputs: any): any {
 
 // Enhanced user message with style palette and tone gating
 function buildUserMessage(inputs: any): string {
-  const { category, subcategory, tone, tags = [] } = inputs;
+  const { category, subcategory, tone, tags = [], occasionAdherence = false } = inputs;
   
   let message = `Category: ${category}
 Subcategory: ${subcategory}
@@ -202,11 +202,11 @@ Tone: ${tone}`;
     message += `\nTAGS: (none)`;
   }
   
-  // Get category-specific anchors and mark as optional context
+  // Get category-specific anchors and conditionally include them
   const ctxKey = `${category.toLowerCase()}.${subcategory.toLowerCase()}`;
   const anchors = ANCHORS[ctxKey] || [];
   
-  if (anchors.length > 0) {
+  if (anchors.length > 0 && occasionAdherence) {
     message += `\nCONTEXT PROPS: ${anchors.join(", ")} (use sparingly for context)`;
   }
   
@@ -344,22 +344,25 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       }
     }
     
-    // Occasion throttle
-    const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
-    const anchors = ANCHORS[ctxKey] || [];
-    const occasionTokens = [
-      inputs.category?.toLowerCase(),
-      inputs.subcategory?.toLowerCase(),
-      ...anchors
-    ].filter((token, index, arr) => arr.indexOf(token) === index && token);
-    
-    if (occasionTokens.length > 0) {
-      const linesWithOccasionTokens = processedLines.filter(line => 
-        occasionTokens.some(token => line.text.toLowerCase().includes(token.toLowerCase()))
-      );
+    // Occasion throttle (only apply if occasionAdherence is not enabled)
+    const { occasionAdherence = false } = inputs;
+    if (!occasionAdherence) {
+      const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
+      const anchors = ANCHORS[ctxKey] || [];
+      const occasionTokens = [
+        inputs.category?.toLowerCase(),
+        inputs.subcategory?.toLowerCase(),
+        ...anchors
+      ].filter((token, index, arr) => arr.indexOf(token) === index && token);
       
-      if (linesWithOccasionTokens.length > 1) {
-        errors.push(`Occasion throttle: Found ${linesWithOccasionTokens.length} lines with occasion words - max 1 allowed`);
+      if (occasionTokens.length > 0) {
+        const linesWithOccasionTokens = processedLines.filter(line => 
+          occasionTokens.some(token => line.text.toLowerCase().includes(token.toLowerCase()))
+        );
+        
+        if (linesWithOccasionTokens.length > 1) {
+          errors.push(`Occasion throttle: Found ${linesWithOccasionTokens.length} lines with occasion words - max 1 allowed`);
+        }
       }
     }
     
