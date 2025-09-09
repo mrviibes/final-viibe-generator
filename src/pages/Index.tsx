@@ -6272,10 +6272,9 @@ const Index = () => {
                                 </CardContent>
                               </Card>
                             ))}
+                          </div>
                          </div>
-                        </div>
-                        </div>
-                       )}
+                        )}
 
                     {/* Dimensions Selection - Show when AI assist visual is selected */}
                      {selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null && (
@@ -6441,8 +6440,8 @@ const Index = () => {
                                </div>
                              )}
                            </div>
-                       </div>
-                   )}
+                         </div>
+                    )}
 
                 {/* General Dimensions Selection - Show only for non-AI assist options */}
                  {selectedSubjectOption && (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed || selectedSubjectOption === "no-subject" || selectedSubjectOption === "single-person" || selectedSubjectOption === "multiple-people") && (
@@ -6481,9 +6480,10 @@ const Index = () => {
                               </div>
                             </div>
                            </div>}
-                       </div>}
-                   </div>}
-               </>}
+                        </div>}
+                     </div>)
+                   }
+          </>}
 
         {currentStep === 4 && <>
             <div className="text-center mb-8">
