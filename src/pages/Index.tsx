@@ -4231,6 +4231,7 @@ const Index = () => {
   const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>(null);
   const [visualOptions, setVisualOptions] = useState<Array<{ subject: string; background: string; prompt: string; slot: string }>>([]);
   const [selectedVisualIndex, setSelectedVisualIndex] = useState<number | null>(null);
+  const [expandedPromptIndex, setExpandedPromptIndex] = useState<number | null>(null); // Track which exact prompt is shown
   const [visualModel, setVisualModel] = useState<string | null>(null); // Track which model was used
   const [subjectTags, setSubjectTags] = useState<string[]>([]);
   const [subjectTagInput, setSubjectTagInput] = useState<string>("");
@@ -4517,6 +4518,7 @@ const Index = () => {
         selections.push({
           title: optionTitle,
           subtitle: compactDescription,
+          description: `Exact prompt: ${option.prompt}`,
           onChangeSelection: () => {
             setSelectedVisualIndex(null);
             setSelectedDimension(null);
@@ -6235,22 +6237,39 @@ const Index = () => {
                             <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
                           </div>
                         
-                        <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
-                          {visualOptions.map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50" onClick={() => {
-                  setSelectedVisualIndex(index);
-                  setShowSubjectTagEditor(false); // Keep tag editor hidden once visual is selected
-                }}>
-                              <CardHeader className="pb-2">
-                                <CardTitle className="text-base font-semibold text-card-foreground">
-                                  Option {index + 1}
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="pt-0">
-                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                  {cleanForDisplay(option.subject)}
-                                </p>
-                              </CardContent>
-                            </Card>)}
+                         <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
+                           {visualOptions.map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50" onClick={() => {
+                   setSelectedVisualIndex(index);
+                   setShowSubjectTagEditor(false); 
+                 }}>
+                               <CardHeader className="pb-2">
+                                 <CardTitle className="text-base font-semibold text-card-foreground flex items-center justify-between">
+                                   <span>Option {index + 1}</span>
+                                   <Button
+                                     variant="outline" 
+                                     size="sm"
+                                     className="text-xs h-6 px-2"
+                                     onClick={async (e) => {
+                                       e.stopPropagation();
+                                       try {
+                                         await navigator.clipboard.writeText(option.prompt);
+                                         sonnerToast.success('Exact prompt copied');
+                                       } catch (err) {
+                                         sonnerToast.error('Failed to copy');
+                                       }
+                                     }}
+                                   >
+                                     Copy prompt
+                                   </Button>
+                                 </CardTitle>
+                               </CardHeader>
+                               <CardContent className="pt-0">
+                                 <p className="text-sm text-muted-foreground line-clamp-2">
+                                   {cleanForDisplay(option.subject)}
+                                 </p>
+                               </CardContent>
+                             </Card>)}
+                         </div>
                         </div>
                       </div>}
 
@@ -6918,6 +6937,7 @@ const Index = () => {
         <CorsRetryDialog open={showCorsRetryDialog} onOpenChange={setShowCorsRetryDialog} onRetry={handleGenerateImage} />
 
       </div>
-    </div>;
+    </div>
+  );
 };
 export default Index;
