@@ -4257,7 +4257,7 @@ const Index = () => {
   // Spelling guarantee mode states - default to ON when text is present
   const [spellingGuaranteeMode, setSpellingGuaranteeMode] = useState<boolean>(false);
   const [showTextOverlay, setShowTextOverlay] = useState<boolean>(false);
-  const [occasionAdherence, setOccasionAdherence] = useState<boolean>(false);
+  
   const [backgroundOnlyImageUrl, setBackgroundOnlyImageUrl] = useState<string | null>(null);
   const [finalImageWithText, setFinalImageWithText] = useState<string | null>(null);
   const [textMisspellingDetected, setTextMisspellingDetected] = useState<boolean>(false);
@@ -4922,8 +4922,7 @@ const Index = () => {
         category,
         subcategory,
         tone,
-        tags: finalTagsForGeneration,
-        occasionAdherence
+        tags: finalTagsForGeneration
       });
 
       console.log('✅ Generated text options:', result);
@@ -5982,17 +5981,6 @@ const Index = () => {
                           </div>}
                       </div>
 
-                      {/* Occasion Adherence Toggle */}
-                      <div className="flex items-center justify-center gap-3 p-4 rounded-lg bg-muted/20 border">
-                        <Switch 
-                          id="occasion-adherence"
-                          checked={occasionAdherence}
-                          onCheckedChange={setOccasionAdherence}
-                        />
-                        <label htmlFor="occasion-adherence" className="text-sm font-medium text-foreground cursor-pointer">
-                          Stick closely to the occasion
-                        </label>
-                      </div>
 
                       {/* Generate Button - Hide in barebones mode */}
                       {!barebonesMode && (

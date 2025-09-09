@@ -43,7 +43,6 @@ interface TextGenInput {
   subcategory: string;
   tone: string;
   tags: string[];
-  occasionAdherence?: boolean;
 }
 
 interface TextGenOutput {
