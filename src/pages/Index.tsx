@@ -6082,12 +6082,12 @@ const Index = () => {
                 {selectedCompletionOption === "write-myself" && isCustomTextConfirmed && <>
                   </>}
 
-                {/* Text Layout Selection - Show after text is chosen (AI or custom) and when not "no-text" */}
+                 {/* Text Layout Selection - Show after text is chosen (AI or custom) and when not "no-text" */}
                 {selectedCompletionOption !== "no-text" && 
                   ((selectedCompletionOption === "ai-assist" && selectedGeneratedOption) || 
                    (selectedCompletionOption === "write-myself" && isCustomTextConfirmed)) && 
                   !selectedTextLayout && (
-                    <div className="mt-8">
+                    <div className="mt-4">
                       <TextLayoutSelector 
                         selectedLayout={selectedTextLayout}
                         onLayoutSelect={setSelectedTextLayout}
