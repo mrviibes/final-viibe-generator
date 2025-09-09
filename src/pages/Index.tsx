@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
+import { addTextOverlay, cleanupBlobUrl } from "@/lib/textOverlay";
 
 // Layout mappings for display
 const layoutMappings = {
@@ -4243,6 +4244,7 @@ const Index = () => {
   const [showProxySettingsDialog, setShowProxySettingsDialog] = useState<boolean>(false);
   const [showCorsRetryDialog, setShowCorsRetryDialog] = useState<boolean>(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
+  const [isAddingTextOverlay, setIsAddingTextOverlay] = useState<boolean>(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageGenerationError, setImageGenerationError] = useState<string>("");
   const [showProxySettings, setShowProxySettings] = useState(false);
@@ -4364,6 +4366,15 @@ const Index = () => {
       setAutoStartImageGen(false);
     }
   }, [currentStep, autoStartImageGen, isGeneratingImage, generatedImageUrl, barebonesMode, directPrompt]);
+
+  // Cleanup blob URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (finalImageWithText) {
+        cleanupBlobUrl(finalImageWithText);
+      }
+    };
+  }, [finalImageWithText]);
 
   // Visual AI recommendations state
   const [isTestingProxy, setIsTestingProxy] = useState(false);
@@ -5034,8 +5045,33 @@ const Index = () => {
         style_type: styleForIdeogram
       });
       if (response.data && response.data.length > 0) {
-        setGeneratedImageUrl(response.data[0].url);
-        sonnerToast.success("Your VIIBE has been generated successfully!");
+        const backgroundImageUrl = response.data[0].url;
+        setBackgroundOnlyImageUrl(backgroundImageUrl);
+        setGeneratedImageUrl(backgroundImageUrl);
+        
+        // Add text overlay if there's text content
+        const finalText = selectedGeneratedOption || stepTwoText || "";
+        if (finalText && finalText.trim() && selectedTextLayout) {
+          try {
+            setIsAddingTextOverlay(true);
+            const imageWithText = await addTextOverlay(backgroundImageUrl, {
+              text: finalText,
+              layout: selectedTextLayout,
+              aspectRatio: selectedDimension || "Square"
+            });
+            setFinalImageWithText(imageWithText);
+            setGeneratedImageUrl(imageWithText);
+            sonnerToast.success("Your VIIBE with text has been generated successfully!");
+          } catch (textError) {
+            console.error('Text overlay failed:', textError);
+            sonnerToast.success("Your VIIBE background has been generated successfully!");
+            sonnerToast.error("Text overlay failed, showing background only");
+          } finally {
+            setIsAddingTextOverlay(false);
+          }
+        } else {
+          sonnerToast.success("Your VIIBE has been generated successfully!");
+        }
       } else {
         throw new Error("No image data received from Ideogram API");
       }
@@ -5074,10 +5110,11 @@ const Index = () => {
      }
   };
   const handleDownloadImage = () => {
-    if (!generatedImageUrl) return;
+    const imageToDownload = finalImageWithText || generatedImageUrl;
+    if (!imageToDownload) return;
     const link = document.createElement('a');
-    link.href = generatedImageUrl;
-    link.download = 'viibe-image.jpg';
+    link.href = imageToDownload;
+    link.download = finalImageWithText ? 'viibe-with-text.jpg' : 'viibe-image.jpg';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -6393,10 +6430,10 @@ const Index = () => {
         {currentStep === 4 && <>
             <div className="text-center mb-8">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">
-                {isGeneratingImage ? "Generating your VIIBE..." : "Finished Design"}
+                {isGeneratingImage ? "Generating your VIIBE..." : isAddingTextOverlay ? "Adding text overlay..." : "Finished Design"}
               </h2>
               <p className="text-xl text-muted-foreground">
-                {isGeneratingImage ? "Please wait while we create your image..." : "Your viibe is ready! Review the details and download your creation."}
+                {isGeneratingImage ? "Please wait while we create your image..." : isAddingTextOverlay ? "Adding your text to the image..." : "Your viibe is ready! Review the details and download your creation."}
               </p>
             </div>
             
@@ -6411,11 +6448,11 @@ const Index = () => {
                 </div>
                 
                 <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
-                  {isGeneratingImage ? (
+                  {isGeneratingImage || isAddingTextOverlay ? (
                     <div className="text-center">
                       <Button variant="brand" disabled className="mb-4">
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Generating VIIBE...
+                        {isGeneratingImage ? "Generating VIIBE..." : "Adding text overlay..."}
                       </Button>
                       <p className="text-sm text-muted-foreground">This may take a few moments</p>
                     </div>
