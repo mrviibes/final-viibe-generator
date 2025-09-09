@@ -26,13 +26,14 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
-import { addTextOverlay, cleanupBlobUrl } from "@/lib/textOverlay";
 
 // Layout mappings for display
 const layoutMappings = {
   negativeSpace: { label: "Negative Space", token: "clear empty area near largest margin" },
   memeTopBottom: { label: "Meme Top/Bottom", token: "clear top band, clear bottom band" },
   lowerThird: { label: "Lower Third Banner", token: "clear lower third" },
+  sideBarLeft: { label: "Side Bar (Left)", token: "clear left panel" },
+  badgeSticker: { label: "Badge/Sticker Callout", token: "badge space top-right" },
   subtleCaption: { label: "Subtle Caption", token: "clear narrow bottom strip" }
 };
 
@@ -54,6 +55,8 @@ function ensureVisualVariance(
     negativeSpace: ["clear empty area near largest margin"],
     memeTopBottom: ["clear top band", "clear bottom band"],
     lowerThird: ["clear lower third"],
+    sideBarLeft: ["clear left panel"],
+    badgeSticker: ["badge space top-right"],
     subtleCaption: ["clear narrow bottom strip"]
   };
 
@@ -144,6 +147,8 @@ function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: strin
     negativeSpace: ["clear empty area near largest margin"],
     memeTopBottom: ["clear top band", "clear bottom band"], // both required
     lowerThird: ["clear lower third"],
+    sideBarLeft: ["clear left panel"],
+    badgeSticker: ["badge space top-right"],
     subtleCaption: ["clear narrow bottom strip"]
   };
 
@@ -4087,7 +4092,7 @@ const popCultureOptions = [{
 const fictionalCharactersList = ["Harry Potter", "Hermione Granger", "Ron Weasley", "Dumbledore", "Voldemort", "Snape", "Batman", "Superman", "Wonder Woman", "Spider-Man", "Iron Man", "Captain America", "Hulk", "Thor", "Black Widow", "Joker", "Harley Quinn", "Lex Luthor", "Green Goblin", "Loki", "Thanos", "Luke Skywalker", "Princess Leia", "Han Solo", "Darth Vader", "Obi-Wan Kenobi", "Yoda", "Chewbacca", "R2-D2", "C-3PO", "Frodo", "Gandalf", "Aragorn", "Legolas", "Gimli", "Gollum", "Sauron", "Sherlock Holmes", "John Watson", "Moriarty", "Mickey Mouse", "Donald Duck", "Goofy", "Elsa", "Anna", "Olaf", "Simba", "Mufasa", "Scar", "Buzz Lightyear", "Woody", "Rex", "Mr. Potato Head", "Mario", "Luigi", "Princess Peach", "Bowser", "Yoshi", "Link", "Zelda", "Ganondorf", "Pikachu", "Charizard", "Mewtwo", "Ash Ketchum", "Naruto", "Sasuke", "Sakura", "Kakashi", "Goku", "Vegeta", "Piccolo", "Jon Snow", "Daenerys Targaryen", "Tyrion Lannister", "Cersei Lannister", "Jaime Lannister", "Arya Stark", "Sansa Stark", "Walter White", "Jesse Pinkman", "Saul Goodman", "Eleven", "Mike Wheeler", "Dustin Henderson", "Steve Harrington", "Hopper", "Rick Sanchez", "Morty Smith", "Jerry Smith", "Beth Smith", "Summer Smith", "Homer Simpson", "Marge Simpson", "Bart Simpson", "Lisa Simpson", "Maggie Simpson", "SpongeBob SquarePants", "Patrick Star", "Squidward", "Mr. Krabs", "Sandy Cheeks", "Bugs Bunny", "Daffy Duck", "Porky Pig", "Tweety", "Sylvester", "Pepe Le Pew", "Tom", "Jerry", "Scooby-Doo", "Shaggy", "Fred", "Velma", "Daphne", "Garfield", "Odie", "Jon Arbuckle", "Calvin", "Hobbes", "Charlie Brown", "Snoopy", "Lucy", "Linus", "Winnie the Pooh", "Tigger", "Eeyore", "Piglet", "Rabbit", "Owl", "Alice", "Mad Hatter", "Cheshire Cat", "Queen of Hearts", "White Rabbit", "Dorothy", "Wizard of Oz", "Tin Man", "Scarecrow", "Cowardly Lion", "Toto", "Peter Pan", "Tinker Bell", "Captain Hook", "Wendy Darling", "Tarzan", "Jane Porter", "King Kong", "Godzilla", "E.T.", "Spock", "Captain Kirk", "Data", "Picard", "Neo", "Morpheus", "Trinity", "Agent Smith", "Terminator", "Sarah Connor", "John Connor", "Indiana Jones", "James Bond", "Ethan Hunt", "Rocky Balboa", "Ivan Drago", "Apollo Creed", "Forrest Gump", "Jenny Curran", "Lieutenant Dan", "Jack Sparrow", "Will Turner", "Elizabeth Swann", "Davy Jones", "Wolverine", "Professor X", "Magneto", "Storm", "Cyclops", "Jean Grey", "Deadpool", "Cable", "Domino", "The Flash", "Green Lantern", "Aquaman", "Cyborg", "Black Panther", "Shuri", "Okoye", "Killmonger", "Doctor Strange", "Scarlet Witch", "Vision", "Falcon", "Winter Soldier", "Ant-Man", "Wasp", "Hawkeye", "Nick Fury", "Maria Hill", "Groot", "Rocket Raccoon", "Star-Lord", "Gamora", "Drax"];
 const textStyleOptions = [{
   id: "humorous",
-  name: "Humorous", 
+  name: "Humorous",
   description: "Jokes, puns, lighthearted entertainment"
 }, {
   id: "savage",
@@ -4194,6 +4199,7 @@ const Index = () => {
   
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [autoStartImageGen, setAutoStartImageGen] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [selectedSubOption, setSelectedSubOption] = useState<string | null>(null);
@@ -4220,15 +4226,6 @@ const Index = () => {
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
   const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
-
-  // Normalize legacy layout options
-  const normalizeLayoutId = (layoutId: string | null): string | null => {
-    if (!layoutId) return null;
-    if (layoutId === 'sideBarLeft' || layoutId === 'badgeSticker') {
-      return 'negativeSpace'; // Default fallback for removed options
-    }
-    return layoutId;
-  };
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
@@ -4246,7 +4243,6 @@ const Index = () => {
   const [showProxySettingsDialog, setShowProxySettingsDialog] = useState<boolean>(false);
   const [showCorsRetryDialog, setShowCorsRetryDialog] = useState<boolean>(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
-  const [isAddingTextOverlay, setIsAddingTextOverlay] = useState<boolean>(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageGenerationError, setImageGenerationError] = useState<string>("");
   const [showProxySettings, setShowProxySettings] = useState(false);
@@ -4256,7 +4252,6 @@ const Index = () => {
   // Spelling guarantee mode states - default to ON when text is present
   const [spellingGuaranteeMode, setSpellingGuaranteeMode] = useState<boolean>(false);
   const [showTextOverlay, setShowTextOverlay] = useState<boolean>(false);
-  
   const [backgroundOnlyImageUrl, setBackgroundOnlyImageUrl] = useState<string | null>(null);
   const [finalImageWithText, setFinalImageWithText] = useState<string | null>(null);
   const [textMisspellingDetected, setTextMisspellingDetected] = useState<boolean>(false);
@@ -4369,15 +4364,6 @@ const Index = () => {
       setAutoStartImageGen(false);
     }
   }, [currentStep, autoStartImageGen, isGeneratingImage, generatedImageUrl, barebonesMode, directPrompt]);
-
-  // Cleanup blob URLs to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      if (finalImageWithText) {
-        cleanupBlobUrl(finalImageWithText);
-      }
-    };
-  }, [finalImageWithText]);
 
   // Visual AI recommendations state
   const [isTestingProxy, setIsTestingProxy] = useState(false);
@@ -4964,9 +4950,7 @@ const Index = () => {
     setGeneratedImageUrl(null);
     try {
       // Build the handoff data using actual form values
-      // FIXED: Prioritize confirmed custom text over AI recommendations
-      const finalText = stepTwoText || selectedGeneratedOption || "";
-      console.log('🎯 Final text choice:', { stepTwoText, selectedGeneratedOption, finalText });
+      const finalText = selectedGeneratedOption || stepTwoText || "";
       const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
       const subcategory = (() => {
         if (selectedStyle === 'celebrations' && selectedSubOption) {
@@ -5018,10 +5002,7 @@ const Index = () => {
         prompt = visualRecommendations.options[selectedRecommendation].prompt;
       }
       if (!prompt && !barebonesMode) {
-        const layoutToken = (finalText && finalText.trim() && selectedTextLayout) 
-          ? layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.token 
-          : undefined;
-        prompt = buildIdeogramPrompt(ideogramPayload, false, layoutToken);
+        prompt = buildIdeogramPrompt(ideogramPayload);
       }
       
       // In barebones mode, require direct prompt
@@ -5029,24 +5010,12 @@ const Index = () => {
         sonnerToast.error("Please provide a direct prompt in barebones mode.");
         return;
       }
-
-      // ALWAYS append layout tokens to ensure proper text overlay space
-      if (finalText && finalText.trim() && selectedTextLayout) {
-        const layoutConfig = layoutMappings[selectedTextLayout as keyof typeof layoutMappings];
-        if (layoutConfig && !prompt.toLowerCase().includes(layoutConfig.token.toLowerCase())) {
-          prompt += `, ${layoutConfig.token}`;
-          console.log(`🎯 Added layout token for ${selectedTextLayout}: ${layoutConfig.token}`);
-        }
-      }
-
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
       // Always respect the selected visual style
       const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
       console.log('=== Ideogram Generation Debug ===');
       console.log('Direct prompt provided:', !!directPrompt.trim());
-      console.log('Selected text layout:', selectedTextLayout);
-      console.log('Final text for overlay:', finalText);
-      console.log('Final prompt with layout tokens:', prompt);
+      console.log('Final prompt:', prompt);
       console.log('Aspect ratio:', aspectForIdeogram);
       console.log('Style type:', styleForIdeogram);
       console.log('Final payload:', {
@@ -5065,35 +5034,8 @@ const Index = () => {
         style_type: styleForIdeogram
       });
       if (response.data && response.data.length > 0) {
-        const backgroundImageUrl = response.data[0].url;
-        setBackgroundOnlyImageUrl(backgroundImageUrl);
-        setGeneratedImageUrl(backgroundImageUrl);
-        
-        // Add text overlay if there's text content
-        // FIXED: Prioritize confirmed custom text over AI recommendations
-        const finalText = stepTwoText || selectedGeneratedOption || "";
-        console.log('🎯 Final text for overlay:', { stepTwoText, selectedGeneratedOption, finalText });
-        if (finalText && finalText.trim() && selectedTextLayout) {
-          try {
-            setIsAddingTextOverlay(true);
-            const imageWithText = await addTextOverlay(backgroundImageUrl, {
-              text: finalText,
-              layout: selectedTextLayout,
-              aspectRatio: selectedDimension || "Square"
-            });
-            setFinalImageWithText(imageWithText);
-            setGeneratedImageUrl(imageWithText);
-            sonnerToast.success("Your VIIBE with text has been generated successfully!");
-          } catch (textError) {
-            console.error('Text overlay failed:', textError);
-            sonnerToast.success("Your VIIBE background has been generated successfully!");
-            sonnerToast.error("Text overlay failed, showing background only");
-          } finally {
-            setIsAddingTextOverlay(false);
-          }
-        } else {
-          sonnerToast.success("Your VIIBE has been generated successfully!");
-        }
+        setGeneratedImageUrl(response.data[0].url);
+        sonnerToast.success("Your VIIBE has been generated successfully!");
       } else {
         throw new Error("No image data received from Ideogram API");
       }
@@ -5132,11 +5074,10 @@ const Index = () => {
      }
   };
   const handleDownloadImage = () => {
-    const imageToDownload = finalImageWithText || generatedImageUrl;
-    if (!imageToDownload) return;
+    if (!generatedImageUrl) return;
     const link = document.createElement('a');
-    link.href = imageToDownload;
-    link.download = finalImageWithText ? 'viibe-with-text.jpg' : 'viibe-image.jpg';
+    link.href = generatedImageUrl;
+    link.download = 'viibe-image.jpg';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -5980,7 +5921,6 @@ const Index = () => {
                           </div>}
                       </div>
 
-
                       {/* Generate Button - Hide in barebones mode */}
                       {!barebonesMode && (
                         <div className="text-center">
@@ -6011,10 +5951,8 @@ const Index = () => {
                       </div>
                       {textGenerationModel && (
                         <div className="mb-3">
-                          <Badge variant={textGenerationModel === 'fallback' || textGenerationModel === 'comedian-fallback' ? 'secondary' : 'default'} className="text-xs">
-                            {textGenerationModel === 'fallback' ? 'Fallback' : 
-                             textGenerationModel === 'comedian-fallback' ? 'Comedian Mode' : 
-                             textGenerationModel}
+                          <Badge variant={textGenerationModel === 'fallback' ? 'secondary' : 'default'} className="text-xs">
+                            {textGenerationModel === 'fallback' ? 'Fallback' : textGenerationModel}
                           </Badge>
                         </div>
                       )}
@@ -6068,10 +6006,6 @@ const Index = () => {
                         <Button variant="brand" className="px-8 py-3 text-base font-medium rounded-lg" onClick={() => {
                   if (stepTwoText.trim()) {
                     setIsCustomTextConfirmed(true);
-                    // Clear stale AI recommendations when custom text is confirmed
-                    setSelectedGeneratedOption(null);
-                    setSelectedGeneratedIndex(null);
-                    console.log('🎯 Custom text confirmed, cleared AI recommendations');
                   }
                 }} disabled={!stepTwoText.trim()}>
                           Save text
@@ -6107,6 +6041,8 @@ const Index = () => {
                             { id: "negativeSpace", name: "Negative Space" },
                             { id: "memeTopBottom", name: "Meme Top/Bottom" },
                             { id: "lowerThird", name: "Lower Third Banner" },
+                            { id: "sideBarLeft", name: "Side Bar (Left)" },
+                            { id: "badgeSticker", name: "Badge/Sticker Callout" },
                             { id: "subtleCaption", name: "Subtle Caption" }
                           ];
                           return layoutOptions.find(l => l.id === selectedTextLayout)?.name || selectedTextLayout;
@@ -6457,10 +6393,10 @@ const Index = () => {
         {currentStep === 4 && <>
             <div className="text-center mb-8">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">
-                {isGeneratingImage ? "Generating your VIIBE..." : isAddingTextOverlay ? "Adding text overlay..." : "Finished Design"}
+                {isGeneratingImage ? "Generating your VIIBE..." : "Finished Design"}
               </h2>
               <p className="text-xl text-muted-foreground">
-                {isGeneratingImage ? "Please wait while we create your image..." : isAddingTextOverlay ? "Adding your text to the image..." : "Your viibe is ready! Review the details and download your creation."}
+                {isGeneratingImage ? "Please wait while we create your image..." : "Your viibe is ready! Review the details and download your creation."}
               </p>
             </div>
             
@@ -6475,11 +6411,11 @@ const Index = () => {
                 </div>
                 
                 <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
-                  {isGeneratingImage || isAddingTextOverlay ? (
+                  {isGeneratingImage ? (
                     <div className="text-center">
                       <Button variant="brand" disabled className="mb-4">
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {isGeneratingImage ? "Generating VIIBE..." : "Adding text overlay..."}
+                        Generating VIIBE...
                       </Button>
                       <p className="text-sm text-muted-foreground">This may take a few moments</p>
                     </div>
@@ -6723,6 +6659,150 @@ const Index = () => {
                 </div>
               </div>
 
+                {/* Generated Prompt */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium text-foreground">Technical Details</h3>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setShowAdvanced(!showAdvanced)}
+                      className="text-sm"
+                    >
+                      {showAdvanced ? "Hide" : "Show"} Advanced
+                    </Button>
+                  </div>
+                  
+                  {showAdvanced && <div className="space-y-4">
+                    <h4 className="text-base font-medium text-foreground">Full Ideogram Request</h4>
+                  <div className="bg-muted/30 rounded-lg p-6 space-y-4">
+                    {(() => {
+                // Build the exact same request that would be sent to Ideogram
+                const finalText = selectedGeneratedOption || stepTwoText || "";
+                const visualStyle = selectedVisualStyle || "";
+                const subcategory = (() => {
+                  if (selectedStyle === 'celebrations' && selectedSubOption) {
+                    const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                    return celebOption?.name || selectedSubOption;
+                  } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                    const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                    return popOption?.name || selectedSubOption;
+                  }
+                  return selectedSubOption || 'general';
+                })();
+                const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+                const tone = selectedTextStyleObj?.name || 'Humorous';
+                const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+                const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "";
+                const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
+
+                // Build the handoff payload
+                const allTags = [...tags, ...subjectTags];
+                const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : undefined;
+                const ideogramPayload = buildIdeogramHandoff({
+                  visual_style: visualStyle,
+                  subcategory: subcategory,
+                  tone: tone.toLowerCase(),
+                  final_line: finalText,
+                  tags_csv: allTags.join(', '),
+                  chosen_visual: chosenVisual,
+                  category: categoryName,
+                  subcategory_secondary: subcategorySecondary,
+                  aspect_ratio: aspectRatio,
+                  text_tags_csv: tags.join(', '),
+                  visual_tags_csv: subjectTags.join(', '),
+                  ai_text_assist_used: selectedCompletionOption === "ai-assist",
+                  ai_visual_assist_used: selectedSubjectOption === "ai-assist",
+                  rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].subject : selectedSubjectOption === "design-myself" ? subjectDescription : undefined,
+                  rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].background : undefined
+                });
+
+                // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
+                let prompt = directPrompt.trim();
+                
+                // Sanitize direct prompt to remove text-generating terms
+                if (prompt) {
+                  prompt = prompt.replace(/(text|caption|words|letters|typography|signage|watermark|logo)/gi, 'design');
+                  // If we have finalText to overlay, ensure background-only generation
+                  if (finalText && finalText.trim()) {
+                    prompt += ", no text, no words, no letters, background only";
+                  }
+                }
+                
+                if (!prompt && selectedRecommendation !== null && visualRecommendations) {
+                  prompt = visualRecommendations.options[selectedRecommendation].prompt;
+                }
+                if (!prompt && !barebonesMode) {
+                  prompt = buildIdeogramPrompt(ideogramPayload);
+                }
+
+                // Calculate the exact same parameters used for generation
+                const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
+                const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
+                const modelForIdeogram = 'V_3';
+
+                // Handle spelling guarantee mode modifications
+                let finalPrompt = prompt;
+                if (spellingGuaranteeMode && finalText && finalText.trim()) {
+                  finalPrompt = prompt.replace(/EXACT_TEXT \(VERBATIM\): ".*?"/g, '').replace(/Render this text EXACTLY.*?\./g, '').replace(/Use only standard ASCII.*?\./g, '').replace(/If you cannot render.*?\./g, '').replace(/Style and display this text.*?\./g, '').replace(/Ensure the text is.*?\./g, '').replace(/NEGATIVE PROMPTS:.*?\./g, '').replace(/\s+/g, ' ').trim() + ' No text, no typography, no words, no letters, no characters, no glyphs, no symbols, no UI elements overlaid on the image. Clean minimal background only.';
+                }
+
+                // Create the exact request object
+                const fullRequest = {
+                  prompt: finalPrompt,
+                  aspect_ratio: aspectForIdeogram,
+                  model: modelForIdeogram,
+                  magic_prompt_option: 'AUTO',
+                  style_type: styleForIdeogram
+                };
+
+                return (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2 text-foreground">Request Body:</h4>
+                      <div className="bg-background rounded-md p-4 border">
+                        <pre className="text-xs text-foreground whitespace-pre-wrap font-mono overflow-x-auto">
+                          {JSON.stringify(fullRequest, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(JSON.stringify(fullRequest, null, 2));
+                          sonnerToast.success("Request copied to clipboard!");
+                        }}
+                      >
+                        Copy Request
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(finalPrompt);
+                          sonnerToast.success("Prompt copied to clipboard!");
+                        }}
+                      >
+                        Copy Prompt Only
+                      </Button>
+                    </div>
+                    
+                    {spellingGuaranteeMode && (
+                      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          <strong>Spelling Guarantee Mode:</strong> Background-only version will be generated first, then text overlay applied.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+                  </div>
+                  </div>}
+                </div>
             </div>
           </>}
 

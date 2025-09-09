@@ -22,6 +22,8 @@ export const LAYOUTS = {
     ],
   },
   lowerThird: { type: "lowerThirdBanner" },
+  sideBarLeft: { type: "sideBarLeft" },
+  badgeSticker: { type: "badgeStickerCallout" },
   subtleCaption: { type: "subtleCaption" },
 };
 
@@ -135,7 +137,7 @@ EXAMPLE for birthday + lowerThird:
 Subcategory: ${session.subcategory}
 Tone: ${tone}
 TextContent: "${textContent}"
-TextLayoutId: ${textLayoutId}  # one of: negativeSpace|memeTopBottom|lowerThird|subtleCaption
+TextLayoutId: ${textLayoutId}  # one of: negativeSpace|memeTopBottom|lowerThird|sideBarLeft|badgeSticker|subtleCaption
 Tags: ${tags.join(', ')}
 ${session.entity ? `Entity: ${session.entity}` : ''}`;
 
