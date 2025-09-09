@@ -4226,7 +4226,7 @@ const Index = () => {
   const [selectedTextStyle, setSelectedTextStyle] = useState<string | null>(null);
   const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
   const [selectedVisualStyle, setSelectedVisualStyle] = useState<string | null>(null);
-  const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>("design-myself");
+  const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>(null);
   const [visualOptions, setVisualOptions] = useState<Array<{ subject: string; background: string; prompt: string; slot: string }>>([]);
   const [selectedVisualIndex, setSelectedVisualIndex] = useState<number | null>(null);
   const [visualModel, setVisualModel] = useState<string | null>(null); // Track which model was used
