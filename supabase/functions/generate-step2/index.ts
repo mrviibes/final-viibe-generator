@@ -20,10 +20,10 @@ const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY valid JSON:
 }
 
 COMEDIAN STYLE PALETTE (MANDATORY - each option has specific voice):
-• Option 1: Deadpan/Spartan (20-45 chars) - Dry, matter-of-fact, minimal words
-• Option 2: Observational (46-70 chars) - "Have you noticed..." style, relatable observations  
-• Option 3: Extended thought (71-90 chars) - Longer setup, can roast IF tone allows
-• Option 4: Absurdist/Twist (91-100 chars) - Unexpected punchline, surreal logic
+• Option 1: Deadpan/Spartan (20-35 chars) - Dry, matter-of-fact, minimal words
+• Option 2: Observational (36-50 chars) - "Have you noticed..." style, relatable observations  
+• Option 3: Extended thought (51-65 chars) - Longer setup, can roast IF tone allows
+• Option 4: Absurdist/Twist (66-70 chars) - Unexpected punchline, surreal logic
 
 TONE GATING (CRITICAL):
 • Option 3 can only roast/insult if tone is Savage/Humorous
@@ -68,10 +68,10 @@ const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY valid JSON:
 }
 
 COMEDIAN STYLE PALETTE (MANDATORY - each option has specific voice):
-• Option 1: Deadpan/Spartan (20-45 chars) - Dry, matter-of-fact, minimal words
-• Option 2: Observational (46-70 chars) - "Have you noticed..." style, relatable observations
-• Option 3: Extended thought (71-90 chars) - Longer setup, can roast IF tone allows  
-• Option 4: Absurdist/Twist (91-100 chars) - Unexpected punchline, surreal logic
+• Option 1: Deadpan/Spartan (20-35 chars) - Dry, matter-of-fact, minimal words
+• Option 2: Observational (36-50 chars) - "Have you noticed..." style, relatable observations
+• Option 3: Extended thought (51-65 chars) - Longer setup, can roast IF tone allows  
+• Option 4: Absurdist/Twist (66-70 chars) - Unexpected punchline, surreal logic
 
 TONE GATING (CRITICAL):
 • Option 3 can only roast/insult if tone is Savage/Humorous
@@ -155,8 +155,8 @@ function generateSavageFallback(inputs: any): any {
     ];
   }
   
-  // Ensure proper length bands: 20-45, 46-70, 71-90, 91-100
-  const targetBands = [[20, 45], [46, 70], [71, 90], [91, 100]];
+  // Ensure proper length bands: 20-35, 36-50, 51-65, 66-70
+  const targetBands = [[20, 35], [36, 50], [51, 65], [66, 70]];
   const finalTemplates = styleTemplates.map((template, index) => {
     const [minLen, maxLen] = targetBands[index];
     let text = template;
@@ -212,10 +212,10 @@ Tone: ${tone}`;
   
   // Style palette reminder
   message += `\n\nSTYLE PALETTE:
-• Option 1: Deadpan (20-45 chars) - Dry, minimal
-• Option 2: Observational (46-70 chars) - "Have you noticed..." 
-• Option 3: Extended (71-90 chars) - ${tone.toLowerCase().includes('savage') || tone.toLowerCase().includes('humorous') ? 'Can roast' : 'Thoughtful sentiment'}
-• Option 4: Absurdist (91-100 chars) - Surreal twist punchline`;
+• Option 1: Deadpan (20-35 chars) - Dry, minimal
+• Option 2: Observational (36-50 chars) - "Have you noticed..." 
+• Option 3: Extended (51-65 chars) - ${tone.toLowerCase().includes('savage') || tone.toLowerCase().includes('humorous') ? 'Can roast' : 'Thoughtful sentiment'}
+• Option 4: Absurdist (66-70 chars) - Surreal twist punchline`;
 
   // Tone gating hint
   if (!tone.toLowerCase().includes('savage') && !tone.toLowerCase().includes('humorous')) {
@@ -276,7 +276,7 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
     });
     
     // Length band validation (comedian style palette)
-    const lengthBands = [[20, 45], [46, 70], [71, 90], [91, 100]];
+    const lengthBands = [[20, 35], [36, 50], [51, 65], [66, 70]];
     processedLines.forEach((line, index) => {
       const [minLen, maxLen] = lengthBands[index];
       const lineLength = line.text.length;
@@ -390,10 +390,10 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     // Add specific guidance for length band failures
     if (previousErrors.some(err => err.includes("Too short") || err.includes("Too long"))) {
       feedback += `\n\nCRITICAL LENGTH BANDS:
-• Option 1: 20-45 chars (Deadpan style)
-• Option 2: 46-70 chars (Observational style)
-• Option 3: 71-90 chars (Extended thought)
-• Option 4: 91-100 chars (Absurdist twist)`;
+• Option 1: 20-35 chars (Deadpan style)
+• Option 2: 36-50 chars (Observational style)
+• Option 3: 51-65 chars (Extended thought)
+• Option 4: 66-70 chars (Absurdist twist)`;
     }
     
     // Add specific guidance for Spartan rule failures
