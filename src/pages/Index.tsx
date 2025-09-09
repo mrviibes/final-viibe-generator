@@ -26,14 +26,13 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
+import { addTextOverlay, cleanupBlobUrl } from "@/lib/textOverlay";
 
 // Layout mappings for display
 const layoutMappings = {
   negativeSpace: { label: "Negative Space", token: "clear empty area near largest margin" },
   memeTopBottom: { label: "Meme Top/Bottom", token: "clear top band, clear bottom band" },
   lowerThird: { label: "Lower Third Banner", token: "clear lower third" },
-  sideBarLeft: { label: "Side Bar (Left)", token: "clear left panel" },
-  badgeSticker: { label: "Badge/Sticker Callout", token: "badge space top-right" },
   subtleCaption: { label: "Subtle Caption", token: "clear narrow bottom strip" }
 };
 
@@ -55,8 +54,6 @@ function ensureVisualVariance(
     negativeSpace: ["clear empty area near largest margin"],
     memeTopBottom: ["clear top band", "clear bottom band"],
     lowerThird: ["clear lower third"],
-    sideBarLeft: ["clear left panel"],
-    badgeSticker: ["badge space top-right"],
     subtleCaption: ["clear narrow bottom strip"]
   };
 
@@ -147,8 +144,6 @@ function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: strin
     negativeSpace: ["clear empty area near largest margin"],
     memeTopBottom: ["clear top band", "clear bottom band"], // both required
     lowerThird: ["clear lower third"],
-    sideBarLeft: ["clear left panel"],
-    badgeSticker: ["badge space top-right"],
     subtleCaption: ["clear narrow bottom strip"]
   };
 
@@ -4092,7 +4087,7 @@ const popCultureOptions = [{
 const fictionalCharactersList = ["Harry Potter", "Hermione Granger", "Ron Weasley", "Dumbledore", "Voldemort", "Snape", "Batman", "Superman", "Wonder Woman", "Spider-Man", "Iron Man", "Captain America", "Hulk", "Thor", "Black Widow", "Joker", "Harley Quinn", "Lex Luthor", "Green Goblin", "Loki", "Thanos", "Luke Skywalker", "Princess Leia", "Han Solo", "Darth Vader", "Obi-Wan Kenobi", "Yoda", "Chewbacca", "R2-D2", "C-3PO", "Frodo", "Gandalf", "Aragorn", "Legolas", "Gimli", "Gollum", "Sauron", "Sherlock Holmes", "John Watson", "Moriarty", "Mickey Mouse", "Donald Duck", "Goofy", "Elsa", "Anna", "Olaf", "Simba", "Mufasa", "Scar", "Buzz Lightyear", "Woody", "Rex", "Mr. Potato Head", "Mario", "Luigi", "Princess Peach", "Bowser", "Yoshi", "Link", "Zelda", "Ganondorf", "Pikachu", "Charizard", "Mewtwo", "Ash Ketchum", "Naruto", "Sasuke", "Sakura", "Kakashi", "Goku", "Vegeta", "Piccolo", "Jon Snow", "Daenerys Targaryen", "Tyrion Lannister", "Cersei Lannister", "Jaime Lannister", "Arya Stark", "Sansa Stark", "Walter White", "Jesse Pinkman", "Saul Goodman", "Eleven", "Mike Wheeler", "Dustin Henderson", "Steve Harrington", "Hopper", "Rick Sanchez", "Morty Smith", "Jerry Smith", "Beth Smith", "Summer Smith", "Homer Simpson", "Marge Simpson", "Bart Simpson", "Lisa Simpson", "Maggie Simpson", "SpongeBob SquarePants", "Patrick Star", "Squidward", "Mr. Krabs", "Sandy Cheeks", "Bugs Bunny", "Daffy Duck", "Porky Pig", "Tweety", "Sylvester", "Pepe Le Pew", "Tom", "Jerry", "Scooby-Doo", "Shaggy", "Fred", "Velma", "Daphne", "Garfield", "Odie", "Jon Arbuckle", "Calvin", "Hobbes", "Charlie Brown", "Snoopy", "Lucy", "Linus", "Winnie the Pooh", "Tigger", "Eeyore", "Piglet", "Rabbit", "Owl", "Alice", "Mad Hatter", "Cheshire Cat", "Queen of Hearts", "White Rabbit", "Dorothy", "Wizard of Oz", "Tin Man", "Scarecrow", "Cowardly Lion", "Toto", "Peter Pan", "Tinker Bell", "Captain Hook", "Wendy Darling", "Tarzan", "Jane Porter", "King Kong", "Godzilla", "E.T.", "Spock", "Captain Kirk", "Data", "Picard", "Neo", "Morpheus", "Trinity", "Agent Smith", "Terminator", "Sarah Connor", "John Connor", "Indiana Jones", "James Bond", "Ethan Hunt", "Rocky Balboa", "Ivan Drago", "Apollo Creed", "Forrest Gump", "Jenny Curran", "Lieutenant Dan", "Jack Sparrow", "Will Turner", "Elizabeth Swann", "Davy Jones", "Wolverine", "Professor X", "Magneto", "Storm", "Cyclops", "Jean Grey", "Deadpool", "Cable", "Domino", "The Flash", "Green Lantern", "Aquaman", "Cyborg", "Black Panther", "Shuri", "Okoye", "Killmonger", "Doctor Strange", "Scarlet Witch", "Vision", "Falcon", "Winter Soldier", "Ant-Man", "Wasp", "Hawkeye", "Nick Fury", "Maria Hill", "Groot", "Rocket Raccoon", "Star-Lord", "Gamora", "Drax"];
 const textStyleOptions = [{
   id: "humorous",
-  name: "Humorous",
+  name: "Humorous", 
   description: "Jokes, puns, lighthearted entertainment"
 }, {
   id: "savage",
@@ -4199,7 +4194,6 @@ const Index = () => {
   
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [autoStartImageGen, setAutoStartImageGen] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [selectedSubOption, setSelectedSubOption] = useState<string | null>(null);
@@ -4226,6 +4220,15 @@ const Index = () => {
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
   const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
+
+  // Normalize legacy layout options
+  const normalizeLayoutId = (layoutId: string | null): string | null => {
+    if (!layoutId) return null;
+    if (layoutId === 'sideBarLeft' || layoutId === 'badgeSticker') {
+      return 'negativeSpace'; // Default fallback for removed options
+    }
+    return layoutId;
+  };
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
@@ -4243,6 +4246,7 @@ const Index = () => {
   const [showProxySettingsDialog, setShowProxySettingsDialog] = useState<boolean>(false);
   const [showCorsRetryDialog, setShowCorsRetryDialog] = useState<boolean>(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
+  const [isAddingTextOverlay, setIsAddingTextOverlay] = useState<boolean>(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageGenerationError, setImageGenerationError] = useState<string>("");
   const [showProxySettings, setShowProxySettings] = useState(false);
@@ -4252,6 +4256,7 @@ const Index = () => {
   // Spelling guarantee mode states - default to ON when text is present
   const [spellingGuaranteeMode, setSpellingGuaranteeMode] = useState<boolean>(false);
   const [showTextOverlay, setShowTextOverlay] = useState<boolean>(false);
+  
   const [backgroundOnlyImageUrl, setBackgroundOnlyImageUrl] = useState<string | null>(null);
   const [finalImageWithText, setFinalImageWithText] = useState<string | null>(null);
   const [textMisspellingDetected, setTextMisspellingDetected] = useState<boolean>(false);
@@ -4364,6 +4369,15 @@ const Index = () => {
       setAutoStartImageGen(false);
     }
   }, [currentStep, autoStartImageGen, isGeneratingImage, generatedImageUrl, barebonesMode, directPrompt]);
+
+  // Cleanup blob URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (finalImageWithText) {
+        cleanupBlobUrl(finalImageWithText);
+      }
+    };
+  }, [finalImageWithText]);
 
   // Visual AI recommendations state
   const [isTestingProxy, setIsTestingProxy] = useState(false);
@@ -4950,7 +4964,9 @@ const Index = () => {
     setGeneratedImageUrl(null);
     try {
       // Build the handoff data using actual form values
-      const finalText = selectedGeneratedOption || stepTwoText || "";
+      // FIXED: Prioritize confirmed custom text over AI recommendations
+      const finalText = stepTwoText || selectedGeneratedOption || "";
+      console.log('🎯 Final text choice:', { stepTwoText, selectedGeneratedOption, finalText });
       const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
       const subcategory = (() => {
         if (selectedStyle === 'celebrations' && selectedSubOption) {
@@ -5002,7 +5018,10 @@ const Index = () => {
         prompt = visualRecommendations.options[selectedRecommendation].prompt;
       }
       if (!prompt && !barebonesMode) {
-        prompt = buildIdeogramPrompt(ideogramPayload);
+        const layoutToken = (finalText && finalText.trim() && selectedTextLayout) 
+          ? layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.token 
+          : undefined;
+        prompt = buildIdeogramPrompt(ideogramPayload, false, layoutToken);
       }
       
       // In barebones mode, require direct prompt
@@ -5010,12 +5029,24 @@ const Index = () => {
         sonnerToast.error("Please provide a direct prompt in barebones mode.");
         return;
       }
+
+      // ALWAYS append layout tokens to ensure proper text overlay space
+      if (finalText && finalText.trim() && selectedTextLayout) {
+        const layoutConfig = layoutMappings[selectedTextLayout as keyof typeof layoutMappings];
+        if (layoutConfig && !prompt.toLowerCase().includes(layoutConfig.token.toLowerCase())) {
+          prompt += `, ${layoutConfig.token}`;
+          console.log(`🎯 Added layout token for ${selectedTextLayout}: ${layoutConfig.token}`);
+        }
+      }
+
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
       // Always respect the selected visual style
       const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
       console.log('=== Ideogram Generation Debug ===');
       console.log('Direct prompt provided:', !!directPrompt.trim());
-      console.log('Final prompt:', prompt);
+      console.log('Selected text layout:', selectedTextLayout);
+      console.log('Final text for overlay:', finalText);
+      console.log('Final prompt with layout tokens:', prompt);
       console.log('Aspect ratio:', aspectForIdeogram);
       console.log('Style type:', styleForIdeogram);
       console.log('Final payload:', {
@@ -5034,8 +5065,35 @@ const Index = () => {
         style_type: styleForIdeogram
       });
       if (response.data && response.data.length > 0) {
-        setGeneratedImageUrl(response.data[0].url);
-        sonnerToast.success("Your VIIBE has been generated successfully!");
+        const backgroundImageUrl = response.data[0].url;
+        setBackgroundOnlyImageUrl(backgroundImageUrl);
+        setGeneratedImageUrl(backgroundImageUrl);
+        
+        // Add text overlay if there's text content
+        // FIXED: Prioritize confirmed custom text over AI recommendations
+        const finalText = stepTwoText || selectedGeneratedOption || "";
+        console.log('🎯 Final text for overlay:', { stepTwoText, selectedGeneratedOption, finalText });
+        if (finalText && finalText.trim() && selectedTextLayout) {
+          try {
+            setIsAddingTextOverlay(true);
+            const imageWithText = await addTextOverlay(backgroundImageUrl, {
+              text: finalText,
+              layout: selectedTextLayout,
+              aspectRatio: selectedDimension || "Square"
+            });
+            setFinalImageWithText(imageWithText);
+            setGeneratedImageUrl(imageWithText);
+            sonnerToast.success("Your VIIBE with text has been generated successfully!");
+          } catch (textError) {
+            console.error('Text overlay failed:', textError);
+            sonnerToast.success("Your VIIBE background has been generated successfully!");
+            sonnerToast.error("Text overlay failed, showing background only");
+          } finally {
+            setIsAddingTextOverlay(false);
+          }
+        } else {
+          sonnerToast.success("Your VIIBE has been generated successfully!");
+        }
       } else {
         throw new Error("No image data received from Ideogram API");
       }
@@ -5074,10 +5132,11 @@ const Index = () => {
      }
   };
   const handleDownloadImage = () => {
-    if (!generatedImageUrl) return;
+    const imageToDownload = finalImageWithText || generatedImageUrl;
+    if (!imageToDownload) return;
     const link = document.createElement('a');
-    link.href = generatedImageUrl;
-    link.download = 'viibe-image.jpg';
+    link.href = imageToDownload;
+    link.download = finalImageWithText ? 'viibe-with-text.jpg' : 'viibe-image.jpg';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -5921,6 +5980,7 @@ const Index = () => {
                           </div>}
                       </div>
 
+
                       {/* Generate Button - Hide in barebones mode */}
                       {!barebonesMode && (
                         <div className="text-center">
@@ -5951,8 +6011,10 @@ const Index = () => {
                       </div>
                       {textGenerationModel && (
                         <div className="mb-3">
-                          <Badge variant={textGenerationModel === 'fallback' ? 'secondary' : 'default'} className="text-xs">
-                            {textGenerationModel === 'fallback' ? 'Fallback' : textGenerationModel}
+                          <Badge variant={textGenerationModel === 'fallback' || textGenerationModel === 'comedian-fallback' ? 'secondary' : 'default'} className="text-xs">
+                            {textGenerationModel === 'fallback' ? 'Fallback' : 
+                             textGenerationModel === 'comedian-fallback' ? 'Comedian Mode' : 
+                             textGenerationModel}
                           </Badge>
                         </div>
                       )}
@@ -6006,6 +6068,10 @@ const Index = () => {
                         <Button variant="brand" className="px-8 py-3 text-base font-medium rounded-lg" onClick={() => {
                   if (stepTwoText.trim()) {
                     setIsCustomTextConfirmed(true);
+                    // Clear stale AI recommendations when custom text is confirmed
+                    setSelectedGeneratedOption(null);
+                    setSelectedGeneratedIndex(null);
+                    console.log('🎯 Custom text confirmed, cleared AI recommendations');
                   }
                 }} disabled={!stepTwoText.trim()}>
                           Save text
@@ -6041,8 +6107,6 @@ const Index = () => {
                             { id: "negativeSpace", name: "Negative Space" },
                             { id: "memeTopBottom", name: "Meme Top/Bottom" },
                             { id: "lowerThird", name: "Lower Third Banner" },
-                            { id: "sideBarLeft", name: "Side Bar (Left)" },
-                            { id: "badgeSticker", name: "Badge/Sticker Callout" },
                             { id: "subtleCaption", name: "Subtle Caption" }
                           ];
                           return layoutOptions.find(l => l.id === selectedTextLayout)?.name || selectedTextLayout;
@@ -6391,6 +6455,14 @@ const Index = () => {
           </>}
 
         {currentStep === 4 && <>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">
+                {isGeneratingImage ? "Generating your VIIBE..." : isAddingTextOverlay ? "Adding text overlay..." : "Finished Design"}
+              </h2>
+              <p className="text-xl text-muted-foreground">
+                {isGeneratingImage ? "Please wait while we create your image..." : isAddingTextOverlay ? "Adding your text to the image..." : "Your viibe is ready! Review the details and download your creation."}
+              </p>
+            </div>
             
             <div className="max-w-4xl mx-auto space-y-8">
               {/* Preview Section */}
@@ -6403,11 +6475,11 @@ const Index = () => {
                 </div>
                 
                 <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
-                  {isGeneratingImage ? (
+                  {isGeneratingImage || isAddingTextOverlay ? (
                     <div className="text-center">
                       <Button variant="brand" disabled className="mb-4">
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Generating VIIBE...
+                        {isGeneratingImage ? "Generating VIIBE..." : "Adding text overlay..."}
                       </Button>
                       <p className="text-sm text-muted-foreground">This may take a few moments</p>
                     </div>

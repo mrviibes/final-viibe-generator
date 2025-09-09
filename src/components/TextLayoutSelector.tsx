@@ -33,18 +33,6 @@ const layoutOptions: LayoutOption[] = [
     bestFor: "Professional announcements"
   },
   {
-    id: "sideBarLeft",
-    name: "Side Bar (Left)",
-    description: "Text panel on the left side",
-    bestFor: "Lists, quotes"
-  },
-  {
-    id: "badgeSticker",
-    name: "Badge/Sticker Callout",
-    description: "Text in a decorative badge or sticker",
-    bestFor: "Celebrations, awards"
-  },
-  {
     id: "subtleCaption",
     name: "Subtle Caption",
     description: "Minimal text overlay",

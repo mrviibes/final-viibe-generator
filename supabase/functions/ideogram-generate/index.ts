@@ -105,7 +105,7 @@ serve(async (req) => {
 
       console.log('Calling Ideogram V3 API...');
       
-      // Map aspect_ratio to V3 resolution format - V3 uses enumerated resolution values
+      // Map aspect_ratio to correct Ideogram V3 resolution enums
       const resolutionMap: { [key: string]: string } = {
         'ASPECT_1_1': 'RESOLUTION_1024_1024',
         'ASPECT_10_16': 'RESOLUTION_832_1216', 
@@ -146,7 +146,7 @@ serve(async (req) => {
         console.error('Response headers:', Object.fromEntries(ideogramResponse.headers.entries()));
         
         // Try fallback to square format if it's a resolution issue
-        if (ideogramResponse.status === 400 && resolution !== '1024x1024') {
+        if (ideogramResponse.status === 400 && resolution !== 'RESOLUTION_1024_1024') {
           console.log('Retrying with square format due to resolution error...');
           
           const fallbackPayload = {
