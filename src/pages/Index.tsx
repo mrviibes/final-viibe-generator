@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X, Download } from "lucide-react";
@@ -21,7 +20,6 @@ import { TextLayoutSelector } from "@/components/TextLayoutSelector";
 import { useNavigate } from "react-router-dom";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
 import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
-import { cleanForDisplay } from "@/lib/visualModel";
 import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { useToast } from "@/hooks/use-toast";
@@ -30,32 +28,14 @@ import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/li
 import { generateStep2Lines } from "@/lib/textGen";
 import { addTextOverlay, cleanupBlobUrl } from "@/lib/textOverlay";
 
-// Layout mappings with strengthened prompt tokens for better AI understanding
+// Layout mappings for display
 const layoutMappings = {
-  negativeSpace: { 
-    label: "Negative Space", 
-    token: "subject off-center, large empty negative space on one side, clear open area for overlay text, asymmetrical composition with prominent empty space" 
-  },
-  memeTopBottom: { 
-    label: "Meme Top/Bottom", 
-    token: "clear horizontal bands at top and bottom edges, wide letterbox format, prominent empty text areas above and below main subject" 
-  },
-  lowerThird: { 
-    label: "Lower Third Banner", 
-    token: "clear horizontal stripe across bottom third, news broadcast style, empty banner space in lower portion, subject above the lower third area" 
-  },
-  sideBarLeft: { 
-    label: "Side Bar (Left)", 
-    token: "prominent empty vertical panel on left side, clear column space for text overlay, subject positioned right of center, sidebar composition" 
-  },
-  badgeSticker: { 
-    label: "Badge/Sticker Callout", 
-    token: "clear circular or oval space in top-right corner, badge placement area, sticker zone upper right, clean corner space for callout element" 
-  },
-  subtleCaption: { 
-    label: "Subtle Caption", 
-    token: "clean narrow horizontal strip at bottom edge, minimal caption space, thin text band at lower border, subtitle area bottom" 
-  }
+  negativeSpace: { label: "Negative Space", token: "clear empty area near largest margin" },
+  memeTopBottom: { label: "Meme Top/Bottom", token: "clear top band, clear bottom band" },
+  lowerThird: { label: "Lower Third Banner", token: "clear lower third" },
+  sideBarLeft: { label: "Side Bar (Left)", token: "clear left panel" },
+  badgeSticker: { label: "Badge/Sticker Callout", token: "badge space top-right" },
+  subtleCaption: { label: "Subtle Caption", token: "clear narrow bottom strip" }
 };
 
 // Visual variance enforcer to prevent duplicate/similar prompts
@@ -73,12 +53,12 @@ function ensureVisualVariance(
   }
 
   const layoutTokens = {
-    negativeSpace: ["subject off-center", "large empty negative space", "clear open area for overlay text", "asymmetrical composition"],
-    memeTopBottom: ["clear horizontal bands", "letterbox format", "empty text areas above and below", "wide top and bottom margins"],
-    lowerThird: ["clear horizontal stripe across bottom third", "news broadcast style", "empty banner space in lower portion"],
-    sideBarLeft: ["prominent empty vertical panel on left", "clear column space", "sidebar composition", "subject positioned right"],
-    badgeSticker: ["clear circular space in top-right corner", "badge placement area", "sticker zone upper right", "clean corner space"],
-    subtleCaption: ["clean narrow horizontal strip at bottom", "minimal caption space", "thin text band at lower border"]
+    negativeSpace: ["clear empty area near largest margin"],
+    memeTopBottom: ["clear top band", "clear bottom band"],
+    lowerThird: ["clear lower third"],
+    sideBarLeft: ["clear left panel"],
+    badgeSticker: ["badge space top-right"],
+    subtleCaption: ["clear narrow bottom strip"]
   };
 
   const requiredTokens = layoutTokens[layoutId as keyof typeof layoutTokens] || layoutTokens.negativeSpace;
@@ -165,12 +145,12 @@ function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: strin
   reasons: string[] 
 } {
   const layoutTokens = {
-    negativeSpace: ["subject off-center", "large empty negative space", "clear open area for overlay text", "asymmetrical composition"],
-    memeTopBottom: ["clear horizontal bands", "letterbox format", "empty text areas above and below", "wide top and bottom margins"], // both required
-    lowerThird: ["clear horizontal stripe across bottom third", "news broadcast style", "empty banner space in lower portion"],
-    sideBarLeft: ["prominent empty vertical panel on left", "clear column space", "sidebar composition", "subject positioned right"],
-    badgeSticker: ["clear circular space in top-right corner", "badge placement area", "sticker zone upper right", "clean corner space"],
-    subtleCaption: ["clean narrow horizontal strip at bottom", "minimal caption space", "thin text band at lower border"]
+    negativeSpace: ["clear empty area near largest margin"],
+    memeTopBottom: ["clear top band", "clear bottom band"], // both required
+    lowerThird: ["clear lower third"],
+    sideBarLeft: ["clear left panel"],
+    badgeSticker: ["badge space top-right"],
+    subtleCaption: ["clear narrow bottom strip"]
   };
 
   const requiredTokens = layoutTokens[layoutId as keyof typeof layoutTokens] || layoutTokens.negativeSpace;
@@ -4228,10 +4208,9 @@ const Index = () => {
   const [selectedTextStyle, setSelectedTextStyle] = useState<string | null>(null);
   const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
   const [selectedVisualStyle, setSelectedVisualStyle] = useState<string | null>(null);
-  const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>(null);
+  const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>("design-myself");
   const [visualOptions, setVisualOptions] = useState<Array<{ subject: string; background: string; prompt: string; slot: string }>>([]);
   const [selectedVisualIndex, setSelectedVisualIndex] = useState<number | null>(null);
-  const [expandedPromptIndex, setExpandedPromptIndex] = useState<number | null>(null); // Track which exact prompt is shown
   const [visualModel, setVisualModel] = useState<string | null>(null); // Track which model was used
   const [subjectTags, setSubjectTags] = useState<string[]>([]);
   const [subjectTagInput, setSubjectTagInput] = useState<string>("");
@@ -4248,14 +4227,8 @@ const Index = () => {
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
   const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
-  
-  // Safety check: Reset selectedTextLayout if it's one of the removed options
-  useEffect(() => {
-    if (selectedTextLayout === 'sideBarLeft' || selectedTextLayout === 'badgeSticker') {
-      setSelectedTextLayout(null);
-    }
-  }, [selectedTextLayout]);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -4513,12 +4486,11 @@ const Index = () => {
       if (selectedVisualIndex !== null && visualOptions[selectedVisualIndex]) {
         // Show selected option
         const option = visualOptions[selectedVisualIndex];
-        const optionTitle = `Selected: Option ${selectedVisualIndex + 1}`;
-        const compactDescription = cleanForDisplay(option.subject);
+        const optionTitle = `Selected: Option ${selectedVisualIndex + 1} (${option.slot?.replace('-', ' ') || 'Visual'})`;
+        const compactDescription = `${option.subject} - ${option.background}`;
         selections.push({
           title: optionTitle,
           subtitle: compactDescription,
-          description: `Exact prompt: ${option.prompt}`,
           onChangeSelection: () => {
             setSelectedVisualIndex(null);
             setSelectedDimension(null);
@@ -4955,6 +4927,7 @@ const Index = () => {
       setSelectedGeneratedOption(null);
       setSelectedGeneratedIndex(null);
       setGeneratedOptions(result.lines.map(line => line.text));
+      setTextGenerationModel(result.model);
 
       // Show success toast
       sonnerToast.success("Generated new text options", {
@@ -5223,24 +5196,35 @@ const Index = () => {
       }
     }, 250);
   };
-  return (
-    <div className="min-h-screen bg-background py-12 px-4 pb-32">
+  return <div className="min-h-screen bg-background py-12 px-4 pb-32">
       <div className="max-w-6xl mx-auto">
+        {/* AI Status Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <Badge variant={barebonesMode ? "secondary" : "default"} className="text-sm">
+              AI: {barebonesMode ? "OFF (Barebones)" : "Connected"}
+            </Badge>
+            {!barebonesMode && (
+              <Badge variant="outline" className="text-xs">
+                GPT-4o + Ideogram V3
+              </Badge>
+            )}
+          </div>
+          
+        </div>
         
         {/* Step Progress Header */}
         <StepProgress currentStep={currentStep} />
         
-        {currentStep === 1 && (
-          <>
+        {currentStep === 1 && <>
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Category</h2>
               <p className="text-xl text-muted-foreground">Select the Category that best fits your Viibe</p>
             </div>
             
             {/* Show all cards when no style is selected, or only the selected card */}
-            {!selectedStyle ? (
-              <>
-                {/* Search Bar */}
+        {!selectedStyle ? <>
+            {/* Search Bar */}
             <div className="max-w-md mx-auto mb-12">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -5915,30 +5899,12 @@ const Index = () => {
                 const tagDisplay = tags.length > 0 ? `, tags: ${tags.join(", ")}` : " (no tags added)";
                 selections.push({
                   title: "Text options generated",
-                  subtitle: `100 characters max${tagDisplay}`,
+                  subtitle: `70 characters max${tagDisplay}`,
                   onChangeSelection: () => {
                     setGeneratedOptions([]);
                     setSelectedGeneratedOption(null);
                     setSelectedGeneratedIndex(null);
                   }
-                });
-              }
-
-              // Add layout selection
-              if (selectedTextLayout && selectedCompletionOption !== "no-text") {
-                const layoutOptions = [
-                  { id: "negativeSpace", name: "Negative Space" },
-                  { id: "memeTopBottom", name: "Meme Top/Bottom" },
-                  { id: "lowerThird", name: "Lower Third Banner" },
-                  { id: "sideBarLeft", name: "Side Bar (Left)" },
-                  { id: "badgeSticker", name: "Badge/Sticker Callout" },
-                  { id: "subtileCaption", name: "Subtle Caption" }
-                ];
-                const layoutName = layoutOptions.find(l => l.id === selectedTextLayout)?.name || selectedTextLayout;
-                selections.push({
-                  title: layoutName,
-                  subtitle: "Text layout style",
-                  onChangeSelection: () => setSelectedTextLayout(null)
                 });
               }
               return selections;
@@ -6039,6 +6005,13 @@ const Index = () => {
                           {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
                         </Button>
                       </div>
+                      {textGenerationModel && (
+                        <div className="mb-3">
+                          <Badge variant={textGenerationModel === 'fallback' ? 'secondary' : 'default'} className="text-xs">
+                            {textGenerationModel === 'fallback' ? 'Fallback' : textGenerationModel}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
@@ -6070,16 +6043,16 @@ const Index = () => {
                     <div className="max-w-md mx-auto space-y-6">
                       {/* Custom Text Input */}
                       <div className="space-y-3">
-                         <Textarea value={stepTwoText} onChange={e => {
-                  if (e.target.value.length <= 100) {
+                        <Textarea value={stepTwoText} onChange={e => {
+                  if (e.target.value.length <= 70) {
                     setStepTwoText(e.target.value);
                   }
-                }} placeholder="Enter your custom text (100 characters max)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 min-h-[120px] text-base font-medium rounded-lg resize-none" />
+                }} placeholder="Enter your custom text (70 characters max)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 min-h-[120px] text-base font-medium rounded-lg resize-none" />
                         
                         {/* Character Counter */}
                         <div className="text-center">
-                          <span className={`text-sm ${stepTwoText.length >= 90 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                            {stepTwoText.length}/100 characters
+                          <span className={`text-sm ${stepTwoText.length >= 60 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                            {stepTwoText.length}/70 characters
                           </span>
                         </div>
                       </div>
@@ -6105,12 +6078,12 @@ const Index = () => {
                 {selectedCompletionOption === "write-myself" && isCustomTextConfirmed && <>
                   </>}
 
-                 {/* Text Layout Selection - Show after text is chosen (AI or custom) and when not "no-text" */}
+                {/* Text Layout Selection - Show after text is chosen (AI or custom) and when not "no-text" */}
                 {selectedCompletionOption !== "no-text" && 
                   ((selectedCompletionOption === "ai-assist" && selectedGeneratedOption) || 
                    (selectedCompletionOption === "write-myself" && isCustomTextConfirmed)) && 
                   !selectedTextLayout && (
-                    <div className="mt-4">
+                    <div className="mt-8">
                       <TextLayoutSelector 
                         selectedLayout={selectedTextLayout}
                         onLayoutSelect={setSelectedTextLayout}
@@ -6118,6 +6091,28 @@ const Index = () => {
                     </div>
                 )}
 
+                {/* Show selected layout confirmation */}
+                {selectedTextLayout && selectedCompletionOption !== "no-text" && (
+                  <div className="mt-8">
+                    <StackedSelectionCard 
+                      selections={[{
+                        title: (() => {
+                          const layoutOptions = [
+                            { id: "negativeSpace", name: "Negative Space" },
+                            { id: "memeTopBottom", name: "Meme Top/Bottom" },
+                            { id: "lowerThird", name: "Lower Third Banner" },
+                            { id: "sideBarLeft", name: "Side Bar (Left)" },
+                            { id: "badgeSticker", name: "Badge/Sticker Callout" },
+                            { id: "subtleCaption", name: "Subtle Caption" }
+                          ];
+                          return layoutOptions.find(l => l.id === selectedTextLayout)?.name || selectedTextLayout;
+                        })(),
+                        subtitle: "Text layout style",
+                        onChangeSelection: () => setSelectedTextLayout(null)
+                      }]}
+                    />
+                  </div>
+                )}
 
                 {/* TODO: Add additional sub-options here after text style is selected */}
               </div>)}
@@ -6221,8 +6216,7 @@ const Index = () => {
                       </div>}
 
                      {/* Visual AI recommendations - always show if available */}
-                      {selectedSubjectOption === "ai-assist" && visualOptions.length > 0 && selectedVisualIndex === null && (
-                        <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                     {selectedSubjectOption === "ai-assist" && visualOptions.length > 0 && selectedVisualIndex === null && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                          <div className="text-center mb-6">
                              <div className="flex items-center justify-center gap-3 mb-2">
                                <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
@@ -6241,90 +6235,63 @@ const Index = () => {
                             <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
                           </div>
                         
-                         <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
-                            {visualOptions.map((option, index) => (
-                              <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50" onClick={() => {
-                                setSelectedVisualIndex(index);
-                                setShowSubjectTagEditor(false); 
-                              }}>
-                                <CardHeader className="pb-2">
-                                  <CardTitle className="text-base font-semibold text-card-foreground flex items-center justify-between">
-                                    <span>Option {index + 1}</span>
-                                    <Button
-                                      variant="outline" 
-                                      size="sm"
-                                      className="text-xs h-6 px-2"
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        try {
-                                          await navigator.clipboard.writeText(option.prompt);
-                                          sonnerToast.success('Exact prompt copied');
-                                        } catch (err) {
-                                          sonnerToast.error('Failed to copy');
-                                        }
-                                      }}
-                                    >
-                                      Copy prompt
-                                    </Button>
-                                  </CardTitle>
-                                </CardHeader>
-                                <CardContent className="pt-0">
-                                  <p className="text-sm text-muted-foreground line-clamp-2">
-                                    {cleanForDisplay(option.subject)}
-                                  </p>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                         </div>
-                        )}
+                        <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
+                          {visualOptions.map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50" onClick={() => {
+                  setSelectedVisualIndex(index);
+                  setShowSubjectTagEditor(false); // Keep tag editor hidden once visual is selected
+                }}>
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-base font-semibold text-card-foreground">
+                                  Option {index + 1} ({option.slot?.replace('-', ' ') || 'Visual'})
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="pt-0">
+                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                  {option.subject} - {option.background}
+                                </p>
+                              </CardContent>
+                            </Card>)}
+                        </div>
+                      </div>}
 
                     {/* Dimensions Selection - Show when AI assist visual is selected */}
-                     {selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null && (
-                       <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-6">
                           <p className="text-xl text-muted-foreground">Choose your dimensions</p>
                         </div>
 
-                         {/* Show dimension selection grid when no dimension is selected */}
-                         {!selectedDimension ? (
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
-                             {dimensionOptions.map(dimension => <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
-                                 <CardHeader className="pb-3 text-center">
-                                   <CardTitle className="text-lg font-semibold text-card-foreground">
-                                     {dimension.name}
-                                   </CardTitle>
-                                 </CardHeader>
-                                 <CardContent>
-                                   <CardDescription className="text-sm text-muted-foreground text-center">
-                                     {dimension.description}
-                                   </CardDescription>
-                                 </CardContent>
-                               </Card>)}
-                           </div>
-                         ) : (
-                           selectedDimension === "custom" && (
-                             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                               <div className="text-center mb-8">
-                                 <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
-                               </div>
-                               <div className="max-w-md mx-auto flex gap-4 items-center">
-                                 <div className="flex-1">
-                                   <Input type="number" value={customWidth} onChange={e => setCustomWidth(e.target.value)} placeholder="Width" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
-                                 </div>
-                                 <span className="text-muted-foreground">×</span>
-                                 <div className="flex-1">
-                                   <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
-                                 </div>
-                               </div>
-                             </div>
-                           )
-                         )}
-                       </div>)}
+                        {/* Show dimension selection grid when no dimension is selected */}
+                        {!selectedDimension ? <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
+                            {dimensionOptions.map(dimension => <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
+                                <CardHeader className="pb-3 text-center">
+                                  <CardTitle className="text-lg font-semibold text-card-foreground">
+                                    {dimension.name}
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <CardDescription className="text-sm text-muted-foreground text-center">
+                                    {dimension.description}
+                                  </CardDescription>
+                                </CardContent>
+                              </Card>)}
+                          </div> : selectedDimension === "custom" && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="text-center mb-8">
+                              <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
+                            </div>
+                            <div className="max-w-md mx-auto flex gap-4 items-center">
+                              <div className="flex-1">
+                                <Input type="number" value={customWidth} onChange={e => setCustomWidth(e.target.value)} placeholder="Width" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
+                              </div>
+                              <span className="text-muted-foreground">×</span>
+                              <div className="flex-1">
+                                <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
+                              </div>
+                            </div>
+                          </div>}
+                      </div>}
 
                     {/* Show confirmed subject description when saved */}
-                     {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && (
-                       <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
                           <CardHeader className="pb-3">
                             <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
@@ -6344,11 +6311,10 @@ const Index = () => {
                             </div>
                           </CardContent>
                         </Card>
-                       </div>)}
+                      </div>}
 
                     {/* Subject description form for Design Myself */}
-                     {selectedSubjectOption === "design-myself" && !isSubjectDescriptionConfirmed && (
-                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {selectedSubjectOption === "design-myself" && !isSubjectDescriptionConfirmed && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-8">
                           <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Describe the visuals of your Viibe (100 characters max)</h2>
                         </div>
@@ -6380,11 +6346,10 @@ const Index = () => {
                               </Button>
                             </div>}
                         </div>
-                       </div>)}
+                      </div>}
 
                     {/* Dimensions Selection - Show when custom description is confirmed */}
-                     {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && (
-                       <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Show dimension selection grid when no dimension is selected */}
                         {!selectedDimension ? <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
                             {dimensionOptions.map(dimension => <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
@@ -6426,39 +6391,33 @@ const Index = () => {
                             </div>
 
                             {/* Custom dimension inputs */}
-                             {selectedDimension === "custom" && (
-                               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                 <div className="text-center mb-8">
-                                   <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
-                                 </div>
-                                 <div className="max-w-md mx-auto flex gap-4 items-center">
-                                   <div className="flex-1">
-                                     <Input type="number" value={customWidth} onChange={e => setCustomWidth(e.target.value)} placeholder="Width" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
-                                   </div>
-                                   <span className="text-muted-foreground">×</span>
-                                   <div className="flex-1">
-                                     <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
-                                   </div>
-                                 </div>
-                               </div>
-                             )}
-                            </div>
-                          </div>
-                        }
-                     )}
+                            {selectedDimension === "custom" && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="text-center mb-8">
+                                  <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
+                                </div>
+                                <div className="max-w-md mx-auto flex gap-4 items-center">
+                                  <div className="flex-1">
+                                    <Input type="number" value={customWidth} onChange={e => setCustomWidth(e.target.value)} placeholder="Width" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
+                                  </div>
+                                  <span className="text-muted-foreground">×</span>
+                                  <div className="flex-1">
+                                    <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
+                                  </div>
+                                </div>
+                              </div>}
+                          </div>}
+                      </div>}
+                  </div>)}
 
-                 {/* General Dimensions Selection - Show only for non-AI assist options */}
-                 {selectedSubjectOption && (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed || selectedSubjectOption === "no-subject" || selectedSubjectOption === "single-person" || selectedSubjectOption === "multiple-people") && (
-                   <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* General Dimensions Selection - Show only for non-AI assist options */}
+                {selectedSubjectOption && (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed || selectedSubjectOption === "no-subject" || selectedSubjectOption === "single-person" || selectedSubjectOption === "multiple-people") && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">Choose your dimensions</p>
                     </div>
 
                     {/* Show dimension selection grid when no dimension is selected */}
-                    {!selectedDimension ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
-                        {dimensionOptions.map(dimension => (
-                          <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
+                    {!selectedDimension ? <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
+                        {dimensionOptions.map(dimension => <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
                             <CardHeader className="pb-3 text-center">
                               <CardTitle className="text-lg font-semibold text-card-foreground">
                                 {dimension.name}
@@ -6469,14 +6428,10 @@ const Index = () => {
                                 {dimension.description}
                               </CardDescription>
                             </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                          </Card>)}
+                      </div> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Custom dimension inputs */}
-                        {selectedDimension === "custom" && (
-                          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {selectedDimension === "custom" && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="text-center mb-8">
                               <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
                             </div>
@@ -6489,12 +6444,10 @@ const Index = () => {
                                 <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                   </div>
-                 )}
+                          </div>}
+                      </div>}
+                  </div>}
+              </div>)}
           </>}
 
         {currentStep === 4 && <>
@@ -6965,7 +6918,6 @@ const Index = () => {
         <CorsRetryDialog open={showCorsRetryDialog} onOpenChange={setShowCorsRetryDialog} onRetry={handleGenerateImage} />
 
       </div>
-    </div>
-  );
+    </div>;
 };
 export default Index;

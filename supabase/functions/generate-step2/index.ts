@@ -22,8 +22,8 @@ const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY valid JSON:
 COMEDIAN STYLE PALETTE (MANDATORY - each option has specific voice):
 • Option 1: Deadpan/Spartan (20-35 chars) - Dry, matter-of-fact, minimal words
 • Option 2: Observational (36-50 chars) - "Have you noticed..." style, relatable observations  
-• Option 3: Extended thought (51-80 chars) - Longer setup, can roast IF tone allows
-• Option 4: Absurdist/Twist (81-100 chars) - Unexpected punchline, surreal logic
+• Option 3: Extended thought (51-65 chars) - Longer setup, can roast IF tone allows
+• Option 4: Absurdist/Twist (66-70 chars) - Unexpected punchline, surreal logic
 
 TONE GATING (CRITICAL):
 • Option 3 can only roast/insult if tone is Savage/Humorous
@@ -39,9 +39,8 @@ SPARTAN HOUSE RULES (NON-NEGOTIABLE):
 • No semicolons (;) or em dashes (—) ever
 • No markdown (*bold* #hashtag @mentions)  
 • No clichés or filler phrases
-• Options 1-3: Max ONE pause (comma OR colon), Option 4: Max TWO pauses
+• Max ONE pause per line (comma OR colon, not both)
 • Clean sentences, not fragments
-• No dangling endings (and, or, the, with, etc.)
 
 BANNED WORDS (never use):
 can, may, just, really, literally, actually, probably, basically, maybe, utilize, moreover, additionally, furthermore, overall, ultimately, "in conclusion", "at the end of the day", "here's how", "let's explore"
@@ -54,8 +53,8 @@ OCCASION THROTTLE:
 LENGTH EXAMPLES:
 ✓ Option 1 (30 chars): "Your cake expired."
 ✓ Option 2 (45 chars): "Why do birthday parties feel like job interviews?"
-✓ Option 3 (75 chars): "Your candles cost more than your last three relationships combined."
-✓ Option 4 (95 chars): "This confetti applied for witness protection after seeing you dance at family gatherings."`;
+✓ Option 3 (60 chars): "Your candles cost more than your last three relationships."
+✓ Option 4 (68 chars): "This confetti applied for witness protection after seeing you dance."`;
 
 // System prompt for categories WITHOUT anchors
 const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY valid JSON:
@@ -71,8 +70,8 @@ const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY valid JSON:
 COMEDIAN STYLE PALETTE (MANDATORY - each option has specific voice):
 • Option 1: Deadpan/Spartan (20-35 chars) - Dry, matter-of-fact, minimal words
 • Option 2: Observational (36-50 chars) - "Have you noticed..." style, relatable observations
-• Option 3: Extended thought (51-80 chars) - Longer setup, can roast IF tone allows  
-• Option 4: Absurdist/Twist (81-100 chars) - Unexpected punchline, surreal logic
+• Option 3: Extended thought (51-65 chars) - Longer setup, can roast IF tone allows  
+• Option 4: Absurdist/Twist (66-70 chars) - Unexpected punchline, surreal logic
 
 TONE GATING (CRITICAL):
 • Option 3 can only roast/insult if tone is Savage/Humorous
@@ -88,9 +87,8 @@ SPARTAN HOUSE RULES (NON-NEGOTIABLE):
 • No semicolons (;) or em dashes (—) ever
 • No markdown (*bold* #hashtag @mentions)
 • No clichés or filler phrases  
-• Options 1-3: Max ONE pause (comma OR colon), Option 4: Max TWO pauses
+• Max ONE pause per line (comma OR colon, not both)
 • Clean sentences, not fragments
-• No dangling endings (and, or, the, with, etc.)
 
 BANNED WORDS (never use):
 can, may, just, really, literally, actually, probably, basically, maybe, utilize, moreover, additionally, furthermore, overall, ultimately, "in conclusion", "at the end of the day", "here's how", "let's explore"
@@ -103,8 +101,8 @@ OCCASION THROTTLE:
 LENGTH EXAMPLES:
 ✓ Option 1 (30 chars): "Your cake expired."
 ✓ Option 2 (45 chars): "Why do birthday parties feel like job interviews?"
-✓ Option 3 (75 chars): "Your candles cost more than your last three relationships combined."
-✓ Option 4 (95 chars): "This confetti applied for witness protection after seeing you dance at family gatherings."`;
+✓ Option 3 (60 chars): "Your candles cost more than your last three relationships."
+✓ Option 4 (68 chars): "This confetti applied for witness protection after seeing you dance."`;
 
 // Category-specific anchor dictionaries
 const ANCHORS = {
@@ -138,27 +136,27 @@ function generateSavageFallback(inputs: any): any {
     styleTemplates = [
       tagString ? `${tagString} expired.` : "That expired.", // Deadpan (20-35)
       tagString ? `Why does ${tagString} feel like a job interview?` : "Why does this feel like a job interview?", // Observational (36-50)
-      tagString ? `${tagString} costs more than your last three relationships combined.` : "This costs more than your last three relationships combined.", // Extended roast (51-80)
-      tagString ? `${tagString} applied for witness protection after seeing your dance moves at family gatherings.` : "Everything here applied for witness protection after seeing your dance moves at family gatherings." // Absurdist (81-100)
+      tagString ? `${tagString} costs more than your last three relationships.` : "This costs more than your last three relationships.", // Extended roast (51-65)
+      tagString ? `${tagString} applied for witness protection after seeing you.` : "Everything here applied for witness protection after seeing you." // Absurdist (66-70)
     ];
   } else if (tone.toLowerCase().includes("sentimental") || tone.toLowerCase().includes("romantic")) {
     styleTemplates = [
       tagString ? `${tagString} warms hearts.` : "This warms hearts.", // Deadpan (20-35)
       tagString ? `Have you noticed how ${tagString} brings people together?` : "Have you noticed how moments bring people together?", // Observational (36-50)
-      tagString ? `${tagString} represents all the beautiful memories we treasure most dearly.` : "This represents all the beautiful memories we treasure most dearly.", // Extended sentiment (51-80)
-      tagString ? `${tagString} whispers secrets of love that only true hearts understand completely and forever.` : "This whispers secrets of love that only true hearts understand completely and forever." // Absurdist (81-100)
+      tagString ? `${tagString} represents all the beautiful memories we treasure.` : "This represents all the beautiful memories we treasure.", // Extended sentiment (51-65)
+      tagString ? `${tagString} whispers secrets of love that only true hearts understand.` : "This whispers secrets of love that only true hearts understand." // Absurdist (66-70)
     ];
   } else { // Inspirational or other tones
     styleTemplates = [
       tagString ? `${tagString} inspires.` : "This inspires.", // Deadpan (20-35)
       tagString ? `Have you noticed how ${tagString} motivates us?` : "Have you noticed how moments motivate us?", // Observational (36-50)
-      tagString ? `${tagString} reminds us that anything is truly possible when we believe.` : "This reminds us that anything is truly possible when we believe.", // Extended thought (51-80)
-      tagString ? `${tagString} dances with possibilities that dreams never imagined before in their wildest moments.` : "This dances with possibilities that dreams never imagined before in their wildest moments." // Absurdist (81-100)
+      tagString ? `${tagString} reminds us that anything is truly possible today.` : "This reminds us that anything is truly possible today.", // Extended thought (51-65)
+      tagString ? `${tagString} dances with possibilities that dreams never imagined before.` : "This dances with possibilities that dreams never imagined before." // Absurdist (66-70)
     ];
   }
   
-  // Ensure proper length bands: 20-35, 36-50, 51-80, 81-100
-  const targetBands = [[20, 35], [36, 50], [51, 80], [81, 100]];
+  // Ensure proper length bands: 20-35, 36-50, 51-65, 66-70
+  const targetBands = [[20, 35], [36, 50], [51, 65], [66, 70]];
   const finalTemplates = styleTemplates.map((template, index) => {
     const [minLen, maxLen] = targetBands[index];
     let text = template;
@@ -216,8 +214,8 @@ Tone: ${tone}`;
   message += `\n\nSTYLE PALETTE:
 • Option 1: Deadpan (20-35 chars) - Dry, minimal
 • Option 2: Observational (36-50 chars) - "Have you noticed..." 
-• Option 3: Extended (51-80 chars) - ${tone.toLowerCase().includes('savage') || tone.toLowerCase().includes('humorous') ? 'Can roast' : 'Thoughtful sentiment'}
-• Option 4: Absurdist (81-100 chars) - Surreal twist punchline`;
+• Option 3: Extended (51-65 chars) - ${tone.toLowerCase().includes('savage') || tone.toLowerCase().includes('humorous') ? 'Can roast' : 'Thoughtful sentiment'}
+• Option 4: Absurdist (66-70 chars) - Surreal twist punchline`;
 
   // Tone gating hint
   if (!tone.toLowerCase().includes('savage') && !tone.toLowerCase().includes('humorous')) {
@@ -278,7 +276,7 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
     });
     
     // Length band validation (comedian style palette)
-    const lengthBands = [[20, 35], [36, 50], [51, 80], [81, 100]];
+    const lengthBands = [[20, 35], [36, 50], [51, 65], [66, 70]];
     processedLines.forEach((line, index) => {
       const [minLen, maxLen] = lengthBands[index];
       const lineLength = line.text.length;
@@ -301,20 +299,11 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       });
     });
     
-    // Punctuation rules (lane-aware pause limits)
+    // Punctuation rules (max one pause per line)
     processedLines.forEach((line, index) => {
       const pauseCount = (line.text.match(/[,:]/g) || []).length;
-      const maxPauses = index === 3 ? 2 : 1; // Option 4 gets 2, others get 1
-      if (pauseCount > maxPauses) {
-        errors.push(`Option ${index + 1}: Too many pauses (${pauseCount}) - max ${maxPauses} comma${maxPauses > 1 ? 's' : ''} OR colon${maxPauses > 1 ? 's' : ''} per line`);
-      }
-    });
-    
-    // Dangling endings check
-    processedLines.forEach((line, index) => {
-      const danglingPattern = /\b(and|or|but|the|a|an|in|on|at|to|for|of|with|by|from|up|about|into|through|during|before|after|above|below|between|among|since|until|while|where|when|why|how|if|because|although|though|unless|whether|that|which|who|whom|whose|this|these|those)[,:.]?\s*$/i;
-      if (danglingPattern.test(line.text)) {
-        errors.push(`Option ${index + 1}: Dangling ending detected - line ends with connector/preposition/article`);
+      if (pauseCount > 1) {
+        errors.push(`Option ${index + 1}: Too many pauses (${pauseCount}) - max 1 comma OR colon per line`);
       }
     });
     
@@ -403,13 +392,13 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
       feedback += `\n\nCRITICAL LENGTH BANDS:
 • Option 1: 20-35 chars (Deadpan style)
 • Option 2: 36-50 chars (Observational style)
-• Option 3: 51-80 chars (Extended thought)
-• Option 4: 81-100 chars (Absurdist twist)`;
+• Option 3: 51-65 chars (Extended thought)
+• Option 4: 66-70 chars (Absurdist twist)`;
     }
     
     // Add specific guidance for Spartan rule failures
-    if (previousErrors.some(err => err.includes("banned") || err.includes("pauses"))) {
-      feedback += `\n\nSPARTAN RULES: No semicolons, em dashes, banned words. Options 1-3: max 1 pause, Option 4: max 2 pauses`;
+    if (previousErrors.some(err => err.includes("banned") || err.includes("punctuation"))) {
+      feedback += `\n\nSPARTAN RULES: No semicolons, em dashes, banned words, or multiple pauses per line`;
     }
     
     // Add tag guidance

@@ -14,10 +14,9 @@ STRICT RULES:
 }
 
 2. CONTENT RULES:
-- Option 1: ≤ 35 characters, Option 2: ≤ 50 characters, Option 3: ≤ 80 characters, Option 4: ≤ 100 characters
+- Each line must be ≤ 70 characters
 - All 4 lines must be completely different
 - Use simple punctuation: commas, periods, colons
-- Options 1-3: Max ONE pause (comma OR colon), Option 4: Max TWO pauses
 - NO em-dashes (—) or double dashes (--)
 - Ban clichés like "timing is everything", "truth hurts", "laughter is the best medicine"
 
@@ -69,18 +68,14 @@ function sanitizeAndValidate(text: string): TextGenOutput | null {
       return null;
     }
     
-    // Lane-aware character limits
-    const maxLengths = { option1: 35, option2: 50, option3: 80, option4: 100 };
-    
     // Validate each line
     for (const line of parsed.lines) {
       if (!line.lane || !line.text || typeof line.text !== 'string') {
         return null;
       }
       
-      // Lane-aware character limit
-      const maxLength = maxLengths[line.lane as keyof typeof maxLengths] || 100;
-      if (line.text.length > maxLength) {
+      // Hard character limit of 70
+      if (line.text.length > 70) {
         return null;
       }
     }
@@ -108,72 +103,9 @@ const FALLBACK_LINES: TextGenOutput = {
   ]
 };
 
-function gentleAutoFix(text: string, lane?: string): string {
-  // Lane-aware character limits
-  const maxLengths = { option1: 35, option2: 50, option3: 80, option4: 100 };
-  const maxLength = lane ? (maxLengths[lane as keyof typeof maxLengths] || 100) : 100;
-  
-  // Lane-aware pause limits
-  const maxPauses = lane === 'option4' ? 2 : 1;
-  
-  let fixed = text
-    .trim() // Remove leading/trailing whitespace
-    .replace(/—/g, '-') // Replace em-dashes with hyphens
-    .replace(/--+/g, '-'); // Replace multiple dashes with single dash
-  
-  // Enforce pause limits by removing excess commas/colons
-  const pauseCount = (fixed.match(/[,:]/g) || []).length;
-  if (pauseCount > maxPauses) {
-    const pauses = fixed.match(/[,:]/g) || [];
-    let pausesRemoved = 0;
-    for (let i = pauses.length - 1; i >= 0 && pausesRemoved < (pauseCount - maxPauses); i--) {
-      const lastPauseIndex = fixed.lastIndexOf(pauses[i]);
-      fixed = fixed.substring(0, lastPauseIndex) + fixed.substring(lastPauseIndex + 1);
-      pausesRemoved++;
-    }
-  }
-  
-  // Smart truncation to avoid mid-word cuts
-  if (fixed.length > maxLength) {
-    const truncated = fixed.substring(0, maxLength);
-    const lastSpaceIndex = truncated.lastIndexOf(' ');
-    
-    if (lastSpaceIndex > maxLength * 0.8) {
-      // If we can find a space in the last 20% of the text, cut there
-      fixed = truncated.substring(0, lastSpaceIndex);
-    } else {
-      // Otherwise, hard truncate
-      fixed = truncated;
-    }
-  }
-  
-  // Remove dangling endings (trailing punctuation and connector words)
-  fixed = fixed.replace(/[,:]+$/, ''); // Remove trailing commas/colons
-  
-  // Remove dangling connector words, prepositions, and articles at the end
-  const danglingWords = /\b(and|or|but|the|a|an|in|on|at|to|for|of|with|by|from|up|about|into|through|during|before|after|above|below|between|among|since|until|while|where|when|why|how|if|because|although|though|unless|whether|that|which|who|whom|whose|this|these|those)\s*$/i;
-  fixed = fixed.replace(danglingWords, '').trim();
-  
-  // Ensure it ends with proper punctuation
-  if (!/[.!?]$/.test(fixed)) {
-    fixed += '.';
-  }
-  
-  return fixed;
-}
-
-function parseModelResponse(modelString: string): { modelName: string; status: string | null } {
-  const parts = modelString.split(' (');
-  const modelName = parts[0];
-  const status = parts.length > 1 ? parts[1].replace(')', '') : null;
-  return { modelName, status };
-}
-
 export async function generateStep2Lines(inputs: TextGenInput): Promise<{
   lines: Array<{ lane: string; text: string }>;
   model: string;
-  modelName: string;
-  status: string | null;
 }> {
   try {
     console.log("Calling Supabase Edge Function for text generation");
@@ -186,37 +118,19 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
       console.error("Edge function error:", error);
       return {
         lines: FALLBACK_LINES.lines,
-        model: "fallback",
-        modelName: "fallback",
-        status: null
+        model: "fallback"
       };
     }
 
-    const { modelName, status } = parseModelResponse(data.model);
-    
-    // Apply gentle auto-fix for raw-unvalidated responses
-    let processedLines = data.lines;
-    if (status === 'raw-unvalidated') {
-      processedLines = data.lines.map(line => ({
-        ...line,
-        text: gentleAutoFix(line.text, line.lane)
-      }));
-      console.log('🔧 Applied gentle auto-fix to raw-unvalidated lines');
-    }
-
     return {
-      lines: processedLines,
-      model: data.model,
-      modelName,
-      status
+      lines: data.lines,
+      model: data.model
     };
   } catch (error) {
     console.error("Text generation error:", error);
     return {
       lines: FALLBACK_LINES.lines,
-      model: "fallback",
-      modelName: "fallback",
-      status: null
+      model: "fallback"
     };
   }
 }

@@ -208,30 +208,6 @@ function getSlotBasedFallbacks(inputs: VisualInputs): VisualOption[] {
   ];
 }
 
-// Utility function to clean visual text for user display
-export function cleanForDisplay(text: string): string {
-  // First, extract only the subject part (before first comma)
-  const subjectOnly = text.split(',')[0].trim();
-  
-  return subjectOnly
-    // Remove text placement directives
-    .replace(/\b(positioned|anchored|placed)\s+(on|at|in|to)\s+(left|right|center|top|bottom|upper|lower)\s+(third|half|quarter|section)\b/gi, '')
-    .replace(/\b(left|right|center|top|bottom)\s+(third|half|quarter|section)\b/gi, '')
-    .replace(/\boff-center\b/gi, '')
-    // Remove technical placement terms
-    .replace(/\bTEXT_SAFE_ZONE[^[\]]*\]/gi, '')
-    .replace(/\bCONTRAST_PLAN[^[\]]*\]/gi, '')
-    .replace(/\bNEGATIVE_PROMPT[^[\]]*\]/gi, '')
-    .replace(/\bASPECTS[^[\]]*\]/gi, '')
-    .replace(/\bTEXT_HINT[^[\]]*\]/gi, '')
-    // Remove bracketed technical annotations
-    .replace(/\[[^\]]*\]/g, '')
-    // Clean up extra spaces and conjunctions
-    .replace(/\s+/g, ' ')
-    .replace(/^\s*[-,]\s*|\s*[-,]\s*$/g, '')
-    .trim();
-}
-
 export async function generateVisualRecommendations(
   inputs: VisualInputs,
   n: number = VISUAL_OPTIONS_COUNT
