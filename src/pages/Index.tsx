@@ -5013,7 +5013,10 @@ const Index = () => {
         prompt = visualRecommendations.options[selectedRecommendation].prompt;
       }
       if (!prompt && !barebonesMode) {
-        prompt = buildIdeogramPrompt(ideogramPayload);
+        const layoutToken = (finalText && finalText.trim() && selectedTextLayout) 
+          ? layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.token 
+          : undefined;
+        prompt = buildIdeogramPrompt(ideogramPayload, false, layoutToken);
       }
       
       // In barebones mode, require direct prompt
@@ -5021,12 +5024,24 @@ const Index = () => {
         sonnerToast.error("Please provide a direct prompt in barebones mode.");
         return;
       }
+
+      // ALWAYS append layout tokens to ensure proper text overlay space
+      if (finalText && finalText.trim() && selectedTextLayout) {
+        const layoutConfig = layoutMappings[selectedTextLayout as keyof typeof layoutMappings];
+        if (layoutConfig && !prompt.toLowerCase().includes(layoutConfig.token.toLowerCase())) {
+          prompt += `, ${layoutConfig.token}`;
+          console.log(`🎯 Added layout token for ${selectedTextLayout}: ${layoutConfig.token}`);
+        }
+      }
+
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
       // Always respect the selected visual style
       const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
       console.log('=== Ideogram Generation Debug ===');
       console.log('Direct prompt provided:', !!directPrompt.trim());
-      console.log('Final prompt:', prompt);
+      console.log('Selected text layout:', selectedTextLayout);
+      console.log('Final text for overlay:', finalText);
+      console.log('Final prompt with layout tokens:', prompt);
       console.log('Aspect ratio:', aspectForIdeogram);
       console.log('Style type:', styleForIdeogram);
       console.log('Final payload:', {
@@ -6770,7 +6785,19 @@ const Index = () => {
                   prompt = visualRecommendations.options[selectedRecommendation].prompt;
                 }
                 if (!prompt && !barebonesMode) {
-                  prompt = buildIdeogramPrompt(ideogramPayload);
+                  const layoutToken = (finalText && finalText.trim() && selectedTextLayout) 
+                    ? layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.token 
+                    : undefined;
+                  prompt = buildIdeogramPrompt(ideogramPayload, false, layoutToken);
+                }
+
+                // ALWAYS append layout tokens to ensure proper text overlay space
+                if (finalText && finalText.trim() && selectedTextLayout) {
+                  const layoutConfig = layoutMappings[selectedTextLayout as keyof typeof layoutMappings];
+                  if (layoutConfig && !prompt.toLowerCase().includes(layoutConfig.token.toLowerCase())) {
+                    prompt += `, ${layoutConfig.token}`;
+                    console.log(`🎯 Added layout token for ${selectedTextLayout}: ${layoutConfig.token}`);
+                  }
                 }
 
                 // Calculate the exact same parameters used for generation
