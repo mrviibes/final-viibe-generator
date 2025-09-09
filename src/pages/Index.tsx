@@ -21,6 +21,7 @@ import { TextLayoutSelector } from "@/components/TextLayoutSelector";
 import { useNavigate } from "react-router-dom";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
 import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
+import { cleanForDisplay } from "@/lib/visualModel";
 import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { useToast } from "@/hooks/use-toast";
@@ -6245,12 +6246,12 @@ const Index = () => {
                 }}>
                               <CardHeader className="pb-2">
                                 <CardTitle className="text-base font-semibold text-card-foreground">
-                                  Option {index + 1} ({option.slot?.replace('-', ' ') || 'Visual'})
+                                  Option {index + 1}
                                 </CardTitle>
                               </CardHeader>
                               <CardContent className="pt-0">
                                 <p className="text-sm text-muted-foreground line-clamp-2">
-                                  {option.subject} - {option.background}
+                                  {cleanForDisplay(option.subject)} - {cleanForDisplay(option.background)}
                                 </p>
                               </CardContent>
                             </Card>)}
