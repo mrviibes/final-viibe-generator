@@ -39,7 +39,7 @@ SPARTAN HOUSE RULES (NON-NEGOTIABLE):
 • No semicolons (;) or em dashes (—) ever
 • No markdown (*bold* #hashtag @mentions)  
 • No clichés or filler phrases
-• Max ONE pause per line (comma OR colon, not both)
+• Options 1-3: Max ONE pause (comma OR colon), Option 4: Max TWO pauses
 • Clean sentences, not fragments
 
 BANNED WORDS (never use):
@@ -87,7 +87,7 @@ SPARTAN HOUSE RULES (NON-NEGOTIABLE):
 • No semicolons (;) or em dashes (—) ever
 • No markdown (*bold* #hashtag @mentions)
 • No clichés or filler phrases  
-• Max ONE pause per line (comma OR colon, not both)
+• Options 1-3: Max ONE pause (comma OR colon), Option 4: Max TWO pauses
 • Clean sentences, not fragments
 
 BANNED WORDS (never use):
@@ -299,11 +299,12 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       });
     });
     
-    // Punctuation rules (max one pause per line)
+    // Punctuation rules (lane-aware pause limits)
     processedLines.forEach((line, index) => {
       const pauseCount = (line.text.match(/[,:]/g) || []).length;
-      if (pauseCount > 1) {
-        errors.push(`Option ${index + 1}: Too many pauses (${pauseCount}) - max 1 comma OR colon per line`);
+      const maxPauses = index === 3 ? 2 : 1; // Option 4 gets 2, others get 1
+      if (pauseCount > maxPauses) {
+        errors.push(`Option ${index + 1}: Too many pauses (${pauseCount}) - max ${maxPauses} comma${maxPauses > 1 ? 's' : ''} OR colon${maxPauses > 1 ? 's' : ''} per line`);
       }
     });
     
@@ -397,8 +398,8 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     }
     
     // Add specific guidance for Spartan rule failures
-    if (previousErrors.some(err => err.includes("banned") || err.includes("punctuation"))) {
-      feedback += `\n\nSPARTAN RULES: No semicolons, em dashes, banned words, or multiple pauses per line`;
+    if (previousErrors.some(err => err.includes("banned") || err.includes("pauses"))) {
+      feedback += `\n\nSPARTAN RULES: No semicolons, em dashes, banned words. Options 1-3: max 1 pause, Option 4: max 2 pauses`;
     }
     
     // Add tag guidance

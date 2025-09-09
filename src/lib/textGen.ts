@@ -17,6 +17,7 @@ STRICT RULES:
 - Option 1: ≤ 35 characters, Option 2: ≤ 50 characters, Option 3: ≤ 80 characters, Option 4: ≤ 100 characters
 - All 4 lines must be completely different
 - Use simple punctuation: commas, periods, colons
+- Options 1-3: Max ONE pause (comma OR colon), Option 4: Max TWO pauses
 - NO em-dashes (—) or double dashes (--)
 - Ban clichés like "timing is everything", "truth hurts", "laughter is the best medicine"
 
@@ -112,10 +113,25 @@ function gentleAutoFix(text: string, lane?: string): string {
   const maxLengths = { option1: 35, option2: 50, option3: 80, option4: 100 };
   const maxLength = lane ? (maxLengths[lane as keyof typeof maxLengths] || 100) : 100;
   
+  // Lane-aware pause limits
+  const maxPauses = lane === 'option4' ? 2 : 1;
+  
   let fixed = text
     .trim() // Remove leading/trailing whitespace
     .replace(/—/g, '-') // Replace em-dashes with hyphens
     .replace(/--+/g, '-'); // Replace multiple dashes with single dash
+  
+  // Enforce pause limits by removing excess commas/colons
+  const pauseCount = (fixed.match(/[,:]/g) || []).length;
+  if (pauseCount > maxPauses) {
+    const pauses = fixed.match(/[,:]/g) || [];
+    let pausesRemoved = 0;
+    for (let i = pauses.length - 1; i >= 0 && pausesRemoved < (pauseCount - maxPauses); i--) {
+      const lastPauseIndex = fixed.lastIndexOf(pauses[i]);
+      fixed = fixed.substring(0, lastPauseIndex) + fixed.substring(lastPauseIndex + 1);
+      pausesRemoved++;
+    }
+  }
   
   // Smart truncation to avoid mid-word cuts
   if (fixed.length > maxLength) {
