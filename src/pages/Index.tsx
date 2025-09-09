@@ -1907,20 +1907,30 @@ const Index = () => {
         throw new Error("Selected options not found");
       }
 
-      const handoff = {
-        selectedText: selectedText.text,
-        selectedVisual: selectedVisual.prompt,
-        selectedLayout: selectedLayout
-      };
+      // Create proper IdeogramHandoff object
+      const handoff = buildIdeogramHandoff({
+        visual_style: "general",
+        subcategory: selectedSubcategory,
+        tone: "funny",
+        final_line: selectedText.text,
+        tags_csv: "",
+        chosen_visual: selectedVisual.prompt,
+        category: selectedStyle,
+        aspect_ratio: selectedLayout,
+        text_tags_csv: "",
+        visual_tags_csv: "",
+        ai_text_assist_used: true,
+        ai_visual_assist_used: true
+      });
       
-      const prompt = buildIdeogramPrompt(handoff, selectedLayout);
+      const prompt = buildIdeogramPrompt(handoff, true, layoutMappings[selectedLayout as keyof typeof layoutMappings]?.token);
       
       const result = await generateIdeogramImage({
         model: "V_2",
         prompt: prompt,
         aspect_ratio: getAspectRatioForIdeogram(selectedLayout),
         magic_prompt_option: "AUTO",
-        style_type: getStyleTypeForIdeogram(selectedLayout),
+        style_type: getStyleTypeForIdeogram("general"),
         seed: Math.floor(Math.random() * 1000000)
       });
 
