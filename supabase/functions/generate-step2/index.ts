@@ -35,7 +35,15 @@ LENGTH EXAMPLES:
 ✓ Option 3 (58 chars): "This costs more than your last three relationships did."
 ✓ Option 4 (67 chars): "Everything here applied for witness protection after you arrived."`;
 
-// Category-specific anchor dictionaries
+// Subtle occasion hints - avoid literal props, use soft thematic cues
+const OCCASION_HINTS = {
+  "birthday": ["another year", "leveled up", "new chapter", "upgrade complete", "milestone reached", "age progression", "yearly update", "timer reset", "life patch", "experience points"],
+  "wedding": ["partnership", "duo mode", "team formation", "alliance", "merger", "collaboration", "joint venture", "paired up", "synchronized", "matching"],
+  "graduation": ["next level", "achievement unlocked", "phase complete", "progression", "advancement", "transition", "new mode", "skills upgraded", "diploma acquired", "knowledge gained"],
+  "anniversary": ["recurring event", "annual reminder", "timeline marker", "yearly check-in", "scheduled celebration", "calendar highlight", "time capsule", "memory refresh", "date significance", "historical moment"]
+};
+
+// Category-specific anchor dictionaries (keeping for reference)
 const ANCHORS = {
   "celebrations.birthday": ["cake", "candles", "balloons", "confetti", "party hats", "gifts"],
   "celebrations.wedding": ["ring", "vows", "champagne", "roses", "bride", "groom"],
@@ -55,35 +63,40 @@ const BANNED_PHRASES = [
 
 // Category-agnostic fallback with comedian style palette
 function generateComedianFallback(inputs: any): any {
-  console.log("Using non-literal comedian fallback");
+  console.log("Using subtle occasion-aware comedian fallback");
   
-  const { tags = [], tone = "Savage" } = inputs;
+  const { tags = [], tone = "Savage", subcategory = "" } = inputs;
   const tagString = tags.length > 0 ? tags.join(" ") : "";
   
-  // Non-literal comedian templates (zero occasion words) - comedian-first approach
+  // Get subtle hints for this subcategory
+  const hints = OCCASION_HINTS[subcategory.toLowerCase()] || ["updated", "changed", "evolved", "progressed"];
+  const hint1 = hints[0] || "updated";
+  const hint2 = hints[1] || "evolved";
+  
+  // Non-literal comedian templates with subtle occasion awareness
   let styleTemplates: string[] = [];
   
   if (tone.toLowerCase().includes("savage") || tone.toLowerCase().includes("humorous")) {
     styleTemplates = [
-      tagString ? `${tagString} got downgraded.` : "That got downgraded.", // Deadpan (20-35)
-      tagString ? `Have you noticed ${tagString} ages in dog years?` : "Have you noticed everything ages in dog years?", // Observational (36-50)
-      tagString ? `${tagString} filed for witness protection after meeting you.` : "This filed for witness protection after meeting you.", // Extended roast (51-65)
-      tagString ? `${tagString} negotiates with gravity like they're personal enemies now.` : "Everything negotiates with gravity like they're personal enemies now." // Absurdist (66-70)
+      tagString ? `${tagString} ${hint1}.` : `That ${hint1}.`, // Deadpan (20-35)
+      tagString ? `Have you noticed ${tagString} ${hint2} backward?` : `Have you noticed everything ${hint2} backward?`, // Observational (36-50)
+      tagString ? `${tagString} reached the warranty expiration stage.` : "This reached the warranty expiration stage.", // Extended roast (51-65)
+      tagString ? `${tagString} operates like they negotiated with time and lost spectacularly.` : "Everything operates like it negotiated with time and lost spectacularly." // Absurdist (66-70)
     ];
   } else if (tone.toLowerCase().includes("sentimental") || tone.toLowerCase().includes("romantic")) {
     // Comedian-first: override sentimental with witty lines  
     styleTemplates = [
-      tagString ? `${tagString} got an upgrade.` : "That got an upgrade.", // Deadpan (20-35)
-      tagString ? `Have you noticed ${tagString} comes with instructions?` : "Have you noticed everything comes with instructions?", // Observational (36-50)
-      tagString ? `${tagString} got promoted to professional status.` : "This got promoted to professional status.", // Extended wit (51-65)
-      tagString ? `${tagString} now operates like they invented confidence last Tuesday.` : "This operates like it invented confidence last Tuesday." // Absurdist (66-70)
+      tagString ? `${tagString} ${hint1}.` : `That ${hint1}.`, // Deadpan (20-35)
+      tagString ? `Have you noticed ${tagString} comes with manuals?` : "Have you noticed everything comes with manuals?", // Observational (36-50)
+      tagString ? `${tagString} achieved professional-grade excellence today.` : "This achieved professional-grade excellence today.", // Extended wit (51-65)
+      tagString ? `${tagString} operates like they invented confidence during lunch break.` : "This operates like it invented confidence during lunch break." // Absurdist (66-70)
     ];
   } else { // Inspirational or other tones - comedian-first
     styleTemplates = [
-      tagString ? `${tagString} leveled up.` : "That leveled up.", // Deadpan (20-35)
-      tagString ? `Have you noticed how ${tagString} breaks physics?` : "Have you noticed how everything breaks physics?", // Observational (36-50)
-      tagString ? `${tagString} got upgraded to legendary difficulty setting.` : "This got upgraded to legendary difficulty setting.", // Extended thought (51-65)
-      tagString ? `${tagString} operates like physics forgot to send the memo about limits.` : "This operates like physics forgot to send the memo about limits." // Absurdist (66-70)
+      tagString ? `${tagString} ${hint1}.` : `That ${hint1}.`, // Deadpan (20-35)
+      tagString ? `Have you noticed ${tagString} breaks expectations?` : "Have you noticed everything breaks expectations?", // Observational (36-50)
+      tagString ? `${tagString} unlocked legendary status in record time.` : "This unlocked legendary status in record time.", // Extended thought (51-65)
+      tagString ? `${tagString} operates like physics forgot to send the manual about limits.` : "This operates like physics forgot to send the manual about limits." // Absurdist (66-70)
     ];
   }
   
@@ -123,6 +136,10 @@ function generateComedianFallback(inputs: any): any {
 function buildUserMessage(inputs: any): string {
   const { category, subcategory, tone, tags = [] } = inputs;
   
+  // Get subtle hints for this subcategory
+  const hints = OCCASION_HINTS[subcategory.toLowerCase()] || [];
+  const hintExamples = hints.slice(0, 3).join(", ");
+  
   let message = `Category: ${category}
 Subcategory: ${subcategory}
 Tone: ${tone}`;
@@ -142,7 +159,12 @@ STYLE PALETTE:
 • Option 3: Extended (51-65 chars) - Thoughtful sentiment
 • Option 4: Absurdist (66-70 chars) - Surreal twist punchline
 
-COMEDIAN-FIRST: Write like a stand-up comedian regardless of tone. Be witty, not sentimental. No emotional language.`;
+COMEDIAN-FIRST: Write like a stand-up comedian regardless of tone. Be witty, not sentimental. No emotional language.
+
+SUBTLE THEME GUIDANCE:
+• Include 1-2 subtle hints related to "${subcategory}" using words like: ${hintExamples}
+• AVOID literal props like cake, candles, balloons - keep it indirect and clever
+• Make it birthday card appropriate but not obvious`;
 
   return message;
 }
@@ -208,7 +230,7 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
     });
     
     // Tag coverage validation
-    const { tags = [] } = inputs;
+    const { tags = [], subcategory = "" } = inputs;
     if (tags.length > 0) {
       const taggedLineCount = parsed.lines.filter((line: any) => {
         if (!line.text) return false;
@@ -219,6 +241,22 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       
       if (taggedLineCount < 3) {
         errors.push(`Tag coverage: Only ${taggedLineCount}/4 lines contain provided tags. Need at least 3.`);
+      }
+    }
+    
+    // Subtle hint coverage validation
+    const hints = OCCASION_HINTS[subcategory.toLowerCase()] || [];
+    if (hints.length > 0) {
+      const hintCount = parsed.lines.reduce((count: number, line: any) => {
+        if (!line.text) return count;
+        const text = line.text.toLowerCase();
+        return count + hints.filter(hint => text.includes(hint.toLowerCase())).length;
+      }, 0);
+      
+      if (hintCount < 2) {
+        errors.push(`Theme coverage: Only ${hintCount} subtle hints found. Need at least 2 lines with subtle ${subcategory} references using: ${hints.slice(0, 5).join(", ")}`);
+      } else {
+        console.log(`Theme coverage: Found ${hintCount} subtle hints for ${subcategory}`);
       }
     }
     
