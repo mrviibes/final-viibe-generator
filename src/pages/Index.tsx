@@ -6271,10 +6271,11 @@ const Index = () => {
                                   </p>
                                 </CardContent>
                               </Card>
-                             ))}
-                          </div>
+                            ))}
                          </div>
-                       )}
+                        </div>
+                       </div>
+                      )}
 
                     {/* Dimensions Selection - Show when AI assist visual is selected */}
                      {selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null && (
@@ -6284,41 +6285,34 @@ const Index = () => {
                         </div>
 
                         {/* Show dimension selection grid when no dimension is selected */}
-                         {!selectedDimension ? (
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
-                             {dimensionOptions.map(dimension => (
-                               <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
-                                 <CardHeader className="pb-3 text-center">
-                                   <CardTitle className="text-lg font-semibold text-card-foreground">
-                                     {dimension.name}
-                                   </CardTitle>
-                                 </CardHeader>
-                                 <CardContent>
-                                   <CardDescription className="text-sm text-muted-foreground text-center">
-                                     {dimension.description}
-                                   </CardDescription>
-                                 </CardContent>
-                               </Card>
-                             ))}
-                           </div>
-                         ) : selectedDimension === "custom" && (
-                           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                             <div className="text-center mb-8">
-                               <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
-                             </div>
-                             <div className="max-w-md mx-auto flex gap-4 items-center">
-                               <div className="flex-1">
-                                 <Input type="number" value={customWidth} onChange={e => setCustomWidth(e.target.value)} placeholder="Width" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
-                               </div>
-                               <span className="text-muted-foreground">×</span>
-                               <div className="flex-1">
-                                 <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
-                               </div>
-                             </div>
-                           </div>
-                         )}
-                       </div>
-                     )}
+                        {!selectedDimension ? <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
+                            {dimensionOptions.map(dimension => <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
+                                <CardHeader className="pb-3 text-center">
+                                  <CardTitle className="text-lg font-semibold text-card-foreground">
+                                    {dimension.name}
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <CardDescription className="text-sm text-muted-foreground text-center">
+                                    {dimension.description}
+                                  </CardDescription>
+                                </CardContent>
+                              </Card>)}
+                          </div> : selectedDimension === "custom" && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="text-center mb-8">
+                              <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
+                            </div>
+                            <div className="max-w-md mx-auto flex gap-4 items-center">
+                              <div className="flex-1">
+                                <Input type="number" value={customWidth} onChange={e => setCustomWidth(e.target.value)} placeholder="Width" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
+                              </div>
+                              <span className="text-muted-foreground">×</span>
+                              <div className="flex-1">
+                                <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
+                              </div>
+                            </div>
+                          </div>}
+                      </div>}
 
                     {/* Show confirmed subject description when saved */}
                     {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -6477,6 +6471,7 @@ const Index = () => {
                            </div>}
                        </div>}
                    </div>}
+               </>}
 
         {currentStep === 4 && <>
             <div className="text-center mb-8">
@@ -6901,9 +6896,11 @@ const Index = () => {
                   </div>
                 );
               })()}
+                  </div>
+                  </div>}
                 </div>
-             </div>
-           </>}
+            </div>
+          </>}
 
         {/* Bottom Navigation */}
         {currentStep < 4 && (
@@ -6926,9 +6923,10 @@ const Index = () => {
                     Continue
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </>}
-               </Button>
-             </div>
-           </div>
+              </Button>
+            </div>
+          </div>
+           </>
          )}
 
         {/* API Key Dialog */}
