@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X, Download } from "lucide-react";
@@ -57,2210 +58,6914 @@ const layoutMappings = {
   }
 };
 
-const styleOptions = [
-  {
-    id: "celebrations",
-    name: "Celebrations",
-    description: "Holidays, milestones, special occasions"
-  },
-  {
-    id: "sports",
-    name: "Sports",
-    description: "All sports, activities, and competitions"
-  },
-  {
-    id: "daily-life",
-    name: "Daily Life",
-    description: "Everyday routines, hobbies, and situations"
-  },
-  {
-    id: "vibes-punchlines",
-    name: "Vibes & Punchlines",
-    description: "Moods, self-talk, jokes, and formats"
-  },
-  {
-    id: "pop-culture",
-    name: "Pop Culture",
-    description: "Movies, music, celebrities, trends"
-  },
-  {
-    id: "random",
-    name: "No Category",
-    description: "Build from scratch"
+// Visual variance enforcer to prevent duplicate/similar prompts
+function ensureVisualVariance(
+  options: Array<{ lane: string; prompt: string }>, 
+  textContent: string, 
+  layoutId: string,
+  enforceVariety: boolean = true
+): { 
+  diversifiedOptions: Array<{ lane: string; prompt: string }>, 
+  reasons: string[] 
+} {
+  if (!enforceVariety) {
+    return { diversifiedOptions: options, reasons: [] };
   }
-];
 
-const celebrationOptions = [
-  { id: "birthday", name: "Birthday" },
-  { id: "christmas-day", name: "Christmas Day" },
-  { id: "thanksgiving-us", name: "Thanksgiving (United States)" },
-  { id: "new-years-eve", name: "New Year's Eve" },
-  { id: "christmas-eve", name: "Christmas Eve" },
-  { id: "halloween", name: "Halloween" },
-  { id: "mothers-day", name: "Mother's Day" },
-  { id: "fathers-day", name: "Father's Day" },
-  { id: "independence-day-us", name: "Independence Day (United States)" },
-  { id: "new-years-day", name: "New Year's Day" },
-  { id: "easter", name: "Easter" },
-  { id: "memorial-day-us", name: "Memorial Day (United States)" },
-  { id: "valentines-day", name: "Valentine's Day" },
-  { id: "wedding", name: "Wedding" },
-  { id: "wedding-anniversary", name: "Wedding Anniversary" },
-  { id: "high-school-graduation", name: "High School Graduation" },
-  { id: "college-graduation", name: "College Graduation" },
-  { id: "baby-shower", name: "Baby Shower" },
-  { id: "bridal-shower", name: "Bridal Shower" },
-  { id: "bachelor-party", name: "Bachelor Party" },
-  { id: "bachelorette-party", name: "Bachelorette Party" },
-  { id: "engagement-party", name: "Engagement Party" },
-  { id: "housewarming-party", name: "Housewarming Party" },
-  { id: "retirement-party", name: "Retirement Party" },
-  { id: "job-promotion-celebration", name: "Job Promotion Celebration" },
-  { id: "farewell-party", name: "Farewell Party (Going Away Party)" },
-  { id: "babys-first-birthday", name: "Baby's First Birthday" },
-  { id: "sweet-16-birthday", name: "Sweet 16 Birthday" },
-  { id: "quinceanera", name: "Quinceañera" },
-  { id: "bar-mitzvah", name: "Bar Mitzvah" },
-  { id: "bat-mitzvah", name: "Bat Mitzvah" },
-  { id: "gender-reveal-party", name: "Gender Reveal Party" },
-  { id: "christening-baptism", name: "Christening / Baptism" },
-  { id: "first-communion", name: "First Communion" },
-  { id: "confirmation", name: "Confirmation" },
-  { id: "hanukkah", name: "Hanukkah" },
-  { id: "kwanzaa", name: "Kwanzaa" },
-  { id: "diwali", name: "Diwali (Deepavali)" },
-  { id: "chinese-new-year", name: "Chinese New Year (Lunar New Year)" },
-  { id: "saint-patricks-day", name: "Saint Patrick's Day" },
-  { id: "labor-day", name: "Labor Day" },
-  { id: "veterans-day-us", name: "Veterans Day (United States)" },
-  { id: "martin-luther-king-jr-day", name: "Martin Luther King Jr. Day" },
-  { id: "juneteenth", name: "Juneteenth" },
-  { id: "cinco-de-mayo", name: "Cinco de Mayo" },
-  { id: "mardi-gras", name: "Mardi Gras" },
-  { id: "good-friday", name: "Good Friday" },
-  { id: "passover", name: "Passover" },
-  { id: "eid-al-fitr", name: "Eid al-Fitr" },
-  { id: "eid-al-adha", name: "Eid al-Adha" },
-  { id: "nowruz", name: "Nowruz (Persian New Year)" },
-  { id: "purim", name: "Purim" },
-  { id: "rosh-hashanah", name: "Rosh Hashanah" },
-  { id: "holi", name: "Holi" },
-  { id: "navratri", name: "Navratri" },
-  { id: "durga-puja", name: "Durga Puja" },
-  { id: "lohri", name: "Lohri" },
-  { id: "vaisakhi", name: "Vaisakhi (Baisakhi)" },
-  { id: "onam", name: "Onam" },
-  { id: "raksha-bandhan", name: "Raksha Bandhan" },
-  { id: "janmashtami", name: "Janmashtami" },
-  { id: "ganesh-chaturthi", name: "Ganesh Chaturthi" },
-  { id: "guru-nanak-gurpurab", name: "Guru Nanak Gurpurab" },
-  { id: "pride", name: "Pride (LGBTQ+ Pride events)" },
-  { id: "earth-day", name: "Earth Day" },
-  { id: "groundhog-day", name: "Groundhog Day" },
-  { id: "super-bowl-sunday", name: "Super Bowl Sunday" },
-  { id: "boxing-day", name: "Boxing Day" },
-  { id: "canada-day", name: "Canada Day" },
-  { id: "victoria-day-canada", name: "Victoria Day (Canada)" },
-  { id: "saint-jean-baptiste-day", name: "Saint-Jean-Baptiste Day (Quebec)" },
-  { id: "remembrance-day-canada", name: "Remembrance Day (Canada)" },
-  { id: "columbus-day", name: "Columbus Day / Indigenous Peoples' Day (U.S.)" },
-  { id: "international-womens-day", name: "International Women's Day" },
-  { id: "international-mens-day", name: "International Men's Day" },
-  { id: "international-friendship-day", name: "International Friendship Day" }
-];
+  const layoutTokens = {
+    negativeSpace: ["subject off-center", "large empty negative space", "clear open area for overlay text", "asymmetrical composition"],
+    memeTopBottom: ["clear horizontal bands", "letterbox format", "empty text areas above and below", "wide top and bottom margins"],
+    lowerThird: ["clear horizontal stripe across bottom third", "news broadcast style", "empty banner space in lower portion"],
+    sideBarLeft: ["prominent empty vertical panel on left", "clear column space", "sidebar composition", "subject positioned right"],
+    badgeSticker: ["clear circular space in top-right corner", "badge placement area", "sticker zone upper right", "clean corner space"],
+    subtleCaption: ["clean narrow horizontal strip at bottom", "minimal caption space", "thin text band at lower border"]
+  };
 
-const sportsOptions = [
-  { id: "football-american", name: "Football (American)" },
-  { id: "football-soccer", name: "Football (Soccer)" },
-  { id: "basketball", name: "Basketball" },
-  { id: "baseball", name: "Baseball" },
-  { id: "tennis", name: "Tennis" },
-  { id: "golf", name: "Golf" },
-  { id: "hockey-ice", name: "Hockey (Ice)" },
-  { id: "hockey-field", name: "Hockey (Field)" },
-  { id: "volleyball", name: "Volleyball" },
-  { id: "swimming", name: "Swimming" },
-  { id: "running", name: "Running" },
-  { id: "cycling", name: "Cycling" },
-  { id: "boxing", name: "Boxing" },
-  { id: "wrestling", name: "Wrestling" },
-  { id: "martial-arts", name: "Martial Arts" },
-  { id: "gymnastics", name: "Gymnastics" },
-  { id: "track-and-field", name: "Track and Field" },
-  { id: "skiing", name: "Skiing" },
-  { id: "snowboarding", name: "Snowboarding" },
-  { id: "surfing", name: "Surfing" },
-  { id: "skateboarding", name: "Skateboarding" },
-  { id: "rock-climbing", name: "Rock Climbing" },
-  { id: "fishing", name: "Fishing" },
-  { id: "hunting", name: "Hunting" },
-  { id: "hiking", name: "Hiking" },
-  { id: "camping", name: "Camping" },
-  { id: "yoga", name: "Yoga" },
-  { id: "pilates", name: "Pilates" },
-  { id: "crossfit", name: "CrossFit" },
-  { id: "weightlifting", name: "Weightlifting" },
-  { id: "powerlifting", name: "Powerlifting" },
-  { id: "bodybuilding", name: "Bodybuilding" },
-  { id: "cheerleading", name: "Cheerleading" },
-  { id: "dance-sport", name: "Dance (Sport)" },
-  { id: "equestrian", name: "Equestrian" },
-  { id: "bowling", name: "Bowling" },
-  { id: "billiards-pool", name: "Billiards / Pool" },
-  { id: "darts", name: "Darts" },
-  { id: "ping-pong", name: "Ping Pong (Table Tennis)" },
-  { id: "badminton", name: "Badminton" },
-  { id: "squash", name: "Squash" },
-  { id: "racquetball", name: "Racquetball" },
-  { id: "lacrosse", name: "Lacrosse" },
-  { id: "rugby", name: "Rugby" },
-  { id: "cricket", name: "Cricket" },
-  { id: "archery", name: "Archery" },
-  { id: "fencing", name: "Fencing" },
-  { id: "sailing", name: "Sailing" },
-  { id: "rowing", name: "Rowing" },
-  { id: "kayaking", name: "Kayaking" },
-  { id: "canoeing", name: "Canoeing" },
-  { id: "water-skiing", name: "Water Skiing" },
-  { id: "wakeboarding", name: "Wakeboarding" },
-  { id: "jet-skiing", name: "Jet Skiing" },
-  { id: "scuba-diving", name: "Scuba Diving" },
-  { id: "snorkeling", name: "Snorkeling" },
-  { id: "triathlon", name: "Triathlon" },
-  { id: "marathon", name: "Marathon" },
-  { id: "half-marathon", name: "Half Marathon" },
-  { id: "obstacle-racing", name: "Obstacle Racing" },
-  { id: "mud-run", name: "Mud Run" },
-  { id: "esports", name: "Esports" },
-  { id: "chess", name: "Chess" },
-  { id: "poker", name: "Poker" },
-  { id: "auto-racing", name: "Auto Racing" },
-  { id: "motorcycle-racing", name: "Motorcycle Racing" },
-  { id: "bmx", name: "BMX" },
-  { id: "mountain-biking", name: "Mountain Biking" },
-  { id: "road-cycling", name: "Road Cycling" },
-  { id: "ultimate-frisbee", name: "Ultimate Frisbee" },
-  { id: "disc-golf", name: "Disc Golf" },
-  { id: "parkour", name: "Parkour" },
-  { id: "bouldering", name: "Bouldering" },
-  { id: "ice-skating", name: "Ice Skating" },
-  { id: "roller-skating", name: "Roller Skating" },
-  { id: "inline-skating", name: "Inline Skating" },
-  { id: "figure-skating", name: "Figure Skating" },
-  { id: "speed-skating", name: "Speed Skating" },
-  { id: "curling", name: "Curling" },
-  { id: "sledding", name: "Sledding" },
-  { id: "bobsledding", name: "Bobsledding" },
-  { id: "luge", name: "Luge" },
-  { id: "skeleton", name: "Skeleton" },
-  { id: "biathlon", name: "Biathlon" },
-  { id: "cross-country-skiing", name: "Cross-Country Skiing" },
-  { id: "alpine-skiing", name: "Alpine Skiing" },
-  { id: "freestyle-skiing", name: "Freestyle Skiing" },
-  { id: "ski-jumping", name: "Ski Jumping" },
-  { id: "nordic-combined", name: "Nordic Combined" },
-  { id: "snowshoeing", name: "Snowshoeing" },
-  { id: "ice-climbing", name: "Ice Climbing" },
-  { id: "mountaineering", name: "Mountaineering" },
-  { id: "base-jumping", name: "Base Jumping" },
-  { id: "skydiving", name: "Skydiving" },
-  { id: "paragliding", name: "Paragliding" },
-  { id: "hang-gliding", name: "Hang Gliding" },
-  { id: "hot-air-ballooning", name: "Hot Air Ballooning" },
-  { id: "bungee-jumping", name: "Bungee Jumping" },
-  { id: "ziplining", name: "Ziplining" },
-  { id: "kite-surfing", name: "Kite Surfing" },
-  { id: "windsurfing", name: "Windsurfing" },
-  { id: "stand-up-paddleboarding", name: "Stand-Up Paddleboarding" },
-  { id: "white-water-rafting", name: "White Water Rafting" },
-  { id: "canyoning", name: "Canyoning" },
-  { id: "spelunking", name: "Spelunking" },
-  { id: "orienteering", name: "Orienteering" },
-  { id: "geocaching", name: "Geocaching" },
-  { id: "backpacking", name: "Backpacking" },
-  { id: "wilderness-survival", name: "Wilderness Survival" },
-  { id: "paintball", name: "Paintball" },
-  { id: "laser-tag", name: "Laser Tag" },
-  { id: "airsoft", name: "Airsoft" },
-  { id: "competitive-shooting", name: "Competitive Shooting" }
-];
+  const requiredTokens = layoutTokens[layoutId as keyof typeof layoutTokens] || layoutTokens.negativeSpace;
+  const tokenSuffix = requiredTokens.join(', ');
+  
+  function normalizePrompt(prompt: string): string {
+    let normalized = prompt.toLowerCase();
+    // Remove layout tokens
+    requiredTokens.forEach(token => {
+      normalized = normalized.replace(token.toLowerCase(), '');
+    });
+    // Remove punctuation and clean up
+    normalized = normalized.replace(/[,.\-_]/g, ' ').replace(/\s+/g, ' ').trim();
+    // Remove common stopwords
+    const stopwords = ['a', 'an', 'the', 'with', 'and', 'or', 'but', 'at', 'on', 'in', 'of', 'to', 'for', 'by'];
+    return normalized.split(' ').filter(word => word.length > 2 && !stopwords.includes(word)).join(' ');
+  }
 
-const dailyLifeOptions = [
-  { id: "work", name: "Work" },
-  { id: "school", name: "School" },
-  { id: "commuting", name: "Commuting" },
-  { id: "cooking", name: "Cooking" },
-  { id: "cleaning", name: "Cleaning" },
-  { id: "shopping", name: "Shopping" },
-  { id: "parenting", name: "Parenting" },
-  { id: "pets", name: "Pets" },
-  { id: "gardening", name: "Gardening" },
-  { id: "home-improvement", name: "Home Improvement" },
-  { id: "technology", name: "Technology" },
-  { id: "driving", name: "Driving" },
-  { id: "public-transportation", name: "Public Transportation" },
-  { id: "weather", name: "Weather" },
-  { id: "health-fitness", name: "Health & Fitness" },
-  { id: "medical-appointments", name: "Medical Appointments" },
-  { id: "finances", name: "Finances" },
-  { id: "bills", name: "Bills" },
-  { id: "taxes", name: "Taxes" },
-  { id: "insurance", name: "Insurance" },
-  { id: "legal-matters", name: "Legal Matters" },
-  { id: "moving-relocating", name: "Moving / Relocating" },
-  { id: "travel", name: "Travel" },
-  { id: "vacation", name: "Vacation" },
-  { id: "hotel-stays", name: "Hotel Stays" },
-  { id: "airports", name: "Airports" },
-  { id: "flight-delays", name: "Flight Delays" },
-  { id: "road-trips", name: "Road Trips" },
-  { id: "restaurants", name: "Restaurants" },
-  { id: "fast-food", name: "Fast Food" },
-  { id: "coffee-shops", name: "Coffee Shops" },
-  { id: "bars-nightlife", name: "Bars & Nightlife" },
-  { id: "dating", name: "Dating" },
-  { id: "relationships", name: "Relationships" },
-  { id: "marriage", name: "Marriage" },
-  { id: "friendship", name: "Friendship" },
-  { id: "family", name: "Family" },
-  { id: "social-media", name: "Social Media" },
-  { id: "online-shopping", name: "Online Shopping" },
-  { id: "streaming-services", name: "Streaming Services" },
-  { id: "video-games", name: "Video Games" },
-  { id: "board-games", name: "Board Games" },
-  { id: "puzzles", name: "Puzzles" },
-  { id: "reading", name: "Reading" },
-  { id: "writing", name: "Writing" },
-  { id: "journaling", name: "Journaling" },
-  { id: "blogging", name: "Blogging" },
-  { id: "photography", name: "Photography" },
-  { id: "art-drawing", name: "Art & Drawing" },
-  { id: "crafts", name: "Crafts" },
-  { id: "sewing", name: "Sewing" },
-  { id: "knitting", name: "Knitting" },
-  { id: "woodworking", name: "Woodworking" },
-  { id: "car-maintenance", name: "Car Maintenance" },
-  { id: "diy-projects", name: "DIY Projects" },
-  { id: "music-listening", name: "Music (Listening)" },
-  { id: "music-playing", name: "Music (Playing)" },
-  { id: "singing", name: "Singing" },
-  { id: "dancing", name: "Dancing" },
-  { id: "theater", name: "Theater" },
-  { id: "concerts", name: "Concerts" },
-  { id: "festivals", name: "Festivals" },
-  { id: "museums", name: "Museums" },
-  { id: "art-galleries", name: "Art Galleries" },
-  { id: "libraries", name: "Libraries" },
-  { id: "bookstores", name: "Bookstores" },
-  { id: "volunteering", name: "Volunteering" },
-  { id: "charity-work", name: "Charity Work" },
-  { id: "community-service", name: "Community Service" },
-  { id: "religious-activities", name: "Religious Activities" },
-  { id: "meditation", name: "Meditation" },
-  { id: "mindfulness", name: "Mindfulness" },
-  { id: "self-care", name: "Self-Care" },
-  { id: "therapy", name: "Therapy" },
-  { id: "support-groups", name: "Support Groups" },
-  { id: "learning-new-skills", name: "Learning New Skills" },
-  { id: "online-courses", name: "Online Courses" },
-  { id: "language-learning", name: "Language Learning" },
-  { id: "professional-development", name: "Professional Development" },
-  { id: "networking", name: "Networking" },
-  { id: "job-searching", name: "Job Searching" },
-  { id: "interviews", name: "Interviews" },
-  { id: "retirement", name: "Retirement" },
-  { id: "aging", name: "Aging" },
-  { id: "empty-nest", name: "Empty Nest" },
-  { id: "midlife-crisis", name: "Midlife Crisis" },
-  { id: "quarter-life-crisis", name: "Quarter-Life Crisis" },
-  { id: "procrastination", name: "Procrastination" },
-  { id: "productivity", name: "Productivity" },
-  { id: "time-management", name: "Time Management" },
-  { id: "stress", name: "Stress" },
-  { id: "anxiety", name: "Anxiety" },
-  { id: "depression", name: "Depression" },
-  { id: "burnout", name: "Burnout" },
-  { id: "sleep", name: "Sleep" },
-  { id: "insomnia", name: "Insomnia" },
-  { id: "dreams", name: "Dreams" },
-  { id: "nightmares", name: "Nightmares" },
-  { id: "morning-routine", name: "Morning Routine" },
-  { id: "evening-routine", name: "Evening Routine" },
-  { id: "bedtime-routine", name: "Bedtime Routine" },
-  { id: "weekend-plans", name: "Weekend Plans" },
-  { id: "lazy-days", name: "Lazy Days" },
-  { id: "busy-days", name: "Busy Days" },
-  { id: "unexpected-events", name: "Unexpected Events" },
-  { id: "emergencies", name: "Emergencies" },
-  { id: "power-outages", name: "Power Outages" },
-  { id: "internet-outages", name: "Internet Outages" },
-  { id: "traffic-jams", name: "Traffic Jams" },
-  { id: "construction", name: "Construction" },
-  { id: "noise-complaints", name: "Noise Complaints" },
-  { id: "neighbors", name: "Neighbors" },
-  { id: "apartment-living", name: "Apartment Living" },
-  { id: "house-ownership", name: "House Ownership" },
-  { id: "renting", name: "Renting" },
-  { id: "roommates", name: "Roommates" },
-  { id: "living-alone", name: "Living Alone" },
-  { id: "privacy", name: "Privacy" },
-  { id: "personal-space", name: "Personal Space" },
-  { id: "clutter", name: "Clutter" },
-  { id: "organization", name: "Organization" },
-  { id: "storage", name: "Storage" },
-  { id: "minimalism", name: "Minimalism" }
-];
+  function getMainAnchor(literalPrompt: string): string {
+    const normalized = normalizePrompt(literalPrompt);
+    const words = normalized.split(' ').filter(w => w.length > 0);
+    // Return the most prominent word (longest or first meaningful noun)
+    return words.sort((a, b) => b.length - a.length)[0] || '';
+  }
 
-const vibesPunchlinesOptions = [
-  { id: "funny-jokes", name: "Funny Jokes" },
-  { id: "puns-wordplay", name: "Puns & Wordplay" },
-  { id: "dad-jokes", name: "Dad Jokes" },
-  { id: "mom-jokes", name: "Mom Jokes" },
-  { id: "self-deprecating-humor", name: "Self-Deprecating Humor" },
-  { id: "observational-comedy", name: "Observational Comedy" },
-  { id: "situational-comedy", name: "Situational Comedy" },
-  { id: "irony-sarcasm", name: "Irony & Sarcasm" },
-  { id: "witty-one-liners", name: "Witty One-Liners" },
-  { id: "comeback-lines", name: "Comeback Lines" },
-  { id: "roasts-burns", name: "Roasts & Burns" },
-  { id: "awkward-moments", name: "Awkward Moments" },
-  { id: "embarrassing-situations", name: "Embarrassing Situations" },
-  { id: "fails-mishaps", name: "Fails & Mishaps" },
-  { id: "clumsy-moments", name: "Clumsy Moments" },
-  { id: "brain-farts", name: "Brain Farts" },
-  { id: "procrastination-humor", name: "Procrastination Humor" },
-  { id: "lazy-vibes", name: "Lazy Vibes" },
-  { id: "motivational-humor", name: "Motivational Humor" },
-  { id: "inspirational-quotes", name: "Inspirational Quotes" },
-  { id: "life-advice", name: "Life Advice" },
-  { id: "wisdom-humor", name: "Wisdom & Humor" },
-  { id: "philosophical-thoughts", name: "Philosophical Thoughts" },
-  { id: "existential-crisis", name: "Existential Crisis" },
-  { id: "deep-thoughts", name: "Deep Thoughts" },
-  { id: "shower-thoughts", name: "Shower Thoughts" },
-  { id: "random-thoughts", name: "Random Thoughts" },
-  { id: "weird-observations", name: "Weird Observations" },
-  { id: "life-realizations", name: "Life Realizations" },
-  { id: "adulting-struggles", name: "Adulting Struggles" },
-  { id: "growing-up", name: "Growing Up" },
-  { id: "nostalgia", name: "Nostalgia" },
-  { id: "childhood-memories", name: "Childhood Memories" },
-  { id: "teenage-years", name: "Teenage Years" },
-  { id: "college-days", name: "College Days" },
-  { id: "first-job", name: "First Job" },
-  { id: "work-humor", name: "Work Humor" },
-  { id: "office-life", name: "Office Life" },
-  { id: "boss-jokes", name: "Boss Jokes" },
-  { id: "coworker-humor", name: "Coworker Humor" },
-  { id: "meeting-humor", name: "Meeting Humor" },
-  { id: "email-humor", name: "Email Humor" },
-  { id: "monday-blues", name: "Monday Blues" },
-  { id: "friday-feeling", name: "Friday Feeling" },
-  { id: "weekend-vibes", name: "Weekend Vibes" },
-  { id: "vacation-mode", name: "Vacation Mode" },
-  { id: "holiday-stress", name: "Holiday Stress" },
-  { id: "family-gatherings", name: "Family Gatherings" },
-  { id: "relationship-humor", name: "Relationship Humor" },
-  { id: "dating-fails", name: "Dating Fails" },
-  { id: "marriage-jokes", name: "Marriage Jokes" },
-  { id: "parenting-humor", name: "Parenting Humor" },
-  { id: "kid-logic", name: "Kid Logic" },
-  { id: "pet-humor", name: "Pet Humor" },
-  { id: "animal-behavior", name: "Animal Behavior" },
-  { id: "food-humor", name: "Food Humor" },
-  { id: "cooking-fails", name: "Cooking Fails" },
-  { id: "diet-struggles", name: "Diet Struggles" },
-  { id: "exercise-humor", name: "Exercise Humor" },
-  { id: "gym-life", name: "Gym Life" },
-  { id: "health-humor", name: "Health Humor" },
-  { id: "getting-older", name: "Getting Older" },
-  { id: "technology-humor", name: "Technology Humor" },
-  { id: "internet-culture", name: "Internet Culture" },
-  { id: "social-media-humor", name: "Social Media Humor" },
-  { id: "phone-addiction", name: "Phone Addiction" },
-  { id: "wifi-problems", name: "WiFi Problems" },
-  { id: "tech-support", name: "Tech Support" },
-  { id: "online-shopping", name: "Online Shopping" },
-  { id: "delivery-humor", name: "Delivery Humor" },
-  { id: "customer-service", name: "Customer Service" },
-  { id: "retail-therapy", name: "Retail Therapy" },
-  { id: "money-humor", name: "Money Humor" },
-  { id: "broke-life", name: "Broke Life" },
-  { id: "student-loans", name: "Student Loans" },
-  { id: "taxes-humor", name: "Taxes Humor" },
-  { id: "bank-account", name: "Bank Account" },
-  { id: "credit-cards", name: "Credit Cards" },
-  { id: "investing-humor", name: "Investing Humor" },
-  { id: "retirement-planning", name: "Retirement Planning" },
-  { id: "travel-humor", name: "Travel Humor" },
-  { id: "airport-experiences", name: "Airport Experiences" },
-  { id: "flight-delays", name: "Flight Delays" },
-  { id: "hotel-stays", name: "Hotel Stays" },
-  { id: "road-trip-humor", name: "Road Trip Humor" },
-  { id: "navigation-fails", name: "Navigation Fails" },
-  { id: "weather-humor", name: "Weather Humor" },
-  { id: "seasonal-changes", name: "Seasonal Changes" },
-  { id: "weather-predictions", name: "Weather Predictions" },
-  { id: "climate-humor", name: "Climate Humor" },
-  { id: "driving-humor", name: "Driving Humor" },
-  { id: "traffic-jams", name: "Traffic Jams" },
-  { id: "parking-struggles", name: "Parking Struggles" },
-  { id: "gas-prices", name: "Gas Prices" },
-  { id: "car-maintenance", name: "Car Maintenance" },
-  { id: "public-transport", name: "Public Transport" },
-  { id: "commuting-humor", name: "Commuting Humor" },
-  { id: "home-improvement", name: "Home Improvement" },
-  { id: "diy-fails", name: "DIY Fails" },
-  { id: "furniture-assembly", name: "Furniture Assembly" },
-  { id: "cleaning-humor", name: "Cleaning Humor" },
-  { id: "laundry-struggles", name: "Laundry Struggles" },
-  { id: "organization-fails", name: "Organization Fails" },
-  { id: "storage-solutions", name: "Storage Solutions" },
-  { id: "decluttering", name: "Decluttering" },
-  { id: "minimalism-humor", name: "Minimalism Humor" },
-  { id: "hoarding-tendencies", name: "Hoarding Tendencies" },
-  { id: "shopping-addiction", name: "Shopping Addiction" },
-  { id: "impulse-buying", name: "Impulse Buying" },
-  { id: "buyer-remorse", name: "Buyer's Remorse" }
-];
+  function calculateSimilarity(prompt1: string, prompt2: string): number {
+    const words1 = new Set(normalizePrompt(prompt1).split(' '));
+    const words2 = new Set(normalizePrompt(prompt2).split(' '));
+    const intersection = new Set([...words1].filter(x => words2.has(x)));
+    const union = new Set([...words1, ...words2]);
+    return union.size > 0 ? intersection.size / union.size : 0;
+  }
 
-const popCultureOptions = [
-  { id: "movies", name: "Movies" },
-  { id: "tv-shows", name: "TV Shows" },
-  { id: "netflix", name: "Netflix" },
-  { id: "streaming-services", name: "Streaming Services" },
-  { id: "binge-watching", name: "Binge Watching" },
-  { id: "series-finales", name: "Series Finales" },
-  { id: "cliffhangers", name: "Cliffhangers" },
-  { id: "plot-twists", name: "Plot Twists" },
-  { id: "spoilers", name: "Spoilers" },
-  { id: "movie-theaters", name: "Movie Theaters" },
-  { id: "popcorn", name: "Popcorn" },
-  { id: "3d-movies", name: "3D Movies" },
-  { id: "imax", name: "IMAX" },
-  { id: "drive-in-theaters", name: "Drive-In Theaters" },
-  { id: "horror-movies", name: "Horror Movies" },
-  { id: "comedy-movies", name: "Comedy Movies" },
-  { id: "action-movies", name: "Action Movies" },
-  { id: "romantic-comedies", name: "Romantic Comedies" },
-  { id: "sci-fi-movies", name: "Sci-Fi Movies" },
-  { id: "fantasy-movies", name: "Fantasy Movies" },
-  { id: "superhero-movies", name: "Superhero Movies" },
-  { id: "marvel", name: "Marvel" },
-  { id: "dc-comics", name: "DC Comics" },
-  { id: "disney", name: "Disney" },
-  { id: "pixar", name: "Pixar" },
-  { id: "animated-movies", name: "Animated Movies" },
-  { id: "documentaries", name: "Documentaries" },
-  { id: "true-crime", name: "True Crime" },
-  { id: "reality-tv", name: "Reality TV" },
-  { id: "talent-shows", name: "Talent Shows" },
-  { id: "cooking-shows", name: "Cooking Shows" },
-  { id: "home-renovation", name: "Home Renovation Shows" },
-  { id: "dating-shows", name: "Dating Shows" },
-  { id: "game-shows", name: "Game Shows" },
-  { id: "talk-shows", name: "Talk Shows" },
-  { id: "late-night-tv", name: "Late Night TV" },
-  { id: "sitcoms", name: "Sitcoms" },
-  { id: "dramas", name: "Dramas" },
-  { id: "soap-operas", name: "Soap Operas" },
-  { id: "news-programs", name: "News Programs" },
-  { id: "sports-broadcasts", name: "Sports Broadcasts" },
-  { id: "award-shows", name: "Award Shows" },
-  { id: "oscars", name: "Oscars" },
-  { id: "emmys", name: "Emmys" },
-  { id: "golden-globes", name: "Golden Globes" },
-  { id: "grammys", name: "Grammys" },
-  { id: "music", name: "Music" },
-  { id: "concerts", name: "Concerts" },
-  { id: "music-festivals", name: "Music Festivals" },
-  { id: "albums", name: "Albums" },
-  { id: "singles", name: "Singles" },
-  { id: "music-videos", name: "Music Videos" },
-  { id: "mtv", name: "MTV" },
-  { id: "radio", name: "Radio" },
-  { id: "podcasts", name: "Podcasts" },
-  { id: "spotify", name: "Spotify" },
-  { id: "apple-music", name: "Apple Music" },
-  { id: "youtube", name: "YouTube" },
-  { id: "tiktok", name: "TikTok" },
-  { id: "instagram", name: "Instagram" },
-  { id: "facebook", name: "Facebook" },
-  { id: "twitter", name: "Twitter" },
-  { id: "snapchat", name: "Snapchat" },
-  { id: "social-media", name: "Social Media" },
-  { id: "influencers", name: "Influencers" },
-  { id: "youtubers", name: "YouTubers" },
-  { id: "content-creators", name: "Content Creators" },
-  { id: "viral-videos", name: "Viral Videos" },
-  { id: "memes", name: "Memes" },
-  { id: "internet-culture", name: "Internet Culture" },
-  { id: "online-trends", name: "Online Trends" },
-  { id: "hashtags", name: "Hashtags" },
-  { id: "going-viral", name: "Going Viral" },
-  { id: "cancel-culture", name: "Cancel Culture" },
-  { id: "celebrities", name: "Celebrities" },
-  { id: "celebrity-gossip", name: "Celebrity Gossip" },
-  { id: "paparazzi", name: "Paparazzi" },
-  { id: "red-carpet", name: "Red Carpet" },
-  { id: "fashion", name: "Fashion" },
-  { id: "fashion-week", name: "Fashion Week" },
-  { id: "designer-brands", name: "Designer Brands" },
-  { id: "fast-fashion", name: "Fast Fashion" },
-  { id: "beauty-trends", name: "Beauty Trends" },
-  { id: "makeup", name: "Makeup" },
-  { id: "skincare", name: "Skincare" },
-  { id: "hair-trends", name: "Hair Trends" },
-  { id: "nail-art", name: "Nail Art" },
-  { id: "fitness-trends", name: "Fitness Trends" },
-  { id: "diet-fads", name: "Diet Fads" },
-  { id: "wellness", name: "Wellness" },
-  { id: "self-care", name: "Self-Care" },
-  { id: "mental-health", name: "Mental Health" },
-  { id: "therapy", name: "Therapy" },
-  { id: "mindfulness", name: "Mindfulness" },
-  { id: "meditation", name: "Meditation" },
-  { id: "yoga", name: "Yoga" },
-  { id: "crystals", name: "Crystals" },
-  { id: "astrology", name: "Astrology" },
-  { id: "horoscopes", name: "Horoscopes" },
-  { id: "tarot", name: "Tarot" },
-  { id: "spiritual-trends", name: "Spiritual Trends" },
-  { id: "conspiracy-theories", name: "Conspiracy Theories" },
-  { id: "urban-legends", name: "Urban Legends" },
-  { id: "myths", name: "Myths" },
-  { id: "folklore", name: "Folklore" },
-  { id: "ghost-stories", name: "Ghost Stories" },
-  { id: "paranormal", name: "Paranormal" },
-  { id: "aliens", name: "Aliens" },
-  { id: "ufo-sightings", name: "UFO Sightings" },
-  { id: "science-fiction", name: "Science Fiction" },
-  { id: "space-exploration", name: "Space Exploration" },
-  { id: "nasa", name: "NASA" },
-  { id: "mars-missions", name: "Mars Missions" },
-  { id: "space-x", name: "SpaceX" },
-  { id: "elon-musk", name: "Elon Musk" },
-  { id: "tesla", name: "Tesla" },
-  { id: "electric-cars", name: "Electric Cars" },
-  { id: "self-driving-cars", name: "Self-Driving Cars" },
-  { id: "artificial-intelligence", name: "Artificial Intelligence" },
-  { id: "chatgpt", name: "ChatGPT" },
-  { id: "robots", name: "Robots" },
-  { id: "automation", name: "Automation" },
-  { id: "technology-trends", name: "Technology Trends" },
-  { id: "smartphones", name: "Smartphones" },
-  { id: "iphone", name: "iPhone" },
-  { id: "android", name: "Android" },
-  { id: "apps", name: "Apps" },
-  { id: "mobile-games", name: "Mobile Games" },
-  { id: "video-games", name: "Video Games" },
-  { id: "gaming", name: "Gaming" },
-  { id: "esports", name: "Esports" },
-  { id: "twitch", name: "Twitch" },
-  { id: "streaming", name: "Streaming" },
-  { id: "online-gaming", name: "Online Gaming" },
-  { id: "virtual-reality", name: "Virtual Reality" },
-  { id: "augmented-reality", name: "Augmented Reality" },
-  { id: "metaverse", name: "Metaverse" },
-  { id: "nfts", name: "NFTs" },
-  { id: "cryptocurrency", name: "Cryptocurrency" },
-  { id: "bitcoin", name: "Bitcoin" },
-  { id: "blockchain", name: "Blockchain" },
-  { id: "stocks", name: "Stocks" },
-  { id: "investing", name: "Investing" },
-  { id: "gamestop", name: "GameStop" },
-  { id: "wallstreetbets", name: "WallStreetBets" },
-  { id: "reddit", name: "Reddit" },
-  { id: "discord", name: "Discord" },
-  { id: "online-communities", name: "Online Communities" },
-  { id: "forums", name: "Forums" },
-  { id: "comment-sections", name: "Comment Sections" },
-  { id: "trolling", name: "Trolling" },
-  { id: "cyberbullying", name: "Cyberbullying" },
-  { id: "online-safety", name: "Online Safety" },
-  { id: "privacy", name: "Privacy" },
-  { id: "data-protection", name: "Data Protection" },
-  { id: "surveillance", name: "Surveillance" },
-  { id: "government", name: "Government" },
-  { id: "politics", name: "Politics" },
-  { id: "elections", name: "Elections" },
-  { id: "voting", name: "Voting" },
-  { id: "democracy", name: "Democracy" },
-  { id: "protests", name: "Protests" },
-  { id: "activism", name: "Activism" },
-  { id: "social-justice", name: "Social Justice" },
-  { id: "human-rights", name: "Human Rights" },
-  { id: "equality", name: "Equality" },
-  { id: "diversity", name: "Diversity" },
-  { id: "inclusion", name: "Inclusion" },
-  { id: "representation", name: "Representation" },
-  { id: "lgbtq", name: "LGBTQ+" },
-  { id: "pride-month", name: "Pride Month" },
-  { id: "black-lives-matter", name: "Black Lives Matter" },
-  { id: "feminism", name: "Feminism" },
-  { id: "me-too", name: "Me Too" },
-  { id: "body-positivity", name: "Body Positivity" },
-  { id: "mental-health-awareness", name: "Mental Health Awareness" },
-  { id: "climate-change", name: "Climate Change" },
-  { id: "environmental-issues", name: "Environmental Issues" },
-  { id: "sustainability", name: "Sustainability" },
-  { id: "recycling", name: "Recycling" },
-  { id: "green-energy", name: "Green Energy" },
-  { id: "electric-vehicles", name: "Electric Vehicles" },
-  { id: "renewable-energy", name: "Renewable Energy" },
-  { id: "solar-power", name: "Solar Power" },
-  { id: "wind-power", name: "Wind Power" },
-  { id: "global-warming", name: "Global Warming" },
-  { id: "weather-patterns", name: "Weather Patterns" },
-  { id: "natural-disasters", name: "Natural Disasters" },
-  { id: "pandemics", name: "Pandemics" },
-  { id: "covid-19", name: "COVID-19" },
-  { id: "vaccines", name: "Vaccines" },
-  { id: "masks", name: "Masks" },
-  { id: "social-distancing", name: "Social Distancing" },
-  { id: "lockdowns", name: "Lockdowns" },
-  { id: "remote-work", name: "Remote Work" },
-  { id: "work-from-home", name: "Work From Home" },
-  { id: "zoom-calls", name: "Zoom Calls" },
-  { id: "video-conferencing", name: "Video Conferencing" },
-  { id: "online-meetings", name: "Online Meetings" },
-  { id: "hybrid-work", name: "Hybrid Work" },
-  { id: "digital-nomads", name: "Digital Nomads" },
-  { id: "freelancing", name: "Freelancing" },
-  { id: "gig-economy", name: "Gig Economy" },
-  { id: "side-hustles", name: "Side Hustles" },
-  { id: "entrepreneurship", name: "Entrepreneurship" },
-  { id: "startups", name: "Startups" },
-  { id: "tech-companies", name: "Tech Companies" },
-  { id: "silicon-valley", name: "Silicon Valley" },
-  { id: "venture-capital", name: "Venture Capital" },
-  { id: "ipo", name: "IPO" },
-  { id: "stock-market", name: "Stock Market" },
-  { id: "economy", name: "Economy" },
-  { id: "inflation", name: "Inflation" },
-  { id: "recession", name: "Recession" },
-  { id: "unemployment", name: "Unemployment" },
-  { id: "job-market", name: "Job Market" },
-  { id: "career-change", name: "Career Change" },
-  { id: "retirement", name: "Retirement" },
-  { id: "student-loans", name: "Student Loans" },
-  { id: "education", name: "Education" },
-  { id: "online-learning", name: "Online Learning" },
-  { id: "homeschooling", name: "Homeschooling" },
-  { id: "college-costs", name: "College Costs" },
-  { id: "student-debt", name: "Student Debt" },
-  { id: "trade-schools", name: "Trade Schools" },
-  { id: "vocational-training", name: "Vocational Training" },
-  { id: "skill-development", name: "Skill Development" },
-  { id: "lifelong-learning", name: "Lifelong Learning" },
-  { id: "personal-growth", name: "Personal Growth" },
-  { id: "self-improvement", name: "Self-Improvement" },
-  { id: "productivity", name: "Productivity" },
-  { id: "time-management", name: "Time Management" },
-  { id: "goal-setting", name: "Goal Setting" },
-  { id: "new-years-resolutions", name: "New Year's Resolutions" },
-  { id: "habit-formation", name: "Habit Formation" },
-  { id: "morning-routines", name: "Morning Routines" },
-  { id: "evening-routines", name: "Evening Routines" },
-  { id: "workout-routines", name: "Workout Routines" },
-  { id: "meal-prep", name: "Meal Prep" },
-  { id: "healthy-eating", name: "Healthy Eating" },
-  { id: "intermittent-fasting", name: "Intermittent Fasting" },
-  { id: "keto-diet", name: "Keto Diet" },
-  { id: "plant-based-diet", name: "Plant-Based Diet" },
-  { id: "veganism", name: "Veganism" },
-  { id: "vegetarianism", name: "Vegetarianism" },
-  { id: "food-trends", name: "Food Trends" },
-  { id: "restaurant-culture", name: "Restaurant Culture" },
-  { id: "food-delivery", name: "Food Delivery" },
-  { id: "cooking-at-home", name: "Cooking at Home" },
-  { id: "baking", name: "Baking" },
-  { id: "sourdough", name: "Sourdough" },
-  { id: "coffee-culture", name: "Coffee Culture" },
-  { id: "craft-beer", name: "Craft Beer" },
-  { id: "wine-culture", name: "Wine Culture" },
-  { id: "cocktails", name: "Cocktails" },
-  { id: "mixology", name: "Mixology" },
-  { id: "bar-culture", name: "Bar Culture" },
-  { id: "nightlife", name: "Nightlife" },
-  { id: "party-culture", name: "Party Culture" },
-  { id: "festival-culture", name: "Festival Culture" },
-  { id: "rave-culture", name: "Rave Culture" },
-  { id: "club-scene", name: "Club Scene" },
-  { id: "underground-music", name: "Underground Music" },
-  { id: "indie-culture", name: "Indie Culture" },
-  { id: "hipster-culture", name: "Hipster Culture" },
-  { id: "mainstream-vs-alternative", name: "Mainstream vs Alternative" },
-  { id: "counterculture", name: "Counterculture" },
-  { id: "subcultures", name: "Subcultures" },
-  { id: "generational-differences", name: "Generational Differences" },
-  { id: "gen-z", name: "Gen Z" },
-  { id: "millennials", name: "Millennials" },
-  { id: "gen-x", name: "Gen X" },
-  { id: "baby-boomers", name: "Baby Boomers" },
-  { id: "generation-gap", name: "Generation Gap" },
-  { id: "boomer-humor", name: "Boomer Humor" },
-  { id: "millennial-problems", name: "Millennial Problems" },
-  { id: "gen-z-slang", name: "Gen Z Slang" },
-  { id: "internet-slang", name: "Internet Slang" },
-  { id: "acronyms", name: "Acronyms" },
-  { id: "emojis", name: "Emojis" },
-  { id: "gifs", name: "GIFs" },
-  { id: "reaction-images", name: "Reaction Images" },
-  { id: "meme-formats", name: "Meme Formats" },
-  { id: "viral-challenges", name: "Viral Challenges" },
-  { id: "internet-challenges", name: "Internet Challenges" },
-  { id: "social-media-challenges", name: "Social Media Challenges" },
-  { id: "dance-challenges", name: "Dance Challenges" },
-  { id: "fitness-challenges", name: "Fitness Challenges" },
-  { id: "food-challenges", name: "Food Challenges" },
-  { id: "ice-bucket-challenge", name: "Ice Bucket Challenge" },
-  { id: "mannequin-challenge", name: "Mannequin Challenge" },
-  { id: "bottle-flip", name: "Bottle Flip" },
-  { id: "fidget-spinners", name: "Fidget Spinners" },
-  { id: "pokemon-go", name: "Pokemon Go" },
-  { id: "among-us", name: "Among Us" },
-  { id: "fall-guys", name: "Fall Guys" },
-  { id: "fortnite", name: "Fortnite" },
-  { id: "minecraft", name: "Minecraft" },
-  { id: "roblox", name: "Roblox" },
-  { id: "gaming-culture", name: "Gaming Culture" },
-  { id: "speedrunning", name: "Speedrunning" },
-  { id: "let-plays", name: "Let's Plays" },
-  { id: "game-reviews", name: "Game Reviews" },
-  { id: "gaming-nostalgia", name: "Gaming Nostalgia" },
-  { id: "retro-gaming", name: "Retro Gaming" },
-  { id: "arcade-games", name: "Arcade Games" },
-  { id: "console-wars", name: "Console Wars" },
-  { id: "pc-master-race", name: "PC Master Race" },
-  { id: "mobile-gaming", name: "Mobile Gaming" },
-  { id: "casual-gaming", name: "Casual Gaming" },
-  { id: "hardcore-gaming", name: "Hardcore Gaming" },
-  { id: "competitive-gaming", name: "Competitive Gaming" },
-  { id: "gaming-tournaments", name: "Gaming Tournaments" },
-  { id: "gaming-streamers", name: "Gaming Streamers" },
-  { id: "gaming-youtubers", name: "Gaming YouTubers" },
-  { id: "gaming-memes", name: "Gaming Memes" },
-  { id: "npc-memes", name: "NPC Memes" },
-  { id: "respawn-jokes", name: "Respawn Jokes" },
-  { id: "lag-jokes", name: "Lag Jokes" },
-  { id: "glitch-humor", name: "Glitch Humor" },
-  { id: "easter-eggs", name: "Easter Eggs" },
-  { id: "cheat-codes", name: "Cheat Codes" },
-  { id: "achievements", name: "Achievements" },
-  { id: "trophies", name: "Trophies" },
-  { id: "unlockables", name: "Unlockables" },
-  { id: "dlc", name: "DLC" },
-  { id: "microtransactions", name: "Microtransactions" },
-  { id: "loot-boxes", name: "Loot Boxes" },
-  { id: "pay-to-win", name: "Pay-to-Win" },
-  { id: "free-to-play", name: "Free-to-Play" },
-  { id: "subscription-services", name: "Subscription Services" },
-  { id: "game-pass", name: "Game Pass" },
-  { id: "playstation-plus", name: "PlayStation Plus" },
-  { id: "nintendo-switch-online", name: "Nintendo Switch Online" },
-  { id: "steam", name: "Steam" },
-  { id: "epic-games-store", name: "Epic Games Store" },
-  { id: "gog", name: "GOG" },
-  { id: "game-libraries", name: "Game Libraries" },
-  { id: "backlog", name: "Backlog" },
-  { id: "steam-sales", name: "Steam Sales" },
-  { id: "humble-bundle", name: "Humble Bundle" },
-  { id: "indie-games", name: "Indie Games" },
-  { id: "aaa-games", name: "AAA Games" },
-  { id: "early-access", name: "Early Access" },
-  { id: "beta-testing", name: "Beta Testing" },
-  { id: "game-development", name: "Game Development" },
-  { id: "modding", name: "Modding" },
-  { id: "game-mods", name: "Game Mods" },
-  { id: "custom-content", name: "Custom Content" },
-  { id: "user-generated-content", name: "User Generated Content" },
-  { id: "community-creations", name: "Community Creations" },
-  { id: "fan-art", name: "Fan Art" },
-  { id: "fan-fiction", name: "Fan Fiction" },
-  { id: "cosplay", name: "Cosplay" },
-  { id: "conventions", name: "Conventions" },
-  { id: "comic-con", name: "Comic-Con" },
-  { id: "anime-conventions", name: "Anime Conventions" },
-  { id: "anime", name: "Anime" },
-  { id: "manga", name: "Manga" },
-  { id: "otaku-culture", name: "Otaku Culture" },
-  { id: "japanese-culture", name: "Japanese Culture" },
-  { id: "k-pop", name: "K-Pop" },
-  { id: "korean-culture", name: "Korean Culture" },
-  { id: "hallyu", name: "Hallyu" },
-  { id: "bts", name: "BTS" },
-  { id: "blackpink", name: "BLACKPINK" },
-  { id: "squid-game", name: "Squid Game" },
-  { id: "parasite", name: "Parasite" },
-  { id: "international-films", name: "International Films" },
-  { id: "foreign-language-films", name: "Foreign Language Films" },
-  { id: "subtitles-vs-dubbing", name: "Subtitles vs Dubbing" },
-  { id: "film-festivals", name: "Film Festivals" },
-  { id: "cannes", name: "Cannes" },
-  { id: "sundance", name: "Sundance" },
-  { id: "toronto-film-festival", name: "Toronto Film Festival" },
-  { id: "independent-films", name: "Independent Films" },
-  { id: "arthouse-films", name: "Arthouse Films" },
-  { id: "cult-films", name: "Cult Films" },
-  { id: "b-movies", name: "B-Movies" },
-  { id: "so-bad-its-good", name: "So Bad It's Good" },
-  { id: "guilty-pleasures", name: "Guilty Pleasures" },
-  { id: "comfort-food-media", name: "Comfort Food Media" },
-  { id: "nostalgia-bait", name: "Nostalgia Bait" },
-  { id: "reboots-remakes", name: "Reboots & Remakes" },
-  { id: "sequels", name: "Sequels" },
-  { id: "prequels", name: "Prequels" },
-  { id: "spin-offs", name: "Spin-offs" },
-  { id: "expanded-universe", name: "Expanded Universe" },
-  { id: "cinematic-universe", name: "Cinematic Universe" },
-  { id: "shared-universe", name: "Shared Universe" },
-  { id: "crossovers", name: "Crossovers" },
-  { id: "easter-eggs-movies", name: "Easter Eggs (Movies)" },
-  { id: "post-credits-scenes", name: "Post-Credits Scenes" },
-  { id: "director-cuts", name: "Director's Cuts" },
-  { id: "extended-editions", name: "Extended Editions" },
-  { id: "theatrical-vs-directors", name: "Theatrical vs Director's Cut" },
-  { id: "snyder-cut", name: "Snyder Cut" },
-  { id: "fan-edits", name: "Fan Edits" },
-  { id: "film-theory", name: "Film Theory" },
-  { id: "fan-theories", name: "Fan Theories" },
-  { id: "plot-holes", name: "Plot Holes" },
-  { id: "continuity-errors", name: "Continuity Errors" },
-  { id: "movie-mistakes", name: "Movie Mistakes" },
-  { id: "goofs", name: "Goofs" },
-  { id: "bloopers", name: "Bloopers" },
-  { id: "outtakes", name: "Outtakes" },
-  { id: "behind-the-scenes", name: "Behind the Scenes" },
-  { id: "making-of", name: "Making Of" },
-  { id: "dvd-commentaries", name: "DVD Commentaries" },
-  { id: "special-features", name: "Special Features" },
-  { id: "deleted-scenes", name: "Deleted Scenes" },
-  { id: "alternate-endings", name: "Alternate Endings" },
-  { id: "movie-trivia", name: "Movie Trivia" },
-  { id: "film-facts", name: "Film Facts" },
-  { id: "movie-quotes", name: "Movie Quotes" },
-  { id: "iconic-lines", name: "Iconic Lines" },
-  { id: "catchphrases", name: "Catchphrases" },
-  { id: "movie-references", name: "Movie References" },
-  { id: "pop-culture-references", name: "Pop Culture References" },
-  { id: "self-referential-humor", name: "Self-Referential Humor" },
-  { id: "meta-humor", name: "Meta Humor" },
-  { id: "breaking-fourth-wall", name: "Breaking the Fourth Wall" },
-  { id: "deadpool", name: "Deadpool" },
-  { id: "satire", name: "Satire" },
-  { id: "parody", name: "Parody" },
-  { id: "spoof-movies", name: "Spoof Movies" },
-  { id: "mockumentary", name: "Mockumentary" },
-  { id: "found-footage", name: "Found Footage" },
-  { id: "blair-witch", name: "Blair Witch" },
-  { id: "paranormal-activity", name: "Paranormal Activity" },
-  { id: "cloverfield", name: "Cloverfield" },
-  { id: "monster-movies", name: "Monster Movies" },
-  { id: "kaiju", name: "Kaiju" },
-  { id: "godzilla", name: "Godzilla" },
-  { id: "king-kong", name: "King Kong" },
-  { id: "pacific-rim", name: "Pacific Rim" },
-  { id: "transformers", name: "Transformers" },
-  { id: "robots-in-disguise", name: "Robots in Disguise" },
-  { id: "mecha", name: "Mecha" },
-  { id: "giant-robots", name: "Giant Robots" },
-  { id: "sci-fi-tropes", name: "Sci-Fi Tropes" },
-  { id: "time-travel", name: "Time Travel" },
-  { id: "time-loops", name: "Time Loops" },
-  { id: "groundhog-day-movie", name: "Groundhog Day (Movie)" },
-  { id: "multiverse", name: "Multiverse" },
-  { id: "parallel-dimensions", name: "Parallel Dimensions" },
-  { id: "alternate-reality", name: "Alternate Reality" },
-  { id: "dystopian-futures", name: "Dystopian Futures" },
-  { id: "post-apocalyptic", name: "Post-Apocalyptic" },
-  { id: "zombie-apocalypse", name: "Zombie Apocalypse" },
-  { id: "zombie-movies", name: "Zombie Movies" },
-  { id: "walking-dead", name: "The Walking Dead" },
-  { id: "vampire-movies", name: "Vampire Movies" },
-  { id: "twilight", name: "Twilight" },
-  { id: "werewolf-movies", name: "Werewolf Movies" },
-  { id: "supernatural-horror", name: "Supernatural Horror" },
-  { id: "psychological-horror", name: "Psychological Horror" },
-  { id: "slasher-films", name: "Slasher Films" },
-  { id: "friday-13th", name: "Friday the 13th" },
-  { id: "halloween-franchise", name: "Halloween (Franchise)" },
-  { id: "nightmare-elm-street", name: "A Nightmare on Elm Street" },
-  { id: "scream", name: "Scream" },
-  { id: "saw", name: "Saw" },
-  { id: "final-destination", name: "Final Destination" },
-  { id: "horror-franchises", name: "Horror Franchises" },
-  { id: "horror-sequels", name: "Horror Sequels" },
-  { id: "jump-scares", name: "Jump Scares" },
-  { id: "gore", name: "Gore" },
-  { id: "body-horror", name: "Body Horror" },
-  { id: "cosmic-horror", name: "Cosmic Horror" },
-  { id: "lovecraftian", name: "Lovecraftian" },
-  { id: "existential-dread", name: "Existential Dread" },
-  { id: "creepypasta", name: "Creepypasta" },
-  { id: "internet-horror", name: "Internet Horror" },
-  { id: "analog-horror", name: "Analog Horror" },
-  { id: "liminal-spaces", name: "Liminal Spaces" },
-  { id: "backrooms", name: "Backrooms" },
-  { id: "scp-foundation", name: "SCP Foundation" },
-  { id: "arg", name: "ARG (Alternate Reality Games)" },
-  { id: "mystery-box", name: "Mystery Box" },
-  { id: "puzzle-solving", name: "Puzzle Solving" },
-  { id: "escape-rooms", name: "Escape Rooms" },
-  { id: "treasure-hunts", name: "Treasure Hunts" },
-  { id: "scavenger-hunts", name: "Scavenger Hunts" },
-  { id: "geocaching-pop", name: "Geocaching" },
-  { id: "urban-exploration", name: "Urban Exploration" },
-  { id: "abandoned-places", name: "Abandoned Places" },
-  { id: "ghost-towns", name: "Ghost Towns" },
-  { id: "haunted-locations", name: "Haunted Locations" },
-  { id: "paranormal-investigation", name: "Paranormal Investigation" },
-  { id: "ghost-hunting", name: "Ghost Hunting" },
-  { id: "spirit-communication", name: "Spirit Communication" },
-  { id: "ouija-boards", name: "Ouija Boards" },
-  { id: "seances", name: "Seances" },
-  { id: "mediums", name: "Mediums" },
-  { id: "psychics", name: "Psychics" },
-  { id: "fortune-telling", name: "Fortune Telling" },
-  { id: "palm-reading", name: "Palm Reading" },
-  { id: "crystal-balls", name: "Crystal Balls" },
-  { id: "tarot-reading", name: "Tarot Reading" },
-  { id: "astrology-readings", name: "Astrology Readings" },
-  { id: "numerology", name: "Numerology" },
-  { id: "zodiac-signs", name: "Zodiac Signs" },
-  { id: "mercury-retrograde", name: "Mercury Retrograde" },
-  { id: "full-moons", name: "Full Moons" },
-  { id: "lunar-cycles", name: "Lunar Cycles" },
-  { id: "solar-eclipses", name: "Solar Eclipses" },
-  { id: "lunar-eclipses", name: "Lunar Eclipses" },
-  { id: "celestial-events", name: "Celestial Events" },
-  { id: "meteor-showers", name: "Meteor Showers" },
-  { id: "shooting-stars", name: "Shooting Stars" },
-  { id: "comets", name: "Comets" },
-  { id: "asteroids", name: "Asteroids" },
-  { id: "space-junk", name: "Space Junk" },
-  { id: "satellites", name: "Satellites" },
-  { id: "space-stations", name: "Space Stations" },
-  { id: "international-space-station", name: "International Space Station" },
-  { id: "astronauts", name: "Astronauts" },
-  { id: "cosmonauts", name: "Cosmonauts" },
-  { id: "space-tourism", name: "Space Tourism" },
-  { id: "blue-origin", name: "Blue Origin" },
-  { id: "virgin-galactic", name: "Virgin Galactic" },
-  { id: "space-race", name: "Space Race" },
-  { id: "moon-landing", name: "Moon Landing" },
-  { id: "apollo-missions", name: "Apollo Missions" },
-  { id: "mars-rover", name: "Mars Rover" },
-  { id: "perseverance", name: "Perseverance" },
-  { id: "curiosity", name: "Curiosity" },
-  { id: "james-webb-telescope", name: "James Webb Telescope" },
-  { id: "hubble-telescope", name: "Hubble Telescope" },
-  { id: "space-photography", name: "Space Photography" },
-  { id: "astronomy", name: "Astronomy" },
-  { id: "astrophysics", name: "Astrophysics" },
-  { id: "black-holes", name: "Black Holes" },
-  { id: "event-horizon", name: "Event Horizon" },
-  { id: "wormholes", name: "Wormholes" },
-  { id: "dark-matter", name: "Dark Matter" },
-  { id: "dark-energy", name: "Dark Energy" },
-  { id: "big-bang", name: "Big Bang" },
-  { id: "multiverse-theory", name: "Multiverse Theory" },
-  { id: "string-theory", name: "String Theory" },
-  { id: "quantum-physics", name: "Quantum Physics" },
-  { id: "quantum-computing", name: "Quantum Computing" },
-  { id: "quantum-entanglement", name: "Quantum Entanglement" },
-  { id: "particle-physics", name: "Particle Physics" },
-  { id: "higgs-boson", name: "Higgs Boson" },
-  { id: "large-hadron-collider", name: "Large Hadron Collider" },
-  { id: "cern", name: "CERN" },
-  { id: "scientific-discoveries", name: "Scientific Discoveries" },
-  { id: "nobel-prizes", name: "Nobel Prizes" },
-  { id: "breakthrough-innovations", name: "Breakthrough Innovations" },
-  { id: "medical-breakthroughs", name: "Medical Breakthroughs" },
-  { id: "gene-therapy", name: "Gene Therapy" },
-  { id: "crispr", name: "CRISPR" },
-  { id: "genetic-engineering", name: "Genetic Engineering" },
-  { id: "cloning", name: "Cloning" },
-  { id: "stem-cells", name: "Stem Cells" },
-  { id: "organ-transplants", name: "Organ Transplants" },
-  { id: "3d-printed-organs", name: "3D Printed Organs" },
-  { id: "prosthetics", name: "Prosthetics" },
-  { id: "bionic-limbs", name: "Bionic Limbs" },
-  { id: "cyborgs", name: "Cyborgs" },
-  { id: "transhumanism", name: "Transhumanism" },
-  { id: "life-extension", name: "Life Extension" },
-  { id: "immortality", name: "Immortality" },
-  { id: "cryonics", name: "Cryonics" },
-  { id: "uploading-consciousness", name: "Uploading Consciousness" },
-  { id: "digital-afterlife", name: "Digital Afterlife" },
-  { id: "virtual-immortality", name: "Virtual Immortality" },
-  { id: "simulation-theory", name: "Simulation Theory" },
-  { id: "matrix-theory", name: "Matrix Theory" },
-  { id: "reality-simulation", name: "Reality Simulation" },
-  { id: "computer-simulation", name: "Computer Simulation" },
-  { id: "holographic-principle", name: "Holographic Principle" },
-  { id: "holodeck", name: "Holodeck" },
-  { id: "star-trek", name: "Star Trek" },
-  { id: "star-wars", name: "Star Wars" },
-  { id: "jedi", name: "Jedi" },
-  { id: "sith", name: "Sith" },
-  { id: "force", name: "The Force" },
-  { id: "lightsabers", name: "Lightsabers" },
-  { id: "death-star", name: "Death Star" },
-  { id: "millennium-falcon", name: "Millennium Falcon" },
-  { id: "darth-vader", name: "Darth Vader" },
-  { id: "luke-skywalker", name: "Luke Skywalker" },
-  { id: "princess-leia", name: "Princess Leia" },
-  { id: "han-solo", name: "Han Solo" },
-  { id: "chewbacca", name: "Chewbacca" },
-  { id: "yoda", name: "Yoda" },
-  { id: "baby-yoda", name: "Baby Yoda" },
-  { id: "grogu", name: "Grogu" },
-  { id: "mandalorian", name: "The Mandalorian" },
-  { id: "disney-plus", name: "Disney Plus" },
-  { id: "streaming-wars", name: "Streaming Wars" },
-  { id: "netflix-vs-disney", name: "Netflix vs Disney" },
-  { id: "hbo-max", name: "HBO Max" },
-  { id: "amazon-prime", name: "Amazon Prime" },
-  { id: "hulu", name: "Hulu" },
-  { id: "paramount-plus", name: "Paramount Plus" },
-  { id: "peacock", name: "Peacock" },
-  { id: "apple-tv-plus", name: "Apple TV Plus" },
-  { id: "cord-cutting", name: "Cord Cutting" },
-  { id: "cable-tv", name: "Cable TV" },
-  { id: "satellite-tv", name: "Satellite TV" },
-  { id: "antenna-tv", name: "Antenna TV" },
-  { id: "over-the-air", name: "Over-the-Air" },
-  { id: "broadcast-tv", name: "Broadcast TV" },
-  { id: "network-tv", name: "Network TV" },
-  { id: "premium-channels", name: "Premium Channels" },
-  { id: "pay-per-view", name: "Pay-Per-View" },
-  { id: "on-demand", name: "On-Demand" },
-  { id: "dvr", name: "DVR" },
-  { id: "tivo", name: "TiVo" },
-  { id: "vcr", name: "VCR" },
-  { id: "vhs", name: "VHS" },
-  { id: "dvd", name: "DVD" },
-  { id: "blu-ray", name: "Blu-ray" },
-  { id: "4k-uhd", name: "4K UHD" },
-  { id: "8k", name: "8K" },
-  { id: "hdr", name: "HDR" },
-  { id: "dolby-vision", name: "Dolby Vision" },
-  { id: "dolby-atmos", name: "Dolby Atmos" },
-  { id: "surround-sound", name: "Surround Sound" },
-  { id: "home-theater", name: "Home Theater" },
-  { id: "soundbars", name: "Soundbars" },
-  { id: "smart-tvs", name: "Smart TVs" },
-  { id: "roku", name: "Roku" },
-  { id: "chromecast", name: "Chromecast" },
-  { id: "apple-tv", name: "Apple TV" },
-  { id: "fire-tv", name: "Fire TV" },
-  { id: "android-tv", name: "Android TV" },
-  { id: "webos", name: "webOS" },
-  { id: "tizen", name: "Tizen" },
-  { id: "smart-home", name: "Smart Home" },
-  { id: "iot", name: "IoT (Internet of Things)" },
-  { id: "alexa", name: "Alexa" },
-  { id: "google-assistant", name: "Google Assistant" },
-  { id: "siri", name: "Siri" },
-  { id: "voice-assistants", name: "Voice Assistants" },
-  { id: "smart-speakers", name: "Smart Speakers" },
-  { id: "echo", name: "Echo" },
-  { id: "google-home", name: "Google Home" },
-  { id: "homepod", name: "HomePod" },
-  { id: "nest", name: "Nest" },
-  { id: "ring", name: "Ring" },
-  { id: "doorbell-cameras", name: "Doorbell Cameras" },
-  { id: "security-cameras", name: "Security Cameras" },
-  { id: "surveillance", name: "Surveillance" },
-  { id: "privacy-concerns", name: "Privacy Concerns" },
-  { id: "data-collection", name: "Data Collection" },
-  { id: "big-tech", name: "Big Tech" },
-  { id: "tech-monopolies", name: "Tech Monopolies" },
-  { id: "antitrust", name: "Antitrust" },
-  { id: "regulation", name: "Regulation" },
-  { id: "censorship", name: "Censorship" },
-  { id: "content-moderation", name: "Content Moderation" },
-  { id: "fact-checking", name: "Fact-Checking" },
-  { id: "misinformation", name: "Misinformation" },
-  { id: "disinformation", name: "Disinformation" },
-  { id: "fake-news", name: "Fake News" },
-  { id: "deepfakes", name: "Deepfakes" },
-  { id: "ai-generated-content", name: "AI Generated Content" },
-  { id: "machine-learning", name: "Machine Learning" },
-  { id: "neural-networks", name: "Neural Networks" },
-  { id: "gpt", name: "GPT" },
-  { id: "language-models", name: "Language Models" },
-  { id: "ai-art", name: "AI Art" },
-  { id: "midjourney", name: "Midjourney" },
-  { id: "dall-e", name: "DALL-E" },
-  { id: "stable-diffusion", name: "Stable Diffusion" },
-  { id: "ai-music", name: "AI Music" },
-  { id: "ai-writing", name: "AI Writing" },
-  { id: "ai-coding", name: "AI Coding" },
-  { id: "github-copilot", name: "GitHub Copilot" },
-  { id: "ai-assistants", name: "AI Assistants" },
-  { id: "job-automation", name: "Job Automation" },
-  { id: "universal-basic-income", name: "Universal Basic Income" },
-  { id: "future-of-work", name: "Future of Work" },
-  { id: "remote-work-future", name: "Remote Work Future" },
-  { id: "metaverse-work", name: "Metaverse Work" },
-  { id: "virtual-offices", name: "Virtual Offices" },
-  { id: "vr-meetings", name: "VR Meetings" },
-  { id: "ar-applications", name: "AR Applications" },
-  { id: "mixed-reality", name: "Mixed Reality" },
-  { id: "extended-reality", name: "Extended Reality" },
-  { id: "haptic-feedback", name: "Haptic Feedback" },
-  { id: "brain-computer-interface", name: "Brain-Computer Interface" },
-  { id: "neuralink", name: "Neuralink" },
-  { id: "thought-control", name: "Thought Control" },
-  { id: "telepathy", name: "Telepathy" },
-  { id: "mind-reading", name: "Mind Reading" },
-  { id: "consciousness-uploading", name: "Consciousness Uploading" },
-  { id: "digital-twins", name: "Digital Twins" },
-  { id: "virtual-humans", name: "Virtual Humans" },
-  { id: "avatars", name: "Avatars" },
-  { id: "digital-personas", name: "Digital Personas" },
-  { id: "online-identity", name: "Online Identity" },
-  { id: "digital-footprint", name: "Digital Footprint" },
-  { id: "online-reputation", name: "Online Reputation" },
-  { id: "social-credit", name: "Social Credit" },
-  { id: "surveillance-capitalism", name: "Surveillance Capitalism" },
-  { id: "data-mining", name: "Data Mining" },
-  { id: "algorithmic-bias", name: "Algorithmic Bias" },
-  { id: "filter-bubbles", name: "Filter Bubbles" },
-  { id: "echo-chambers", name: "Echo Chambers" },
-  { id: "polarization", name: "Polarization" },
-  { id: "tribal-thinking", name: "Tribal Thinking" },
-  { id: "confirmation-bias", name: "Confirmation Bias" },
-  { id: "cognitive-dissonance", name: "Cognitive Dissonance" },
-  { id: "dunning-kruger", name: "Dunning-Kruger Effect" },
-  { id: "impostor-syndrome", name: "Impostor Syndrome" },
-  { id: "fomo", name: "FOMO (Fear of Missing Out)" },
-  { id: "jomo", name: "JOMO (Joy of Missing Out)" },
-  { id: "digital-detox", name: "Digital Detox" },
-  { id: "social-media-break", name: "Social Media Break" },
-  { id: "unplugging", name: "Unplugging" },
-  { id: "mindful-technology", name: "Mindful Technology" },
-  { id: "tech-wellness", name: "Tech Wellness" },
-  { id: "screen-time", name: "Screen Time" },
-  { id: "blue-light", name: "Blue Light" },
-  { id: "digital-eye-strain", name: "Digital Eye Strain" },
-  { id: "text-neck", name: "Text Neck" },
-  { id: "tech-posture", name: "Tech Posture" },
-  { id: "carpal-tunnel", name: "Carpal Tunnel" },
-  { id: "repetitive-strain", name: "Repetitive Strain" },
-  { id: "ergonomics", name: "Ergonomics" },
-  { id: "standing-desks", name: "Standing Desks" },
-  { id: "wfh-setup", name: "WFH Setup" },
-  { id: "home-office", name: "Home Office" },
-  { id: "productivity-tools", name: "Productivity Tools" },
-  { id: "collaboration-tools", name: "Collaboration Tools" },
-  { id: "project-management", name: "Project Management" },
-  { id: "agile", name: "Agile" },
-  { id: "scrum", name: "Scrum" },
-  { id: "kanban", name: "Kanban" },
-  { id: "lean", name: "Lean" },
-  { id: "six-sigma", name: "Six Sigma" },
-  { id: "continuous-improvement", name: "Continuous Improvement" },
-  { id: "growth-hacking", name: "Growth Hacking" },
-  { id: "mvp", name: "MVP (Minimum Viable Product)" },
-  { id: "lean-startup", name: "Lean Startup" },
-  { id: "fail-fast", name: "Fail Fast" },
-  { id: "pivot", name: "Pivot" },
-  { id: "iterate", name: "Iterate" },
-  { id: "disrupt", name: "Disrupt" },
-  { id: "innovation", name: "Innovation" },
-  { id: "disruption", name: "Disruption" },
-  { id: "digital-transformation", name: "Digital Transformation" },
-  { id: "cloud-computing", name: "Cloud Computing" },
-  { id: "saas", name: "SaaS (Software as a Service)" },
-  { id: "paas", name: "PaaS (Platform as a Service)" },
-  { id: "iaas", name: "IaaS (Infrastructure as a Service)" },
-  { id: "edge-computing", name: "Edge Computing" },
-  { id: "5g", name: "5G" },
-  { id: "6g", name: "6G" },
-  { id: "internet-speed", name: "Internet Speed" },
-  { id: "fiber-optic", name: "Fiber Optic" },
-  { id: "broadband", name: "Broadband" },
-  { id: "net-neutrality", name: "Net Neutrality" },
-  { id: "digital-divide", name: "Digital Divide" },
-  { id: "internet-access", name: "Internet Access" },
-  { id: "wifi-everywhere", name: "WiFi Everywhere" },
-  { id: "satellite-internet", name: "Satellite Internet" },
-  { id: "starlink", name: "Starlink" },
-  { id: "space-internet", name: "Space Internet" },
-  { id: "global-connectivity", name: "Global Connectivity" },
-  { id: "digital-nomadism", name: "Digital Nomadism" },
-  { id: "location-independence", name: "Location Independence" },
-  { id: "work-anywhere", name: "Work Anywhere" },
-  { id: "laptop-lifestyle", name: "Laptop Lifestyle" },
-  { id: "van-life", name: "Van Life" },
-  { id: "nomad-life", name: "Nomad Life" },
-  { id: "travel-while-working", name: "Travel While Working" },
-  { id: "workations", name: "Workations" },
-  { id: "co-working-spaces", name: "Co-working Spaces" },
-  { id: "co-living", name: "Co-living" },
-  { id: "sharing-economy", name: "Sharing Economy" },
-  { id: "airbnb", name: "Airbnb" },
-  { id: "uber", name: "Uber" },
-  { id: "lyft", name: "Lyft" },
-  { id: "rideshare", name: "Rideshare" },
-  { id: "car-sharing", name: "Car Sharing" },
-  { id: "bike-sharing", name: "Bike Sharing" },
-  { id: "scooter-sharing", name: "Scooter Sharing" },
-  { id: "micro-mobility", name: "Micro-mobility" },
-  { id: "e-bikes", name: "E-bikes" },
-  { id: "e-scooters", name: "E-scooters" },
-  { id: "electric-transportation", name: "Electric Transportation" },
-  { id: "ev-charging", name: "EV Charging" },
-  { id: "charging-stations", name: "Charging Stations" },
-  { id: "range-anxiety", name: "Range Anxiety" },
-  { id: "battery-technology", name: "Battery Technology" },
-  { id: "solid-state-batteries", name: "Solid State Batteries" },
-  { id: "energy-storage", name: "Energy Storage" },
-  { id: "grid-storage", name: "Grid Storage" },
-  { id: "smart-grid", name: "Smart Grid" },
-  { id: "renewable-grid", name: "Renewable Grid" },
-  { id: "carbon-neutral", name: "Carbon Neutral" },
-  { id: "net-zero", name: "Net Zero" },
-  { id: "carbon-footprint", name: "Carbon Footprint" },
-  { id: "carbon-offset", name: "Carbon Offset" },
-  { id: "carbon-capture", name: "Carbon Capture" },
-  { id: "direct-air-capture", name: "Direct Air Capture" },
-  { id: "carbon-sequestration", name: "Carbon Sequestration" },
-  { id: "reforestation", name: "Reforestation" },
-  { id: "afforestation", name: "Afforestation" },
-  { id: "tree-planting", name: "Tree Planting" },
-  { id: "environmental-activism", name: "Environmental Activism" },
-  { id: "climate-activism", name: "Climate Activism" },
-  { id: "greta-thunberg", name: "Greta Thunberg" },
-  { id: "fridays-for-future", name: "Fridays for Future" },
-  { id: "extinction-rebellion", name: "Extinction Rebellion" },
-  { id: "just-stop-oil", name: "Just Stop Oil" },
-  { id: "greenpeace", name: "Greenpeace" },
-  { id: "wwf", name: "WWF" },
-  { id: "earth-hour", name: "Earth Hour" },
-  { id: "earth-day-pop", name: "Earth Day" },
-  { id: "world-environment-day", name: "World Environment Day" },
-  { id: "cop-climate-summit", name: "COP Climate Summit" },
-  { id: "paris-agreement", name: "Paris Agreement" },
-  { id: "kyoto-protocol", name: "Kyoto Protocol" },
-  { id: "ipcc-reports", name: "IPCC Reports" },
-  { id: "climate-science", name: "Climate Science" },
-  { id: "climate-models", name: "Climate Models" },
-  { id: "temperature-rise", name: "Temperature Rise" },
-  { id: "sea-level-rise", name: "Sea Level Rise" },
-  { id: "ice-melting", name: "Ice Melting" },
-  { id: "glacier-retreat", name: "Glacier Retreat" },
-  { id: "polar-ice-caps", name: "Polar Ice Caps" },
-  { id: "arctic-warming", name: "Arctic Warming" },
-  { id: "permafrost-melting", name: "Permafrost Melting" },
-  { id: "methane-release", name: "Methane Release" },
-  { id: "greenhouse-gases", name: "Greenhouse Gases" },
-  { id: "co2-levels", name: "CO2 Levels" },
-  { id: "emissions-reduction", name: "Emissions Reduction" },
-  { id: "fossil-fuels", name: "Fossil Fuels" },
-  { id: "oil-industry", name: "Oil Industry" },
-  { id: "coal-power", name: "Coal Power" },
-  { id: "natural-gas", name: "Natural Gas" },
-  { id: "fracking", name: "Fracking" },
-  { id: "pipeline-protests", name: "Pipeline Protests" },
-  { id: "divestment", name: "Divestment" },
-  { id: "fossil-fuel-divestment", name: "Fossil Fuel Divestment" },
-  { id: "green-investing", name: "Green Investing" },
-  { id: "esg-investing", name: "ESG Investing" },
-  { id: "sustainable-finance", name: "Sustainable Finance" },
-  { id: "green-bonds", name: "Green Bonds" },
-  { id: "impact-investing", name: "Impact Investing" },
-  { id: "socially-responsible", name: "Socially Responsible Investing" },
-  { id: "b-corps", name: "B-Corps" },
-  { id: "benefit-corporations", name: "Benefit Corporations" },
-  { id: "triple-bottom-line", name: "Triple Bottom Line" },
-  { id: "stakeholder-capitalism", name: "Stakeholder Capitalism" },
-  { id: "conscious-capitalism", name: "Conscious Capitalism" },
-  { id: "purpose-driven", name: "Purpose-Driven Business" },
-  { id: "corporate-responsibility", name: "Corporate Responsibility" },
-  { id: "corporate-activism", name: "Corporate Activism" },
-  { id: "brand-activism", name: "Brand Activism" },
-  { id: "cause-marketing", name: "Cause Marketing" },
-  { id: "greenwashing", name: "Greenwashing" },
-  { id: "virtue-signaling", name: "Virtue Signaling" },
-  { id: "performative-activism", name: "Performative Activism" },
-  { id: "slacktivism", name: "Slacktivism" },
-  { id: "clicktivism", name: "Clicktivism" },
-  { id: "hashtag-activism", name: "Hashtag Activism" },
-  { id: "online-activism", name: "Online Activism" },
-  { id: "digital-activism", name: "Digital Activism" },
-  { id: "cyber-activism", name: "Cyber Activism" },
-  { id: "hacktivism", name: "Hacktivism" },
-  { id: "anonymous", name: "Anonymous" },
-  { id: "wikileaks", name: "WikiLeaks" },
-  { id: "edward-snowden", name: "Edward Snowden" },
-  { id: "julian-assange", name: "Julian Assange" },
-  { id: "whistleblowing", name: "Whistleblowing" },
-  { id: "transparency", name: "Transparency" },
-  { id: "accountability", name: "Accountability" },
-  { id: "freedom-of-information", name: "Freedom of Information" },
-  { id: "press-freedom", name: "Press Freedom" },
-  { id: "journalism", name: "Journalism" },
-  { id: "investigative-reporting", name: "Investigative Reporting" },
-  { id: "fact-based-journalism", name: "Fact-Based Journalism" },
-  { id: "independent-media", name: "Independent Media" },
-  { id: "citizen-journalism", name: "Citizen Journalism" },
-  { id: "user-generated-news", name: "User Generated News" },
-  { id: "crowdsourced-journalism", name: "Crowdsourced Journalism" },
-  { id: "collaborative-journalism", name: "Collaborative Journalism" },
-  { id: "open-source-intelligence", name: "Open Source Intelligence" },
-  { id: "osint", name: "OSINT" },
-  { id: "geoint", name: "GEOINT" },
-  { id: "bellingcat", name: "Bellingcat" },
-  { id: "verification", name: "Verification" },
-  { id: "digital-forensics", name: "Digital Forensics" },
-  { id: "reverse-image-search", name: "Reverse Image Search" },
-  { id: "metadata-analysis", name: "Metadata Analysis" },
-  { id: "geolocation", name: "Geolocation" },
-  { id: "chronolocation", name: "Chronolocation" },
-  { id: "fact-checking-tools", name: "Fact-Checking Tools" },
-  { id: "misinformation-detection", name: "Misinformation Detection" },
-  { id: "deepfake-detection", name: "Deepfake Detection" },
-  { id: "synthetic-media", name: "Synthetic Media" },
-  { id: "ai-manipulation", name: "AI Manipulation" },
-  { id: "media-literacy", name: "Media Literacy" },
-  { id: "digital-literacy", name: "Digital Literacy" },
-  { id: "information-literacy", name: "Information Literacy" },
-  { id: "critical-thinking", name: "Critical Thinking" },
-  { id: "source-evaluation", name: "Source Evaluation" },
-  { id: "bias-recognition", name: "Bias Recognition" },
-  { id: "logical-fallacies", name: "Logical Fallacies" },
-  { id: "rhetorical-devices", name: "Rhetorical Devices" },
-  { id: "propaganda-techniques", name: "Propaganda Techniques" },
-  { id: "persuasion-tactics", name: "Persuasion Tactics" },
-  { id: "influence-operations", name: "Influence Operations" },
-  { id: "information-warfare", name: "Information Warfare" },
-  { id: "psyops", name: "PsyOps" },
-  { id: "soft-power", name: "Soft Power" },
-  { id: "cultural-diplomacy", name: "Cultural Diplomacy" },
-  { id: "cultural-exchange", name: "Cultural Exchange" },
-  { id: "globalization", name: "Globalization" },
-  { id: "cultural-globalization", name: "Cultural Globalization" },
-  { id: "mcdonaldization", name: "McDonaldization" },
-  { id: "americanization", name: "Americanization" },
-  { id: "westernization", name: "Westernization" },
-  { id: "cultural-imperialism", name: "Cultural Imperialism" },
-  { id: "soft-colonialism", name: "Soft Colonialism" },
-  { id: "neocolonialism", name: "Neocolonialism" },
-  { id: "cultural-appropriation", name: "Cultural Appropriation" },
-  { id: "cultural-appreciation", name: "Cultural Appreciation" },
-  { id: "cultural-sensitivity", name: "Cultural Sensitivity" },
-  { id: "cultural-competence", name: "Cultural Competence" },
-  { id: "intercultural-dialogue", name: "Intercultural Dialogue" },
-  { id: "cross-cultural", name: "Cross-Cultural" },
-  { id: "multicultural", name: "Multicultural" },
-  { id: "diversity-equity-inclusion", name: "Diversity, Equity & Inclusion" },
-  { id: "dei", name: "DEI" },
-  { id: "unconscious-bias", name: "Unconscious Bias" },
-  { id: "implicit-bias", name: "Implicit Bias" },
-  { id: "microaggressions", name: "Microaggressions" },
-  { id: "allyship", name: "Allyship" },
-  { id: "solidarity", name: "Solidarity" },
-  { id: "intersectionality", name: "Intersectionality" },
-  { id: "privilege", name: "Privilege" },
-  { id: "white-privilege", name: "White Privilege" },
-  { id: "male-privilege", name: "Male Privilege" },
-  { id: "systemic-racism", name: "Systemic Racism" },
-  { id: "institutional-racism", name: "Institutional Racism" },
-  { id: "structural-racism", name: "Structural Racism" },
-  { id: "anti-racism", name: "Anti-Racism" },
-  { id: "racial-justice", name: "Racial Justice" },
-  { id: "social-justice-pop", name: "Social Justice" },
-  { id: "civil-rights", name: "Civil Rights" },
-  { id: "human-rights-pop", name: "Human Rights" },
-  { id: "womens-rights", name: "Women's Rights" },
-  { id: "reproductive-rights", name: "Reproductive Rights" },
-  { id: "abortion-rights", name: "Abortion Rights" },
-  { id: "roe-v-wade", name: "Roe v. Wade" },
-  { id: "planned-parenthood", name: "Planned Parenthood" },
-  { id: "family-planning", name: "Family Planning" },
-  { id: "birth-control", name: "Birth Control" },
-  { id: "contraception", name: "Contraception" },
-  { id: "maternal-health", name: "Maternal Health" },
-  { id: "pregnancy", name: "Pregnancy" },
-  { id: "childbirth", name: "Childbirth" },
-  { id: "postpartum", name: "Postpartum" },
-  { id: "parental-leave", name: "Parental Leave" },
-  { id: "childcare", name: "Childcare" },
-  { id: "work-life-balance", name: "Work-Life Balance" },
-  { id: "glass-ceiling", name: "Glass Ceiling" },
-  { id: "gender-pay-gap", name: "Gender Pay Gap" },
-  { id: "equal-pay", name: "Equal Pay" },
-  { id: "workplace-equality", name: "Workplace Equality" },
-  { id: "sexual-harassment", name: "Sexual Harassment" },
-  { id: "workplace-harassment", name: "Workplace Harassment" },
-  { id: "hostile-work-environment", name: "Hostile Work Environment" },
-  { id: "hr-issues", name: "HR Issues" },
-  { id: "employee-rights", name: "Employee Rights" },
-  { id: "labor-rights", name: "Labor Rights" },
-  { id: "workers-rights", name: "Workers' Rights" },
-  { id: "union-organizing", name: "Union Organizing" },
-  { id: "collective-bargaining", name: "Collective Bargaining" },
-  { id: "strikes", name: "Strikes" },
-  { id: "labor-disputes", name: "Labor Disputes" },
-  { id: "minimum-wage", name: "Minimum Wage" },
-  { id: "living-wage", name: "Living Wage" },
-  { id: "wage-theft", name: "Wage Theft" },
-  { id: "exploitation", name: "Exploitation" },
-  { id: "worker-exploitation", name: "Worker Exploitation" },
-  { id: "sweatshops", name: "Sweatshops" },
-  { id: "child-labor", name: "Child Labor" },
-  { id: "forced-labor", name: "Forced Labor" },
-  { id: "human-trafficking", name: "Human Trafficking" },
-  { id: "modern-slavery", name: "Modern Slavery" },
-  { id: "supply-chain-ethics", name: "Supply Chain Ethics" },
-  { id: "ethical-consumption", name: "Ethical Consumption" },
-  { id: "conscious-consumerism", name: "Conscious Consumerism" },
-  { id: "sustainable-fashion", name: "Sustainable Fashion" },
-  { id: "slow-fashion", name: "Slow Fashion" },
-  { id: "ethical-fashion", name: "Ethical Fashion" },
-  { id: "circular-fashion", name: "Circular Fashion" },
-  { id: "upcycling", name: "Upcycling" },
-  { id: "thrifting", name: "Thrifting" },
-  { id: "vintage-fashion", name: "Vintage Fashion" },
-  { id: "secondhand-shopping", name: "Secondhand Shopping" },
-  { id: "consignment", name: "Consignment" },
-  { id: "clothing-swap", name: "Clothing Swap" },
-  { id: "capsule-wardrobe", name: "Capsule Wardrobe" },
-  { id: "minimalist-fashion", name: "Minimalist Fashion" },
-  { id: "quality-over-quantity", name: "Quality Over Quantity" },
-  { id: "investment-pieces", name: "Investment Pieces" },
-  { id: "timeless-style", name: "Timeless Style" },
-  { id: "classic-fashion", name: "Classic Fashion" },
-  { id: "seasonal-trends", name: "Seasonal Trends" },
-  { id: "fashion-cycles", name: "Fashion Cycles" },
-  { id: "trend-forecasting", name: "Trend Forecasting" },
-  { id: "fashion-influencers", name: "Fashion Influencers" },
-  { id: "style-bloggers", name: "Style Bloggers" },
-  { id: "fashion-photography", name: "Fashion Photography" },
-  { id: "street-style", name: "Street Style" },
-  { id: "fashion-street-photography", name: "Fashion Street Photography" },
-  { id: "outfit-of-the-day", name: "Outfit of the Day" },
-  { id: "ootd", name: "OOTD" },
-  { id: "fashion-hauls", name: "Fashion Hauls" },
-  { id: "try-on-hauls", name: "Try-On Hauls" },
-  { id: "styling-videos", name: "Styling Videos" },
-  { id: "fashion-tutorials", name: "Fashion Tutorials" },
-  { id: "diy-fashion", name: "DIY Fashion" },
-  { id: "sewing", name: "Sewing" },
-  { id: "pattern-making", name: "Pattern Making" },
-  { id: "fashion-design", name: "Fashion Design" },
-  { id: "haute-couture", name: "Haute Couture" },
-  { id: "ready-to-wear", name: "Ready-to-Wear" },
-  { id: "pret-a-porter", name: "Prêt-à-Porter" },
-  { id: "runway-shows", name: "Runway Shows" },
-  { id: "fashion-shows", name: "Fashion Shows" },
-  { id: "paris-fashion-week", name: "Paris Fashion Week" },
-  { id: "milan-fashion-week", name: "Milan Fashion Week" },
-  { id: "new-york-fashion-week", name: "New York Fashion Week" },
-  { id: "london-fashion-week", name: "London Fashion Week" },
-  { id: "met-gala", name: "Met Gala" },
-  { id: "fashion-awards", name: "Fashion Awards" },
-  { id: "cfda-awards", name: "CFDA Awards" },
-  { id: "british-fashion-awards", name: "British Fashion Awards" },
-  { id: "fashion-magazines", name: "Fashion Magazines" },
-  { id: "vogue", name: "Vogue" },
-  { id: "harpers-bazaar", name: "Harper's Bazaar" },
-  { id: "elle", name: "Elle" },
-  { id: "marie-claire", name: "Marie Claire" },
-  { id: "cosmopolitan", name: "Cosmopolitan" },
-  { id: "glamour", name: "Glamour" },
-  { id: "allure", name: "Allure" },
-  { id: "beauty-magazines", name: "Beauty Magazines" },
-  { id: "beauty-industry", name: "Beauty Industry" },
-  { id: "cosmetics", name: "Cosmetics" },
-  { id: "makeup-industry", name: "Makeup Industry" },
-  { id: "skincare-industry", name: "Skincare Industry" },
-  { id: "beauty-brands", name: "Beauty Brands" },
-  { id: "indie-beauty", name: "Indie Beauty" },
-  { id: "clean-beauty", name: "Clean Beauty" },
-  { id: "natural-beauty", name: "Natural Beauty" },
-  { id: "organic-beauty", name: "Organic Beauty" },
-  { id: "cruelty-free", name: "Cruelty-Free" },
-  { id: "vegan-beauty", name: "Vegan Beauty" },
-  { id: "sustainable-beauty", name: "Sustainable Beauty" },
-  { id: "zero-waste-beauty", name: "Zero Waste Beauty" },
-  { id: "refillable-packaging", name: "Refillable Packaging" },
-  { id: "plastic-free-beauty", name: "Plastic-Free Beauty" },
-  { id: "eco-friendly-packaging", name: "Eco-Friendly Packaging" },
-  { id: "packaging-innovation", name: "Packaging Innovation" },
-  { id: "beauty-tech", name: "Beauty Tech" },
-  { id: "ar-makeup", name: "AR Makeup" },
-  { id: "virtual-try-on", name: "Virtual Try-On" },
-  { id: "ai-beauty", name: "AI Beauty" },
-  { id: "personalized-beauty", name: "Personalized Beauty" },
-  { id: "custom-formulations", name: "Custom Formulations" },
-  { id: "dna-based-skincare", name: "DNA-Based Skincare" },
-  { id: "microbiome-skincare", name: "Microbiome Skincare" },
-  { id: "probiotic-skincare", name: "Probiotic Skincare" },
-  { id: "fermented-skincare", name: "Fermented Skincare" },
-  { id: "k-beauty", name: "K-Beauty" },
-  { id: "korean-skincare", name: "Korean Skincare" },
-  { id: "j-beauty", name: "J-Beauty" },
-  { id: "japanese-skincare", name: "Japanese Skincare" },
-  { id: "c-beauty", name: "C-Beauty" },
-  { id: "chinese-beauty", name: "Chinese Beauty" },
-  { id: "global-beauty", name: "Global Beauty" },
-  { id: "beauty-rituals", name: "Beauty Rituals" },
-  { id: "skincare-routines", name: "Skincare Routines" },
-  { id: "morning-skincare", name: "Morning Skincare" },
-  { id: "evening-skincare", name: "Evening Skincare" },
-  { id: "double-cleansing", name: "Double Cleansing" },
-  { id: "multi-step-skincare", name: "Multi-Step Skincare" },
-  { id: "minimalist-skincare", name: "Minimalist Skincare" },
-  { id: "skinimalism", name: "Skinimalism" },
-  { id: "no-makeup-makeup", name: "No-Makeup Makeup" },
-  { id: "glass-skin", name: "Glass Skin" },
-  { id: "dewy-skin", name: "Dewy Skin" },
-  { id: "glowing-skin", name: "Glowing Skin" },
-  { id: "healthy-skin", name: "Healthy Skin" },
-  { id: "skin-positivity", name: "Skin Positivity" },
-  { id: "acne-positivity", name: "Acne Positivity" },
-  { id: "aging-gracefully", name: "Aging Gracefully" },
-  { id: "anti-aging", name: "Anti-Aging" },
-  { id: "age-positive", name: "Age Positive" },
-  { id: "mature-beauty", name: "Mature Beauty" },
-  { id: "silver-hair", name: "Silver Hair" },
-  { id: "gray-hair-acceptance", name: "Gray Hair Acceptance" },
-  { id: "natural-hair", name: "Natural Hair" },
-  { id: "curly-hair", name: "Curly Hair" },
-  { id: "textured-hair", name: "Textured Hair" },
-  { id: "afro-hair", name: "Afro Hair" },
-  { id: "black-hair-care", name: "Black Hair Care" },
-  { id: "protective-styles", name: "Protective Styles" },
-  { id: "hair-culture", name: "Hair Culture" },
-  { id: "crown-act", name: "CROWN Act" },
-  { id: "hair-discrimination", name: "Hair Discrimination" },
-  { id: "workplace-hair-policies", name: "Workplace Hair Policies" },
-  { id: "hair-acceptance", name: "Hair Acceptance" },
-  { id: "hair-diversity", name: "Hair Diversity" },
-  { id: "inclusive-beauty", name: "Inclusive Beauty" },
-  { id: "beauty-diversity", name: "Beauty Diversity" },
-  { id: "shade-range", name: "Shade Range" },
-  { id: "inclusive-shade-range", name: "Inclusive Shade Range" },
-  { id: "fenty-effect", name: "Fenty Effect" },
-  { id: "beauty-representation", name: "Beauty Representation" },
-  { id: "diverse-models", name: "Diverse Models" },
-  { id: "body-diverse-models", name: "Body Diverse Models" },
-  { id: "plus-size-beauty", name: "Plus-Size Beauty" },
-  { id: "adaptive-beauty", name: "Adaptive Beauty" },
-  { id: "disability-inclusive", name: "Disability Inclusive Beauty" },
-  { id: "accessible-packaging", name: "Accessible Packaging" },
-  { id: "universal-design", name: "Universal Design" },
-  { id: "beauty-for-all", name: "Beauty for All" },
-  { id: "democratizing-beauty", name: "Democratizing Beauty" },
-  { id: "affordable-beauty", name: "Affordable Beauty" },
-  { id: "drugstore-beauty", name: "Drugstore Beauty" },
-  { id: "budget-beauty", name: "Budget Beauty" },
-  { id: "luxury-beauty", name: "Luxury Beauty" },
-  { id: "prestige-beauty", name: "Prestige Beauty" },
-  { id: "high-end-beauty", name: "High-End Beauty" },
-  { id: "splurge-vs-save", name: "Splurge vs Save" },
-  { id: "dupes", name: "Dupes" },
-  { id: "beauty-dupes", name: "Beauty Dupes" },
-  { id: "affordable-alternatives", name: "Affordable Alternatives" },
-  { id: "beauty-hacks", name: "Beauty Hacks" },
-  { id: "diy-beauty", name: "DIY Beauty" },
-  { id: "homemade-skincare", name: "Homemade Skincare" },
-  { id: "kitchen-beauty", name: "Kitchen Beauty" },
-  { id: "natural-ingredients", name: "Natural Ingredients" },
-  { id: "beauty-ingredients", name: "Beauty Ingredients" },
-  { id: "actives", name: "Actives" },
-  { id: "retinol", name: "Retinol" },
-  { id: "vitamin-c", name: "Vitamin C" },
-  { id: "niacinamide", name: "Niacinamide" },
-  { id: "hyaluronic-acid", name: "Hyaluronic Acid" },
-  { id: "peptides", name: "Peptides" },
-  { id: "aha-bha", name: "AHA/BHA" },
-  { id: "chemical-exfoliants", name: "Chemical Exfoliants" },
-  { id: "sunscreen", name: "Sunscreen" },
-  { id: "spf", name: "SPF" },
-  { id: "sun-protection", name: "Sun Protection" },
-  { id: "uv-protection", name: "UV Protection" },
-  { id: "daily-spf", name: "Daily SPF" },
-  { id: "sunscreen-controversy", name: "Sunscreen Controversy" },
-  { id: "reef-safe-sunscreen", name: "Reef-Safe Sunscreen" },
-  { id: "mineral-sunscreen", name: "Mineral Sunscreen" },
-  { id: "chemical-sunscreen", name: "Chemical Sunscreen" },
-  { id: "beauty-science", name: "Beauty Science" },
-  { id: "cosmetic-chemistry", name: "Cosmetic Chemistry" },
-  { id: "ingredient-science", name: "Ingredient Science" },
-  { id: "formulation", name: "Formulation" },
-  { id: "clinical-testing", name: "Clinical Testing" },
-  { id: "dermatologist-tested", name: "Dermatologist Tested" },
-  { id: "dermatology", name: "Dermatology" },
-  { id: "skincare-professionals", name: "Skincare Professionals" },
-  { id: "estheticians", name: "Estheticians" },
-  { id: "medical-grade", name: "Medical Grade" },
-  { id: "professional-treatments", name: "Professional Treatments" },
-  { id: "facial-treatments", name: "Facial Treatments" },
-  { id: "spa-treatments", name: "Spa Treatments" },
-  { id: "wellness-spa", name: "Wellness Spa" },
-  { id: "self-care-routines", name: "Self-Care Routines" },
-  { id: "pamper-sessions", name: "Pamper Sessions" },
-  { id: "me-time", name: "Me Time" },
-  { id: "relaxation", name: "Relaxation" },
-  { id: "stress-relief", name: "Stress Relief" },
-  { id: "mindful-beauty", name: "Mindful Beauty" },
-  { id: "slow-beauty", name: "Slow Beauty" },
-  { id: "intentional-beauty", name: "Intentional Beauty" },
-  { id: "beauty-minimalism", name: "Beauty Minimalism" },
-  { id: "curated-beauty", name: "Curated Beauty" },
-  { id: "beauty-editing", name: "Beauty Editing" },
-  { id: "product-curation", name: "Product Curation" },
-  { id: "beauty-subscription", name: "Beauty Subscription" },
-  { id: "sample-sizes", name: "Sample Sizes" },
-  { id: "travel-sizes", name: "Travel Sizes" },
-  { id: "mini-products", name: "Mini Products" },
-  { id: "beauty-minis", name: "Beauty Minis" },
-  { id: "value-sets", name: "Value Sets" },
-  { id: "gift-sets", name: "Gift Sets" },
-  { id: "beauty-gifts", name: "Beauty Gifts" },
-  { id: "holiday-beauty", name: "Holiday Beauty" },
-  { id: "limited-edition", name: "Limited Edition" },
-  { id: "beauty-collections", name: "Beauty Collections" },
-  { id: "collaborations", name: "Collaborations" },
-  { id: "celebrity-beauty", name: "Celebrity Beauty" },
-  { id: "influencer-beauty", name: "Influencer Beauty" },
-  { id: "beauty-partnerships", name: "Beauty Partnerships" },
-  { id: "brand-collaborations", name: "Brand Collaborations" },
-  { id: "crossover-products", name: "Crossover Products" },
-  { id: "unexpected-collabs", name: "Unexpected Collaborations" },
-  { id: "food-beauty-collabs", name: "Food x Beauty Collaborations" },
-  { id: "fashion-beauty-collabs", name: "Fashion x Beauty Collaborations" },
-  { id: "tech-beauty-collabs", name: "Tech x Beauty Collaborations" },
-  { id: "art-beauty-collabs", name: "Art x Beauty Collaborations" },
-  { id: "pop-culture-beauty", name: "Pop Culture x Beauty" },
-  { id: "movie-beauty-collabs", name: "Movie x Beauty Collaborations" },
-  { id: "tv-beauty-collabs", name: "TV x Beauty Collaborations" },
-  { id: "anime-beauty-collabs", name: "Anime x Beauty Collaborations" },
-  { id: "gaming-beauty-collabs", name: "Gaming x Beauty Collaborations" },
-  { id: "music-beauty-collabs", name: "Music x Beauty Collaborations" }
-];
+  const diversifiedOptions: Array<{ lane: string; prompt: string }> = [];
+  const reasons: string[] = [];
+  
+  // Find main option and extract main anchor
+  const mainOption = options.find(opt => opt.lane === 'option1') || options[0];
+  const mainAnchor = mainOption ? getMainAnchor(mainOption.prompt) : '';
+  
+  // Process each option
+  options.forEach((option, index) => {
+    let needsRewrite = false;
+    let currentPrompt = option.prompt;
+    
+    // Check for high similarity with previous options
+    for (let i = 0; i < diversifiedOptions.length; i++) {
+      const similarity = calculateSimilarity(currentPrompt, diversifiedOptions[i].prompt);
+      if (similarity > 0.8) {
+        needsRewrite = true;
+        break;
+      }
+    }
+    
+    // Check if non-primary options contain the main anchor
+    if (option.lane !== 'option1' && mainAnchor && normalizePrompt(currentPrompt).includes(mainAnchor)) {
+      needsRewrite = true;
+    }
+    
+    // Rewrite if needed (but never rewrite option1)
+    if (needsRewrite && option.lane !== 'option1') {
+      const templates = {
+        option2: ['people laughing', 'audience clapping', 'family smiling', 'friends cheering', 'crowd enjoying'],
+        option3: ['related object close-up', 'empty scene with props', 'worn items', 'equipment on table', 'background setting'],
+        option4: ['symbolic metaphor', 'abstract shapes', 'artistic representation', 'conceptual imagery', 'geometric forms']
+      };
+      
+      const laneTemplates = templates[option.lane as keyof typeof templates] || templates.option4;
+      const templateIndex = Math.abs(mainAnchor.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % laneTemplates.length;
+      currentPrompt = `${laneTemplates[templateIndex]}, ${tokenSuffix}`;
+      
+      reasons.push(`Rewrote ${option.lane} option to avoid similarity/anchor conflict`);
+    }
+    
+    diversifiedOptions.push({ lane: option.lane, prompt: currentPrompt });
+  });
 
+  return { diversifiedOptions, reasons };
+}
+
+// Layout-aware visual validation with relaxed rules and fallbacks
+function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: string }>, layoutId: string): { 
+  validOptions: Array<{ lane: string; prompt: string }>, 
+  reasons: string[] 
+} {
+  const layoutTokens = {
+    negativeSpace: ["subject off-center", "large empty negative space", "clear open area for overlay text", "asymmetrical composition"],
+    memeTopBottom: ["clear horizontal bands", "letterbox format", "empty text areas above and below", "wide top and bottom margins"], // both required
+    lowerThird: ["clear horizontal stripe across bottom third", "news broadcast style", "empty banner space in lower portion"],
+    sideBarLeft: ["prominent empty vertical panel on left", "clear column space", "sidebar composition", "subject positioned right"],
+    badgeSticker: ["clear circular space in top-right corner", "badge placement area", "sticker zone upper right", "clean corner space"],
+    subtleCaption: ["clean narrow horizontal strip at bottom", "minimal caption space", "thin text band at lower border"]
+  };
+
+  const requiredTokens = layoutTokens[layoutId as keyof typeof layoutTokens] || layoutTokens.negativeSpace;
+  const validOptions: Array<{ lane: string; prompt: string }> = [];
+  const reasons: string[] = [];
+  
+  options.forEach(option => {
+    if (!option.prompt) {
+      reasons.push(`${option.lane}: No prompt provided`);
+      return;
+    }
+    
+    let isValid = true;
+    const issues: string[] = [];
+    
+    // Check token requirements - auto-append if missing
+    const hasAllTokens = requiredTokens.every(token => 
+      option.prompt.toLowerCase().includes(token.toLowerCase())
+    );
+    
+    if (!hasAllTokens) {
+      // Auto-append missing tokens
+      const missingTokens = requiredTokens.filter(token => 
+        !option.prompt.toLowerCase().includes(token.toLowerCase())
+      );
+      option.prompt = `${option.prompt}, ${missingTokens.join(', ')}`;
+      console.log(`🔧 Auto-appended tokens to ${option.lane}: ${missingTokens.join(', ')}`);
+    }
+    
+    // Check word count (1-12 words for subject, excluding layout tokens)
+    let promptWithoutTokens = option.prompt.toLowerCase();
+    requiredTokens.forEach(token => {
+      promptWithoutTokens = promptWithoutTokens.replace(token.toLowerCase(), '');
+    });
+    promptWithoutTokens = promptWithoutTokens.replace(/,\s*/g, ' ').trim();
+    
+    const subjectWordCount = promptWithoutTokens.split(/\s+/).filter(w => w.length > 0).length;
+    if (subjectWordCount < 1 || subjectWordCount > 12) {
+      issues.push(`word count: ${subjectWordCount} (need 1-12)`);
+      isValid = false;
+    }
+    
+    // Check for specific text-like terms (narrowed list)
+    if (/(typography|signage|watermark|logo)/i.test(option.prompt)) {
+      issues.push('contains banned text terms');
+      isValid = false;
+    }
+    
+    if (isValid) {
+      validOptions.push(option);
+    } else {
+      reasons.push(`${option.lane}: ${issues.join(', ')}`);
+    }
+  });
+  
+  // If no valid options, generate deterministic fallbacks
+  if (validOptions.length === 0) {
+    console.log('🔄 Generating fallback prompts...');
+    const tokenSuffix = requiredTokens.join(', ');
+    
+    const fallbacks = [
+      { lane: "option1", prompt: `simple object, ${tokenSuffix}` },
+      { lane: "option2", prompt: `colorful background, ${tokenSuffix}` },
+      { lane: "option3", prompt: `minimal scene, ${tokenSuffix}` },
+      { lane: "option4", prompt: `abstract shapes, ${tokenSuffix}` }
+    ];
+    
+    validOptions.push(...fallbacks);
+    reasons.push('Auto-generated fallback prompts due to validation failures');
+  }
+  
+  return { validOptions, reasons };
+}
+const styleOptions = [{
+  id: "celebrations",
+  name: "Celebrations",
+  description: "Holidays, milestones, special occasions"
+}, {
+  id: "sports",
+  name: "Sports",
+  description: "All sports, activities, and competitions"
+}, {
+  id: "daily-life",
+  name: "Daily Life",
+  description: "Everyday routines, hobbies, and situations"
+}, {
+  id: "vibes-punchlines",
+  name: "Vibes & Punchlines",
+  description: "Moods, self-talk, jokes, and formats"
+}, {
+  id: "pop-culture",
+  name: "Pop Culture",
+  description: "Movies, music, celebrities, trends"
+}, {
+  id: "random",
+  name: "No Category",
+  description: "Build from scratch"
+}];
+const celebrationOptions = [{
+  id: "birthday",
+  name: "Birthday"
+}, {
+  id: "christmas-day",
+  name: "Christmas Day"
+}, {
+  id: "thanksgiving-us",
+  name: "Thanksgiving (United States)"
+}, {
+  id: "new-years-eve",
+  name: "New Year's Eve"
+}, {
+  id: "christmas-eve",
+  name: "Christmas Eve"
+}, {
+  id: "halloween",
+  name: "Halloween"
+}, {
+  id: "mothers-day",
+  name: "Mother's Day"
+}, {
+  id: "fathers-day",
+  name: "Father's Day"
+}, {
+  id: "independence-day-us",
+  name: "Independence Day (United States)"
+}, {
+  id: "new-years-day",
+  name: "New Year's Day"
+}, {
+  id: "easter",
+  name: "Easter"
+}, {
+  id: "memorial-day-us",
+  name: "Memorial Day (United States)"
+}, {
+  id: "valentines-day",
+  name: "Valentine's Day"
+}, {
+  id: "wedding",
+  name: "Wedding"
+}, {
+  id: "wedding-anniversary",
+  name: "Wedding Anniversary"
+}, {
+  id: "high-school-graduation",
+  name: "High School Graduation"
+}, {
+  id: "college-graduation",
+  name: "College Graduation"
+}, {
+  id: "baby-shower",
+  name: "Baby Shower"
+}, {
+  id: "bridal-shower",
+  name: "Bridal Shower"
+}, {
+  id: "bachelor-party",
+  name: "Bachelor Party"
+}, {
+  id: "bachelorette-party",
+  name: "Bachelorette Party"
+}, {
+  id: "engagement-party",
+  name: "Engagement Party"
+}, {
+  id: "housewarming-party",
+  name: "Housewarming Party"
+}, {
+  id: "retirement-party",
+  name: "Retirement Party"
+}, {
+  id: "job-promotion-celebration",
+  name: "Job Promotion Celebration"
+}, {
+  id: "farewell-party",
+  name: "Farewell Party (Going Away Party)"
+}, {
+  id: "babys-first-birthday",
+  name: "Baby's First Birthday"
+}, {
+  id: "sweet-16-birthday",
+  name: "Sweet 16 Birthday"
+}, {
+  id: "quinceanera",
+  name: "Quinceañera"
+}, {
+  id: "bar-mitzvah",
+  name: "Bar Mitzvah"
+}, {
+  id: "bat-mitzvah",
+  name: "Bat Mitzvah"
+}, {
+  id: "gender-reveal-party",
+  name: "Gender Reveal Party"
+}, {
+  id: "christening-baptism",
+  name: "Christening / Baptism"
+}, {
+  id: "first-communion",
+  name: "First Communion"
+}, {
+  id: "confirmation",
+  name: "Confirmation"
+}, {
+  id: "hanukkah",
+  name: "Hanukkah"
+}, {
+  id: "kwanzaa",
+  name: "Kwanzaa"
+}, {
+  id: "diwali",
+  name: "Diwali (Deepavali)"
+}, {
+  id: "chinese-new-year",
+  name: "Chinese New Year (Lunar New Year)"
+}, {
+  id: "saint-patricks-day",
+  name: "Saint Patrick's Day"
+}, {
+  id: "labor-day",
+  name: "Labor Day"
+}, {
+  id: "veterans-day-us",
+  name: "Veterans Day (United States)"
+}, {
+  id: "martin-luther-king-jr-day",
+  name: "Martin Luther King Jr. Day"
+}, {
+  id: "juneteenth",
+  name: "Juneteenth"
+}, {
+  id: "cinco-de-mayo",
+  name: "Cinco de Mayo"
+}, {
+  id: "mardi-gras",
+  name: "Mardi Gras"
+}, {
+  id: "good-friday",
+  name: "Good Friday"
+}, {
+  id: "passover",
+  name: "Passover"
+}, {
+  id: "eid-al-fitr",
+  name: "Eid al-Fitr"
+}, {
+  id: "eid-al-adha",
+  name: "Eid al-Adha"
+}, {
+  id: "nowruz",
+  name: "Nowruz (Persian New Year)"
+}, {
+  id: "purim",
+  name: "Purim"
+}, {
+  id: "rosh-hashanah",
+  name: "Rosh Hashanah"
+}, {
+  id: "holi",
+  name: "Holi"
+}, {
+  id: "navratri",
+  name: "Navratri"
+}, {
+  id: "durga-puja",
+  name: "Durga Puja"
+}, {
+  id: "lohri",
+  name: "Lohri"
+}, {
+  id: "vaisakhi",
+  name: "Vaisakhi (Baisakhi)"
+}, {
+  id: "onam",
+  name: "Onam"
+}, {
+  id: "raksha-bandhan",
+  name: "Raksha Bandhan"
+}, {
+  id: "janmashtami",
+  name: "Janmashtami"
+}, {
+  id: "ganesh-chaturthi",
+  name: "Ganesh Chaturthi"
+}, {
+  id: "guru-nanak-gurpurab",
+  name: "Guru Nanak Gurpurab"
+}, {
+  id: "pride",
+  name: "Pride (LGBTQ+ Pride events)"
+}, {
+  id: "earth-day",
+  name: "Earth Day"
+}, {
+  id: "groundhog-day",
+  name: "Groundhog Day"
+}, {
+  id: "super-bowl-sunday",
+  name: "Super Bowl Sunday"
+}, {
+  id: "boxing-day",
+  name: "Boxing Day"
+}, {
+  id: "canada-day",
+  name: "Canada Day"
+}, {
+  id: "victoria-day-canada",
+  name: "Victoria Day (Canada)"
+}, {
+  id: "saint-jean-baptiste-day",
+  name: "Saint-Jean-Baptiste Day (Quebec)"
+}, {
+  id: "remembrance-day-canada",
+  name: "Remembrance Day (Canada)"
+}, {
+  id: "columbus-day",
+  name: "Columbus Day / Indigenous Peoples' Day (U.S.)"
+}, {
+  id: "international-womens-day",
+  name: "International Women's Day"
+}, {
+  id: "international-mens-day",
+  name: "International Men's Day"
+}, {
+  id: "international-friendship-day",
+  name: "International Friendship Day"
+}, {
+  id: "boss-day",
+  name: "Boss's Day"
+}, {
+  id: "administrative-professionals-day",
+  name: "Administrative Professionals' Day"
+}, {
+  id: "april-fools-day",
+  name: "April Fools' Day"
+}, {
+  id: "star-wars-day",
+  name: "Star Wars Day (May 4th)"
+}, {
+  id: "oktoberfest",
+  name: "Oktoberfest"
+}, {
+  id: "caribbean-carnival",
+  name: "Caribbean Carnival (e.g., Caribana festival)"
+}, {
+  id: "day-of-the-dead",
+  name: "Day of the Dead (Día de los Muertos)"
+}, {
+  id: "mid-autumn-festival",
+  name: "Mid-Autumn Festival (Moon Festival)"
+}, {
+  id: "arbor-day",
+  name: "Arbor Day"
+}, {
+  id: "orthodox-christmas",
+  name: "Orthodox Christmas (Jan 7)"
+}, {
+  id: "orthodox-easter",
+  name: "Orthodox Easter"
+}, {
+  id: "21st-birthday",
+  name: "21st Birthday"
+}, {
+  id: "50th-birthday",
+  name: "50th Birthday"
+}, {
+  id: "100th-birthday",
+  name: "100th Birthday"
+}, {
+  id: "25th-wedding-anniversary",
+  name: "25th Wedding Anniversary"
+}, {
+  id: "50th-wedding-anniversary",
+  name: "50th Wedding Anniversary"
+}, {
+  id: "babys-1-month-celebration",
+  name: "Baby's 1 Month Celebration"
+}, {
+  id: "babys-100-days-celebration",
+  name: "Baby's 100 Days Celebration"
+}, {
+  id: "baby-sprinkle",
+  name: "Baby Sprinkle (Second Baby Shower)"
+}, {
+  id: "bris",
+  name: "Bris (Brit Milah)"
+}, {
+  id: "baby-naming-ceremony",
+  name: "Baby Naming Ceremony"
+}, {
+  id: "adoption-day",
+  name: "Adoption Day (Child Adoption)"
+}, {
+  id: "pets-birthday",
+  name: "Pet's Birthday"
+}, {
+  id: "pet-adoption-day",
+  name: "Pet Adoption Day (Gotcha Day)"
+}, {
+  id: "las-posadas",
+  name: "Las Posadas"
+}, {
+  id: "three-kings-day",
+  name: "Three Kings Day (Día de Reyes)"
+}, {
+  id: "dragon-boat-festival",
+  name: "Dragon Boat Festival"
+}, {
+  id: "saint-nicholas-day",
+  name: "Saint Nicholas Day"
+}, {
+  id: "krampusnacht",
+  name: "Krampusnacht"
+}, {
+  id: "talk-like-a-pirate-day",
+  name: "Talk Like a Pirate Day"
+}, {
+  id: "pi-day",
+  name: "Pi Day (March 14)"
+}, {
+  id: "420",
+  name: "4/20 (Cannabis Culture Day)"
+}, {
+  id: "siblings-day",
+  name: "Siblings Day"
+}, {
+  id: "grandparents-day",
+  name: "Grandparents Day"
+}, {
+  id: "mother-in-law-day",
+  name: "Mother-in-Law Day"
+}, {
+  id: "national-boyfriend-day",
+  name: "National Boyfriend Day"
+}, {
+  id: "national-girlfriend-day",
+  name: "National Girlfriend Day"
+}, {
+  id: "national-pet-day",
+  name: "National Pet Day"
+}, {
+  id: "national-dog-day",
+  name: "National Dog Day"
+}, {
+  id: "national-cat-day",
+  name: "National Cat Day"
+}, {
+  id: "international-beer-day",
+  name: "International Beer Day"
+}, {
+  id: "international-coffee-day",
+  name: "International Coffee Day"
+}, {
+  id: "national-donut-day",
+  name: "National Donut Day"
+}, {
+  id: "national-ice-cream-day",
+  name: "National Ice Cream Day"
+}, {
+  id: "national-pizza-day",
+  name: "National Pizza Day"
+}, {
+  id: "festivus",
+  name: "Festivus"
+}, {
+  id: "national-son-day",
+  name: "National Son Day"
+}, {
+  id: "national-daughter-day",
+  name: "National Daughter Day"
+}, {
+  id: "national-cousins-day",
+  name: "National Cousins Day"
+}, {
+  id: "national-best-friends-day",
+  name: "National Best Friends Day"
+}, {
+  id: "national-wine-day",
+  name: "National Wine Day"
+}, {
+  id: "national-margarita-day",
+  name: "National Margarita Day"
+}, {
+  id: "national-pancake-day",
+  name: "National Pancake Day"
+}, {
+  id: "national-cookie-day",
+  name: "National Cookie Day"
+}, {
+  id: "national-burger-day",
+  name: "National Burger Day"
+}, {
+  id: "national-taco-day",
+  name: "National Taco Day"
+}, {
+  id: "national-pie-day",
+  name: "National Pie Day"
+}, {
+  id: "national-hot-dog-day",
+  name: "National Hot Dog Day"
+}, {
+  id: "presidents-day",
+  name: "Presidents' Day (U.S.)"
+}, {
+  id: "leap-day",
+  name: "Leap Day (Feb 29)"
+}, {
+  id: "galentines-day",
+  name: "Galentine's Day"
+}, {
+  id: "summer-solstice",
+  name: "Summer Solstice"
+}, {
+  id: "winter-solstice",
+  name: "Winter Solstice"
+}, {
+  id: "midsummer",
+  name: "Midsummer (Summer Festival)"
+}, {
+  id: "bastille-day",
+  name: "Bastille Day (French National Day)"
+}, {
+  id: "pioneer-day",
+  name: "Pioneer Day (Utah)"
+}, {
+  id: "lammas",
+  name: "Lammas (Lughnasadh)"
+}, {
+  id: "left-handers-day",
+  name: "Left-Handers Day"
+}, {
+  id: "mexican-independence-day",
+  name: "Mexican Independence Day"
+}, {
+  id: "spring-equinox",
+  name: "Spring Equinox"
+}, {
+  id: "autumn-equinox",
+  name: "Autumn Equinox"
+}, {
+  id: "thanksgiving-canada",
+  name: "Thanksgiving (Canada)"
+}, {
+  id: "simchat-torah",
+  name: "Simchat Torah"
+}, {
+  id: "bodhi-day",
+  name: "Bodhi Day"
+}, {
+  id: "vesak",
+  name: "Vesak (Buddha's Birthday)"
+}, {
+  id: "chuseok",
+  name: "Chuseok (Korean Harvest Festival)"
+}, {
+  id: "obon",
+  name: "Obon (Japanese Festival of Ancestors)"
+}, {
+  id: "imbolc",
+  name: "Imbolc"
+}, {
+  id: "international-workers-day",
+  name: "International Workers' Day (May Day)"
+}, {
+  id: "beltane",
+  name: "Beltane (May Day Festival)"
+}, {
+  id: "polar-bear-plunge-day",
+  name: "Polar Bear Plunge Day"
+}, {
+  id: "chocolate-cake-day",
+  name: "Chocolate Cake Day"
+}, {
+  id: "national-cheesecake-day",
+  name: "National Cheesecake Day"
+}, {
+  id: "national-candy-day",
+  name: "National Candy Day"
+}, {
+  id: "chocolate-chip-cookie-day",
+  name: "Chocolate Chip Cookie Day"
+}, {
+  id: "mac-and-cheese-day",
+  name: "Mac and Cheese Day"
+}, {
+  id: "national-cocktail-day",
+  name: "National Cocktail Day"
+}, {
+  id: "international-tea-day",
+  name: "International Tea Day"
+}, {
+  id: "world-milk-day",
+  name: "World Milk Day"
+}, {
+  id: "national-dessert-day",
+  name: "National Dessert Day"
+}, {
+  id: "national-cake-day",
+  name: "National Cake Day"
+}, {
+  id: "national-sandwich-day",
+  name: "National Sandwich Day"
+}, {
+  id: "national-burrito-day",
+  name: "National Burrito Day"
+}, {
+  id: "national-fried-chicken-day",
+  name: "National Fried Chicken Day"
+}, {
+  id: "national-bagel-day",
+  name: "National Bagel Day"
+}, {
+  id: "national-milkshake-day",
+  name: "National Milkshake Day"
+}, {
+  id: "cinnamon-roll-day",
+  name: "Cinnamon Roll Day"
+}, {
+  id: "national-brownie-day",
+  name: "National Brownie Day"
+}, {
+  id: "national-peanut-butter-day",
+  name: "National Peanut Butter Day"
+}, {
+  id: "national-jelly-bean-day",
+  name: "National Jelly Bean Day"
+}, {
+  id: "national-potato-day",
+  name: "National Potato Day"
+}, {
+  id: "geek-pride-day",
+  name: "Geek Pride Day"
+}, {
+  id: "system-administrator-appreciation-day",
+  name: "System Administrator Appreciation Day"
+}, {
+  id: "mole-day",
+  name: "Mole Day"
+}, {
+  id: "record-store-day",
+  name: "Record Store Day"
+}, {
+  id: "national-coming-out-day",
+  name: "National Coming Out Day"
+}, {
+  id: "world-oceans-day",
+  name: "World Oceans Day"
+}, {
+  id: "international-museum-day",
+  name: "International Museum Day"
+}, {
+  id: "knit-in-public-day",
+  name: "Knit in Public Day"
+}, {
+  id: "singles-awareness-day",
+  name: "Singles Awareness Day"
+}, {
+  id: "bloomsday",
+  name: "Bloomsday"
+}, {
+  id: "talk-like-yoda-day",
+  name: "Talk Like Yoda Day"
+}, {
+  id: "caps-lock-day",
+  name: "Caps Lock Day"
+}, {
+  id: "pretend-to-be-a-time-traveler-day",
+  name: "Pretend to Be a Time Traveler Day"
+}, {
+  id: "world-hello-day",
+  name: "World Hello Day"
+}, {
+  id: "no-pants-day",
+  name: "No Pants Day"
+}, {
+  id: "trivia-day",
+  name: "Trivia Day"
+}, {
+  id: "compliment-day",
+  name: "Compliment Day"
+}, {
+  id: "puzzle-day",
+  name: "Puzzle Day"
+}, {
+  id: "backwards-day",
+  name: "Backwards Day"
+}, {
+  id: "eat-ice-cream-for-breakfast-day",
+  name: "Eat Ice Cream for Breakfast Day"
+}, {
+  id: "play-your-ukulele-day",
+  name: "Play Your Ukulele Day"
+}, {
+  id: "thank-your-mailman-day",
+  name: "Thank Your Mailman Day"
+}, {
+  id: "darwin-day",
+  name: "Darwin Day"
+}, {
+  id: "random-acts-of-kindness-day",
+  name: "Random Acts of Kindness Day"
+}, {
+  id: "love-your-pet-day",
+  name: "Love Your Pet Day"
+}, {
+  id: "grilled-cheese-day",
+  name: "Grilled Cheese Day"
+}, {
+  id: "wear-pajamas-to-work-day",
+  name: "Wear Pajamas to Work Day"
+}, {
+  id: "superhero-day",
+  name: "Superhero Day"
+}, {
+  id: "international-picnic-day",
+  name: "International Picnic Day"
+}, {
+  id: "go-skateboarding-day",
+  name: "Go Skateboarding Day"
+}, {
+  id: "social-media-day",
+  name: "Social Media Day"
+}, {
+  id: "moon-day",
+  name: "Moon Day"
+}, {
+  id: "national-avocado-day",
+  name: "National Avocado Day"
+}, {
+  id: "book-lovers-day",
+  name: "Book Lovers Day"
+}, {
+  id: "relaxation-day",
+  name: "Relaxation Day"
+}, {
+  id: "tell-a-joke-day",
+  name: "Tell a Joke Day"
+}, {
+  id: "womens-equality-day",
+  name: "Women's Equality Day"
+}, {
+  id: "programmers-day",
+  name: "Programmers' Day"
+}, {
+  id: "opposite-day",
+  name: "Opposite Day"
+}, {
+  id: "ugly-christmas-sweater-day",
+  name: "Ugly Christmas Sweater Day"
+}, {
+  id: "bacon-day",
+  name: "Bacon Day"
+}, {
+  id: "divorce-party",
+  name: "Divorce Party"
+}, {
+  id: "debut",
+  name: "Debut (Filipino 18th Birthday)"
+}, {
+  id: "burns-night",
+  name: "Burns Night"
+}, {
+  id: "cherry-blossom-festival",
+  name: "Cherry Blossom Festival (Hanami)"
+}, {
+  id: "ayyam-i-ha",
+  name: "Ayyám-i-Há (Bahá'í Festival)"
+}, {
+  id: "science-fiction-day",
+  name: "Science Fiction Day"
+}, {
+  id: "nothing-day",
+  name: "Nothing Day"
+}, {
+  id: "popcorn-day",
+  name: "Popcorn Day"
+}, {
+  id: "hot-sauce-day",
+  name: "Hot Sauce Day"
+}, {
+  id: "ditch-new-years-resolution-day",
+  name: "Ditch New Year's Resolution Day"
+}, {
+  id: "lost-sock-memorial-day",
+  name: "Lost Sock Memorial Day"
+}, {
+  id: "twilight-zone-day",
+  name: "Twilight Zone Day"
+}, {
+  id: "eat-what-you-want-day",
+  name: "Eat What You Want Day"
+}, {
+  id: "limerick-day",
+  name: "Limerick Day"
+}, {
+  id: "dance-like-a-chicken-day",
+  name: "Dance Like a Chicken Day"
+}, {
+  id: "pizza-party-day",
+  name: "Pizza Party Day"
+}, {
+  id: "no-dirty-dishes-day",
+  name: "No Dirty Dishes Day"
+}, {
+  id: "scavenger-hunt-day",
+  name: "Scavenger Hunt Day"
+}, {
+  id: "say-something-nice-day",
+  name: "Say Something Nice Day"
+}, {
+  id: "leave-the-office-early-day",
+  name: "Leave the Office Early Day"
+}, {
+  id: "repeat-day",
+  name: "Repeat Day"
+}, {
+  id: "hug-your-cat-day",
+  name: "Hug Your Cat Day"
+}, {
+  id: "drive-in-movie-day",
+  name: "Drive-In Movie Day"
+}, {
+  id: "donald-duck-day",
+  name: "Donald Duck Day"
+}, {
+  id: "iced-tea-day",
+  name: "Iced Tea Day"
+}, {
+  id: "bourbon-day",
+  name: "Bourbon Day"
+}, {
+  id: "eat-your-vegetables-day",
+  name: "Eat Your Vegetables Day"
+}, {
+  id: "take-your-dog-to-work-day",
+  name: "Take Your Dog to Work Day"
+}, {
+  id: "onion-ring-day",
+  name: "Onion Ring Day"
+}, {
+  id: "tau-day",
+  name: "Tau Day"
+}, {
+  id: "camera-day",
+  name: "Camera Day"
+}, {
+  id: "meteor-watch-day",
+  name: "Meteor Watch Day"
+}, {
+  id: "world-kissing-day",
+  name: "World Kissing Day"
+}, {
+  id: "tell-the-truth-day",
+  name: "Tell the Truth Day"
+}, {
+  id: "teddy-bears-picnic-day",
+  name: "Teddy Bears' Picnic Day"
+}, {
+  id: "cheer-up-the-lonely-day",
+  name: "Cheer Up the Lonely Day"
+}, {
+  id: "stick-out-your-tongue-day",
+  name: "Stick Out Your Tongue Day"
+}, {
+  id: "junk-food-day",
+  name: "Junk Food Day"
+}, {
+  id: "pi-approximation-day",
+  name: "Pi Approximation Day"
+}, {
+  id: "aunt-and-uncle-day",
+  name: "Aunt and Uncle Day"
+}, {
+  id: "lasagna-day",
+  name: "Lasagna Day"
+}, {
+  id: "ice-cream-sandwich-day",
+  name: "Ice Cream Sandwich Day"
+}, {
+  id: "sisters-day",
+  name: "Sisters' Day"
+}, {
+  id: "watermelon-day",
+  name: "Watermelon Day"
+}, {
+  id: "lazy-day",
+  name: "Lazy Day"
+}, {
+  id: "middle-child-day",
+  name: "Middle Child Day"
+}, {
+  id: "creamsicle-day",
+  name: "Creamsicle Day"
+}, {
+  id: "world-photo-day",
+  name: "World Photo Day"
+}, {
+  id: "pluto-demoted-day",
+  name: "Pluto Demoted Day"
+}, {
+  id: "kiss-and-make-up-day",
+  name: "Kiss and Make Up Day"
+}, {
+  id: "bow-tie-day",
+  name: "Bow Tie Day"
+}, {
+  id: "frankenstein-day",
+  name: "Frankenstein Day"
+}, {
+  id: "eat-outside-day",
+  name: "Eat Outside Day"
+}, {
+  id: "eat-an-extra-dessert-day",
+  name: "Eat an Extra Dessert Day"
+}, {
+  id: "be-late-for-something-day",
+  name: "Be Late for Something Day"
+}, {
+  id: "cheese-pizza-day",
+  name: "Cheese Pizza Day"
+}, {
+  id: "read-a-book-day",
+  name: "Read a Book Day"
+}, {
+  id: "teddy-bear-day",
+  name: "Teddy Bear Day"
+}, {
+  id: "positive-thinking-day",
+  name: "Positive Thinking Day"
+}, {
+  id: "roald-dahl-day",
+  name: "Roald Dahl Day"
+}, {
+  id: "hug-your-hound-day",
+  name: "Hug Your Hound Day"
+}, {
+  id: "guacamole-day",
+  name: "Guacamole Day"
+}, {
+  id: "miniature-golf-day",
+  name: "Miniature Golf Day"
+}, {
+  id: "punctuation-day",
+  name: "Punctuation Day"
+}, {
+  id: "national-comic-book-day",
+  name: "National Comic Book Day"
+}, {
+  id: "love-note-day",
+  name: "Love Note Day"
+}, {
+  id: "ask-a-stupid-question-day",
+  name: "Ask a Stupid Question Day"
+}, {
+  id: "card-making-day",
+  name: "Card Making Day"
+}, {
+  id: "mad-hatter-day",
+  name: "Mad Hatter Day"
+}, {
+  id: "its-my-party-day",
+  name: "It's My Party Day"
+}, {
+  id: "ada-lovelace-day",
+  name: "Ada Lovelace Day"
+}, {
+  id: "i-love-lucy-day",
+  name: "I Love Lucy Day"
+}, {
+  id: "dictionary-day",
+  name: "Dictionary Day"
+}, {
+  id: "wear-something-gaudy-day",
+  name: "Wear Something Gaudy Day"
+}, {
+  id: "international-sloth-day",
+  name: "International Sloth Day"
+}, {
+  id: "howl-at-the-moon-day",
+  name: "Howl at the Moon Day"
+}, {
+  id: "american-beer-day",
+  name: "American Beer Day"
+}, {
+  id: "international-animation-day",
+  name: "International Animation Day"
+}, {
+  id: "internet-day",
+  name: "Internet Day"
+}, {
+  id: "candy-corn-day",
+  name: "Candy Corn Day"
+}, {
+  id: "magic-day",
+  name: "Magic Day"
+}, {
+  id: "authors-day",
+  name: "Author's Day"
+}, {
+  id: "zero-tasking-day",
+  name: "Zero Tasking Day"
+}, {
+  id: "men-make-dinner-day",
+  name: "Men Make Dinner Day"
+}, {
+  id: "international-stout-day",
+  name: "International Stout Day"
+}, {
+  id: "tongue-twister-day",
+  name: "Tongue Twister Day"
+}, {
+  id: "happy-hour-day",
+  name: "Happy Hour Day"
+}, {
+  id: "world-kindness-day",
+  name: "World Kindness Day"
+}, {
+  id: "sadie-hawkins-day",
+  name: "Sadie Hawkins Day"
+}, {
+  id: "fast-food-day",
+  name: "Fast Food Day"
+}, {
+  id: "take-a-hike-day",
+  name: "Take a Hike Day"
+}, {
+  id: "absurdity-day",
+  name: "Absurdity Day"
+}, {
+  id: "fibonacci-day",
+  name: "Fibonacci Day"
+}, {
+  id: "celebrate-your-unique-talent-day",
+  name: "Celebrate Your Unique Talent Day"
+}, {
+  id: "red-planet-day",
+  name: "Red Planet Day"
+}, {
+  id: "make-a-gift-day",
+  name: "Make a Gift Day"
+}, {
+  id: "day-of-the-ninja",
+  name: "Day of the Ninja"
+}, {
+  id: "letter-writing-day",
+  name: "Letter Writing Day"
+}, {
+  id: "christmas-card-day",
+  name: "Christmas Card Day"
+}, {
+  id: "gingerbread-house-day",
+  name: "Gingerbread House Day"
+}, {
+  id: "monkey-day",
+  name: "Monkey Day"
+}, {
+  id: "free-shipping-day",
+  name: "Free Shipping Day"
+}, {
+  id: "chocolate-covered-anything-day",
+  name: "Chocolate Covered Anything Day"
+}, {
+  id: "wright-brothers-day",
+  name: "Wright Brothers Day"
+}, {
+  id: "dalek-day",
+  name: "Dalek Day"
+}, {
+  id: "eggnog-day",
+  name: "Eggnog Day"
+}, {
+  id: "card-playing-day",
+  name: "Card Playing Day"
+}, {
+  id: "make-up-your-mind-day",
+  name: "Make Up Your Mind Day"
+}, {
+  id: "buffet-day",
+  name: "Buffet Day"
+}, {
+  id: "run-it-up-the-flagpole-day",
+  name: "\"Run It up the Flagpole\" Day"
+}, {
+  id: "fruitcake-toss-day",
+  name: "Fruitcake Toss Day"
+}, {
+  id: "festival-of-sleep-day",
+  name: "Festival of Sleep Day"
+}, {
+  id: "bird-day",
+  name: "Bird Day"
+}, {
+  id: "bean-day",
+  name: "Bean Day"
+}, {
+  id: "old-rock-day",
+  name: "Old Rock Day"
+}, {
+  id: "earths-rotation-day",
+  name: "Earth's Rotation Day"
+}, {
+  id: "static-electricity-day",
+  name: "Static Electricity Day"
+}, {
+  id: "word-nerd-day",
+  name: "Word Nerd Day"
+}, {
+  id: "cut-your-energy-costs-day",
+  name: "Cut Your Energy Costs Day"
+}, {
+  id: "learn-your-name-in-morse-code-day",
+  name: "Learn Your Name in Morse Code Day"
+}, {
+  id: "organize-your-home-day",
+  name: "Organize Your Home Day"
+}, {
+  id: "strawberry-ice-cream-day",
+  name: "Strawberry Ice Cream Day"
+}, {
+  id: "bagel-and-lox-day",
+  name: "Bagel and Lox Day"
+}, {
+  id: "benjamin-franklin-day",
+  name: "Benjamin Franklin Day"
+}, {
+  id: "kid-inventors-day",
+  name: "Kid Inventors' Day"
+}, {
+  id: "soup-swap-day",
+  name: "Soup Swap Day"
+}, {
+  id: "thesaurus-day",
+  name: "Thesaurus Day"
+}, {
+  id: "tin-can-day",
+  name: "Tin Can Day"
+}, {
+  id: "penguin-awareness-day",
+  name: "Penguin Awareness Day"
+}, {
+  id: "squirrel-appreciation-day",
+  name: "Squirrel Appreciation Day"
+}, {
+  id: "answer-your-cats-questions-day",
+  name: "Answer Your Cat's Questions Day"
+}, {
+  id: "handwriting-day",
+  name: "Handwriting Day"
+}, {
+  id: "macintosh-computer-day",
+  name: "Macintosh Computer Day"
+}, {
+  id: "croissant-day",
+  name: "Croissant Day"
+}, {
+  id: "day-of-the-crepe",
+  name: "Day of the Crêpe"
+}, {
+  id: "carrot-cake-day",
+  name: "Carrot Cake Day"
+}, {
+  id: "create-a-vacuum-day",
+  name: "Create a Vacuum Day"
+}, {
+  id: "stuffed-mushroom-day",
+  name: "Stuffed Mushroom Day"
+}, {
+  id: "national-weatherperson-day",
+  name: "National Weatherperson's Day"
+}, {
+  id: "chocolate-fondue-day",
+  name: "Chocolate Fondue Day"
+}, {
+  id: "lame-duck-day",
+  name: "Lame Duck Day"
+}, {
+  id: "work-naked-day",
+  name: "Work Naked Day"
+}, {
+  id: "send-a-card-to-a-friend-day",
+  name: "Send a Card to a Friend Day"
+}, {
+  id: "laugh-and-get-rich-day",
+  name: "Laugh and Get Rich Day"
+}, {
+  id: "toothache-day",
+  name: "Toothache Day"
+}, {
+  id: "umbrella-day",
+  name: "Umbrella Day"
+}, {
+  id: "clean-out-your-computer-day",
+  name: "Clean Out Your Computer Day"
+}, {
+  id: "make-a-friend-day",
+  name: "Make a Friend Day"
+}, {
+  id: "dont-cry-over-spilled-milk-day",
+  name: "Don't Cry Over Spilled Milk Day"
+}, {
+  id: "world-radio-day",
+  name: "World Radio Day"
+}, {
+  id: "ferris-wheel-day",
+  name: "Ferris Wheel Day"
+}, {
+  id: "library-lovers-day",
+  name: "Library Lovers Day"
+}, {
+  id: "gumdrop-day",
+  name: "Gumdrop Day"
+}, {
+  id: "do-a-grouch-a-favor-day",
+  name: "Do a Grouch a Favor Day"
+}, {
+  id: "battery-day",
+  name: "Battery Day"
+}, {
+  id: "chocolate-mint-day",
+  name: "Chocolate Mint Day"
+}, {
+  id: "single-tasking-day",
+  name: "Single Tasking Day"
+}, {
+  id: "be-humble-day",
+  name: "Be Humble Day"
+}, {
+  id: "world-sword-swallowers-day",
+  name: "World Sword Swallowers Day"
+}, {
+  id: "international-dog-biscuit-appreciation-day",
+  name: "International Dog Biscuit Appreciation Day"
+}, {
+  id: "tortilla-chip-day",
+  name: "Tortilla Chip Day"
+}, {
+  id: "pistachio-day",
+  name: "Pistachio Day"
+}, {
+  id: "tell-a-fairy-tale-day",
+  name: "Tell a Fairy Tale Day"
+}, {
+  id: "international-polar-bear-day",
+  name: "International Polar Bear Day"
+}, {
+  id: "no-brainer-day",
+  name: "No Brainer Day"
+}, {
+  id: "public-sleeping-day",
+  name: "Public Sleeping Day"
+}, {
+  id: "world-compliment-day",
+  name: "World Compliment Day"
+}, {
+  id: "plan-a-solo-vacation-day",
+  name: "Plan a Solo Vacation Day"
+}, {
+  id: "old-stuff-day",
+  name: "Old Stuff Day"
+}, {
+  id: "i-want-you-to-be-happy-day",
+  name: "I Want You to be Happy Day"
+}, {
+  id: "march-forth-and-do-something-day",
+  name: "March Forth and Do Something Day"
+}, {
+  id: "learn-what-your-name-means-day",
+  name: "Learn What Your Name Means Day"
+}, {
+  id: "cinco-de-marcho",
+  name: "Cinco de Marcho"
+}, {
+  id: "dentists-day",
+  name: "Dentist's Day"
+}, {
+  id: "alexander-graham-bell-day",
+  name: "Alexander Graham Bell Day"
+}, {
+  id: "proofreading-day",
+  name: "Proofreading Day"
+}, {
+  id: "napping-day",
+  name: "Napping Day"
+}, {
+  id: "oatmeal-nut-waffle-day",
+  name: "Oatmeal Nut Waffle Day"
+}, {
+  id: "alfred-hitchcock-day",
+  name: "Alfred Hitchcock Day"
+}, {
+  id: "jewel-day",
+  name: "Jewel Day"
+}, {
+  id: "everything-you-think-is-wrong-day",
+  name: "Everything You Think Is Wrong Day"
+}, {
+  id: "everything-you-do-is-right-day",
+  name: "Everything You Do Is Right Day"
+}, {
+  id: "submarine-day",
+  name: "Submarine Day"
+}, {
+  id: "awkward-moments-day",
+  name: "Awkward Moments Day"
+}, {
+  id: "absolutely-incredible-kid-day",
+  name: "Absolutely Incredible Kid Day"
+}, {
+  id: "world-storytelling-day",
+  name: "World Storytelling Day"
+}, {
+  id: "proposal-day",
+  name: "Proposal Day"
+}, {
+  id: "common-courtesy-day",
+  name: "Common Courtesy Day"
+}, {
+  id: "international-goof-off-day",
+  name: "International Goof Off Day"
+}, {
+  id: "puppy-day",
+  name: "Puppy Day"
+}, {
+  id: "near-miss-day",
+  name: "Near Miss Day"
+}, {
+  id: "chocolate-covered-raisins-day",
+  name: "Chocolate Covered Raisins Day"
+}, {
+  id: "waffle-day",
+  name: "Waffle Day"
+}, {
+  id: "tolkien-reading-day",
+  name: "Tolkien Reading Day"
+}, {
+  id: "make-up-your-own-holiday-day",
+  name: "Make Up Your Own Holiday Day"
+}, {
+  id: "spanish-paella-day",
+  name: "Spanish Paella Day"
+}, {
+  id: "something-on-a-stick-day",
+  name: "Something on a Stick Day"
+}, {
+  id: "smoke-and-mirrors-day",
+  name: "Smoke and Mirrors Day"
+}, {
+  id: "take-a-walk-in-the-park-day",
+  name: "Take a Walk in the Park Day"
+}, {
+  id: "bunsen-burner-day",
+  name: "Bunsen Burner Day"
+}, {
+  id: "world-party-day",
+  name: "World Party Day"
+}, {
+  id: "tell-a-lie-day",
+  name: "Tell a Lie Day"
+}, {
+  id: "walk-to-work-day",
+  name: "Walk to Work Day"
+}, {
+  id: "read-a-road-map-day",
+  name: "Read a Road Map Day"
+}, {
+  id: "first-contact-day",
+  name: "First Contact Day"
+}, {
+  id: "sorry-charlie-day",
+  name: "Sorry Charlie Day"
+}, {
+  id: "be-kind-to-lawyers-day",
+  name: "Be Kind to Lawyers Day"
+}, {
+  id: "barbershop-quartet-day",
+  name: "Barbershop Quartet Day"
+}, {
+  id: "yuris-night",
+  name: "Yuri's Night"
+}, {
+  id: "scrabble-day",
+  name: "Scrabble Day"
+}, {
+  id: "international-moment-of-laughter-day",
+  name: "International Moment of Laughter Day"
+}, {
+  id: "reach-as-high-as-you-can-day",
+  name: "Reach as High as You Can Day"
+}, {
+  id: "look-up-at-the-sky-day",
+  name: "Look Up at the Sky Day"
+}, {
+  id: "eggs-benedict-day",
+  name: "Eggs Benedict Day"
+}, {
+  id: "haiku-poetry-day",
+  name: "Haiku Poetry Day"
+}, {
+  id: "columnist-day",
+  name: "Columnist Day"
+}, {
+  id: "look-alike-day",
+  name: "Look Alike Day"
+}, {
+  id: "jelly-bean-day",
+  name: "Jelly Bean Day"
+}, {
+  id: "take-our-daughters-and-sons-to-work-day",
+  name: "Take Our Daughters and Sons to Work Day"
+}, {
+  id: "dna-day",
+  name: "DNA Day"
+}, {
+  id: "pretzel-day",
+  name: "Pretzel Day"
+}, {
+  id: "richter-scale-day",
+  name: "Richter Scale Day"
+}, {
+  id: "world-pinhole-photography-day",
+  name: "World Pinhole Photography Day"
+}, {
+  id: "zipper-day",
+  name: "Zipper Day"
+}, {
+  id: "honesty-day",
+  name: "Honesty Day"
+}, {
+  id: "batman-day",
+  name: "Batman Day"
+}, {
+  id: "no-pants-day-2",
+  name: "No Pants Day"
+}, {
+  id: "space-day",
+  name: "Space Day"
+}, {
+  id: "astronomy-day",
+  name: "Astronomy Day"
+}, {
+  id: "herb-day",
+  name: "Herb Day"
+}, {
+  id: "square-root-day",
+  name: "Square Root Day"
+}, {
+  id: "beverage-day",
+  name: "Beverage Day"
+}, {
+  id: "national-school-nurse-day",
+  name: "National School Nurse Day"
+}, {
+  id: "europe-day",
+  name: "Europe Day"
+}, {
+  id: "clean-up-your-room-day",
+  name: "Clean Up Your Room Day"
+}, {
+  id: "frog-jumping-day",
+  name: "Frog Jumping Day"
+}, {
+  id: "pack-rat-day",
+  name: "Pack Rat Day"
+}, {
+  id: "may-ray-day",
+  name: "May Ray Day"
+}, {
+  id: "buy-a-musical-instrument-day",
+  name: "Buy a Musical Instrument Day"
+}, {
+  id: "sing-out-day",
+  name: "Sing Out Day"
+}, {
+  id: "world-lindy-hop-day",
+  name: "World Lindy Hop Day"
+}, {
+  id: "sun-screen-day",
+  name: "Sun Screen Day"
+}, {
+  id: "put-a-pillow-on-your-fridge-day",
+  name: "Put a Pillow on Your Fridge Day"
+}, {
+  id: "my-buckets-got-a-hole-day",
+  name: "My Bucket's Got a Hole Day"
+}, {
+  id: "macaroon-day",
+  name: "Macaroon Day"
+}, {
+  id: "vcr-day",
+  name: "VCR Day"
+}, {
+  id: "i-forgot-day",
+  name: "I Forgot Day"
+}, {
+  id: "world-ufo-day",
+  name: "World UFO Day"
+}, {
+  id: "compliment-your-mirror-day",
+  name: "Compliment Your Mirror Day"
+}, {
+  id: "i-forgot-day-again",
+  name: "I Forgot Day (Again)"
+}, {
+  id: "international-plastic-bag-free-day",
+  name: "International Plastic Bag Free Day"
+}, {
+  id: "sidewalk-egg-frying-day",
+  name: "Sidewalk Egg Frying Day"
+}, {
+  id: "workaholics-day",
+  name: "Workaholics Day"
+}, {
+  id: "math-2-0-day",
+  name: "Math 2.0 Day"
+}, {
+  id: "sugar-cookie-day",
+  name: "Sugar Cookie Day"
+}, {
+  id: "clerihew-day",
+  name: "Clerihew Day"
+}, {
+  id: "simplicity-day",
+  name: "Simplicity Day"
+}, {
+  id: "embrace-your-geekness-day",
+  name: "Embrace Your Geekness Day"
+}, {
+  id: "pandemonium-day",
+  name: "Pandemonium Day"
+}, {
+  id: "gummi-worm-day",
+  name: "Gummi Worm Day"
+}, {
+  id: "corn-fritters-day",
+  name: "Corn Fritters Day"
+}, {
+  id: "yellow-pig-day",
+  name: "Yellow Pig Day"
+}, {
+  id: "insurance-nerd-day",
+  name: "Insurance Nerd Day"
+}, {
+  id: "caviar-day",
+  name: "Caviar Day"
+}, {
+  id: "space-exploration-day",
+  name: "Space Exploration Day"
+}, {
+  id: "vanilla-ice-cream-day",
+  name: "Vanilla Ice Cream Day"
+}, {
+  id: "pythagorean-theorem-day",
+  name: "Pythagorean Theorem Day"
+}, {
+  id: "culinarians-day",
+  name: "Culinarians Day"
+}, {
+  id: "take-your-pants-for-a-walk-day",
+  name: "Take Your Pants for a Walk Day"
+}, {
+  id: "uncommon-musical-instrument-day",
+  name: "Uncommon Musical Instrument Day"
+}, {
+  id: "fresh-breath-day",
+  name: "Fresh Breath Day"
+}, {
+  id: "lighthouse-day",
+  name: "Lighthouse Day"
+}, {
+  id: "happiness-happens-day",
+  name: "Happiness Happens Day"
+}, {
+  id: "thrift-shop-day",
+  name: "Thrift Shop Day"
+}, {
+  id: "mail-order-catalog-day",
+  name: "Mail Order Catalog Day"
+}, {
+  id: "stick-out-your-tongue-day-again",
+  name: "Stick Out Your Tongue Day (Again)"
+}, {
+  id: "the-duchess-who-wasnt-day",
+  name: "The Duchess Who Wasn't Day"
+}, {
+  id: "according-to-hoyle-day",
+  name: "According to Hoyle Day"
+}, {
+  id: "no-interruptions-day",
+  name: "No Interruptions Day"
+}, {
+  id: "pepper-pot-day",
+  name: "Pepper Pot Day"
+}, {
+  id: "bicarbonate-of-soda-day",
+  name: "Bicarbonate of Soda Day"
+}, {
+  id: "daylight-appreciation-day",
+  name: "Daylight Appreciation Day"
+}];
+const sportsOptions = [{
+  id: "american-football",
+  name: "American Football"
+}, {
+  id: "basketball",
+  name: "Basketball"
+}, {
+  id: "baseball",
+  name: "Baseball"
+}, {
+  id: "ice-hockey",
+  name: "Ice Hockey"
+}, {
+  id: "soccer",
+  name: "Soccer"
+}, {
+  id: "boxing",
+  name: "Boxing"
+}, {
+  id: "golf",
+  name: "Golf"
+}, {
+  id: "mixed-martial-arts",
+  name: "Mixed Martial Arts"
+}, {
+  id: "pro-wrestling",
+  name: "Pro Wrestling"
+}, {
+  id: "tennis",
+  name: "Tennis"
+}, {
+  id: "nascar",
+  name: "NASCAR"
+}, {
+  id: "formula-one",
+  name: "Formula One"
+}, {
+  id: "track-and-field",
+  name: "Track and Field"
+}, {
+  id: "gymnastics",
+  name: "Gymnastics"
+}, {
+  id: "swimming",
+  name: "Swimming"
+}, {
+  id: "volleyball",
+  name: "Volleyball"
+}, {
+  id: "figure-skating",
+  name: "Figure Skating"
+}, {
+  id: "lacrosse",
+  name: "Lacrosse"
+}, {
+  id: "pickleball",
+  name: "Pickleball"
+}, {
+  id: "rugby",
+  name: "Rugby"
+}, {
+  id: "cricket",
+  name: "Cricket"
+}, {
+  id: "horse-racing",
+  name: "Horse Racing"
+}, {
+  id: "table-tennis",
+  name: "Table Tennis"
+}, {
+  id: "bowling",
+  name: "Bowling"
+}, {
+  id: "billiards-pool",
+  name: "Billiards/Pool"
+}, {
+  id: "darts",
+  name: "Darts"
+}, {
+  id: "alpine-skiing",
+  name: "Alpine Skiing"
+}, {
+  id: "snowboarding",
+  name: "Snowboarding"
+}, {
+  id: "skateboarding",
+  name: "Skateboarding"
+}, {
+  id: "surfing",
+  name: "Surfing"
+}, {
+  id: "amateur-wrestling",
+  name: "Amateur Wrestling"
+}, {
+  id: "motocross-supercross",
+  name: "Motocross/Supercross"
+}, {
+  id: "indycar-racing",
+  name: "IndyCar Racing"
+}, {
+  id: "poker",
+  name: "Poker"
+}, {
+  id: "cheerleading",
+  name: "Cheerleading"
+}, {
+  id: "drag-racing",
+  name: "Drag Racing"
+}, {
+  id: "karate",
+  name: "Karate"
+}, {
+  id: "judo",
+  name: "Judo"
+}, {
+  id: "taekwondo",
+  name: "Taekwondo"
+}, {
+  id: "brazilian-jiu-jitsu",
+  name: "Brazilian Jiu-Jitsu"
+}, {
+  id: "kickboxing",
+  name: "Kickboxing"
+}, {
+  id: "softball",
+  name: "Softball"
+}, {
+  id: "ultimate",
+  name: "Ultimate"
+}, {
+  id: "disc-golf",
+  name: "Disc Golf"
+}, {
+  id: "cornhole",
+  name: "Cornhole"
+}, {
+  id: "team-handball",
+  name: "Team Handball"
+}, {
+  id: "field-hockey",
+  name: "Field Hockey"
+}, {
+  id: "badminton",
+  name: "Badminton"
+}, {
+  id: "squash",
+  name: "Squash"
+}, {
+  id: "racquetball",
+  name: "Racquetball"
+}, {
+  id: "curling",
+  name: "Curling"
+}, {
+  id: "shooting",
+  name: "Shooting"
+}, {
+  id: "archery",
+  name: "Archery"
+}, {
+  id: "fishing",
+  name: "Fishing"
+}, {
+  id: "speed-skating",
+  name: "Speed Skating"
+}, {
+  id: "diving",
+  name: "Diving"
+}, {
+  id: "water-polo",
+  name: "Water Polo"
+}, {
+  id: "luge",
+  name: "Luge"
+}, {
+  id: "bobsled",
+  name: "Bobsled"
+}, {
+  id: "skeleton",
+  name: "Skeleton"
+}, {
+  id: "biathlon",
+  name: "Biathlon"
+}, {
+  id: "cross-country-skiing",
+  name: "Cross-Country Skiing"
+}, {
+  id: "rock-climbing",
+  name: "Rock Climbing"
+}, {
+  id: "powerlifting",
+  name: "Powerlifting"
+}, {
+  id: "bodybuilding",
+  name: "Bodybuilding"
+}, {
+  id: "strongman-competitions",
+  name: "Strongman Competitions"
+}, {
+  id: "olympic-weightlifting",
+  name: "Olympic Weightlifting"
+}, {
+  id: "crossfit",
+  name: "CrossFit"
+}, {
+  id: "fencing",
+  name: "Fencing"
+}, {
+  id: "jai-alai",
+  name: "Jai Alai"
+}, {
+  id: "roller-derby",
+  name: "Roller Derby"
+}, {
+  id: "bmx",
+  name: "BMX"
+}, {
+  id: "mountain-biking",
+  name: "Mountain Biking"
+}, {
+  id: "rodeo",
+  name: "Rodeo"
+}, {
+  id: "equestrian",
+  name: "Equestrian"
+}, {
+  id: "polo",
+  name: "Polo"
+}, {
+  id: "sailing",
+  name: "Sailing"
+}, {
+  id: "rowing",
+  name: "Rowing"
+}, {
+  id: "canoe-kayak-racing",
+  name: "Canoe/Kayak Racing"
+}, {
+  id: "triathlon",
+  name: "Triathlon"
+}, {
+  id: "chess",
+  name: "Chess"
+}, {
+  id: "esports",
+  name: "Esports"
+}, {
+  id: "parkour-freerunning",
+  name: "Parkour/Freerunning"
+}, {
+  id: "breakdancing",
+  name: "Breakdancing"
+}, {
+  id: "windsurfing",
+  name: "Windsurfing"
+}, {
+  id: "kitesurfing",
+  name: "Kitesurfing"
+}, {
+  id: "skydiving",
+  name: "Skydiving"
+}, {
+  id: "hang-gliding-paragliding",
+  name: "Hang Gliding/Paragliding"
+}, {
+  id: "drone-racing",
+  name: "Drone Racing"
+}, {
+  id: "rally-racing",
+  name: "Rally Racing"
+}, {
+  id: "sumo-wrestling",
+  name: "Sumo Wrestling"
+}, {
+  id: "arm-wrestling",
+  name: "Arm Wrestling"
+}, {
+  id: "paintball",
+  name: "Paintball"
+}, {
+  id: "professional-tag",
+  name: "Professional Tag"
+}, {
+  id: "dodgeball",
+  name: "Dodgeball"
+}, {
+  id: "kickball",
+  name: "Kickball"
+}, {
+  id: "quidditch",
+  name: "Quidditch"
+}, {
+  id: "sepak-takraw",
+  name: "Sepak Takraw"
+}, {
+  id: "kabaddi",
+  name: "Kabaddi"
+}, {
+  id: "australian-rules-football",
+  name: "Australian Rules Football"
+}, {
+  id: "gaelic-football",
+  name: "Gaelic Football"
+}, {
+  id: "hurling",
+  name: "Hurling"
+}, {
+  id: "floorball",
+  name: "Floorball"
+}, {
+  id: "tractor-pulling",
+  name: "Tractor Pulling"
+}, {
+  id: "shuffleboard",
+  name: "Shuffleboard"
+}, {
+  id: "ballroom-dancing",
+  name: "Ballroom Dancing"
+}, {
+  id: "lumberjack-games",
+  name: "Lumberjack Games"
+}, {
+  id: "flag-football",
+  name: "Flag Football"
+}, {
+  id: "obstacle-course-racing",
+  name: "Obstacle Course Racing"
+}, {
+  id: "freediving",
+  name: "Freediving"
+}, {
+  id: "underwater-hockey",
+  name: "Underwater Hockey"
+}, {
+  id: "underwater-rugby",
+  name: "Underwater Rugby"
+}, {
+  id: "beach-volleyball",
+  name: "Beach Volleyball"
+}, {
+  id: "water-skiing",
+  name: "Water Skiing"
+}, {
+  id: "jet-ski-racing",
+  name: "Jet Ski Racing"
+}, {
+  id: "wakeboarding",
+  name: "Wakeboarding"
+}, {
+  id: "orienteering",
+  name: "Orienteering"
+}, {
+  id: "marathon-running",
+  name: "Marathon Running"
+}, {
+  id: "racewalking",
+  name: "Racewalking"
+}, {
+  id: "highland-games",
+  name: "Highland Games"
+}, {
+  id: "dragon-boat-racing",
+  name: "Dragon Boat Racing"
+}, {
+  id: "bridge",
+  name: "Bridge"
+}, {
+  id: "rhythmic-gymnastics",
+  name: "Rhythmic Gymnastics"
+}, {
+  id: "trampoline-gymnastics",
+  name: "Trampoline Gymnastics"
+}, {
+  id: "paralympic-sports",
+  name: "Paralympic Sports"
+}, {
+  id: "netball",
+  name: "Netball"
+}, {
+  id: "padel",
+  name: "Padel"
+}, {
+  id: "american-handball",
+  name: "American Handball"
+}, {
+  id: "teqball",
+  name: "Teqball"
+}, {
+  id: "cross-country-running",
+  name: "Cross-Country Running"
+}, {
+  id: "modern-pentathlon",
+  name: "Modern Pentathlon"
+}, {
+  id: "short-track-speed-skating",
+  name: "Short Track Speed Skating"
+}, {
+  id: "freestyle-skiing",
+  name: "Freestyle Skiing"
+}, {
+  id: "ski-jumping",
+  name: "Ski Jumping"
+}, {
+  id: "footgolf",
+  name: "Footgolf"
+}, {
+  id: "powerboat-racing",
+  name: "Powerboat Racing"
+}, {
+  id: "korfball",
+  name: "Korfball"
+}, {
+  id: "capoeira",
+  name: "Capoeira"
+}, {
+  id: "street-luge",
+  name: "Street Luge"
+}, {
+  id: "cliff-diving",
+  name: "Cliff Diving"
+}, {
+  id: "slacklining",
+  name: "Slacklining"
+}, {
+  id: "spikeball",
+  name: "Spikeball"
+}, {
+  id: "axe-throwing",
+  name: "Axe Throwing"
+}, {
+  id: "chess-boxing",
+  name: "Chess Boxing"
+}, {
+  id: "cycleball",
+  name: "Cycleball"
+}, {
+  id: "wife-carrying",
+  name: "Wife Carrying"
+}, {
+  id: "pillow-fighting",
+  name: "Pillow Fighting"
+}, {
+  id: "slamball",
+  name: "Slamball"
+}, {
+  id: "sandboarding",
+  name: "Sandboarding"
+}, {
+  id: "sport-kite-flying",
+  name: "Sport Kite Flying"
+}, {
+  id: "snowmobile-racing",
+  name: "Snowmobile Racing"
+}, {
+  id: "drifting",
+  name: "Drifting"
+}, {
+  id: "inline-speed-skating",
+  name: "Inline Speed Skating"
+}, {
+  id: "logrolling",
+  name: "Logrolling"
+}, {
+  id: "fistball",
+  name: "Fistball"
+}, {
+  id: "equestrian-vaulting",
+  name: "Equestrian Vaulting"
+}, {
+  id: "inline-hockey",
+  name: "Inline Hockey"
+}, {
+  id: "lawn-bowls",
+  name: "Lawn Bowls"
+}, {
+  id: "bocce",
+  name: "Bocce"
+}, {
+  id: "croquet",
+  name: "Croquet"
+}, {
+  id: "tug-of-war",
+  name: "Tug-of-War"
+}, {
+  id: "wingsuit-flying",
+  name: "Wingsuit Flying"
+}, {
+  id: "gliding",
+  name: "Gliding"
+}, {
+  id: "cowboy-mounted-shooting",
+  name: "Cowboy Mounted Shooting"
+}, {
+  id: "cutting",
+  name: "Cutting"
+}, {
+  id: "futsal",
+  name: "Futsal"
+}, {
+  id: "horseshoes",
+  name: "Horseshoes"
+}, {
+  id: "kendo",
+  name: "Kendo"
+}, {
+  id: "bandy",
+  name: "Bandy"
+}, {
+  id: "rackets",
+  name: "Rackets"
+}, {
+  id: "real-tennis",
+  name: "Real Tennis"
+}, {
+  id: "synchronized-swimming",
+  name: "Synchronized Swimming"
+}, {
+  id: "air-racing",
+  name: "Air Racing"
+}, {
+  id: "greyhound-racing",
+  name: "Greyhound Racing"
+}, {
+  id: "dogsled-racing",
+  name: "Dogsled Racing"
+}, {
+  id: "harness-racing",
+  name: "Harness Racing"
+}, {
+  id: "jousting",
+  name: "Jousting"
+}, {
+  id: "motorcycle-speedway",
+  name: "Motorcycle Speedway"
+}, {
+  id: "kart-racing",
+  name: "Kart Racing"
+}, {
+  id: "midget-car-racing",
+  name: "Midget Car Racing"
+}, {
+  id: "mountaineering",
+  name: "Mountaineering"
+}, {
+  id: "counter-strike",
+  name: "Counter-Strike"
+}, {
+  id: "dota-2",
+  name: "Dota 2"
+}, {
+  id: "fortnite",
+  name: "Fortnite"
+}, {
+  id: "stick-fighting",
+  name: "Stick Fighting"
+}, {
+  id: "artistic-roller-skating",
+  name: "Artistic Roller Skating"
+}, {
+  id: "tchoukball",
+  name: "Tchoukball"
+}, {
+  id: "dog-agility",
+  name: "Dog Agility"
+}, {
+  id: "baton-twirling",
+  name: "Baton Twirling"
+}, {
+  id: "skijoring",
+  name: "Skijoring"
+}, {
+  id: "snowshoe-racing",
+  name: "Snowshoe Racing"
+}, {
+  id: "land-sailing",
+  name: "Land Sailing"
+}, {
+  id: "beer-mile-racing",
+  name: "Beer Mile Racing"
+}, {
+  id: "competitive-eating",
+  name: "Competitive Eating"
+}, {
+  id: "monster-truck-competitions",
+  name: "Monster Truck Competitions"
+}, {
+  id: "demolition-derby",
+  name: "Demolition Derby"
+}, {
+  id: "lawnmower-racing",
+  name: "Lawnmower Racing"
+}, {
+  id: "outhouse-racing",
+  name: "Outhouse Racing"
+}, {
+  id: "giant-pumpkin-regatta",
+  name: "Giant Pumpkin Regatta"
+}, {
+  id: "yoga",
+  name: "Yoga"
+}];
+const dailyLifeOptions = [{
+  id: "hockey-practice",
+  name: "Hockey practice"
+}, {
+  id: "work-commute",
+  name: "Work commute"
+}, {
+  id: "work-emails",
+  name: "Work emails"
+}, {
+  id: "morning-alarm",
+  name: "Morning alarm"
+}, {
+  id: "coffee",
+  name: "Coffee"
+}, {
+  id: "school-drop-off",
+  name: "School drop-off"
+}, {
+  id: "cooking-dinner",
+  name: "Cooking dinner"
+}, {
+  id: "grocery-shopping",
+  name: "Grocery shopping"
+}, {
+  id: "dishes",
+  name: "Dishes"
+}, {
+  id: "laundry",
+  name: "Laundry"
+}, {
+  id: "trash-day",
+  name: "Trash day"
+}, {
+  id: "cleaning-bathroom",
+  name: "Cleaning bathroom"
+}, {
+  id: "vacuuming",
+  name: "Vacuuming"
+}, {
+  id: "bedtime-routine",
+  name: "Bedtime routine"
+}, {
+  id: "homework-help",
+  name: "Homework help"
+}, {
+  id: "packing-lunches",
+  name: "Packing lunches"
+}, {
+  id: "soccer-practice",
+  name: "Soccer practice"
+}, {
+  id: "basketball-practice",
+  name: "Basketball practice"
+}, {
+  id: "baseball-practice",
+  name: "Baseball practice"
+}, {
+  id: "gym-workout",
+  name: "Gym workout"
+}, {
+  id: "walking-the-dog",
+  name: "Walking the dog"
+}, {
+  id: "pet-feeding",
+  name: "Pet feeding"
+}, {
+  id: "showering",
+  name: "Showering"
+}, {
+  id: "brushing-teeth",
+  name: "Brushing teeth"
+}, {
+  id: "social-media-scrolling",
+  name: "Social media scrolling"
+}, {
+  id: "texting",
+  name: "Texting"
+}, {
+  id: "group-chat",
+  name: "Group chat"
+}, {
+  id: "streaming-tv",
+  name: "Streaming TV"
+}, {
+  id: "driving-kids",
+  name: "Driving kids"
+}, {
+  id: "parking-lot-hunt",
+  name: "Parking lot hunt"
+}, {
+  id: "traffic-jam",
+  name: "Traffic jam"
+}, {
+  id: "weather-check",
+  name: "Weather check"
+}, {
+  id: "meal-prep",
+  name: "Meal prep"
+}, {
+  id: "breakfast-scramble",
+  name: "Breakfast scramble"
+}, {
+  id: "making-the-bed",
+  name: "Making the bed"
+}, {
+  id: "coffee-spill",
+  name: "Coffee spill"
+}, {
+  id: "lost-keys",
+  name: "Lost keys"
+}, {
+  id: "running-late",
+  name: "Running late"
+}, {
+  id: "farting",
+  name: "Farting"
+}, {
+  id: "napping",
+  name: "Napping"
+}, {
+  id: "snack-break",
+  name: "Snack break"
+}, {
+  id: "water-bottle-refill",
+  name: "Water bottle refill"
+}, {
+  id: "email-overload",
+  name: "Email overload"
+}, {
+  id: "zoom-meeting",
+  name: "Zoom meeting"
+}, {
+  id: "slack-pings",
+  name: "Slack pings"
+}, {
+  id: "phone-low-battery",
+  name: "Phone low battery"
+}, {
+  id: "charging-phone",
+  name: "Charging phone"
+}, {
+  id: "wifi-issues",
+  name: "Wi-Fi issues"
+}, {
+  id: "password-reset",
+  name: "Password reset"
+}, {
+  id: "software-update",
+  name: "Software update"
+}, {
+  id: "calendar-juggling",
+  name: "Calendar juggling"
+}, {
+  id: "carpool",
+  name: "Carpool"
+}, {
+  id: "pto-request",
+  name: "PTO request"
+}, {
+  id: "payday",
+  name: "Payday"
+}, {
+  id: "bills-due",
+  name: "Bills due"
+}, {
+  id: "budgeting",
+  name: "Budgeting"
+}, {
+  id: "rent-or-mortgage",
+  name: "Rent or mortgage"
+}, {
+  id: "online-shopping",
+  name: "Online shopping"
+}, {
+  id: "package-delivery",
+  name: "Package delivery"
+}, {
+  id: "returns-line",
+  name: "Returns line"
+}, {
+  id: "car-wash",
+  name: "Car wash"
+}, {
+  id: "gas-station",
+  name: "Gas station"
+}, {
+  id: "ev-charging",
+  name: "EV charging"
+}, {
+  id: "oil-change",
+  name: "Oil change"
+}, {
+  id: "check-engine-light",
+  name: "Check engine light"
+}, {
+  id: "car-maintenance-booking",
+  name: "Car maintenance booking"
+}, {
+  id: "doctor-appointment",
+  name: "Doctor appointment"
+}, {
+  id: "dentist-appointment",
+  name: "Dentist appointment"
+}, {
+  id: "pharmacy-pickup",
+  name: "Pharmacy pickup"
+}, {
+  id: "vitamins",
+  name: "Vitamins"
+}, {
+  id: "allergies",
+  name: "Allergies"
+}, {
+  id: "headache",
+  name: "Headache"
+}, {
+  id: "back-pain",
+  name: "Back pain"
+}, {
+  id: "stretching",
+  name: "Stretching"
+}, {
+  id: "yoga-class",
+  name: "Yoga class"
+}, {
+  id: "meditation",
+  name: "Meditation"
+}, {
+  id: "jogging",
+  name: "Jogging"
+}, {
+  id: "bike-ride",
+  name: "Bike ride"
+}, {
+  id: "walk-in-park",
+  name: "Walk in park"
+}, {
+  id: "dog-park",
+  name: "Dog park"
+}, {
+  id: "cat-litter-box",
+  name: "Cat litter box"
+}, {
+  id: "pet-grooming",
+  name: "Pet grooming"
+}, {
+  id: "vacuum-pet-hair",
+  name: "Vacuum pet hair"
+}, {
+  id: "spill-cleanup",
+  name: "Spill cleanup"
+}, {
+  id: "decluttering",
+  name: "Decluttering"
+}, {
+  id: "laundry-folding",
+  name: "Laundry folding"
+}, {
+  id: "ironing",
+  name: "Ironing"
+}, {
+  id: "mowing-lawn",
+  name: "Mowing lawn"
+}, {
+  id: "snow-shoveling",
+  name: "Snow shoveling"
+}, {
+  id: "leaf-raking",
+  name: "Leaf raking"
+}, {
+  id: "garden-watering",
+  name: "Garden watering"
+}, {
+  id: "houseplant-care",
+  name: "Houseplant care"
+}, {
+  id: "home-repair",
+  name: "Home repair"
+}, {
+  id: "lightbulb-change",
+  name: "Lightbulb change"
+}, {
+  id: "smoke-detector-beep",
+  name: "Smoke detector beep"
+}, {
+  id: "diy-project",
+  name: "DIY project"
+}, {
+  id: "painting-room",
+  name: "Painting room"
+}, {
+  id: "hanging-shelves",
+  name: "Hanging shelves"
+}, {
+  id: "moving-furniture",
+  name: "Moving furniture"
+}, {
+  id: "home-office-setup",
+  name: "Home office setup"
+}, {
+  id: "screen-time-guilt",
+  name: "Screen time guilt"
+}, {
+  id: "doomscrolling",
+  name: "Doomscrolling"
+}, {
+  id: "news-headlines",
+  name: "News headlines"
+}, {
+  id: "weather-alert",
+  name: "Weather alert"
+}, {
+  id: "coffee-run",
+  name: "Coffee run"
+}, {
+  id: "drive-thru",
+  name: "Drive-thru"
+}, {
+  id: "fast-food-night",
+  name: "Fast food night"
+}, {
+  id: "pizza-night",
+  name: "Pizza night"
+}, {
+  id: "taco-tuesday",
+  name: "Taco Tuesday"
+}, {
+  id: "leftovers",
+  name: "Leftovers"
+}, {
+  id: "meal-kit",
+  name: "Meal kit"
+}, {
+  id: "baking-cookies",
+  name: "Baking cookies"
+}, {
+  id: "bread-baking",
+  name: "Bread baking"
+}, {
+  id: "grilling",
+  name: "Grilling"
+}, {
+  id: "potluck-prep",
+  name: "Potluck prep"
+}, {
+  id: "lunch-break",
+  name: "Lunch break"
+}, {
+  id: "water-cooler-chat",
+  name: "Water cooler chat"
+}, {
+  id: "office-small-talk",
+  name: "Office small talk"
+}, {
+  id: "meeting-that-should-be-email",
+  name: "Meeting that should be email"
+}, {
+  id: "end-of-day-commute",
+  name: "End of day commute"
+}, {
+  id: "school-pickup",
+  name: "School pickup"
+}, {
+  id: "after-school-snack",
+  name: "After-school snack"
+}, {
+  id: "playdate",
+  name: "Playdate"
+}, {
+  id: "bedtime-story",
+  name: "Bedtime story"
+}, {
+  id: "bath-time",
+  name: "Bath time"
+}, {
+  id: "diaper-change",
+  name: "Diaper change"
+}, {
+  id: "potty-training",
+  name: "Potty training"
+}, {
+  id: "tantrum",
+  name: "Tantrum"
+}, {
+  id: "time-out",
+  name: "Time-out"
+}, {
+  id: "chores-chart",
+  name: "Chores chart"
+}, {
+  id: "pta-meeting",
+  name: "PTA meeting"
+}, {
+  id: "parent-teacher-conference",
+  name: "Parent-teacher conference"
+}, {
+  id: "school-project",
+  name: "School project"
+}, {
+  id: "science-fair",
+  name: "Science fair"
+}, {
+  id: "book-fair",
+  name: "Book fair"
+}, {
+  id: "field-trip-form",
+  name: "Field trip form"
+}, {
+  id: "school-spirit-day",
+  name: "School spirit day"
+}, {
+  id: "lost-and-found",
+  name: "Lost and found"
+}, {
+  id: "car-seat-buckle",
+  name: "Car seat buckle"
+}, {
+  id: "booster-seat-swap",
+  name: "Booster seat swap"
+}, {
+  id: "weekend-tournament",
+  name: "Weekend tournament"
+}, {
+  id: "early-morning-rink",
+  name: "Early morning rink"
+}, {
+  id: "skate-sharpening",
+  name: "Skate sharpening"
+}, {
+  id: "equipment-bag-chaos",
+  name: "Equipment bag chaos"
+}, {
+  id: "jersey-laundry",
+  name: "Jersey laundry"
+}, {
+  id: "snack-duty",
+  name: "Snack duty"
+}, {
+  id: "team-photo-day",
+  name: "Team photo day"
+}, {
+  id: "fundraiser",
+  name: "Fundraiser"
+}, {
+  id: "carpool-schedule-swap",
+  name: "Carpool schedule swap"
+}, {
+  id: "rainout",
+  name: "Rainout"
+}, {
+  id: "snow-day",
+  name: "Snow day"
+}, {
+  id: "sick-day",
+  name: "Sick day"
+}, {
+  id: "work-from-home",
+  name: "Work from home"
+}, {
+  id: "home-wifi-battle",
+  name: "Home Wi-Fi battle"
+}, {
+  id: "background-noise-kids",
+  name: "Background noise kids"
+}, {
+  id: "muted-mic-mishap",
+  name: "Muted mic mishap"
+}, {
+  id: "camera-off-mode",
+  name: "Camera off mode"
+}, {
+  id: "virtual-happy-hour",
+  name: "Virtual happy hour"
+}, {
+  id: "lunch-packing-fail",
+  name: "Lunch packing fail"
+}, {
+  id: "microwave-queue",
+  name: "Microwave queue"
+}, {
+  id: "office-birthday-cake",
+  name: "Office birthday cake"
+}, {
+  id: "potluck-cleanup",
+  name: "Potluck cleanup"
+}, {
+  id: "office-fridge-drama",
+  name: "Office fridge drama"
+}, {
+  id: "printer-jam",
+  name: "Printer jam"
+}, {
+  id: "lost-stapler",
+  name: "Lost stapler"
+}, {
+  id: "supply-closet-run",
+  name: "Supply closet run"
+}, {
+  id: "expense-report",
+  name: "Expense report"
+}, {
+  id: "timesheet",
+  name: "Timesheet"
+}, {
+  id: "performance-review",
+  name: "Performance review"
+}, {
+  id: "deadline-crunch",
+  name: "Deadline crunch"
+}, {
+  id: "overtime",
+  name: "Overtime"
+}, {
+  id: "side-hustle",
+  name: "Side hustle"
+}, {
+  id: "freelance-gig",
+  name: "Freelance gig"
+}, {
+  id: "job-interview",
+  name: "Job interview"
+}, {
+  id: "resume-update",
+  name: "Resume update"
+}, {
+  id: "linkedin-scroll",
+  name: "LinkedIn scroll"
+}, {
+  id: "networking-event",
+  name: "Networking event"
+}, {
+  id: "business-travel",
+  name: "Business travel"
+}, {
+  id: "airport-security",
+  name: "Airport security"
+}, {
+  id: "boarding-scramble",
+  name: "Boarding scramble"
+}, {
+  id: "carry-on-tetris",
+  name: "Carry-on Tetris"
+}, {
+  id: "delayed-flight",
+  name: "Delayed flight"
+}, {
+  id: "lost-luggage",
+  name: "Lost luggage"
+}, {
+  id: "hotel-check-in",
+  name: "Hotel check-in"
+}, {
+  id: "room-key-fail",
+  name: "Room key fail"
+}, {
+  id: "conference-badge",
+  name: "Conference badge"
+}, {
+  id: "convention-swag",
+  name: "Convention swag"
+}, {
+  id: "ride-share",
+  name: "Ride share"
+}, {
+  id: "taxi-line",
+  name: "Taxi line"
+}, {
+  id: "subway-delay",
+  name: "Subway delay"
+}, {
+  id: "bus-transfer",
+  name: "Bus transfer"
+}, {
+  id: "bike-share",
+  name: "Bike share"
+}, {
+  id: "parking-ticket",
+  name: "Parking ticket"
+}, {
+  id: "meter-running",
+  name: "Meter running"
+}, {
+  id: "car-rental-desk",
+  name: "Car rental desk"
+}, {
+  id: "road-trip",
+  name: "Road trip"
+}, {
+  id: "rest-stop",
+  name: "Rest stop"
+}, {
+  id: "toll-booth",
+  name: "Toll booth"
+}, {
+  id: "gps-reroute",
+  name: "GPS reroute"
+}, {
+  id: "wrong-turn",
+  name: "Wrong turn"
+}, {
+  id: "scenic-detour",
+  name: "Scenic detour"
+}, {
+  id: "photo-stop",
+  name: "Photo stop"
+}, {
+  id: "gas-price-shock",
+  name: "Gas price shock"
+}, {
+  id: "ev-charger-queue",
+  name: "EV charger queue"
+}, {
+  id: "playlist-wars",
+  name: "Playlist wars"
+}, {
+  id: "car-karaoke",
+  name: "Car karaoke"
+}, {
+  id: "backseat-arguments",
+  name: "Backseat arguments"
+}, {
+  id: "are-we-there-yet",
+  name: "Are we there yet"
+}, {
+  id: "vacation-planning",
+  name: "Vacation planning"
+}, {
+  id: "travel-insurance",
+  name: "Travel insurance"
+}, {
+  id: "airbnb-search",
+  name: "Airbnb search"
+}, {
+  id: "check-out-cleaning",
+  name: "Check-out cleaning"
+}, {
+  id: "souvenir-shopping",
+  name: "Souvenir shopping"
+}, {
+  id: "theme-park-line",
+  name: "Theme park line"
+}, {
+  id: "beach-day",
+  name: "Beach day"
+}, {
+  id: "hiking-trail",
+  name: "Hiking trail"
+}, {
+  id: "camping-setup",
+  name: "Camping setup"
+}, {
+  id: "campfire-smores",
+  name: "Campfire s'mores"
+}, {
+  id: "mosquito-bites",
+  name: "Mosquito bites"
+}, {
+  id: "sunscreen-fail",
+  name: "Sunscreen fail"
+}, {
+  id: "sunburn",
+  name: "Sunburn"
+}, {
+  id: "rainy-day-backup",
+  name: "Rainy day backup"
+}, {
+  id: "snowstorm-prep",
+  name: "Snowstorm prep"
+}, {
+  id: "power-outage",
+  name: "Power outage"
+}, {
+  id: "generator-test",
+  name: "Generator test"
+}, {
+  id: "space-heater",
+  name: "Space heater"
+}, {
+  id: "thermostat-battle",
+  name: "Thermostat battle"
+}, {
+  id: "ac-not-cooling",
+  name: "AC not cooling"
+}, {
+  id: "filter-change",
+  name: "Filter change"
+}, {
+  id: "window-draft",
+  name: "Window draft"
+}, {
+  id: "roof-leak",
+  name: "Roof leak"
+}, {
+  id: "plumber-visit",
+  name: "Plumber visit"
+}, {
+  id: "electrician-visit",
+  name: "Electrician visit"
+}, {
+  id: "handyman-call",
+  name: "Handyman call"
+}, {
+  id: "hoa-notice",
+  name: "HOA notice"
+}, {
+  id: "neighbor-noise",
+  name: "Neighbor noise"
+}, {
+  id: "package-porch-pirate",
+  name: "Package porch pirate"
+}, {
+  id: "doorbell-camera-alert",
+  name: "Doorbell camera alert"
+}, {
+  id: "delivery-window-wait",
+  name: "Delivery window wait"
+}, {
+  id: "missed-delivery-slip",
+  name: "Missed delivery slip"
+}, {
+  id: "bank-app-login",
+  name: "Bank app login"
+}, {
+  id: "overdraft-alert",
+  name: "Overdraft alert"
+}, {
+  id: "credit-card-decline",
+  name: "Credit card decline"
+}, {
+  id: "cashback-rewards",
+  name: "Cashback rewards"
+}, {
+  id: "coupon-code-hunt",
+  name: "Coupon code hunt"
+}, {
+  id: "subscription-creep",
+  name: "Subscription creep"
+}, {
+  id: "free-trial-cancel",
+  name: "Free trial cancel"
+}, {
+  id: "tax-prep",
+  name: "Tax prep"
+}, {
+  id: "refund-wait",
+  name: "Refund wait"
+}, {
+  id: "investment-check",
+  name: "Investment check"
+}, {
+  id: "crypto-dip",
+  name: "Crypto dip"
+}, {
+  id: "fantasy-sports-draft",
+  name: "Fantasy sports draft"
+}, {
+  id: "bracket-bust",
+  name: "Bracket bust"
+}, {
+  id: "ticket-queue",
+  name: "Ticket queue"
+}, {
+  id: "sold-out-rage",
+  name: "Sold-out rage"
+}, {
+  id: "scalper-prices",
+  name: "Scalper prices"
+}, {
+  id: "concert-night",
+  name: "Concert night"
+}, {
+  id: "pre-game-tailgate",
+  name: "Pre-game tailgate"
+}, {
+  id: "watch-party",
+  name: "Watch party"
+}, {
+  id: "spoiler-alert",
+  name: "Spoiler alert"
+}, {
+  id: "new-episode-drop",
+  name: "New episode drop"
+}, {
+  id: "binge-watch",
+  name: "Binge watch"
+}, {
+  id: "series-finale",
+  name: "Series finale"
+}, {
+  id: "rewatch-comfort-show",
+  name: "Rewatch comfort show"
+}, {
+  id: "movie-night",
+  name: "Movie night"
+}, {
+  id: "popcorn-burn",
+  name: "Popcorn burn"
+}, {
+  id: "board-game-night",
+  name: "Board game night"
+}, {
+  id: "puzzle-time",
+  name: "Puzzle time"
+}, {
+  id: "lego-build",
+  name: "Lego build"
+}, {
+  id: "craft-corner",
+  name: "Craft corner"
+}, {
+  id: "knitting-project",
+  name: "Knitting project"
+}, {
+  id: "sewing-fix",
+  name: "Sewing fix"
+}, {
+  id: "crochet-blanket",
+  name: "Crochet blanket"
+}, {
+  id: "scrapbooking",
+  name: "Scrapbooking"
+}, {
+  id: "painting-miniatures",
+  name: "Painting miniatures"
+}, {
+  id: "model-building",
+  name: "Model building"
+}, {
+  id: "woodworking",
+  name: "Woodworking"
+}, {
+  id: "3d-printing",
+  name: "3D printing"
+}, {
+  id: "photography-walk",
+  name: "Photography walk"
+}, {
+  id: "video-editing",
+  name: "Video editing"
+}, {
+  id: "streaming-setup",
+  name: "Streaming setup"
+}, {
+  id: "hdmi-not-found",
+  name: "HDMI not found"
+}, {
+  id: "bluetooth-pairing",
+  name: "Bluetooth pairing"
+}, {
+  id: "smart-speaker-command",
+  name: "Smart speaker command"
+}, {
+  id: "smart-bulb-reset",
+  name: "Smart bulb reset"
+}, {
+  id: "app-update",
+  name: "App update"
+}, {
+  id: "two-factor-code",
+  name: "Two-factor code"
+}, {
+  id: "password-manager",
+  name: "Password manager"
+}, {
+  id: "cloud-storage-full",
+  name: "Cloud storage full"
+}, {
+  id: "phone-cracked-screen",
+  name: "Phone cracked screen"
+}, {
+  id: "screen-protector-bubbles",
+  name: "Screen protector bubbles"
+}, {
+  id: "case-upgrade",
+  name: "Case upgrade"
+}, {
+  id: "laptop-overheating",
+  name: "Laptop overheating"
+}, {
+  id: "keyboard-crumbs",
+  name: "Keyboard crumbs"
+}, {
+  id: "mouse-battery-dead",
+  name: "Mouse battery dead"
+}, {
+  id: "printer-out-of-ink",
+  name: "Printer out of ink"
+}, {
+  id: "scanner-failure",
+  name: "Scanner failure"
+}, {
+  id: "cable-management",
+  name: "Cable management"
+}, {
+  id: "desk-ergonomics",
+  name: "Desk ergonomics"
+}, {
+  id: "standing-desk",
+  name: "Standing desk"
+}, {
+  id: "dating-app-swipe",
+  name: "Dating app swipe"
+}, {
+  id: "first-date-jitters",
+  name: "First date jitters"
+}, {
+  id: "ghosting",
+  name: "Ghosting"
+}, {
+  id: "group-chat-mute",
+  name: "Group chat mute"
+}, {
+  id: "family-group-chaos",
+  name: "Family group chaos"
+}, {
+  id: "in-law-visit",
+  name: "In-law visit"
+}, {
+  id: "babysitter-booking",
+  name: "Babysitter booking"
+}, {
+  id: "anniversary-dinner",
+  name: "Anniversary dinner"
+}, {
+  id: "birthday-party-prep",
+  name: "Birthday party prep"
+}, {
+  id: "gift-wrapping",
+  name: "Gift wrapping"
+}, {
+  id: "thank-you-note",
+  name: "Thank-you note"
+}, {
+  id: "greeting-cards",
+  name: "Greeting cards"
+}, {
+  id: "neighbor-barbecue",
+  name: "Neighbor barbecue"
+}, {
+  id: "potluck-dish",
+  name: "Potluck dish"
+}, {
+  id: "housewarming-gift",
+  name: "Housewarming gift"
+}, {
+  id: "yard-sale",
+  name: "Yard sale"
+}, {
+  id: "thrift-store-haul",
+  name: "Thrift store haul"
+}, {
+  id: "donation-drop-off",
+  name: "Donation drop-off"
+}, {
+  id: "closet-purge",
+  name: "Closet purge"
+}, {
+  id: "capsule-wardrobe",
+  name: "Capsule wardrobe"
+}, {
+  id: "outfit-repeat",
+  name: "Outfit repeat"
+}, {
+  id: "laundry-shrink",
+  name: "Laundry shrink"
+}, {
+  id: "stain-remover-hack",
+  name: "Stain remover hack"
+}, {
+  id: "dry-clean-pickup",
+  name: "Dry-clean pickup"
+}, {
+  id: "shoe-scuff-fix",
+  name: "Shoe scuff fix"
+}, {
+  id: "lost-sock",
+  name: "Lost sock"
+}, {
+  id: "sock-day-mismatch",
+  name: "Sock day mismatch"
+}, {
+  id: "haircut",
+  name: "Haircut"
+}, {
+  id: "beard-trim",
+  name: "Beard trim"
+}, {
+  id: "salon-appointment",
+  name: "Salon appointment"
+}, {
+  id: "manicure",
+  name: "Manicure"
+}, {
+  id: "skincare-routine",
+  name: "Skincare routine"
+}, {
+  id: "sunscreen-daily",
+  name: "Sunscreen daily"
+}, {
+  id: "deodorant-check",
+  name: "Deodorant check"
+}, {
+  id: "shaving-nick",
+  name: "Shaving nick"
+}, {
+  id: "perfume-spritz",
+  name: "Perfume spritz"
+}, {
+  id: "new-glasses",
+  name: "New glasses"
+}, {
+  id: "contact-lens-lost",
+  name: "Contact lens lost"
+}, {
+  id: "eye-strain",
+  name: "Eye strain"
+}, {
+  id: "blue-light-fatigue",
+  name: "Blue light fatigue"
+}, {
+  id: "sleep-tracking",
+  name: "Sleep tracking"
+}, {
+  id: "insomnia",
+  name: "Insomnia"
+}, {
+  id: "snoring",
+  name: "Snoring"
+}, {
+  id: "farting-in-bed",
+  name: "Farting in bed"
+}, {
+  id: "morning-breath",
+  name: "Morning breath"
+}, {
+  id: "flossing",
+  name: "Flossing"
+}, {
+  id: "dentist-floss-shame",
+  name: "Dentist floss shame"
+}, {
+  id: "water-floss-pick",
+  name: "Water floss pick"
+}, {
+  id: "mouthwash-burn",
+  name: "Mouthwash burn"
+}, {
+  id: "cavity-fill",
+  name: "Cavity fill"
+}, {
+  id: "flu-shot",
+  name: "Flu shot"
+}, {
+  id: "covid-test",
+  name: "COVID test"
+}, {
+  id: "allergy-shot",
+  name: "Allergy shot"
+}, {
+  id: "thermometer-check",
+  name: "Thermometer check"
+}, {
+  id: "blood-pressure-cuff",
+  name: "Blood pressure cuff"
+}, {
+  id: "step-counter-goal",
+  name: "Step counter goal"
+}, {
+  id: "calorie-tracking",
+  name: "Calorie tracking"
+}, {
+  id: "protein-shake",
+  name: "Protein shake"
+}, {
+  id: "cheat-day",
+  name: "Cheat day"
+}, {
+  id: "hangover-cure",
+  name: "Hangover cure"
+}, {
+  id: "mocktail-night",
+  name: "Mocktail night"
+}, {
+  id: "tea-time",
+  name: "Tea time"
+}, {
+  id: "home-brewing",
+  name: "Home brewing"
+}, {
+  id: "wine-tasting",
+  name: "Wine tasting"
+}, {
+  id: "cocktail-class",
+  name: "Cocktail class"
+}, {
+  id: "bartending-flair",
+  name: "Bartending flair"
+}, {
+  id: "fantasy-league-trash-talk",
+  name: "Fantasy league trash talk"
+}, {
+  id: "yardwork-injury",
+  name: "Yardwork injury"
+}, {
+  id: "splinter-removal",
+  name: "Splinter removal"
+}, {
+  id: "first-aid-kit",
+  name: "First aid kit"
+}, {
+  id: "band-aid-hunt",
+  name: "Band-Aid hunt"
+}, {
+  id: "paper-cut",
+  name: "Paper cut"
+}, {
+  id: "door-stubbed-toe",
+  name: "Door stubbed toe"
+}, {
+  id: "broken-nail",
+  name: "Broken nail"
+}, {
+  id: "static-cling",
+  name: "Static cling"
+}, {
+  id: "lint-roller",
+  name: "Lint roller"
+}, {
+  id: "pet-vet-bill",
+  name: "Pet vet bill"
+}, {
+  id: "pet-medication",
+  name: "Pet medication"
+}, {
+  id: "chewed-shoe",
+  name: "Chewed shoe"
+}, {
+  id: "lost-remote",
+  name: "Lost remote"
+}, {
+  id: "couch-cushions-dive",
+  name: "Couch cushions dive"
+}, {
+  id: "diy-fail",
+  name: "DIY fail"
+}, {
+  id: "return-to-ikea",
+  name: "Return to IKEA"
+}, {
+  id: "allen-key-search",
+  name: "Allen key search"
+}, {
+  id: "instruction-manual-rage",
+  name: "Instruction manual rage"
+}, {
+  id: "warranty-claim",
+  name: "Warranty claim"
+}, {
+  id: "recall-notice",
+  name: "Recall notice"
+}, {
+  id: "spam-call",
+  name: "Spam call"
+}, {
+  id: "phishing-email",
+  name: "Phishing email"
+}, {
+  id: "browser-pop-ups",
+  name: "Browser pop-ups"
+}, {
+  id: "cookie-consent-fatigue",
+  name: "Cookie consent fatigue"
+}, {
+  id: "app-permissions",
+  name: "App permissions"
+}, {
+  id: "terms-and-conditions",
+  name: "Terms and conditions"
+}, {
+  id: "survey-request",
+  name: "Survey request"
+}, {
+  id: "calendar-double-booked",
+  name: "Calendar double-booked"
+}, {
+  id: "time-zone-confusion",
+  name: "Time zone confusion"
+}, {
+  id: "daylight-saving-change",
+  name: "Daylight saving change"
+}, {
+  id: "lost-and-found-desk",
+  name: "Lost and found desk"
+}, {
+  id: "elevator-small-talk",
+  name: "Elevator small talk"
+}, {
+  id: "fire-drill",
+  name: "Fire drill"
+}];
+const vibesPunchlinesOptions = [{
+  id: "dad-jokes",
+  name: "Dad Jokes",
+  subtitle: "Cheesy predictable puns"
+}, {
+  id: "daily-vibes",
+  name: "Daily Vibes",
+  subtitle: "Day-of-week jokes"
+}, {
+  id: "quotes",
+  name: "Quotes",
+  subtitle: "General, tone later"
+}, {
+  id: "one-liners",
+  name: "One-Liners",
+  subtitle: "Quick single jokes"
+}, {
+  id: "comebacks",
+  name: "Comebacks",
+  subtitle: "Witty fast retorts"
+}, {
+  id: "career-jokes",
+  name: "Career Jokes",
+  subtitle: "Work & office humor"
+}, {
+  id: "knock-knock-jokes",
+  name: "Knock-Knock Jokes",
+  subtitle: "Classic \"Who's there\""
+}, {
+  id: "puns-wordplay",
+  name: "Puns & Wordplay",
+  subtitle: "Clever double meanings"
+}, {
+  id: "self-deprecating",
+  name: "Self-Deprecating",
+  subtitle: "Jokes on yourself"
+}, {
+  id: "roasts",
+  name: "Roasts",
+  subtitle: "Playful sharp burns"
+}, {
+  id: "dark-humor",
+  name: "Dark Humor",
+  subtitle: "Morbid edgy jokes"
+}, {
+  id: "endings",
+  name: "Endings",
+  subtitle: "Funny closing lines"
+}, {
+  id: "life-tips",
+  name: "Life Tips",
+  subtitle: "Helpful witty advice"
+}, {
+  id: "affirmations",
+  name: "Affirmations",
+  subtitle: "Positive self-reminders"
+}, {
+  id: "relationship-humor",
+  name: "Relationship Humor",
+  subtitle: "Dating, couple jokes"
+}, {
+  id: "family-jokes",
+  name: "Family Jokes",
+  subtitle: "Friends or relatives"
+}, {
+  id: "office-humor",
+  name: "Office Humor",
+  subtitle: "Workplace banter struggles"
+}, {
+  id: "school-life",
+  name: "School Life",
+  subtitle: "Classroom study humor"
+}, {
+  id: "food-jokes",
+  name: "Food Jokes",
+  subtitle: "Eating, cravings"
+}, {
+  id: "coffee-humor",
+  name: "Coffee Humor",
+  subtitle: "Morning caffeine jokes"
+}, {
+  id: "pet-humor",
+  name: "Pet Humor",
+  subtitle: "Cats, dogs, animals"
+}, {
+  id: "tech-humor",
+  name: "Tech Humor",
+  subtitle: "Gadgets, glitches, online"
+}, {
+  id: "social-media",
+  name: "Social Media",
+  subtitle: "TikTok, Instagram, viral content"
+}, {
+  id: "pop-culture",
+  name: "Pop Culture",
+  subtitle: "Celebs, TV, music"
+}, {
+  id: "classic-quotes",
+  name: "Classic Quotes",
+  subtitle: "Famous old lines"
+}, {
+  id: "monday-blues",
+  name: "Monday Blues",
+  subtitle: "Dreading week start"
+}, {
+  id: "friday-feeling",
+  name: "Friday Feeling",
+  subtitle: "Weekend hype laughs"
+}, {
+  id: "sunday-vibes",
+  name: "Sunday Vibes",
+  subtitle: "Chill or dread"
+}, {
+  id: "absurd-humor",
+  name: "Absurd Humor",
+  subtitle: "Nonsense surreal jokes"
+}, {
+  id: "parodies",
+  name: "Parodies",
+  subtitle: "Imitations with twist"
+}, {
+  id: "satire-irony",
+  name: "Satire & Irony",
+  subtitle: "Social commentary humor"
+}, {
+  id: "holiday-humor",
+  name: "Holiday Humor",
+  subtitle: "Seasonal festive laughs"
+}, {
+  id: "parenting-humor",
+  name: "Parenting Humor",
+  subtitle: "Raising kids chaos"
+}, {
+  id: "travel-humor",
+  name: "Travel Humor",
+  subtitle: "Vacation trip fails"
+}, {
+  id: "sports-fitness",
+  name: "Sports & Fitness",
+  subtitle: "Exercise, fan banter"
+}, {
+  id: "nostalgia-humor",
+  name: "Nostalgia Humor",
+  subtitle: "Childhood retro laughs"
+}, {
+  id: "internet-humor",
+  name: "Internet Humor",
+  subtitle: "Social trend jokes"
+}, {
+  id: "insults",
+  name: "Insults",
+  subtitle: "Burns, jabs, putdowns"
+}, {
+  id: "tongue-twisters",
+  name: "Tongue Twisters",
+  subtitle: "Word challenges"
+}, {
+  id: "riddles",
+  name: "Riddles",
+  subtitle: "Puzzle-style jokes"
+}, {
+  id: "proverb-twists",
+  name: "Proverb Twists",
+  subtitle: "Old sayings flipped"
+}, {
+  id: "shower-thoughts",
+  name: "Shower Thoughts",
+  subtitle: "Odd clever ideas"
+}, {
+  id: "complaints",
+  name: "Complaints",
+  subtitle: "Overblown small problems"
+}, {
+  id: "generational-humor",
+  name: "Generational Humor",
+  subtitle: "Gen Z vs Millennials"
+}, {
+  id: "adulting-humor",
+  name: "Adulting Humor",
+  subtitle: "Grown-up struggles"
+}, {
+  id: "introvert-extrovert",
+  name: "Introvert Extrovert",
+  subtitle: "Social energy jokes"
+}, {
+  id: "self-care-humor",
+  name: "Self-Care Humor",
+  subtitle: "Lazy indulgent laughs"
+}, {
+  id: "grammar-humor",
+  name: "Grammar Humor",
+  subtitle: "Language punctuation fun"
+}, {
+  id: "pirate-jokes",
+  name: "Pirate Jokes",
+  subtitle: "Nautical \"Arrr\" puns"
+}, {
+  id: "fantasy-zombie",
+  name: "Fantasy & Zombie",
+  subtitle: "Geeky monster humor"
+}, {
+  id: "science-humor",
+  name: "Science Humor",
+  subtitle: "STEM nerdy jokes"
+}, {
+  id: "weather-humor",
+  name: "Weather Humor",
+  subtitle: "Forecast seasonal laughs"
+}, {
+  id: "karen-memes",
+  name: "Karen Memes",
+  subtitle: "Entitled stereotypes"
+}, {
+  id: "celebrity-satire",
+  name: "Celebrity Satire",
+  subtitle: "Mocking famous quirks"
+}, {
+  id: "fails",
+  name: "Fails",
+  subtitle: "Funny mishaps mistakes"
+}, {
+  id: "philosophy-twists",
+  name: "Philosophy Twists",
+  subtitle: "Deep silly flips"
+}, {
+  id: "fun-facts",
+  name: "Fun Facts",
+  subtitle: "Trivia with punchline"
+}, {
+  id: "emoji-humor",
+  name: "Emoji Humor",
+  subtitle: "Playing with symbols"
+}, {
+  id: "quote-mashups",
+  name: "Quote Mashups",
+  subtitle: "Mixed sayings"
+}, {
+  id: "innuendo-humor",
+  name: "Innuendo Humor",
+  subtitle: "Suggestive double meanings"
+}, {
+  id: "work-from-home",
+  name: "Work From Home",
+  subtitle: "Remote job fun"
+}, {
+  id: "health-wellness",
+  name: "Health & Wellness",
+  subtitle: "Fitness diet laughs"
+}, {
+  id: "late-night-thoughts",
+  name: "Late Night Thoughts",
+  subtitle: "Overtired musings"
+}, {
+  id: "instagram-ads",
+  name: "Instagram Ads",
+  subtitle: "Advertising, promotion, sponsored content"
+}, {
+  id: "facebook-marketing",
+  name: "Facebook Marketing",
+  subtitle: "Social media campaigns, business posts"
+}, {
+  id: "youtube-content",
+  name: "YouTube Content",
+  subtitle: "Video creation, channel growth"
+}, {
+  id: "tiktok-trends",
+  name: "TikTok Trends",
+  subtitle: "Viral videos, challenges, dances"
+}, {
+  id: "linkedin-professional",
+  name: "LinkedIn Professional",
+  subtitle: "Career posts, networking, business"
+}, {
+  id: "twitter-threads",
+  name: "Twitter Threads",
+  subtitle: "Tweet storms, viral takes"
+}, {
+  id: "brand-promotion",
+  name: "Brand Promotion",
+  subtitle: "Product marketing, endorsements"
+}, {
+  id: "influencer-content",
+  name: "Influencer Content",
+  subtitle: "Sponsored posts, collaborations"
+}, {
+  id: "e-commerce-sales",
+  name: "E-commerce Sales",
+  subtitle: "Online shopping, product launches"
+}, {
+  id: "digital-marketing",
+  name: "Digital Marketing",
+  subtitle: "Online campaigns, SEO, ads"
+}, {
+  id: "annoying-questions",
+  name: "Annoying Questions",
+  subtitle: "Nosy silly prods"
+}, {
+  id: "slang-lingo",
+  name: "Slang & Lingo",
+  subtitle: "Wordplay jokes"
+}, {
+  id: "mystery-puns",
+  name: "Mystery Puns",
+  subtitle: "Detective-style punchlines"
+}, {
+  id: "lightbulb-jokes",
+  name: "Lightbulb Jokes",
+  subtitle: "\"How many X\""
+}, {
+  id: "chuck-norris-jokes",
+  name: "Chuck Norris Jokes",
+  subtitle: "Absurd superhuman facts"
+}, {
+  id: "math-humor",
+  name: "Math Humor",
+  subtitle: "Number equation puns"
+}, {
+  id: "coding-jokes",
+  name: "Coding Jokes",
+  subtitle: "Programmer IT humor"
+}, {
+  id: "pet-peeves",
+  name: "Pet Peeves",
+  subtitle: "Shared annoyances"
+}, {
+  id: "apologies",
+  name: "Apologies",
+  subtitle: "Sorry not sorry"
+}, {
+  id: "awkward-comedy",
+  name: "Awkward Comedy",
+  subtitle: "Cringe relatable laughs"
+}, {
+  id: "trick-questions",
+  name: "Trick Questions",
+  subtitle: "Gotcha Q&A jokes"
+}, {
+  id: "self-help-parody",
+  name: "Self-Help Parody",
+  subtitle: "Motivational spoofs"
+}, {
+  id: "edgy-one-liners",
+  name: "Edgy One-Liners",
+  subtitle: "Risky quick jokes"
+}, {
+  id: "burnout-humor",
+  name: "Burnout Humor",
+  subtitle: "Exhaustion jokes"
+}, {
+  id: "ai-robot-jokes",
+  name: "AI Robot Jokes",
+  subtitle: "Future tech laughs"
+}, {
+  id: "gamer-memes",
+  name: "Gamer Memes",
+  subtitle: "Gaming culture fun"
+}, {
+  id: "would-you-rather",
+  name: "Would You Rather",
+  subtitle: "Absurd choices"
+}, {
+  id: "cat-memes",
+  name: "Cat Memes",
+  subtitle: "Feline antics"
+}, {
+  id: "dog-memes",
+  name: "Dog Memes",
+  subtitle: "Canine silliness"
+}, {
+  id: "dating-humor",
+  name: "Dating Humor",
+  subtitle: "Single romance laughs"
+}, {
+  id: "money-jokes",
+  name: "Money Jokes",
+  subtitle: "Broke rich jokes"
+}, {
+  id: "toilet-humor",
+  name: "Toilet Humor",
+  subtitle: "Bathroom laughs"
+}, {
+  id: "astrology-memes",
+  name: "Astrology Memes",
+  subtitle: "Zodiac stereotypes"
+}, {
+  id: "doctor-humor",
+  name: "Doctor Humor",
+  subtitle: "Medical profession laughs"
+}, {
+  id: "stoner-humor",
+  name: "Stoner Humor",
+  subtitle: "Cannabis culture fun"
+}, {
+  id: "bar-jokes",
+  name: "Bar Jokes",
+  subtitle: "Walks into..."
+}, {
+  id: "yo-mama-jokes",
+  name: "Yo Mama Jokes",
+  subtitle: "Insult classics"
+}, {
+  id: "clever-comebacks",
+  name: "Clever Comebacks",
+  subtitle: "Smart quick retorts"
+}, {
+  id: "anti-jokes",
+  name: "Anti-Jokes",
+  subtitle: "No punchline jokes"
+}, {
+  id: "pick-up-lines",
+  name: "Pick-Up Lines",
+  subtitle: "Flirty cheesy openers"
+}, {
+  id: "celebrations",
+  name: "Celebrations",
+  subtitle: "Joyful milestones"
+}, {
+  id: "funny-rants",
+  name: "Funny Rants",
+  subtitle: "Angry but funny"
+}, {
+  id: "lawyer-jokes",
+  name: "Lawyer Jokes",
+  subtitle: "Legal profession laughs"
+}, {
+  id: "little-johnny",
+  name: "Little Johnny",
+  subtitle: "Kid cheeky lines"
+}, {
+  id: "pranks",
+  name: "Pranks",
+  subtitle: "Trick setups"
+}, {
+  id: "heartbreak",
+  name: "Heartbreak",
+  subtitle: "Breakup lost love"
+}, {
+  id: "party-humor",
+  name: "Party Humor",
+  subtitle: "Night out fun"
+}, {
+  id: "seasonal-events",
+  name: "Seasonal Events",
+  subtitle: "Big yearly happenings"
+}, {
+  id: "advertising",
+  name: "Advertising",
+  subtitle: "Marketing campaigns and ads"
+}, {
+  id: "courier-jokes",
+  name: "Courier Jokes",
+  subtitle: "Delivery service humor"
+}];
+const popCultureOptions = [{
+  id: "celebrities",
+  name: "Celebrities",
+  subtitle: "Gossip, drama, fame"
+}, {
+  id: "movies",
+  name: "Movies",
+  subtitle: "Blockbusters, hits, franchises"
+}, {
+  id: "tv-shows",
+  name: "TV Shows",
+  subtitle: "Streaming, binge, dramas"
+}, {
+  id: "music",
+  name: "Music",
+  subtitle: "Songs, albums, concerts"
+}, {
+  id: "memes",
+  name: "Memes",
+  subtitle: "Viral jokes, trends"
+}, {
+  id: "social-media",
+  name: "Social Media",
+  subtitle: "Influencers, posts, trends"
+}, {
+  id: "fashion",
+  name: "Fashion",
+  subtitle: "Style, looks, red carpet"
+}, {
+  id: "sports-pop",
+  name: "Sports",
+  subtitle: "Games, stars, events"
+}, {
+  id: "gaming",
+  name: "Gaming",
+  subtitle: "Consoles, PC, esports"
+}, {
+  id: "superheroes",
+  name: "Superheroes",
+  subtitle: "Marvel, DC, franchises"
+}, {
+  id: "reality-tv",
+  name: "Reality TV",
+  subtitle: "Drama, dating, competitions"
+}, {
+  id: "anime",
+  name: "Anime",
+  subtitle: "Shows, manga, cosplay"
+}, {
+  id: "award-shows",
+  name: "Award Shows",
+  subtitle: "Oscars, Grammys, Met Gala"
+}, {
+  id: "nostalgia",
+  name: "Nostalgia",
+  subtitle: "Throwbacks, reboots, classics"
+}, {
+  id: "food-trends",
+  name: "Food Trends",
+  subtitle: "Viral snacks, drinks"
+}, {
+  id: "tech-pop",
+  name: "Tech",
+  subtitle: "Gadgets, apps, AI"
+}, {
+  id: "books",
+  name: "Books",
+  subtitle: "Novels, memoirs, bestsellers"
+}, {
+  id: "royals",
+  name: "Royals",
+  subtitle: "Gossip, weddings, scandals"
+}, {
+  id: "festivals",
+  name: "Festivals",
+  subtitle: "Concerts, cons, gatherings"
+}, {
+  id: "comedy",
+  name: "Comedy",
+  subtitle: "Stand-up, skits, talk shows"
+}, {
+  id: "fictional-characters",
+  name: "Fictional Characters",
+  subtitle: "Heroes, villains, iconic figures"
+}];
+const fictionalCharactersList = ["Harry Potter", "Hermione Granger", "Ron Weasley", "Dumbledore", "Voldemort", "Snape", "Batman", "Superman", "Wonder Woman", "Spider-Man", "Iron Man", "Captain America", "Hulk", "Thor", "Black Widow", "Joker", "Harley Quinn", "Lex Luthor", "Green Goblin", "Loki", "Thanos", "Luke Skywalker", "Princess Leia", "Han Solo", "Darth Vader", "Obi-Wan Kenobi", "Yoda", "Chewbacca", "R2-D2", "C-3PO", "Frodo", "Gandalf", "Aragorn", "Legolas", "Gimli", "Gollum", "Sauron", "Sherlock Holmes", "John Watson", "Moriarty", "Mickey Mouse", "Donald Duck", "Goofy", "Elsa", "Anna", "Olaf", "Simba", "Mufasa", "Scar", "Buzz Lightyear", "Woody", "Rex", "Mr. Potato Head", "Mario", "Luigi", "Princess Peach", "Bowser", "Yoshi", "Link", "Zelda", "Ganondorf", "Pikachu", "Charizard", "Mewtwo", "Ash Ketchum", "Naruto", "Sasuke", "Sakura", "Kakashi", "Goku", "Vegeta", "Piccolo", "Jon Snow", "Daenerys Targaryen", "Tyrion Lannister", "Cersei Lannister", "Jaime Lannister", "Arya Stark", "Sansa Stark", "Walter White", "Jesse Pinkman", "Saul Goodman", "Eleven", "Mike Wheeler", "Dustin Henderson", "Steve Harrington", "Hopper", "Rick Sanchez", "Morty Smith", "Jerry Smith", "Beth Smith", "Summer Smith", "Homer Simpson", "Marge Simpson", "Bart Simpson", "Lisa Simpson", "Maggie Simpson", "SpongeBob SquarePants", "Patrick Star", "Squidward", "Mr. Krabs", "Sandy Cheeks", "Bugs Bunny", "Daffy Duck", "Porky Pig", "Tweety", "Sylvester", "Pepe Le Pew", "Tom", "Jerry", "Scooby-Doo", "Shaggy", "Fred", "Velma", "Daphne", "Garfield", "Odie", "Jon Arbuckle", "Calvin", "Hobbes", "Charlie Brown", "Snoopy", "Lucy", "Linus", "Winnie the Pooh", "Tigger", "Eeyore", "Piglet", "Rabbit", "Owl", "Alice", "Mad Hatter", "Cheshire Cat", "Queen of Hearts", "White Rabbit", "Dorothy", "Wizard of Oz", "Tin Man", "Scarecrow", "Cowardly Lion", "Toto", "Peter Pan", "Tinker Bell", "Captain Hook", "Wendy Darling", "Tarzan", "Jane Porter", "King Kong", "Godzilla", "E.T.", "Spock", "Captain Kirk", "Data", "Picard", "Neo", "Morpheus", "Trinity", "Agent Smith", "Terminator", "Sarah Connor", "John Connor", "Indiana Jones", "James Bond", "Ethan Hunt", "Rocky Balboa", "Ivan Drago", "Apollo Creed", "Forrest Gump", "Jenny Curran", "Lieutenant Dan", "Jack Sparrow", "Will Turner", "Elizabeth Swann", "Davy Jones", "Wolverine", "Professor X", "Magneto", "Storm", "Cyclops", "Jean Grey", "Deadpool", "Cable", "Domino", "The Flash", "Green Lantern", "Aquaman", "Cyborg", "Black Panther", "Shuri", "Okoye", "Killmonger", "Doctor Strange", "Scarlet Witch", "Vision", "Falcon", "Winter Soldier", "Ant-Man", "Wasp", "Hawkeye", "Nick Fury", "Maria Hill", "Groot", "Rocket Raccoon", "Star-Lord", "Gamora", "Drax"];
+const textStyleOptions = [{
+  id: "humorous",
+  name: "Humorous",
+  description: "Jokes, puns, lighthearted entertainment"
+}, {
+  id: "savage",
+  name: "Savage",
+  description: "Sarcastic, bold, unapologetic wit"
+}, {
+  id: "sentimental",
+  name: "Sentimental",
+  description: "Warm, heartfelt, sincere emotion"
+}, {
+  id: "nostalgic",
+  name: "Nostalgic",
+  description: "Fond, wistful memories of past"
+}, {
+  id: "romantic",
+  name: "Romantic",
+  description: "Love, affection, sweet admiration"
+}, {
+  id: "inspirational",
+  name: "Inspirational",
+  description: "Uplifting, motivating, positive encouragement"
+}, {
+  id: "playful",
+  name: "Playful",
+  description: "Cheerful, lively, mischievous fun"
+}, {
+  id: "serious",
+  name: "Serious",
+  description: "Respectful, formal, matter-of-fact"
+}];
+const completionOptions = [{
+  id: "ai-assist",
+  name: "Option 1 - AI Assist",
+  description: "Let AI help generate your content"
+}, {
+  id: "write-myself",
+  name: "Option 2 - Write Myself",
+  description: "I'll write my own content"
+}, {
+  id: "no-text",
+  name: "Option 3 - I Don't Want Text",
+  description: "Skip text content for now"
+}];
+const visualStyleOptions = [{
+  id: "realistic",
+  name: "Realistic",
+  description: "True-to-life photo style"
+}, {
+  id: "caricature",
+  name: "Caricature",
+  description: "Exaggerated comedic features"
+}, {
+  id: "anime",
+  name: "Anime",
+  description: "Japanese cartoon aesthetic"
+}, {
+  id: "3d-animated",
+  name: "3D Animated",
+  description: "Pixar-style CGI look"
+}, {
+  id: "illustrated",
+  name: "Illustrated",
+  description: "Hand-drawn artistic design"
+}, {
+  id: "pop-art",
+  name: "Pop Art",
+  description: "Bold retro comic style"
+}];
+const subjectOptions = [{
+  id: "ai-assist",
+  name: "Option 1 - AI Assist",
+  description: "Let AI help generate your subject"
+}, {
+  id: "design-myself",
+  name: "Option 2 - Design Myself",
+  description: "I will create my own subject"
+}, {
+  id: "multiple-people",
+  name: "No Visuals - I don't want any visuals",
+  description: "No Visuals - I don't want any visuals"
+}];
+const dimensionOptions = [{
+  id: "square",
+  name: "Square",
+  description: "1:1 aspect ratio"
+}, {
+  id: "landscape",
+  name: "Landscape",
+  description: "16:9 aspect ratio"
+}, {
+  id: "portrait",
+  name: "Portrait",
+  description: "9:16 aspect ratio"
+}, {
+  id: "custom",
+  name: "Custom",
+  description: "Define your own dimensions"
+}];
 const Index = () => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedStyle, setSelectedStyle] = useState<string>("");
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filteredOptions, setFilteredOptions] = useState<any[]>([]);
-  const [textOptions, setTextOptions] = useState<Array<{ lane: string; text: string }>>([]);
-  const [selectedTextOption, setSelectedTextOption] = useState<string>("");
-  const [visualOptions, setVisualOptions] = useState<Array<{ lane: string; prompt: string }>>([]);
-  const [selectedVisualOption, setSelectedVisualOption] = useState<string>("");
-  const [selectedLayout, setSelectedLayout] = useState<string>("memeTopBottom");
-  const [generatedImages, setGeneratedImages] = useState<Array<{ id: string; url: string; isSelected: boolean }>>([]);
-  const [isGeneratingText, setIsGeneratingText] = useState(false);
-  const [isGeneratingVisuals, setIsGeneratingVisuals] = useState(false);
-  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
-  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
-  const [showIdeogramKeyDialog, setShowIdeogramKeyDialog] = useState(false);
-  const [showProxySettingsDialog, setShowProxySettingsDialog] = useState(false);
-  const [showCorsRetryDialog, setShowCorsRetryDialog] = useState(false);
+  // Barebones mode state
+  const [barebonesMode, setBarebonesMode] = useState<boolean>(false);
+  const [directPrompt, setDirectPrompt] = useState<string>("");
+  const [negativePrompt, setNegativePrompt] = useState<string>("");
+  
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [autoStartImageGen, setAutoStartImageGen] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [selectedSubOption, setSelectedSubOption] = useState<string | null>(null);
+  const [selectedPick, setSelectedPick] = useState<string | null>(null);
+  const [selectedTextStyle, setSelectedTextStyle] = useState<string | null>(null);
+  const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
+  const [selectedVisualStyle, setSelectedVisualStyle] = useState<string | null>(null);
+  const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>(null);
+  const [visualOptions, setVisualOptions] = useState<Array<{ subject: string; background: string; prompt: string; slot: string }>>([]);
+  const [selectedVisualIndex, setSelectedVisualIndex] = useState<number | null>(null);
+  const [expandedPromptIndex, setExpandedPromptIndex] = useState<number | null>(null); // Track which exact prompt is shown
+  const [visualModel, setVisualModel] = useState<string | null>(null); // Track which model was used
+  const [subjectTags, setSubjectTags] = useState<string[]>([]);
+  const [subjectTagInput, setSubjectTagInput] = useState<string>("");
+  const [isGeneratingSubject, setIsGeneratingSubject] = useState<boolean>(false);
+  const [showSubjectTagEditor, setShowSubjectTagEditor] = useState<boolean>(false);
+  const [subjectDescription, setSubjectDescription] = useState<string>("");
+  const [isSubjectDescriptionConfirmed, setIsSubjectDescriptionConfirmed] = useState<boolean>(false);
+  const [selectedDimension, setSelectedDimension] = useState<string | null>(null);
+  const [customWidth, setCustomWidth] = useState<string>("");
+  const [customHeight, setCustomHeight] = useState<string>("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState<string>("");
+  const [generatedOptions, setGeneratedOptions] = useState<string[]>([]);
+  const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
+  const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
+  const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
+  
+  // Safety check: Reset selectedTextLayout if it's one of the removed options
+  useEffect(() => {
+    if (selectedTextLayout === 'sideBarLeft' || selectedTextLayout === 'badgeSticker') {
+      setSelectedTextLayout(null);
+    }
+  }, [selectedTextLayout]);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
+  const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [finalSearchTerm, setFinalSearchTerm] = useState<string>("");
+  const [isFinalSearchFocused, setIsFinalSearchFocused] = useState<boolean>(false);
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState<boolean>(false);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchResults, setSearchResults] = useState<OpenAISearchResult[]>([]);
+  const [searchError, setSearchError] = useState<string>("");
+  const [stepTwoText, setStepTwoText] = useState<string>("");
+  const [isCustomTextConfirmed, setIsCustomTextConfirmed] = useState<boolean>(false);
+  const [showIdeogramKeyDialog, setShowIdeogramKeyDialog] = useState<boolean>(false);
+  const [showProxySettingsDialog, setShowProxySettingsDialog] = useState<boolean>(false);
+  const [showCorsRetryDialog, setShowCorsRetryDialog] = useState<boolean>(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
+  const [isAddingTextOverlay, setIsAddingTextOverlay] = useState<boolean>(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageGenerationError, setImageGenerationError] = useState<string>("");
-  const { toast } = useToast();
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const [showProxySettings, setShowProxySettings] = useState(false);
+  const [proxySettings, setLocalProxySettings] = useState(() => getProxySettings());
+  const [proxyApiKey, setProxyApiKey] = useState('');
 
-  // Get subcategory options based on selected style
-  const getSubcategoryOptions = () => {
-    switch (selectedStyle) {
-      case "celebrations":
-        return celebrationOptions;
-      case "sports":
-        return sportsOptions;
-      case "daily-life":
-        return dailyLifeOptions;
-      case "vibes-punchlines":
-        return vibesPunchlinesOptions;
-      case "pop-culture":
-        return popCultureOptions;
+  // Spelling guarantee mode states - default to ON when text is present
+  const [spellingGuaranteeMode, setSpellingGuaranteeMode] = useState<boolean>(false);
+  const [showTextOverlay, setShowTextOverlay] = useState<boolean>(false);
+  const [backgroundOnlyImageUrl, setBackgroundOnlyImageUrl] = useState<string | null>(null);
+  const [finalImageWithText, setFinalImageWithText] = useState<string | null>(null);
+  const [textMisspellingDetected, setTextMisspellingDetected] = useState<boolean>(false);
+  const [cleanBackgroundMode, setCleanBackgroundMode] = useState<boolean>(true);
+
+  // Visual AI recommendations state
+  const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<number | null>(null);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+  
+
+  // Generate visual recommendations when reaching step 4
+  useEffect(() => {
+    const generateRecommendations = async () => {
+      if (currentStep === 4 && !visualRecommendations && !isLoadingRecommendations) {
+        setIsLoadingRecommendations(true);
+        try {
+          const session = createSession({
+            category: selectedStyle || 'general',
+            subcategory: selectedSubOption || ''
+          });
+          const result = await generateVisualOptions(session, {
+            tone: selectedTextStyle || 'humorous',
+            tags: tags,
+            textContent: selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ""),
+            textLayoutId: selectedTextLayout || "negativeSpace"
+          });
+          
+          // Ensure visual variance (disabled)
+          const varianceResult = ensureVisualVariance(
+            result.visualOptions, 
+            selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ""),
+            selectedTextLayout || "negativeSpace",
+            false
+          );
+          
+          // Validate layout-aware options
+          const validation = validateLayoutAwareVisuals(varianceResult.diversifiedOptions, selectedTextLayout || "negativeSpace");
+          
+          if (validation.reasons.length > 0 && !validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
+            console.warn('⚠️ Some visuals filtered:', validation.reasons);
+            sonnerToast.warning('Some visual options were filtered - using best available');
+          } else if (validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
+            console.warn('🔄 Using fallback visuals:', validation.reasons);
+            sonnerToast.warning('Using fallback visuals - AI prompts needed adjustment');
+          }
+          
+          // Log any filtered options
+          if (validation.reasons.length > 0) {
+            console.warn('⚠️ Some visuals filtered:', validation.reasons);
+            sonnerToast.warning(`${validation.validOptions.length}/4 visuals passed validation`);
+          }
+          
+          // Ensure all 4 lanes are present
+          const lanes = new Set(validation.validOptions.map(opt => opt.lane));
+          if (lanes.size < 4) {
+            sonnerToast.warning("Some visual options were filtered out for layout safety");
+          }
+          const mappedOptions = validation.validOptions.map((option) => ({
+            subject: option.prompt || (option.lane === 'objects' ? 'Objects and environment' : 
+                    option.lane === 'group' ? 'Group of people, candid gestures' :
+                    option.lane === 'solo' ? 'One person — clear action' :
+                    'Symbolic/abstract arrangement'),
+            background: option.lane === 'objects' ? 'Arranged props with text-safe area' :
+                       `Context: ${selectedSubOption || ''}`,
+            prompt: option.prompt,
+            slot: option.lane
+          }));
+          const recommendations = { options: mappedOptions, model: result.model };
+          setVisualRecommendations(recommendations);
+        } catch (error) {
+          console.error('Failed to generate visual recommendations:', error);
+          
+          // Show specific error message based on error type
+          let errorMessage = "Failed to generate visual recommendations";
+          if (error instanceof Error) {
+            if (error.message.includes('TIMEOUT')) {
+              errorMessage = "Visual generation timed out. Please try again.";
+            } else if (error.message.includes('TRUNCATED')) {
+              errorMessage = "Request too complex. Try simpler tags.";
+            } else if (error.message.includes('PARSE_ERROR')) {
+              errorMessage = "AI response format error. Please retry.";
+            }
+          }
+          
+          const { toast } = useToast();
+          toast({
+            title: "Visual Generation Error",
+            description: errorMessage,
+            variant: "destructive"
+          });
+        }
+        setIsLoadingRecommendations(false);
+      }
+    };
+    generateRecommendations();
+  }, [currentStep, visualRecommendations, isLoadingRecommendations, selectedStyle, selectedSubOption, selectedTextStyle, tags, selectedVisualStyle, selectedGeneratedOption]);
+
+  // Auto-start image generation when reaching step 4
+  useEffect(() => {
+    if (currentStep === 4 && autoStartImageGen && !isGeneratingImage && !generatedImageUrl) {
+      // Guard for barebones mode without prompt
+      if (barebonesMode && !directPrompt.trim()) {
+        sonnerToast.error("Please provide a direct prompt in barebones mode.");
+        setAutoStartImageGen(false);
+        return;
+      }
+      
+      handleGenerateImage();
+      setAutoStartImageGen(false);
+    }
+  }, [currentStep, autoStartImageGen, isGeneratingImage, generatedImageUrl, barebonesMode, directPrompt]);
+
+  // Cleanup blob URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (finalImageWithText) {
+        cleanupBlobUrl(finalImageWithText);
+      }
+    };
+  }, [finalImageWithText]);
+
+  // Visual AI recommendations state
+  const [isTestingProxy, setIsTestingProxy] = useState(false);
+  const navigate = useNavigate();
+  const {
+    toast
+  } = useToast();
+
+  // Helper function to truncate text to max words
+  const truncateWords = (text: string, maxWords: number): string => {
+    const words = text.split(' ');
+    if (words.length <= maxWords) return text;
+    return words.slice(0, maxWords).join(' ') + '...';
+  };
+
+  // Error message helper for visual generation
+  const getErrorMessage = (errorCode?: string) => {
+    switch ((errorCode || '').toLowerCase()) {
+      case 'timeout':
+        return '⏰ AI generation timed out (45s). Try "Regenerate" or check your connection.';
+      case 'unauthorized':
+        return '🔑 API key issue detected. Check your OpenAI key in settings.';
+      case 'network':
+        return '🌐 Network error. Check connection and try "Regenerate".';
+      case 'parse_error':
+        return '📄 Response parsing failed. Try "Regenerate" for a fresh attempt.';
       default:
-        return [];
+        return '⚠️ Used fallback options (AI timed out). Try "Regenerate" for fresh AI recommendations.';
     }
   };
 
-  // Handle search functionality
-  const handleSearch = (query: string) => {
-    const subcategoryOptions = getSubcategoryOptions();
-    if (!query.trim()) {
-      setFilteredOptions([]);
+  // Test connection function
+  const testAIConnection = async () => {
+    setIsTestingProxy(true);
+    try {
+      const testResult = await openAIService.chatJSON([{
+        role: 'user',
+        content: 'Test connection. Return JSON response: {"status": "ok"}'
+      }], {
+        model: 'gpt-4.1-2025-04-14',
+        max_completion_tokens: 50
+      });
+      if (testResult?.status === 'ok') {
+        toast({
+          title: "Connection Success",
+          description: "AI connection is working properly"
+        });
+      } else {
+        throw new Error('Invalid response');
+      }
+    } catch (error) {
+      toast({
+        title: "Connection Failed",
+        description: "Check your API key and network connection",
+        variant: "destructive"
+      });
+    }
+    setIsTestingProxy(false);
+  };
+
+  // Helper function to build selections for StackedSelectionCard
+  const buildSelections = () => {
+    const selections = [];
+
+    // Visual Style selection
+    if (selectedVisualStyle) {
+      const visualStyle = visualStyleOptions.find(s => s.id === selectedVisualStyle);
+      selections.push({
+        title: `Visual Style: ${visualStyle?.name}`,
+        subtitle: visualStyle?.description,
+        onChangeSelection: () => {
+          setSelectedVisualStyle(null);
+          setSelectedSubjectOption(null);
+          setIsSubjectDescriptionConfirmed(false);
+          setSubjectDescription("");
+          setVisualOptions([]);
+          setSelectedVisualIndex(null);
+          setSelectedDimension(null);
+          setCustomWidth("");
+          setCustomHeight("");
+        }
+      });
+    }
+
+    // Subject Option selection
+    if (selectedSubjectOption) {
+      const subjectOption = subjectOptions.find(s => s.id === selectedSubjectOption);
+      selections.push({
+        title: `Subject Option: ${subjectOption?.name}`,
+        subtitle: subjectOption?.description,
+        onChangeSelection: () => {
+          setSelectedSubjectOption(null);
+          setSubjectTags([]);
+          setSubjectTagInput("");
+          setSubjectDescription("");
+          setIsSubjectDescriptionConfirmed(false);
+          setVisualOptions([]);
+          setSelectedVisualIndex(null);
+          setSelectedDimension(null);
+          setCustomWidth("");
+          setCustomHeight("");
+          setShowSubjectTagEditor(false);
+        }
+      });
+    }
+
+    // Visual AI Recommendation selection - show all generated options
+    if (selectedSubjectOption === "ai-assist" && visualOptions.length > 0) {
+      if (selectedVisualIndex !== null && visualOptions[selectedVisualIndex]) {
+        // Show selected option
+        const option = visualOptions[selectedVisualIndex];
+        const optionTitle = `Selected: Option ${selectedVisualIndex + 1}`;
+        const compactDescription = cleanForDisplay(option.subject);
+        selections.push({
+          title: optionTitle,
+          subtitle: compactDescription,
+          description: `Exact prompt: ${option.prompt}`,
+          onChangeSelection: () => {
+            setSelectedVisualIndex(null);
+            setSelectedDimension(null);
+            setCustomWidth("");
+            setCustomHeight("");
+            // Reset back to Step 3 to reselect
+            setCurrentStep(3);
+          }
+        });
+      } else {
+        // Show that options are generated but none selected yet
+        selections.push({
+          title: "Visual Options Generated",
+          subtitle: `${visualOptions.length} AI-generated options available - Click to select`,
+          onChangeSelection: () => {
+            // Go back to step 3 visual selection
+            setCurrentStep(3);
+          }
+        });
+      }
+    }
+
+    // Custom Visual Description selection (for design-myself)
+    if (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed) {
+      selections.push({
+        title: "Custom Visual Description",
+        subtitle: `"${subjectDescription}"`,
+        onChangeSelection: () => {
+          setIsSubjectDescriptionConfirmed(false);
+          setSelectedDimension(null);
+          setCustomWidth("");
+          setCustomHeight("");
+        }
+      });
+    }
+
+    // Tags selection - show if there are tags
+    if (subjectTags.length > 0) {
+      selections.push({
+        title: "Tags",
+        subtitle: subjectTags.join(", "),
+        onChangeSelection: () => {
+          setShowSubjectTagEditor(true);
+        }
+      });
+    }
+
+    // Dimensions selection
+    if (selectedDimension) {
+      const dimension = dimensionOptions.find(d => d.id === selectedDimension);
+      const title = selectedDimension === "custom" ? `Dimensions: ${customWidth}x${customHeight}` : `Dimensions: ${dimension?.name}`;
+      selections.push({
+        title,
+        subtitle: dimension?.description,
+        onChangeSelection: () => {
+          setSelectedDimension(null);
+          setCustomWidth("");
+          setCustomHeight("");
+        }
+      });
+    }
+    return selections;
+  };
+
+  // Add timeout ref for search debouncing
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Helper function to check if Step 1 is complete
+  const isStep1Complete = (): boolean => {
+    if (!selectedStyle) return false;
+    switch (selectedStyle) {
+      case "pop-culture":
+        return !!(selectedSubOption && selectedPick);
+      case "random":
+        return !!selectedSubOption;
+      // Custom topic for random
+      case "celebrations":
+      case "sports":
+      case "daily-life":
+      case "vibes-punchlines":
+        return !!selectedSubOption;
+      default:
+        return false;
+    }
+  };
+
+  // Helper function to check if Step 2 is complete
+  const isStep2Complete = (): boolean => {
+    if (!selectedTextStyle || !selectedCompletionOption) {
+      return false;
+    }
+
+    // If completion option is AI assist, require a generated option to be selected and layout to be selected
+    if (selectedCompletionOption === "ai-assist") {
+      return !!selectedGeneratedOption && !!selectedTextLayout;
+    }
+
+    // If completion option is write myself, require confirmed text and layout selection
+    if (selectedCompletionOption === "write-myself") {
+      return stepTwoText.trim().length > 0 && isCustomTextConfirmed && !!selectedTextLayout;
+    }
+
+    // For "no-text" option, just need style and completion (no layout needed)
+    return true;
+  };
+
+  // Helper function to check if Step 3 is complete
+  const isStep3Complete = (): boolean => {
+    // In barebones mode, just need direct prompt and dimensions
+    if (barebonesMode) {
+      return !!directPrompt.trim() && !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
+    }
+    
+    if (!selectedVisualStyle || !selectedSubjectOption) return false;
+
+    // If AI Assist is selected, require visual option selection and dimensions
+    if (selectedSubjectOption === "ai-assist") {
+      const hasVisualSelection = selectedVisualIndex !== null;
+      const hasDimensions = !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
+      return hasVisualSelection && hasDimensions;
+    }
+
+    // If Design Myself is selected, require confirmed description and dimensions
+    if (selectedSubjectOption === "design-myself") {
+      const hasConfirmedDescription = subjectDescription.trim().length > 0 && isSubjectDescriptionConfirmed;
+      const hasDimensions = !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
+      return hasConfirmedDescription && hasDimensions;
+    }
+
+    // For single-person and multiple-people, just need dimensions
+    if (selectedSubjectOption === "single-person" || selectedSubjectOption === "multiple-people") {
+      return !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
+    }
+
+    // For "no-subject", just need dimensions
+    if (selectedSubjectOption === "no-subject") {
+      return !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
+    }
+    return true;
+  };
+
+  // Helper function to check if Step 4 is complete
+  const isStep4Complete = (): boolean => {
+    return true; // Step 4 is just the final confirmation page
+  };
+
+  // Handle adding tags
+  const handleAddTag = (tag: string) => {
+    const trimmedTag = tag.trim();
+    if (trimmedTag && !tags.includes(trimmedTag)) {
+      setTags([...tags, trimmedTag]);
+    }
+    setTagInput("");
+  };
+  const handleTagInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      handleAddTag(tagInput);
+    }
+  };
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  // Handle adding subject tags
+  const handleAddSubjectTag = (tag: string) => {
+    const trimmedTag = tag.trim();
+    if (trimmedTag && !subjectTags.includes(trimmedTag)) {
+      setSubjectTags([...subjectTags, trimmedTag]);
+    }
+    setSubjectTagInput("");
+  };
+  const handleSubjectTagInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      handleAddSubjectTag(subjectTagInput);
+    }
+  };
+  const removeSubjectTag = (tagToRemove: string) => {
+    setSubjectTags(subjectTags.filter(tag => tag !== tagToRemove));
+  };
+
+  // Generate subject using AI
+  const handleGenerateSubject = async () => {
+    // Skip AI generation in barebones mode
+    if (barebonesMode) {
+      sonnerToast.error("AI visual generation is disabled in barebones mode. Please use direct prompts.");
+      return;
+    }
+    
+    if (!openAIService.hasApiKey()) {
+      setShowApiKeyDialog(true);
       return;
     }
 
-    const filtered = subcategoryOptions.filter(option =>
-      option.name.toLowerCase().includes(query.toLowerCase())
-    );
-    setFilteredOptions(filtered);
+    // Auto-commit pending tag input before generating
+    if (subjectTagInput.trim()) {
+      setSubjectTags([...subjectTags, subjectTagInput.trim()]);
+      setSubjectTagInput("");
+    }
+    setIsGeneratingSubject(true);
+    try {
+      // Build inputs using the same mapping logic as text generation
+      let category = '';
+      let subcategory = '';
+      let finalTags = [...tags, ...subjectTags];
+      console.log('🎨 Visual generation started with tags:', {
+        tags,
+        subjectTags,
+        finalTags
+      });
+
+      // Map category
+      switch (selectedStyle) {
+        case 'celebrations':
+          category = 'celebrations';
+          break;
+        case 'sports':
+          category = 'sports';
+          break;
+        case 'daily-life':
+          category = 'daily life';
+          break;
+        case 'vibes-punchlines':
+          category = 'vibes and punchlines';
+          break;
+        case 'pop-culture':
+          category = 'pop culture';
+          break;
+        case 'random':
+          category = 'no category';
+          break;
+        default:
+          category = 'no category';
+      }
+
+      // Get subcategory based on selected option
+      if (selectedStyle === 'celebrations' && selectedSubOption) {
+        const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+        subcategory = celebOption?.name || selectedSubOption;
+      } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+        const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+        subcategory = popOption?.name || selectedSubOption;
+        if (selectedPick) {
+          finalTags.push(selectedPick);
+        }
+      } else if (selectedSubOption) {
+        subcategory = selectedSubOption;
+      } else {
+        subcategory = 'general';
+      }
+
+      // Get tone from text style
+      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+      const tone = selectedTextStyleObj?.name || 'Humorous';
+
+      // Get final line from Step 2 if available
+      const finalLine = selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : undefined);
+      const session = createSession({ category, subcategory });
+      const result = await generateVisualOptions(session, {
+        tone: tone.toLowerCase(),
+        tags: finalTags,
+        textContent: finalLine || "",
+        textLayoutId: selectedTextLayout || "negativeSpace"
+      });
+      
+      // Ensure visual variance (disabled)
+      const varianceResult = ensureVisualVariance(
+        result.visualOptions, 
+        finalLine || "",
+        selectedTextLayout || "negativeSpace",
+        false
+      );
+      
+      // Validate layout-aware options
+      const validation = validateLayoutAwareVisuals(varianceResult.diversifiedOptions, selectedTextLayout || "negativeSpace");
+      
+      if (validation.reasons.length > 0 && !validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
+        console.warn('⚠️ Some visuals filtered:', validation.reasons);
+        sonnerToast.warning('Some visual options were filtered - using best available');
+      } else if (validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
+        console.warn('🔄 Using fallback visuals:', validation.reasons);
+        sonnerToast.warning('Using fallback visuals - AI prompts needed adjustment');
+      }
+      
+      // Log any filtered options
+      if (validation.reasons.length > 0) {
+        console.warn('⚠️ Some visuals filtered:', validation.reasons);
+      }
+      
+      // Ensure all 4 options are present
+      const lanes = new Set(validation.validOptions.map(opt => opt.lane));
+      if (lanes.size < 4) {
+        console.warn(`🎯 Missing options:`, Array.from(['option1', 'option2', 'option3', 'option4']).filter(l => !lanes.has(l)));
+      }
+      const mappedOptions = validation.validOptions.map((option) => ({
+        subject: option.prompt || (option.lane === 'option1' ? 'Direct visual concept' : 
+                option.lane === 'option2' ? 'Environmental perspective' :
+                option.lane === 'option3' ? 'Alternative viewpoint' :
+                'Abstract interpretation'),
+        background: `Context: ${subcategory}`,
+        prompt: option.prompt,
+        slot: option.lane
+      }));
+      const visualResult = { options: mappedOptions, model: result.model };
+      console.log('🎨 Visual generation completed with result:', {
+        optionsCount: visualResult.options.length,
+        model: visualResult.model,
+        tags: finalTags
+      });
+
+      // Clear previous selection and set new options
+      setSelectedVisualIndex(null);
+      setVisualOptions(visualResult.options);
+      setVisualModel(visualResult.model); // Track which model was used
+
+      // Clear only the input, keep tags for the summary, and hide editor
+      setSubjectTagInput("");
+      setShowSubjectTagEditor(false);
+      // Don't clear subjectTags - keep them to show in summary
+      // Log audit info for debugging
+      console.log('Visual generation result:', {
+        model: visualResult.model,
+        optionsCount: visualResult.options.length,
+        slots: visualResult.options.map(opt => opt.slot)
+      });
+
+      // Show appropriate feedback based on generation result
+      const errorCode = (result as any).errorCode;
+      if (errorCode) {
+        const fallbackMessages: Record<string, string> = {
+          'TIMEOUT': 'Visual generation timed out - using fallback options',
+          'TRUNCATED': 'Request too complex - using fallback options', 
+          'PARSE_ERROR': 'AI response error - using fallback options',
+          'ALL_REJECTED': 'AI options failed quality check - using fallback options',
+          'GENERATION_FAILED': 'Visual generation failed - using fallback options'
+        };
+        sonnerToast.warning(fallbackMessages[errorCode] || 'Using fallback visual options');
+      } else {
+        sonnerToast.success("Visual recommendations generated successfully!");
+      }
+    } catch (error) {
+      console.error('Error generating visual recommendations:', error);
+    } finally {
+      setIsGeneratingSubject(false);
+    }
   };
 
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
+  // Generate text using new text generator
+  const handleGenerateText = async () => {
+    // Skip AI generation in barebones mode
+    if (barebonesMode) {
+      sonnerToast.error("AI text generation is disabled in barebones mode. Please use 'Write my own line' option.");
+      return;
+    }
     
+    setIsGenerating(true);
+    try {
+      // Map UI selections to text generator inputs
+      let category = '';
+      let subcategory = '';
+      console.log('🏷️ Text generation started with tags:', tags);
+
+      // Map category
+      switch (selectedStyle) {
+        case 'celebrations':
+          category = 'Celebrations';
+          break;
+        case 'sports':
+          category = 'Sports';
+          break;
+        case 'daily-life':
+          category = 'Daily Life';
+          break;
+        case 'vibes-punchlines':
+          category = 'Vibes & Punchlines';
+          break;
+        case 'pop-culture':
+          category = 'Pop Culture';
+          break;
+        case 'random':
+          category = 'General';
+          break;
+        default:
+          category = 'General';
+      }
+
+      // Get subcategory based on selected option
+      if (selectedStyle === 'celebrations' && selectedSubOption) {
+        const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+        subcategory = celebOption?.name || selectedSubOption;
+      } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+        const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+        subcategory = popOption?.name || selectedSubOption;
+      } else if (selectedSubOption) {
+        subcategory = selectedSubOption;
+      } else {
+        subcategory = 'General';
+      }
+
+      // Get tone from text style
+      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+      const tone = selectedTextStyleObj?.name || 'Humorous';
+
+      // Prepare tags for generation
+      let finalTagsForGeneration = [...tags];
+      
+      // For pop culture entities, add the entity name as a tag if not already present
+      if (selectedStyle === 'pop-culture' && selectedPick) {
+        const entityTag = selectedPick.toLowerCase();
+        if (!finalTagsForGeneration.some(tag => tag.toLowerCase() === entityTag)) {
+          finalTagsForGeneration.push(selectedPick);
+        }
+      }
+
+      console.log('📋 Final parameters for text generation:', {
+        category,
+        subcategory,
+        tone,
+        tags: finalTagsForGeneration
+      });
+
+      // Generate using new text generator
+      const result = await generateStep2Lines({
+        category,
+        subcategory,
+        tone,
+        tags: finalTagsForGeneration
+      });
+
+      console.log('✅ Generated text options:', result);
+
+      // Clear previous selection when generating/regenerating
+      setSelectedGeneratedOption(null);
+      setSelectedGeneratedIndex(null);
+      setGeneratedOptions(result.lines.map(line => line.text));
+
+      // Show success toast
+      sonnerToast.success("Generated new text options", {
+        description: "4 new AI-generated options are ready for your review."
+      });
+    } catch (error) {
+      console.error('❌ Error generating text:', error);
+      sonnerToast.error('Failed to generate text options. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+  const handleApiKeySet = (apiKey: string) => {
+    openAIService.setApiKey(apiKey);
+  };
+  const handleIdeogramApiKeySet = (apiKey: string) => {
+    setIdeogramApiKey(apiKey);
+    toast({
+      title: "API Key Saved",
+      description: "Your Ideogram API key has been saved securely."
+    });
+  };
+  const handleGenerateImage = async () => {
+    const apiKey = getIdeogramApiKey();
+    if (!apiKey) {
+      setShowIdeogramKeyDialog(true);
+      return;
+    }
+    setIsGeneratingImage(true);
+    setImageGenerationError("");
+    setGeneratedImageUrl(null);
+    try {
+      // Build the handoff data using actual form values
+      // FIXED: Prioritize confirmed custom text over AI recommendations
+      const finalText = stepTwoText || selectedGeneratedOption || "";
+      console.log('🎯 Final text choice:', { stepTwoText, selectedGeneratedOption, finalText });
+      const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+      const subcategory = (() => {
+        if (selectedStyle === 'celebrations' && selectedSubOption) {
+          const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+          return celebOption?.name || selectedSubOption;
+        } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+          const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+          return popOption?.name || selectedSubOption;
+        }
+        return selectedSubOption || 'general';
+      })();
+      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+      const tone = selectedTextStyleObj?.name || 'Humorous';
+      const visualStyle = selectedVisualStyle || "realistic";
+      const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Landscape";
+      const textTagsStr = tags.join(', ') || "None";
+      const visualTagsStr = subjectTags.join(', ') || "None";
+      const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : selectedSubjectOption === "design-myself" && subjectDescription ? subjectDescription : "";
+      const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
+      const ideogramPayload = buildIdeogramHandoff({
+        visual_style: visualStyle,
+        subcategory: subcategory,
+        tone: tone.toLowerCase(),
+        final_line: finalText,
+        tags_csv: [textTagsStr, visualTagsStr].filter(tag => tag !== "None").join(', '),
+        chosen_visual: chosenVisual,
+        category: categoryName,
+        subcategory_secondary: subcategorySecondary,
+        aspect_ratio: aspectRatio,
+        text_tags_csv: textTagsStr,
+        visual_tags_csv: visualTagsStr,
+        ai_text_assist_used: selectedCompletionOption === "ai-assist",
+        ai_visual_assist_used: selectedSubjectOption === "ai-assist"
+      });
+
+      // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
+      let prompt = directPrompt.trim();
+      
+      // Sanitize direct prompt to remove text-generating terms
+      if (prompt) {
+        prompt = prompt.replace(/(text|caption|words|letters|typography|signage|watermark|logo)/gi, 'design');
+        // If we have finalText to overlay, ensure background-only generation
+        if (finalText && finalText.trim()) {
+          prompt += ", no text, no words, no letters, background only";
+        }
+      }
+      
+      if (!prompt && selectedRecommendation !== null && visualRecommendations) {
+        prompt = visualRecommendations.options[selectedRecommendation].prompt;
+      }
+      if (!prompt && !barebonesMode) {
+        const layoutToken = (finalText && finalText.trim() && selectedTextLayout) 
+          ? layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.token 
+          : undefined;
+        prompt = buildIdeogramPrompt(ideogramPayload, false, layoutToken);
+      }
+      
+      // In barebones mode, require direct prompt
+      if (barebonesMode && !prompt) {
+        sonnerToast.error("Please provide a direct prompt in barebones mode.");
+        return;
+      }
+
+      // ALWAYS append layout tokens to ensure proper text overlay space
+      if (finalText && finalText.trim() && selectedTextLayout) {
+        const layoutConfig = layoutMappings[selectedTextLayout as keyof typeof layoutMappings];
+        if (layoutConfig && !prompt.toLowerCase().includes(layoutConfig.token.toLowerCase())) {
+          prompt += `, ${layoutConfig.token}`;
+          console.log(`🎯 Added layout token for ${selectedTextLayout}: ${layoutConfig.token}`);
+        }
+      }
+
+      const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
+      // Always respect the selected visual style
+      const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
+      console.log('=== Ideogram Generation Debug ===');
+      console.log('Direct prompt provided:', !!directPrompt.trim());
+      console.log('Selected text layout:', selectedTextLayout);
+      console.log('Final text for overlay:', finalText);
+      console.log('Final prompt with layout tokens:', prompt);
+      console.log('Aspect ratio:', aspectForIdeogram);
+      console.log('Style type:', styleForIdeogram);
+      console.log('Final payload:', {
+        prompt,
+        aspect_ratio: aspectForIdeogram,
+        model: 'V_3',
+        magic_prompt_option: 'AUTO',
+        style_type: styleForIdeogram
+      });
+      const modelForIdeogram = 'V_3'; // V_3 model for better quality
+      const response = await generateIdeogramImage({
+        prompt,
+        aspect_ratio: aspectForIdeogram,
+        model: modelForIdeogram,
+        magic_prompt_option: 'AUTO',
+        style_type: styleForIdeogram
+      });
+      if (response.data && response.data.length > 0) {
+        const backgroundImageUrl = response.data[0].url;
+        setBackgroundOnlyImageUrl(backgroundImageUrl);
+        setGeneratedImageUrl(backgroundImageUrl);
+        
+        // Add text overlay if there's text content
+        // FIXED: Prioritize confirmed custom text over AI recommendations
+        const finalText = stepTwoText || selectedGeneratedOption || "";
+        console.log('🎯 Final text for overlay:', { stepTwoText, selectedGeneratedOption, finalText });
+        if (finalText && finalText.trim() && selectedTextLayout) {
+          try {
+            setIsAddingTextOverlay(true);
+            const imageWithText = await addTextOverlay(backgroundImageUrl, {
+              text: finalText,
+              layout: selectedTextLayout,
+              aspectRatio: selectedDimension || "Square"
+            });
+            setFinalImageWithText(imageWithText);
+            setGeneratedImageUrl(imageWithText);
+            sonnerToast.success("Your VIIBE with text has been generated successfully!");
+          } catch (textError) {
+            console.error('Text overlay failed:', textError);
+            sonnerToast.success("Your VIIBE background has been generated successfully!");
+            sonnerToast.error("Text overlay failed, showing background only");
+          } finally {
+            setIsAddingTextOverlay(false);
+          }
+        } else {
+          sonnerToast.success("Your VIIBE has been generated successfully!");
+        }
+      } else {
+        throw new Error("No image data received from Ideogram API");
+      }
+     } catch (error) {
+       console.error('Image generation failed:', error);
+       
+       let errorMessage = 'Image generation failed';
+       
+       if (error instanceof IdeogramAPIError) {
+         // Handle specific CORS demo activation error
+         if (error.message === 'CORS_DEMO_REQUIRED') {
+           setShowCorsRetryDialog(true);
+           setImageGenerationError('CORS proxy needs activation. Click "Enable CORS Proxy" button below, then try again.');
+           return;
+         } else if (error.message.includes('proxy.cors.sh') && !getProxySettings().apiKey) {
+           errorMessage = 'Proxy.cors.sh selected but no API key provided. Add an API key in Proxy Settings for better reliability.';
+           setTimeout(() => setShowProxySettingsDialog(true), 2000);
+         } else if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+           errorMessage = 'Connection failed. Trying alternative proxy methods automatically...';
+           setTimeout(() => setShowProxySettingsDialog(true), 2000);
+         } else {
+           // Show the actual Ideogram API error message
+           errorMessage = error.message;
+         }
+       } else if (error instanceof Error) {
+         // Show the actual error message from the edge function
+         errorMessage = error.message;
+       } else {
+         errorMessage = 'An unexpected error occurred while generating the image.';
+       }
+       
+       setImageGenerationError(errorMessage);
+       sonnerToast.error(errorMessage);
+     } finally {
+       setIsGeneratingImage(false);
+     }
+  };
+  const handleDownloadImage = () => {
+    const imageToDownload = finalImageWithText || generatedImageUrl;
+    if (!imageToDownload) return;
+    const link = document.createElement('a');
+    link.href = imageToDownload;
+    link.download = finalImageWithText ? 'viibe-with-text.jpg' : 'viibe-image.jpg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast({
+      title: "Download Started",
+      description: "Your VIIBE image is being downloaded."
+    });
+  };
+  const handleSearch = async (searchTerm: string) => {
+    if (!searchTerm.trim() || !selectedSubOption) return;
+    if (!openAIService.hasApiKey()) {
+      setShowApiKeyDialog(true);
+      return;
+    }
+    setIsSearching(true);
+    setSearchError("");
+    setSearchResults([]);
+    try {
+      const results = await openAIService.searchPopCulture(selectedSubOption, searchTerm);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchError(error instanceof Error ? error.message : 'Search failed');
+      if (error instanceof Error && error.message.includes('API key')) {
+        setShowApiKeyDialog(true);
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
+  const handleSearchInputChange = (value: string) => {
+    setFinalSearchTerm(value);
+    setSearchResults([]);
+    setSearchError("");
+
+    // Clear results if search is empty
+    if (!value.trim()) {
+      return;
+    }
+
+    // If searching fictional characters, also search the local list
+    if (selectedSubOption === "Fictional Characters" && value.trim()) {
+      const filteredCharacters = fictionalCharactersList.filter(character => character.toLowerCase().includes(value.toLowerCase())).slice(0, 8) // Limit to 8 results
+      .map(character => ({
+        title: character,
+        description: `Fictional character from popular culture`
+      }));
+      setSearchResults(filteredCharacters);
+    }
+
+    // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    
+
+    // Debounced search - trigger after 250ms of no typing (much faster)
     searchTimeoutRef.current = setTimeout(() => {
       if (value.trim()) {
         handleSearch(value);
       }
     }, 250);
   };
-
-  const handleStyleSelect = (styleId: string) => {
-    setSelectedStyle(styleId);
-    setSelectedSubcategory("");
-    setSearchQuery("");
-    setFilteredOptions([]);
-  };
-
-  const handleSubcategorySelect = (subcategoryId: string) => {
-    setSelectedSubcategory(subcategoryId);
-    setSearchQuery("");
-    setFilteredOptions([]);
-  };
-
-  const handleNextStep = () => {
-    if (currentStep < 4) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handlePreviousStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleGenerateText = async () => {
-    setIsGeneratingText(true);
-    try {
-      const result = await generateStep2Lines({
-        category: selectedStyle,
-        subcategory: selectedSubcategory,
-        tone: "funny",
-        tags: []
-      });
-      setTextOptions(result.lines);
-    } catch (error) {
-      console.error("Error generating text:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate text options. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsGeneratingText(false);
-    }
-  };
-
-  const handleGenerateVisuals = async () => {
-    setIsGeneratingVisuals(true);
-    try {
-      // This would call the visual generation service
-      // For now, using placeholder data
-      const mockVisuals = [
-        { lane: "option1", prompt: "birthday cake with candles" },
-        { lane: "option2", prompt: "party decorations and balloons" },
-        { lane: "option3", prompt: "gift boxes and ribbons" },
-        { lane: "option4", prompt: "celebration scene with confetti" }
-      ];
-      setVisualOptions(mockVisuals);
-    } catch (error) {
-      console.error("Error generating visuals:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate visual options. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsGeneratingVisuals(false);
-    }
-  };
-
-  const handleGenerateImage = async () => {
-    if (!selectedTextOption || !selectedVisualOption) {
-      toast({
-        title: "Missing Selection",
-        description: "Please select both a text option and visual option before generating images.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsGeneratingImages(true);
-    setImageGenerationError("");
-
-    try {
-      const selectedText = textOptions.find(option => option.lane === selectedTextOption);
-      const selectedVisual = visualOptions.find(option => option.lane === selectedVisualOption);
-      
-      if (!selectedText || !selectedVisual) {
-        throw new Error("Selected options not found");
-      }
-
-      // Create proper IdeogramHandoff object
-      const handoff = buildIdeogramHandoff({
-        visual_style: "general",
-        subcategory: selectedSubcategory,
-        tone: "funny",
-        final_line: selectedText.text,
-        tags_csv: "",
-        chosen_visual: selectedVisual.prompt,
-        category: selectedStyle,
-        aspect_ratio: selectedLayout,
-        text_tags_csv: "",
-        visual_tags_csv: "",
-        ai_text_assist_used: true,
-        ai_visual_assist_used: true
-      });
-      
-      const prompt = buildIdeogramPrompt(handoff, true, layoutMappings[selectedLayout as keyof typeof layoutMappings]?.token);
-      
-      const result = await generateIdeogramImage({
-        model: "V_2",
-        prompt: prompt,
-        aspect_ratio: getAspectRatioForIdeogram(selectedLayout),
-        magic_prompt_option: "AUTO",
-        style_type: getStyleTypeForIdeogram("general"),
-        seed: Math.floor(Math.random() * 1000000)
-      });
-
-      if (result.data && result.data.length > 0) {
-        const newImages = result.data.map((imageData: any, index: number) => ({
-          id: `generated-${Date.now()}-${index}`,
-          url: imageData.url,
-          isSelected: index === 0
-        }));
-        setGeneratedImages(newImages);
-        
-        toast({
-          title: "Success",
-          description: "Images generated successfully!",
-        });
-      } else {
-        throw new Error("No images returned from generation");
-      }
-    } catch (error) {
-      console.error("Error generating images:", error);
-      let errorMessage = "Failed to generate images. Please try again.";
-      
-      if (error instanceof IdeogramAPIError) {
-        if (error.message.includes("API key")) {
-          setShowIdeogramKeyDialog(true);
-          errorMessage = "Please set up your Ideogram API key to generate images.";
-        } else if (error.message.includes("CORS") || error.message.includes("Network")) {
-          setShowCorsRetryDialog(true);
-          errorMessage = "Network connection issue. Please check your connection and try again.";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      setImageGenerationError(errorMessage);
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive"
-      });
-    } finally {
-      setIsGeneratingImages(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background py-12 px-4 pb-32">
       <div className="max-w-6xl mx-auto">
         
+        {/* Step Progress Header */}
         <StepProgress currentStep={currentStep} />
         
         {currentStep === 1 && (
-          <div className="space-y-8">
+          <>
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Category</h2>
               <p className="text-xl text-muted-foreground">Select the Category that best fits your Viibe</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {styleOptions.map((style) => (
-                <Card
-                  key={style.id}
-                  className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                    selectedStyle === style.id
-                      ? "ring-2 ring-primary border-primary"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                  onClick={() => handleStyleSelect(style.id)}
-                >
-                  <CardHeader>
-                    <CardTitle className="text-lg">{style.name}</CardTitle>
-                    <CardDescription>{style.description}</CardDescription>
-                  </CardHeader>
-                </Card>
-              ))}
+            {/* Show all cards when no style is selected, or only the selected card */}
+            {!selectedStyle ? (
+              <>
+                {/* Search Bar */}
+            <div className="max-w-md mx-auto mb-12">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search styles..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+              </div>
             </div>
 
-            {selectedStyle && (
-              <div className="mt-8">
+            {(() => {
+            // Enhanced search that includes subcategories
+            const searchTermLower = searchTerm.toLowerCase();
+
+            // Search main categories
+            const filteredStyles = styleOptions.filter(style => style.name.toLowerCase().includes(searchTermLower) || style.description.toLowerCase().includes(searchTermLower));
+
+            // Search subcategories and create hierarchical results
+            const subcategoryResults = [];
+            if (searchTermLower) {
+              // Search celebrations
+              celebrationOptions.forEach(option => {
+                if (option.name.toLowerCase().includes(searchTermLower)) {
+                  subcategoryResults.push({
+                    category: 'celebrations',
+                    categoryName: 'Celebrations',
+                    subcategory: option,
+                    type: 'subcategory'
+                  });
+                }
+              });
+
+              // Search sports
+              sportsOptions.forEach(option => {
+                if (option.name.toLowerCase().includes(searchTermLower)) {
+                  subcategoryResults.push({
+                    category: 'sports',
+                    categoryName: 'Sports',
+                    subcategory: option,
+                    type: 'subcategory'
+                  });
+                }
+              });
+
+              // Search daily life
+              dailyLifeOptions.forEach(option => {
+                if (option.name.toLowerCase().includes(searchTermLower)) {
+                  subcategoryResults.push({
+                    category: 'daily-life',
+                    categoryName: 'Daily Life',
+                    subcategory: option,
+                    type: 'subcategory'
+                  });
+                }
+              });
+
+              // Search vibes & punchlines
+              vibesPunchlinesOptions.forEach(option => {
+                if (option.name.toLowerCase().includes(searchTermLower) || option.subtitle.toLowerCase().includes(searchTermLower)) {
+                  subcategoryResults.push({
+                    category: 'vibes-punchlines',
+                    categoryName: 'Vibes & Punchlines',
+                    subcategory: option,
+                    type: 'subcategory'
+                  });
+                }
+              });
+
+              // Search pop culture
+              popCultureOptions.forEach(option => {
+                if (option.name.toLowerCase().includes(searchTermLower) || option.subtitle.toLowerCase().includes(searchTermLower)) {
+                  subcategoryResults.push({
+                    category: 'pop-culture',
+                    categoryName: 'Pop Culture',
+                    subcategory: option,
+                    type: 'subcategory'
+                  });
+                }
+              });
+            }
+            const hasResults = filteredStyles.length > 0 || subcategoryResults.length > 0;
+            return hasResults ? <div className="space-y-6">
+                  {/* Main Categories Results */}
+                  {filteredStyles.length > 0 && <div className="space-y-4">
+                      {searchTerm && <h3 className="text-lg font-medium text-foreground text-center">Categories</h3>}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center">
+                        {filteredStyles.map(style => <Card key={style.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm" onClick={() => setSelectedStyle(style.id)}>
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-lg font-semibold text-card-foreground">
+                                {style.name}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <CardDescription className="text-sm text-muted-foreground">
+                                {style.description}
+                              </CardDescription>
+                            </CardContent>
+                          </Card>)}
+                      </div>
+                    </div>}
+                  
+                  {/* Subcategories Results */}
+                  {subcategoryResults.length > 0 && <div className="space-y-4">
+                      {searchTerm && <h3 className="text-lg font-medium text-foreground text-center">Specific Topics</h3>}
+                      <div className="max-w-2xl mx-auto space-y-2">
+                        {subcategoryResults.map((result, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:bg-accent/50" onClick={() => {
+                    setSelectedStyle(result.category);
+                    setSelectedSubOption(result.subcategory.name);
+                  }}>
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                  {result.categoryName}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-medium text-card-foreground">
+                                    {result.subcategory.name}
+                                  </p>
+                                  {result.subcategory.subtitle && <p className="text-sm text-muted-foreground">
+                                      {result.subcategory.subtitle}
+                                    </p>}
+                                </div>
+                                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            </CardContent>
+                          </Card>)}
+                      </div>
+                    </div>}
+                </div> : <div className="text-center py-12">
+                  <p className="text-lg text-muted-foreground">No matches found</p>
+                  <p className="text-sm text-muted-foreground mt-2">Try a different search term</p>
+                </div>;
+          })()}
+          </> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Combined Category and Subcategory Selection Card */}
+            {(() => {
+            const selectedStyleData = styleOptions.find(s => s.id === selectedStyle);
+            const selections = [{
+              title: selectedStyleData?.name || '',
+              subtitle: selectedStyleData?.description || '',
+              onChangeSelection: () => {
+                setSelectedStyle(null);
+                setSelectedSubOption(null);
+                setSelectedPick(null);
+                setSubOptionSearchTerm("");
+              }
+            }];
+
+            // Add subcategory selection if it exists
+            if (selectedSubOption) {
+              selections.push({
+                title: selectedSubOption,
+                subtitle: selectedStyle === 'celebrations' ? 'Selected celebration' : selectedStyle === 'sports' ? 'Selected sport' : selectedStyle === 'daily-life' ? 'Selected daily life activity' : selectedStyle === 'vibes-punchlines' ? 'Selected vibe' : selectedStyle === 'pop-culture' ? 'Selected pop culture' : 'Selected option',
+                onChangeSelection: () => {
+                  setSelectedSubOption(null);
+                  setSelectedPick(null);
+                  setSubOptionSearchTerm("");
+                }
+              });
+            }
+            return <StackedSelectionCard selections={selections} />;
+          })()}
+
+            {/* Celebrations Dropdown - Only show for celebrations style */}
+            {selectedStyle === "celebrations" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
-                  <h3 className="text-xl font-semibold text-foreground mb-2">Choose Subcategory</h3>
-                  <p className="text-muted-foreground">Pick the specific topic that matches your idea</p>
+                  <p className="text-xl text-muted-foreground">Choose a specific celebration</p>
                 </div>
-
-                <div className="mb-6">
-                  <div className="relative max-w-md mx-auto">
+                
+                <div className="space-y-4">
+                  {/* Search Input */}
+                  <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Search subcategories..."
-                      value={searchQuery}
-                      onChange={(e) => handleSearchChange(e.target.value)}
-                      className="pl-10"
-                    />
+                    <Input value={subOptionSearchTerm} onChange={e => setSubOptionSearchTerm(e.target.value)} onFocus={() => setIsSearchFocused(true)} onBlur={() => {
+                  // Delay hiding the list to allow clicks to complete
+                  setTimeout(() => setIsSearchFocused(false), 150);
+                }} placeholder="Search celebrations..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                   </div>
+
+                  {/* Celebrations List */}
+                  {(isSearchFocused || subOptionSearchTerm.length > 0) && <Card className="max-h-96 overflow-hidden">
+                      <ScrollArea className="h-96">
+                        <div className="p-4 space-y-2">
+                          {(() => {
+                      const filteredCelebrations = celebrationOptions.filter(celebration => celebration.name.toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
+                      return filteredCelebrations.length > 0 ? filteredCelebrations.map(celebration => <div key={celebration.id} onClick={e => {
+                        console.log('Celebration clicked:', celebration.name);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(celebration.name);
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                                  <p className="text-sm font-medium text-card-foreground">
+                                    {celebration.name}
+                                  </p>
+                                </div>) : subOptionSearchTerm.trim() ? <div onClick={e => {
+                        console.log('Custom celebration clicked:', subOptionSearchTerm.trim());
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(subOptionSearchTerm.trim());
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
+                                <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
+                                  <span className="text-xs font-bold text-muted-foreground">+</span>
+                                </div>
+                                <p className="text-sm font-medium text-card-foreground">
+                                  Add "{subOptionSearchTerm.trim()}" as custom celebration
+                                </p>
+                              </div> : <div className="text-center py-8">
+                                <p className="text-muted-foreground">Start typing to search celebrations</p>
+                              </div>;
+                    })()}
+                        </div>
+                      </ScrollArea>
+                    </Card>}
                 </div>
-
-                <ScrollArea className="h-64">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {(searchQuery ? filteredOptions : getSubcategoryOptions()).map((option) => (
-                      <Card
-                        key={option.id}
-                        className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                          selectedSubcategory === option.id
-                            ? "ring-2 ring-primary border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
-                        }`}
-                        onClick={() => handleSubcategorySelect(option.id)}
-                      >
-                        <CardHeader className="py-3">
-                          <CardTitle className="text-sm">{option.name}</CardTitle>
-                        </CardHeader>
-                      </Card>
-                    ))}
+               </div> : selectedStyle === "sports" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-6">
+                  <p className="text-xl text-muted-foreground">Choose a specific sport</p>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input value={subOptionSearchTerm} onChange={e => setSubOptionSearchTerm(e.target.value)} onFocus={() => setIsSearchFocused(true)} onBlur={() => {
+                  // Delay hiding the list to allow clicks to complete
+                  setTimeout(() => setIsSearchFocused(false), 150);
+                }} placeholder="Search sports..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                   </div>
-                </ScrollArea>
 
-                {selectedSubcategory && (
-                  <div className="flex justify-center mt-8">
-                    <Button onClick={handleNextStep} size="lg">
-                      Continue to Text Generation
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                  {/* Sports List */}
+                  {(isSearchFocused || subOptionSearchTerm.length > 0) && <Card className="max-h-96 overflow-hidden">
+                      <ScrollArea className="h-96">
+                        <div className="p-4 space-y-2">
+                          {(() => {
+                      const filteredSports = sportsOptions.filter(sport => sport.name.toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
+                      return filteredSports.length > 0 ? filteredSports.map(sport => <div key={sport.id} onClick={e => {
+                        console.log('Sport clicked:', sport.name);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(sport.name);
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                                  <p className="text-sm font-medium text-card-foreground">
+                                    {sport.name}
+                                  </p>
+                                </div>) : subOptionSearchTerm.trim() ? <div onClick={e => {
+                        console.log('Custom sport clicked:', subOptionSearchTerm.trim());
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(subOptionSearchTerm.trim());
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
+                                <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
+                                  <span className="text-xs font-bold text-muted-foreground">+</span>
+                                </div>
+                                <p className="text-sm font-medium text-card-foreground">
+                                  Add '{subOptionSearchTerm.trim()}' as custom sport
+                                </p>
+                              </div> : <div className="p-8 text-center text-muted-foreground">
+                                <p>No sports found</p>
+                              </div>;
+                    })()}
+                        </div>
+                      </ScrollArea>
+                    </Card>}
+                </div>
+              </div> : selectedStyle === "daily-life" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-6">
+                  <p className="text-xl text-muted-foreground">Choose a specific daily life activity</p>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input value={subOptionSearchTerm} onChange={e => setSubOptionSearchTerm(e.target.value)} onFocus={() => setIsSearchFocused(true)} onBlur={() => {
+                  // Delay hiding the list to allow clicks to complete
+                  setTimeout(() => setIsSearchFocused(false), 150);
+                }} placeholder="Search daily life activities..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
 
-        {currentStep === 2 && (
-          <div className="space-y-8">
+                  {/* Daily Life List */}
+                  {(isSearchFocused || subOptionSearchTerm.length > 0) && <Card className="max-h-96 overflow-hidden">
+                      <ScrollArea className="h-96">
+                        <div className="p-4 space-y-2">
+                          {(() => {
+                      const filteredDailyLife = dailyLifeOptions.filter(activity => activity.name.toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
+                      return filteredDailyLife.length > 0 ? filteredDailyLife.map(activity => <div key={activity.id} onClick={e => {
+                        console.log('Daily life activity clicked:', activity.name);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(activity.name);
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                                  <p className="text-sm font-medium text-card-foreground">
+                                    {activity.name}
+                                  </p>
+                                </div>) : subOptionSearchTerm.trim() ? <div onClick={e => {
+                        console.log('Custom daily life clicked:', subOptionSearchTerm.trim());
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(subOptionSearchTerm.trim());
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
+                                <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
+                                  <span className="text-xs font-bold text-muted-foreground">+</span>
+                                </div>
+                                <p className="text-sm font-medium text-card-foreground">
+                                  Add "{subOptionSearchTerm.trim()}" as custom activity
+                                </p>
+                              </div> : <div className="text-center py-8">
+                                <p className="text-muted-foreground">Start typing to search activities</p>
+                              </div>;
+                    })()}
+                        </div>
+                      </ScrollArea>
+                    </Card>}
+                </div>
+              </div> : selectedStyle === "vibes-punchlines" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-6">
+                  <p className="text-xl text-muted-foreground">Choose a specific vibe or punchline style</p>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input value={subOptionSearchTerm} onChange={e => setSubOptionSearchTerm(e.target.value)} onFocus={() => setIsSearchFocused(true)} onBlur={() => {
+                  // Delay hiding the list to allow clicks to complete
+                  setTimeout(() => setIsSearchFocused(false), 150);
+                }} placeholder="Search vibes & punchlines..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                  </div>
+
+                  {/* Vibes & Punchlines List */}
+                  {(isSearchFocused || subOptionSearchTerm.length > 0) && <Card className="max-h-96 overflow-hidden">
+                      <ScrollArea className="h-96">
+                        <div className="p-4 space-y-2">
+                          {(() => {
+                      const filteredVibes = vibesPunchlinesOptions.filter(vibe => (vibe.name + " " + vibe.subtitle).toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
+                      return filteredVibes.length > 0 ? filteredVibes.map(vibe => <div key={vibe.id} onClick={e => {
+                        console.log('Vibe clicked:', vibe.name);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(vibe.name);
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                                  <p className="text-sm font-medium text-card-foreground">
+                                    {vibe.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {vibe.subtitle}
+                                  </p>
+                                </div>) : subOptionSearchTerm.trim() ? <div onClick={e => {
+                        console.log('Custom vibe clicked:', subOptionSearchTerm.trim());
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(subOptionSearchTerm.trim());
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
+                                <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
+                                  <span className="text-xs font-bold text-muted-foreground">+</span>
+                                </div>
+                                <p className="text-sm font-medium text-card-foreground">
+                                  Add "{subOptionSearchTerm.trim()}" as custom vibe
+                                </p>
+                              </div> : <div className="text-center py-8">
+                                <p className="text-muted-foreground">Start typing to search vibes & punchlines</p>
+                              </div>;
+                    })()}
+                        </div>
+                      </ScrollArea>
+                    </Card>}
+                </div>
+              </div> : selectedStyle === "pop-culture" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-6">
+                  <p className="text-xl text-muted-foreground">Choose a specific pop culture topic</p>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input value={subOptionSearchTerm} onChange={e => setSubOptionSearchTerm(e.target.value)} onFocus={() => setIsSearchFocused(true)} onBlur={() => {
+                  // Delay hiding the list to allow clicks to complete
+                  setTimeout(() => setIsSearchFocused(false), 150);
+                }} placeholder="Search pop culture..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                  </div>
+
+                  {/* Pop Culture List */}
+                  {(isSearchFocused || subOptionSearchTerm.length > 0) && <Card className="max-h-96 overflow-hidden">
+                      <ScrollArea className="h-96">
+                        <div className="p-4 space-y-2">
+                          {(() => {
+                      const filteredPopCulture = popCultureOptions.filter(item => item.name.toLowerCase().includes(subOptionSearchTerm.toLowerCase()) || item.subtitle.toLowerCase().includes(subOptionSearchTerm.toLowerCase()));
+                      return filteredPopCulture.length > 0 ? filteredPopCulture.map(item => <div key={item.id} onClick={e => {
+                        console.log('Pop culture clicked:', item.name);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(item.name);
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                                  <p className="text-sm font-medium text-card-foreground">
+                                    {item.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {item.subtitle}
+                                  </p>
+                                </div>) : subOptionSearchTerm.trim() ? <div onClick={e => {
+                        console.log('Custom pop culture clicked:', subOptionSearchTerm.trim());
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedSubOption(subOptionSearchTerm.trim());
+                        setIsSearchFocused(false);
+                        setSubOptionSearchTerm("");
+                      }} className="p-3 rounded-lg border border-dashed border-border hover:bg-accent/50 cursor-pointer transition-colors flex items-center gap-2">
+                                <div className="w-4 h-4 rounded-full border border-muted-foreground flex items-center justify-center">
+                                  <span className="text-xs font-bold text-muted-foreground">+</span>
+                                </div>
+                                <p className="text-sm font-medium text-card-foreground">
+                                  Add "{subOptionSearchTerm.trim()}" as custom pop culture topic
+                                </p>
+                              </div> : <div className="text-center py-8">
+                                <p className="text-muted-foreground">Start typing to search pop culture</p>
+                              </div>;
+                    })()}
+                        </div>
+                      </ScrollArea>
+                    </Card>}
+                </div>
+              </div> : selectedStyle === "pop-culture" && selectedSubOption && !selectedPick ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-6">
+                  <p className="text-xl text-muted-foreground">Search for specific {selectedSubOption}</p>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Dynamic Search Input - searches as you type */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input value={searchTerm} onChange={e => {
+                  setSearchTerm(e.target.value);
+                  handleSearchInputChange(e.target.value);
+                }} placeholder={`Search ${selectedSubOption}... (type to search automatically)`} className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                    {isSearching && <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>}
+                  </div>
+
+                  {/* Search Status and Results */}
+                  {searchTerm.length >= 2 && <>
+                      {isSearching && <div className="text-center p-4 bg-muted/50 rounded-lg border border-border">
+                          <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <p className="text-sm text-muted-foreground">
+                              Searching extensive {selectedSubOption.toLowerCase()} database...
+                            </p>
+                          </div>
+                        </div>}
+
+                      {!isSearching && searchResults.length > 0 && <>
+                          <div className="text-center mb-4">
+                            <p className="text-sm text-muted-foreground">
+                              Found {searchResults.length} results from OpenAI's extensive database
+                            </p>
+                          </div>
+                          <Card className="max-h-96 overflow-hidden">
+                            <ScrollArea className="h-96">
+                              <div className="p-4 space-y-2">
+                                {searchResults.map((result, index) => <div key={index} onClick={() => {
+                          setSelectedPick(result.title);
+                          setSearchResults([]);
+                          setSearchTerm("");
+                        }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                                    <p className="text-sm font-medium text-card-foreground">
+                                      {result.title}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {result.description}
+                                    </p>
+                                  </div>)}
+                              </div>
+                            </ScrollArea>
+                          </Card>
+                        </>}
+
+                      {!isSearching && searchResults.length === 0 && !searchError && searchTerm.length >= 2 && <div className="text-center p-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/50">
+                          <p className="text-sm text-muted-foreground mb-2">
+                            No results found in database
+                          </p>
+                          <Button onClick={() => {
+                    setSelectedPick(searchTerm.trim());
+                    setSearchTerm("");
+                  }} variant="outline" size="sm" className="px-4 py-2">
+                            Use "{searchTerm.trim()}" anyway
+                          </Button>
+                        </div>}
+                    </>}
+
+                  {searchTerm.length > 0 && searchTerm.length < 2 && <div className="text-center p-4 bg-muted/20 rounded-lg border border-dashed border-muted-foreground/30">
+                      <p className="text-sm text-muted-foreground">
+                        Type at least 2 characters to search...
+                      </p>
+                    </div>}
+
+                  {/* Search Error */}
+                  {searchError && <div className="text-center p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+                      <p className="text-sm text-destructive">{searchError}</p>
+                    </div>}
+
+                  {/* Custom Entry Option */}
+                  {searchTerm.trim() && searchResults.length === 0 && !isSearching && !searchError && <div className="text-center">
+                      <Button onClick={() => {
+                  setSelectedPick(searchTerm.trim());
+                  setSearchTerm("");
+                }} variant="outline" size="lg" className="px-6 py-3">
+                        Use "{searchTerm.trim()}" as custom {selectedSubOption.toLowerCase()}
+                      </Button>
+                    </div>}
+                </div>
+              </div> : selectedStyle === "random" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-6">
+                  <p className="text-xl text-muted-foreground">Ready to create your text</p>
+                </div>
+                
+                <div className="text-center">
+                  <Button onClick={() => setCurrentStep(2)} variant="brand" size="lg" className="px-8 py-6 text-lg">
+                    Continue to Text
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                  <p className="text-sm text-muted-foreground mt-4">
+                    No specific category selected - let's create your text
+                  </p>
+                </div>
+              </div> : null}
+
+          </div>}
+          </>}
+
+        {currentStep === 2 && <>
             <div className="text-center mb-12">
-              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Generate Text Options</h2>
-              <p className="text-xl text-muted-foreground">Let's create some witty text for your meme</p>
+              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Text Style</h2>
+              <p className="text-xl italic">
+                {(() => {
+              let breadcrumb = [];
+
+              // Add main category
+              const selectedStyleObj = styleOptions.find(s => s.id === selectedStyle);
+              if (selectedStyleObj) {
+                breadcrumb.push(selectedStyleObj.name);
+              }
+
+              // Add subcategory
+              if (selectedSubOption) {
+                if (selectedStyle === 'celebrations') {
+                  const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                  breadcrumb.push(celebOption?.name || selectedSubOption);
+                } else if (selectedStyle === 'pop-culture') {
+                  const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                  breadcrumb.push(popOption?.name || selectedSubOption);
+                } else {
+                  breadcrumb.push(selectedSubOption);
+                }
+              }
+
+              // Add specific pick for pop culture
+              if (selectedPick && selectedStyle === 'pop-culture') {
+                breadcrumb.push(selectedPick);
+              }
+
+              // Render breadcrumb with dynamic colors
+              return <>
+                      {breadcrumb.map((item, index) => <span key={index}>
+                          <span className="text-muted-foreground">{item}</span>
+                          {index < breadcrumb.length && <span className="text-muted-foreground"> &gt; </span>}
+                        </span>)}
+                      <span className="text-[#0db0de]">Your Text</span>
+                    </>;
+            })()}
+              </p>
             </div>
 
-            <div className="flex justify-between mb-6">
-              <Button variant="outline" onClick={handlePreviousStep}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
-              </Button>
-              <Button onClick={handleGenerateText} disabled={isGeneratingText}>
-                {isGeneratingText ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  "Generate Text Options"
-                )}
-              </Button>
-            </div>
+            {/* Show style selection grid when no style is selected */}
+            {!selectedTextStyle ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center max-w-6xl mx-auto">
+                {textStyleOptions.map(style => <Card key={style.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm" onClick={() => setSelectedTextStyle(style.id)}>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-semibold text-card-foreground">
+                        {style.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-sm text-muted-foreground">
+                        {style.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>)}
+              </div> : (/* Show StackedSelectionCard when any selection is made */
+        <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {/* Show stacked selections when any selection is made */}
+                    {(selectedTextStyle || selectedCompletionOption || selectedGeneratedOption || isCustomTextConfirmed) && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <StackedSelectionCard selections={(() => {
+              const selections = [];
 
-            {textOptions.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-center">Choose Your Text</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {textOptions.map((option) => (
-                    <Card
-                      key={option.lane}
-                      className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                        selectedTextOption === option.lane
-                          ? "ring-2 ring-primary border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                      onClick={() => setSelectedTextOption(option.lane)}
-                    >
-                      <CardContent className="p-4">
-                        <p className="text-center">{option.text}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+              // Add text style selection
+              if (selectedTextStyle) {
+                const textStyleData = textStyleOptions.find(s => s.id === selectedTextStyle);
+                selections.push({
+                  title: textStyleData?.name || '',
+                  subtitle: textStyleData?.description || '',
+                  onChangeSelection: () => {
+                    setSelectedTextStyle(null);
+                    setSelectedCompletionOption(null);
+                    setGeneratedOptions([]);
+                    setSelectedGeneratedOption(null);
+                    setIsCustomTextConfirmed(false);
+                    setStepTwoText("");
+                    setSelectedTextLayout(null);
+                  }
+                });
+              }
 
-                {selectedTextOption && (
-                  <div className="flex justify-center mt-8">
-                    <Button onClick={handleNextStep} size="lg">
-                      Continue to Visual Generation
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+              // Add completion option selection
+              if (selectedCompletionOption) {
+                const completionData = completionOptions.find(opt => opt.id === selectedCompletionOption);
+                selections.push({
+                  title: completionData?.name || '',
+                  subtitle: selectedCompletionOption !== "write-myself" ? completionData?.description || '' : undefined,
+                  onChangeSelection: () => {
+                    setSelectedCompletionOption(null);
+                    setGeneratedOptions([]);
+                    setSelectedGeneratedOption(null);
+                    setIsCustomTextConfirmed(false);
+                    setStepTwoText("");
+                    setSelectedTextLayout(null);
+                  }
+                });
+              }
 
-        {currentStep === 3 && (
-          <div className="space-y-8">
-            <div className="text-center mb-12">
-              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Generate Visual Options</h2>
-              <p className="text-xl text-muted-foreground">Choose the perfect visual style for your meme</p>
-            </div>
+              // Add generated option selection (for AI assist)
+              if (selectedGeneratedOption && selectedCompletionOption === "ai-assist") {
+                selections.push({
+                  title: `Option ${selectedGeneratedIndex !== null ? selectedGeneratedIndex + 1 : 1}`,
+                  subtitle: selectedGeneratedOption,
+                  onChangeSelection: () => {
+                    setSelectedGeneratedOption(null);
+                    setSelectedGeneratedIndex(null);
+                    setSelectedTextLayout(null);
+                  }
+                });
+              }
 
-            <div className="flex justify-between mb-6">
-              <Button variant="outline" onClick={handlePreviousStep}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
-              </Button>
-              <Button onClick={handleGenerateVisuals} disabled={isGeneratingVisuals}>
-                {isGeneratingVisuals ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  "Generate Visual Options"
-                )}
-              </Button>
-            </div>
+              // Add custom text selection (for write myself)
+              if (isCustomTextConfirmed && selectedCompletionOption === "write-myself") {
+                selections.push({
+                  title: "Custom Text",
+                  subtitle: `"${stepTwoText}"`,
+                  onChangeSelection: () => {
+                    setIsCustomTextConfirmed(false);
+                    setSelectedTextLayout(null);
+                  }
+                });
+              }
 
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-center mb-4">Select Text Layout</h3>
-              <TextLayoutSelector
-                selectedLayout={selectedLayout}
-                onLayoutSelect={setSelectedLayout}
-              />
-            </div>
+              // Add generated options available notice (when options generated but none selected)
+              if (selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption) {
+                const tagDisplay = tags.length > 0 ? `, tags: ${tags.join(", ")}` : " (no tags added)";
+                selections.push({
+                  title: "Text options generated",
+                  subtitle: `100 characters max${tagDisplay}`,
+                  onChangeSelection: () => {
+                    setGeneratedOptions([]);
+                    setSelectedGeneratedOption(null);
+                    setSelectedGeneratedIndex(null);
+                  }
+                });
+              }
 
-            {visualOptions.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-center">Choose Your Visual Style</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {visualOptions.map((option) => (
-                    <Card
-                      key={option.lane}
-                      className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                        selectedVisualOption === option.lane
-                          ? "ring-2 ring-primary border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                      onClick={() => setSelectedVisualOption(option.lane)}
-                    >
-                      <CardContent className="p-4">
-                        <p className="text-center">{option.prompt}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+              // Add layout selection
+              if (selectedTextLayout && selectedCompletionOption !== "no-text") {
+                const layoutOptions = [
+                  { id: "negativeSpace", name: "Negative Space" },
+                  { id: "memeTopBottom", name: "Meme Top/Bottom" },
+                  { id: "lowerThird", name: "Lower Third Banner" },
+                  { id: "sideBarLeft", name: "Side Bar (Left)" },
+                  { id: "badgeSticker", name: "Badge/Sticker Callout" },
+                  { id: "subtileCaption", name: "Subtle Caption" }
+                ];
+                const layoutName = layoutOptions.find(l => l.id === selectedTextLayout)?.name || selectedTextLayout;
+                selections.push({
+                  title: layoutName,
+                  subtitle: "Text layout style",
+                  onChangeSelection: () => setSelectedTextLayout(null)
+                });
+              }
+              return selections;
+            })()} />
+                      </div>}
 
-                {selectedVisualOption && (
-                  <div className="flex justify-center mt-8">
-                    <Button onClick={handleNextStep} size="lg">
-                      Continue to Image Generation
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+                {/* Completion Options */}
+                {!selectedCompletionOption ? <>
+                    <div className="text-center mb-6">
+                      <p className="text-xl text-muted-foreground">
+                        {barebonesMode 
+                          ? "Write your custom text directly" 
+                          : "Choose your option for completing your text"
+                        }
+                      </p>
+                    </div>
 
-        {currentStep === 4 && (
-          <div className="space-y-8">
-            <div className="text-center mb-12">
-              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Generate Your Meme</h2>
-              <p className="text-xl text-muted-foreground">Create the final image with your selected text and visual</p>
-            </div>
+                    {barebonesMode ? (
+                      // Barebones mode: Show only write-myself option
+                      <div className="max-w-md mx-auto">
+                        <Card className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption("write-myself")}>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg font-semibold text-card-foreground">
+                              Write my own line
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <CardDescription className="text-sm text-muted-foreground">
+                              Enter your custom text directly
+                            </CardDescription>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    ) : (
+                      // Normal mode: Show all options
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center max-w-4xl mx-auto">
+                        {completionOptions.map(option => <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption(option.id)}>
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-lg font-semibold text-card-foreground">
+                                {option.name}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <CardDescription className="text-sm text-muted-foreground">
+                                {option.description}
+                              </CardDescription>
+                            </CardContent>
+                          </Card>)}
+                      </div>
+                    )}
+                  </> : null}
 
-            <div className="flex justify-between mb-6">
-              <Button variant="outline" onClick={handlePreviousStep}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
-              </Button>
-              <Button onClick={handleGenerateImage} disabled={isGeneratingImages}>
-                {isGeneratingImages ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Images...
-                  </>
-                ) : (
-                  "Generate Final Images"
-                )}
-              </Button>
-            </div>
+                {/* Show AI Assist form when selected and no options generated yet */}
+                {selectedCompletionOption === "ai-assist" && generatedOptions.length === 0 && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="text-center mb-6">
+                      <p className="text-xl text-muted-foreground">Add relevant tags for content generation</p>
+                    </div>
 
-            {imageGenerationError && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-6">
-                <div className="flex items-center">
-                  <AlertCircle className="h-4 w-4 text-destructive mr-2" />
-                  <p className="text-destructive">{imageGenerationError}</p>
-                </div>
-              </div>
-            )}
+                    <div className="max-w-md mx-auto space-y-6">
+                      {/* Tags Input */}
+                      <div className="space-y-3">
+                        <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                        
+                        {/* Display Tags */}
+                        {tags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
+                            {tags.map((tag, index) => <Badge key={index} variant="secondary" className="px-3 py-1 text-sm flex items-center gap-1">
+                                {tag}
+                                <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => removeTag(tag)} />
+                              </Badge>)}
+                          </div>}
+                      </div>
 
-            {generatedImages.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-center">Your Generated Images</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {generatedImages.map((image) => (
-                    <Card key={image.id} className="overflow-hidden">
-                      <CardContent className="p-0">
-                        <img
-                          src={image.url}
-                          alt="Generated meme"
-                          className="w-full h-64 object-cover"
-                        />
-                        <div className="p-4">
-                          <Button
-                            onClick={() => {
-                              const link = document.createElement('a');
-                              link.href = image.url;
-                              link.download = `meme-${image.id}.jpg`;
-                              link.click();
-                            }}
-                            className="w-full"
-                          >
-                            <Download className="mr-2 h-4 w-4" />
-                            Download
+                      {/* Generate Button - Hide in barebones mode */}
+                      {!barebonesMode && (
+                        <div className="text-center">
+                          <Button variant="brand" className="px-8 py-3 text-base font-medium rounded-lg" onClick={handleGenerateText} disabled={isGenerating}>
+                            {isGenerating ? <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Generating...
+                              </> : "Generate Text Now"}
                           </Button>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      )}
+                    </div>
+                  </div>}
+
+                {/* Show generated options box when options exist but no selection made yet */}
+                {selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption && <>
+                  </>}
+
+
+                {/* Generated Text Options Grid - Show when options exist but no selection made */}
+                {generatedOptions.length > 0 && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="text-center mb-6">
+                      <div className="flex items-center justify-center gap-3 mb-2">
+                        <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
+                        <Button variant="outline" size="sm" onClick={handleGenerateText} disabled={isGenerating} className="text-xs">
+                          {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
+                      {generatedOptions.slice(0, 4).map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50" onClick={() => {
+                setSelectedGeneratedOption(option);
+                setSelectedGeneratedIndex(index);
+              }}>
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Option {index + 1}
+                              </span>
+                            </div>
+                            <p className="text-sm text-card-foreground leading-relaxed">
+                              {option}
+                            </p>
+                          </div>
+                        </Card>)}
+                    </div>
+
+                  </div>}
+
+                {/* Show Write Myself input panel when selected but not confirmed */}
+                {selectedCompletionOption === "write-myself" && !isCustomTextConfirmed && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="text-center mb-6">
+                      <p className="text-xl text-muted-foreground">Write your custom text</p>
+                    </div>
+
+                    <div className="max-w-md mx-auto space-y-6">
+                      {/* Custom Text Input */}
+                      <div className="space-y-3">
+                         <Textarea value={stepTwoText} onChange={e => {
+                  if (e.target.value.length <= 100) {
+                    setStepTwoText(e.target.value);
+                  }
+                }} placeholder="Enter your custom text (100 characters max)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 min-h-[120px] text-base font-medium rounded-lg resize-none" />
+                        
+                        {/* Character Counter */}
+                        <div className="text-center">
+                          <span className={`text-sm ${stepTwoText.length >= 90 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                            {stepTwoText.length}/100 characters
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Save Button */}
+                      <div className="text-center">
+                        <Button variant="brand" className="px-8 py-3 text-base font-medium rounded-lg" onClick={() => {
+                  if (stepTwoText.trim()) {
+                    setIsCustomTextConfirmed(true);
+                    // Clear stale AI recommendations when custom text is confirmed
+                    setSelectedGeneratedOption(null);
+                    setSelectedGeneratedIndex(null);
+                    console.log('🎯 Custom text confirmed, cleared AI recommendations');
+                  }
+                }} disabled={!stepTwoText.trim()}>
+                          Save text
+                        </Button>
+                      </div>
+                    </div>
+                  </div>}
+
+                {/* Show confirmed custom text when saved */}
+                {selectedCompletionOption === "write-myself" && isCustomTextConfirmed && <>
+                  </>}
+
+                 {/* Text Layout Selection - Show after text is chosen (AI or custom) and when not "no-text" */}
+                {selectedCompletionOption !== "no-text" && 
+                  ((selectedCompletionOption === "ai-assist" && selectedGeneratedOption) || 
+                   (selectedCompletionOption === "write-myself" && isCustomTextConfirmed)) && 
+                  !selectedTextLayout && (
+                    <div className="mt-4">
+                      <TextLayoutSelector 
+                        selectedLayout={selectedTextLayout}
+                        onLayoutSelect={setSelectedTextLayout}
+                      />
+                    </div>
+                )}
+
+
+                {/* TODO: Add additional sub-options here after text style is selected */}
+              </div>)}
+          </>}
+
+        {currentStep === 3 && <>
+            <div className="text-center mb-12">
+              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Visual Style</h2>
+              <p className="text-xl text-muted-foreground">
+                {(() => {
+              // Show the actual text they chose, or indicate no text
+              if (selectedCompletionOption === "no-text") {
+                return "Your Viibe doesn't have any text";
+              } else if (selectedGeneratedOption) {
+                return `"${selectedGeneratedOption}"`;
+              } else if (stepTwoText && isCustomTextConfirmed) {
+                return `"${stepTwoText}"`;
+              } else {
+                return "Your Viibe doesn't have any text";
+              }
+            })()}
+              </p>
+            </div>
+
+            {/* Show visual style selection grid when no style is selected */}
+            {!selectedVisualStyle ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center max-w-6xl mx-auto">
+                {visualStyleOptions.map(style => <Card key={style.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-sm" onClick={() => setSelectedVisualStyle(style.id)}>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-semibold text-card-foreground">
+                        {style.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-sm text-muted-foreground">
+                        {style.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>)}
+              </div> : (/* Show StackedSelectionCard with all selections */
+        <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <StackedSelectionCard selections={buildSelections()} />
+
+                {/* Subject options selection */}
+                {!selectedSubjectOption ? <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="text-center mb-8">
+                      <p className="text-xl text-muted-foreground">Choose your option for your subject (what's the focus of image)</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                      {subjectOptions.map(option => <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => {
+                setSelectedSubjectOption(option.id);
+                if (option.id === "ai-assist") {
+                  setShowSubjectTagEditor(true);
+                }
+              }}>
+                          <CardHeader className="pb-3 text-center">
+                            <CardTitle className="text-lg font-semibold text-card-foreground">
+                              {option.name}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <CardDescription className="text-sm text-muted-foreground text-center">
+                              {option.description}
+                            </CardDescription>
+                          </CardContent>
+                        </Card>)}
+                    </div>
+                  </div> : (/* Show subject generation form if AI Assist */
+          <div className="space-y-6">
+
+                    {/* Subject generation form for AI Assist - show only if no visual is selected yet */}
+                    {selectedSubjectOption === "ai-assist" && selectedVisualIndex === null && showSubjectTagEditor && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="text-center mb-8">
+                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for content generation</h2>
+                          <p className="text-sm text-muted-foreground/70">(female endorser, tight blue jeans, sneakers, busy park)</p>
+                        </div>
+
+                        <div className="max-w-lg mx-auto space-y-6">
+                          {/* Tag Input */}
+                          <div className="space-y-4">
+                            <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                            
+                            {/* Generate Button - Below the input */}
+                            <div className="flex justify-center">
+                              <Button variant="brand" size="lg" className="px-8 py-3 text-base font-medium rounded-lg" onClick={handleGenerateSubject} disabled={isGeneratingSubject}>
+                                {isGeneratingSubject ? <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Generating...
+                                  </> : "Generate Visual Now"}
+                              </Button>
+                            </div>
+                            
+                            {/* Display tags */}
+                            {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
+                                {subjectTags.map((tag, index) => <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
+                                    {tag}
+                                    <X className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeSubjectTag(tag)} />
+                                  </Badge>)}
+                              </div>}
+                          </div>
+                        </div>
+                      </div>}
+
+                     {/* Visual AI recommendations - always show if available */}
+                      {selectedSubjectOption === "ai-assist" && visualOptions.length > 0 && selectedVisualIndex === null && (
+                        <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                         <div className="text-center mb-6">
+                             <div className="flex items-center justify-center gap-3 mb-2">
+                               <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
+                               <Button variant="outline" size="sm" onClick={handleGenerateSubject} disabled={isGeneratingSubject} className="text-xs">
+                                 {isGeneratingSubject ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
+                               </Button>
+                               {visualModel === 'fallback' && <Button variant="outline" size="sm" onClick={testAIConnection} disabled={isTestingProxy} className="text-xs">
+                                   {isTestingProxy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Test Connection"}
+                                 </Button>}
+                             </div>
+                             
+                             
+                             {visualModel === 'fallback' && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-xs p-2 rounded-lg mb-3 max-w-md mx-auto">
+                                 {getErrorMessage(visualRecommendations?.errorCode)}
+                               </div>}
+                            <p className="text-sm text-muted-foreground">Choose one of these AI-generated concepts</p>
+                          </div>
+                        
+                         <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
+                            {visualOptions.map((option, index) => (
+                              <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 w-full hover:bg-accent/50" onClick={() => {
+                                setSelectedVisualIndex(index);
+                                setShowSubjectTagEditor(false); 
+                              }}>
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-base font-semibold text-card-foreground flex items-center justify-between">
+                                    <span>Option {index + 1}</span>
+                                    <Button
+                                      variant="outline" 
+                                      size="sm"
+                                      className="text-xs h-6 px-2"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                          await navigator.clipboard.writeText(option.prompt);
+                                          sonnerToast.success('Exact prompt copied');
+                                        } catch (err) {
+                                          sonnerToast.error('Failed to copy');
+                                        }
+                                      }}
+                                    >
+                                      Copy prompt
+                                    </Button>
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="pt-0">
+                                  <p className="text-sm text-muted-foreground line-clamp-2">
+                                    {cleanForDisplay(option.subject)}
+                                  </p>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                         </div>
+                        )}
+
+                    {/* Dimensions Selection - Show when AI assist visual is selected */}
+                     {selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null && (
+                       <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="text-center mb-6">
+                          <p className="text-xl text-muted-foreground">Choose your dimensions</p>
+                        </div>
+
+                         {/* Show dimension selection grid when no dimension is selected */}
+                         {!selectedDimension ? (
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
+                             {dimensionOptions.map(dimension => <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
+                                 <CardHeader className="pb-3 text-center">
+                                   <CardTitle className="text-lg font-semibold text-card-foreground">
+                                     {dimension.name}
+                                   </CardTitle>
+                                 </CardHeader>
+                                 <CardContent>
+                                   <CardDescription className="text-sm text-muted-foreground text-center">
+                                     {dimension.description}
+                                   </CardDescription>
+                                 </CardContent>
+                               </Card>)}
+                           </div>
+                         ) : (
+                           selectedDimension === "custom" && (
+                             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                               <div className="text-center mb-8">
+                                 <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
+                               </div>
+                               <div className="max-w-md mx-auto flex gap-4 items-center">
+                                 <div className="flex-1">
+                                   <Input type="number" value={customWidth} onChange={e => setCustomWidth(e.target.value)} placeholder="Width" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
+                                 </div>
+                                 <span className="text-muted-foreground">×</span>
+                                 <div className="flex-1">
+                                   <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
+                                 </div>
+                               </div>
+                             </div>
+                           )
+                         )}
+                       </div>)}
+
+                    {/* Show confirmed subject description when saved */}
+                     {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && (
+                       <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                              Custom Visual Description ✓
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <CardDescription className="text-sm text-muted-foreground text-center">
+                              "{subjectDescription}"
+                            </CardDescription>
+                            <div className="text-center mt-3">
+                              <button onClick={() => {
+                      setIsSubjectDescriptionConfirmed(false);
+                    }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                                Change description
+                              </button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                       </div>)}
+
+                    {/* Subject description form for Design Myself */}
+                     {selectedSubjectOption === "design-myself" && !isSubjectDescriptionConfirmed && (
+                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="text-center mb-8">
+                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Describe the visuals of your Viibe (100 characters max)</h2>
+                        </div>
+
+                        <div className="max-w-lg mx-auto">
+                          <div className="relative">
+                            <Textarea value={subjectDescription} onChange={e => {
+                    if (e.target.value.length <= 100) {
+                      setSubjectDescription(e.target.value);
+                    }
+                  }} placeholder="Describe your subject and background of your visual" className="min-h-[100px] text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 text-base font-medium rounded-lg resize-none" maxLength={100} />
+                            
+                            {/* Character counter */}
+                            <div className="absolute bottom-3 left-3 text-xs text-muted-foreground">
+                              {subjectDescription.length}/100
+                            </div>
+                            
+                            {subjectDescription.length >= 100 && <div className="absolute -bottom-6 left-0 right-0 text-center">
+                                <span className="text-xs text-destructive">You have hit your max characters</span>
+                              </div>}
+                          </div>
+                          
+                          {/* Use this text button */}
+                          {subjectDescription.trim().length > 0 && <div className="flex justify-end mt-4">
+                              <Button variant="brand" className="px-6 py-2 text-sm font-medium rounded-lg" onClick={() => {
+                    setIsSubjectDescriptionConfirmed(true);
+                  }}>
+                                Use this text
+                              </Button>
+                            </div>}
+                        </div>
+                       </div>)}
+
+                    {/* Dimensions Selection - Show when custom description is confirmed */}
+                     {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && (
+                       <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Show dimension selection grid when no dimension is selected */}
+                        {!selectedDimension ? <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
+                            {dimensionOptions.map(dimension => <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
+                                <CardHeader className="pb-3 text-center">
+                                  <CardTitle className="text-lg font-semibold text-card-foreground">
+                                    {dimension.name}
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <CardDescription className="text-sm text-muted-foreground text-center">
+                                    {dimension.description}
+                                  </CardDescription>
+                                </CardContent>
+                              </Card>)}
+                          </div> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="mb-8 selected-card">
+                              <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
+                                    {dimensionOptions.find(d => d.id === selectedDimension)?.name}
+                                    <span className="text-sm">✓</span>
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <CardDescription className="text-sm text-muted-foreground text-center">
+                                    {dimensionOptions.find(d => d.id === selectedDimension)?.description}
+                                  </CardDescription>
+                                  <div className="text-center mt-3">
+                                    <button onClick={() => {
+                          setSelectedDimension(null);
+                          setCustomWidth("");
+                          setCustomHeight("");
+                        }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
+                                      Change selection
+                                    </button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
+
+                            {/* Custom dimension inputs */}
+                             {selectedDimension === "custom" && (
+                               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                 <div className="text-center mb-8">
+                                   <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
+                                 </div>
+                                 <div className="max-w-md mx-auto flex gap-4 items-center">
+                                   <div className="flex-1">
+                                     <Input type="number" value={customWidth} onChange={e => setCustomWidth(e.target.value)} placeholder="Width" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
+                                   </div>
+                                   <span className="text-muted-foreground">×</span>
+                                   <div className="flex-1">
+                                     <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
+                                   </div>
+                                 </div>
+                               </div>
+                             )}
+                            </div>
+                          </div>
+                        }
+                     )}
+
+                 {/* General Dimensions Selection - Show only for non-AI assist options */}
+                 {selectedSubjectOption && (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed || selectedSubjectOption === "no-subject" || selectedSubjectOption === "single-person" || selectedSubjectOption === "multiple-people") && (
+                   <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="text-center mb-6">
+                      <p className="text-xl text-muted-foreground">Choose your dimensions</p>
+                    </div>
+
+                    {/* Show dimension selection grid when no dimension is selected */}
+                    {!selectedDimension ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
+                        {dimensionOptions.map(dimension => (
+                          <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
+                            <CardHeader className="pb-3 text-center">
+                              <CardTitle className="text-lg font-semibold text-card-foreground">
+                                {dimension.name}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <CardDescription className="text-sm text-muted-foreground text-center">
+                                {dimension.description}
+                              </CardDescription>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Custom dimension inputs */}
+                        {selectedDimension === "custom" && (
+                          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="text-center mb-8">
+                              <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
+                            </div>
+                            <div className="max-w-md mx-auto flex gap-4 items-center">
+                              <div className="flex-1">
+                                <Input type="number" value={customWidth} onChange={e => setCustomWidth(e.target.value)} placeholder="Width" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
+                              </div>
+                              <span className="text-muted-foreground">×</span>
+                              <div className="flex-1">
+                                <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                   </div>
+                 )}
+          </>}
+
+        {currentStep === 4 && <>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">
+                {isGeneratingImage ? "Generating your VIIBE..." : isAddingTextOverlay ? "Adding text overlay..." : "Finished Design"}
+              </h2>
+              <p className="text-xl text-muted-foreground">
+                {isGeneratingImage ? "Please wait while we create your image..." : isAddingTextOverlay ? "Adding your text to the image..." : "Your viibe is ready! Review the details and download your creation."}
+              </p>
+            </div>
+            
+            <div className="max-w-4xl mx-auto space-y-8">
+              {/* Preview Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-foreground">Preview</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Manual generate button removed - auto-starts on step 4 */}
+                  </div>
+                </div>
+                
+                <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
+                  {isGeneratingImage || isAddingTextOverlay ? (
+                    <div className="text-center">
+                      <Button variant="brand" disabled className="mb-4">
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        {isGeneratingImage ? "Generating VIIBE..." : "Adding text overlay..."}
+                      </Button>
+                      <p className="text-sm text-muted-foreground">This may take a few moments</p>
+                    </div>
+                  ) : generatedImageUrl ? <div className="max-w-full max-h-full">
+                      <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+                    </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
+                      <AlertCircle className="h-8 w-8 text-destructive" />
+                      <div>
+                        <p className="text-destructive text-lg font-medium">Generation Failed</p>
+                        <p className="text-muted-foreground text-sm mt-1">{imageGenerationError}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleGenerateImage} variant="outline" size="sm">
+                          Try Again
+                        </Button>
+                        {imageGenerationError.includes('CORS proxy needs activation') && <Button variant="brand" size="sm" onClick={() => setShowCorsRetryDialog(true)}>
+                            Enable CORS Proxy
+                          </Button>}
+                      </div>
+                    </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
+                </div>
+                
+                 {/* Text Misspelling Detection */}
+                 {generatedImageUrl && textMisspellingDetected && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
+                     <p className="text-sm font-medium mb-2">⚠️ Text may be misspelled in the generated image</p>
+                     <div className="flex gap-2 justify-center">
+                       <Button variant="outline" size="sm" onClick={() => {
+                  setSpellingGuaranteeMode(true);
+                  handleGenerateImage();
+                }}>
+                         Regenerate (Strict Text Mode)
+                       </Button>
+                       <Button variant="outline" size="sm" onClick={() => setSpellingGuaranteeMode(true)}>
+                         Use Spelling Guarantee
+                       </Button>
+                     </div>
+                   </div>}
+
+
+                 {/* Action Buttons */}
+                {generatedImageUrl && !showTextOverlay && <div className="flex flex-wrap gap-4 justify-center">
+                    <Button variant="outline" className="flex items-center gap-2" onClick={handleDownloadImage}>
+                      <Download className="h-4 w-4" />
+                      Download Image
+                    </Button>
+                    <Button variant="brand" className="flex items-center gap-2" onClick={handleGenerateImage} disabled={isGeneratingImage}>
+                      {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>}
+                      Generate Again
+                    </Button>
+                    <Button variant="outline" onClick={() => setCurrentStep(1)}>
+                      <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                      </svg>
+                      Start Over
+                    </Button>
+                  </div>}
+              </div>
+              
+              {/* Proxy Settings Dialog */}
+              {showProxySettings && <div className="bg-muted/30 rounded-lg p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-md font-medium text-foreground">Proxy Settings</h4>
+                    <Button variant="ghost" size="sm" onClick={() => setShowProxySettings(false)} className="h-8 w-8 p-0">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground">
+                    Configure how to connect to the Ideogram API. Use a proxy if you encounter CORS errors.
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground">Connection Method</label>
+                      <Select value={proxySettings.type} onValueChange={(value: ProxySettings['type']) => {
+                  const newSettings = {
+                    ...proxySettings,
+                    type: value
+                  };
+                  setLocalProxySettings(newSettings);
+                  setProxySettings(newSettings);
+                }}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="direct">Direct Connection</SelectItem>
+                          <SelectItem value="cors-anywhere">CORS Anywhere (Free)</SelectItem>
+                          <SelectItem value="proxy-cors-sh">Proxy.cors.sh (Paid)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {proxySettings.type === 'proxy-cors-sh' && <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">Proxy API Key</label>
+                        <Input type="password" placeholder="Enter your proxy.cors.sh API key" value={proxyApiKey} onChange={e => setProxyApiKey(e.target.value)} />
+                        <Button variant="outline" size="sm" onClick={() => {
+                  const newSettings = {
+                    ...proxySettings,
+                    apiKey: proxyApiKey
+                  };
+                  setLocalProxySettings(newSettings);
+                  setProxySettings(newSettings);
+                  toast({
+                    title: "API Key Saved",
+                    description: "Your proxy API key has been saved."
+                  });
+                }}>
+                          Save API Key
+                        </Button>
+                      </div>}
+                    
+                    {proxySettings.type === 'cors-anywhere' && <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          <strong>Note:</strong> CORS Anywhere requires manual activation. 
+                          <Button variant="link" className="h-auto p-0 ml-1 text-yellow-800 dark:text-yellow-200 underline" onClick={() => window.open('https://cors-anywhere.herokuapp.com/corsdemo', '_blank')}>
+                            Click here to enable it
+                          </Button>
+                          , then test the connection below.
+                        </p>
+                      </div>}
+                    
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={async () => {
+                  setIsTestingProxy(true);
+                  try {
+                    const success = await testProxyConnection(proxySettings.type);
+                    toast({
+                      title: success ? "Connection Successful" : "Connection Failed",
+                      description: success ? "The proxy connection is working correctly." : "Unable to connect through this proxy method.",
+                      variant: success ? "default" : "destructive"
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "Test Failed",
+                      description: "An error occurred while testing the connection.",
+                      variant: "destructive"
+                    });
+                  } finally {
+                    setIsTestingProxy(false);
+                  }
+                }} disabled={isTestingProxy}>
+                        {isTestingProxy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Test Connection
+                      </Button>
+                    </div>
+                  </div>
+                </div>}
+
+              {/* Design Summary */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-foreground">Design Summary</h3>
+                <div className="bg-muted/30 rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-muted/50 border-b border-border">
+                        <th className="text-left p-3 font-medium text-muted-foreground">Parameter</th>
+                        <th className="text-left p-3 font-medium text-muted-foreground">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      <tr>
+                        <td className="p-3 text-sm">Category</td>
+                        <td className="p-3 text-sm">{selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name : "Not selected"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Subcategory</td>
+                        <td className="p-3 text-sm">
+                          {(() => {
+                        if (selectedStyle === 'celebrations' && selectedSubOption) {
+                          const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                          return celebOption?.name || selectedSubOption;
+                        } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                          const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                          return popOption?.name || selectedSubOption;
+                        }
+                        return selectedSubOption || "Not selected";
+                      })()}
+                        </td>
+                      </tr>
+                      {selectedStyle === 'pop-culture' && selectedPick && <tr>
+                          <td className="p-3 text-sm">Pop Culture Pick</td>
+                          <td className="p-3 text-sm">{selectedPick}</td>
+                        </tr>}
+                      <tr>
+                        <td className="p-3 text-sm">Tone</td>
+                        <td className="p-3 text-sm">{selectedTextStyle ? textStyleOptions.find(ts => ts.id === selectedTextStyle)?.name : "Not selected"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Final Text</td>
+                        <td className="p-3 text-sm">{selectedGeneratedOption || stepTwoText || "Not generated"}</td>
+                      </tr>
+                      {(selectedGeneratedOption || stepTwoText) && selectedTextLayout && (
+                        <>
+                          <tr>
+                            <td className="p-3 text-sm">Text Placement</td>
+                            <td className="p-3 text-sm">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.label || selectedTextLayout}</td>
+                          </tr>
+                          <tr>
+                            <td className="p-3 text-sm">Layout Token</td>
+                            <td className="p-3 text-sm font-mono text-xs">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.token || "Unknown layout"}</td>
+                          </tr>
+                        </>
+                      )}
+                      <tr>
+                        <td className="p-3 text-sm">Visual Style</td>
+                        <td className="p-3 text-sm">{selectedVisualStyle || "Not selected"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Visual AI Recommendations</td>
+                        <td className="p-3 text-sm">
+                          {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? `Option ${selectedVisualIndex + 1}: ${truncateWords(visualOptions[selectedVisualIndex].subject, 5)}` : "Not selected"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Aspect Ratio</td>
+                        <td className="p-3 text-sm">
+                          {selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Not selected"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Text Tags</td>
+                        <td className="p-3 text-sm">{tags.length > 0 ? tags.join(", ") : "None"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">Visual Tags</td>
+                        <td className="p-3 text-sm">{subjectTags.length > 0 ? subjectTags.join(", ") : "None"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">AI Text Assist</td>
+                        <td className="p-3 text-sm">{selectedCompletionOption === "ai-assist" ? "Yes" : "No"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 text-sm">AI Visual Assist</td>
+                        <td className="p-3 text-sm">{selectedSubjectOption === "ai-assist" ? "Yes" : "No"}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            )}
+
+                {/* Generated Prompt */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium text-foreground">Technical Details</h3>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setShowAdvanced(!showAdvanced)}
+                      className="text-sm"
+                    >
+                      {showAdvanced ? "Hide" : "Show"} Advanced
+                    </Button>
+                  </div>
+                  
+                  {showAdvanced && <div className="space-y-4">
+                    <h4 className="text-base font-medium text-foreground">Full Ideogram Request</h4>
+                  <div className="bg-muted/30 rounded-lg p-6 space-y-4">
+                    {(() => {
+                // Build the exact same request that would be sent to Ideogram
+                // FIXED: Prioritize confirmed custom text over AI recommendations
+                const finalText = stepTwoText || selectedGeneratedOption || "";
+                const visualStyle = selectedVisualStyle || "";
+                const subcategory = (() => {
+                  if (selectedStyle === 'celebrations' && selectedSubOption) {
+                    const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                    return celebOption?.name || selectedSubOption;
+                  } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                    const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                    return popOption?.name || selectedSubOption;
+                  }
+                  return selectedSubOption || 'general';
+                })();
+                const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+                const tone = selectedTextStyleObj?.name || 'Humorous';
+                const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+                const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "";
+                const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
+
+                // Build the handoff payload
+                const allTags = [...tags, ...subjectTags];
+                const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : undefined;
+                const ideogramPayload = buildIdeogramHandoff({
+                  visual_style: visualStyle,
+                  subcategory: subcategory,
+                  tone: tone.toLowerCase(),
+                  final_line: finalText,
+                  tags_csv: allTags.join(', '),
+                  chosen_visual: chosenVisual,
+                  category: categoryName,
+                  subcategory_secondary: subcategorySecondary,
+                  aspect_ratio: aspectRatio,
+                  text_tags_csv: tags.join(', '),
+                  visual_tags_csv: subjectTags.join(', '),
+                  ai_text_assist_used: selectedCompletionOption === "ai-assist",
+                  ai_visual_assist_used: selectedSubjectOption === "ai-assist",
+                  rec_subject: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].subject : selectedSubjectOption === "design-myself" ? subjectDescription : undefined,
+                  rec_background: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].background : undefined
+                });
+
+                // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
+                let prompt = directPrompt.trim();
+                
+                // Sanitize direct prompt to remove text-generating terms
+                if (prompt) {
+                  prompt = prompt.replace(/(text|caption|words|letters|typography|signage|watermark|logo)/gi, 'design');
+                  // If we have finalText to overlay, ensure background-only generation
+                  if (finalText && finalText.trim()) {
+                    prompt += ", no text, no words, no letters, background only";
+                  }
+                }
+                
+                if (!prompt && selectedRecommendation !== null && visualRecommendations) {
+                  prompt = visualRecommendations.options[selectedRecommendation].prompt;
+                }
+                if (!prompt && !barebonesMode) {
+                  const layoutToken = (finalText && finalText.trim() && selectedTextLayout) 
+                    ? layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.token 
+                    : undefined;
+                  prompt = buildIdeogramPrompt(ideogramPayload, false, layoutToken);
+                }
+
+                // ALWAYS append layout tokens to ensure proper text overlay space
+                if (finalText && finalText.trim() && selectedTextLayout) {
+                  const layoutConfig = layoutMappings[selectedTextLayout as keyof typeof layoutMappings];
+                  if (layoutConfig && !prompt.toLowerCase().includes(layoutConfig.token.toLowerCase())) {
+                    prompt += `, ${layoutConfig.token}`;
+                    console.log(`🎯 Added layout token for ${selectedTextLayout}: ${layoutConfig.token}`);
+                  }
+                }
+
+                // Calculate the exact same parameters used for generation
+                const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
+                const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
+                const modelForIdeogram = 'V_3';
+
+                // Handle spelling guarantee mode modifications
+                let finalPrompt = prompt;
+                if (spellingGuaranteeMode && finalText && finalText.trim()) {
+                  finalPrompt = prompt.replace(/EXACT_TEXT \(VERBATIM\): ".*?"/g, '').replace(/Render this text EXACTLY.*?\./g, '').replace(/Use only standard ASCII.*?\./g, '').replace(/If you cannot render.*?\./g, '').replace(/Style and display this text.*?\./g, '').replace(/Ensure the text is.*?\./g, '').replace(/NEGATIVE PROMPTS:.*?\./g, '').replace(/\s+/g, ' ').trim() + ' No text, no typography, no words, no letters, no characters, no glyphs, no symbols, no UI elements overlaid on the image. Clean minimal background only.';
+                }
+
+                // Create the exact request object
+                const fullRequest = {
+                  prompt: finalPrompt,
+                  aspect_ratio: aspectForIdeogram,
+                  model: modelForIdeogram,
+                  magic_prompt_option: 'AUTO',
+                  style_type: styleForIdeogram
+                };
+
+                return (
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2 text-foreground">Request Body:</h4>
+                      <div className="bg-background rounded-md p-4 border">
+                        <pre className="text-xs text-foreground whitespace-pre-wrap font-mono overflow-x-auto">
+                          {JSON.stringify(fullRequest, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(JSON.stringify(fullRequest, null, 2));
+                          sonnerToast.success("Request copied to clipboard!");
+                        }}
+                      >
+                        Copy Request
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(finalPrompt);
+                          sonnerToast.success("Prompt copied to clipboard!");
+                        }}
+                      >
+                        Copy Prompt Only
+                      </Button>
+                    </div>
+                    
+                    {spellingGuaranteeMode && (
+                      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          <strong>Spelling Guarantee Mode:</strong> Background-only version will be generated first, then text overlay applied.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+                  </div>
+                  </div>}
+                </div>
+            </div>
+          </>}
+
+        {/* Bottom Navigation */}
+        {currentStep < 4 && (
+          <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4">
+            <div className="max-w-6xl mx-auto flex justify-between items-center">
+              <Button variant="outline" onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))} className={currentStep === 1 ? "invisible" : ""} disabled={currentStep === 1}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              
+              <Button variant={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete() ? "outline" : "brand"} onClick={() => {
+              if (currentStep === 3) {
+                setCurrentStep(4);
+                setAutoStartImageGen(true);
+              } else {
+                setCurrentStep(prev => prev + 1);
+              }
+            }} disabled={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete()}>
+                {currentStep === 3 && isStep3Complete() && selectedDimension ? "Generate VIIBE" : <>
+                    Continue
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </>}
+              </Button>
+            </div>
           </div>
         )}
 
-        {/* Dialog Components */}
-        <ApiKeyDialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog} onApiKeySet={() => {}} />
-        <IdeogramKeyDialog open={showIdeogramKeyDialog} onOpenChange={setShowIdeogramKeyDialog} onApiKeySet={() => {}} />
+        {/* API Key Dialog */}
+        <ApiKeyDialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog} onApiKeySet={handleApiKeySet} />
+
+        {/* Ideogram API Key Dialog */}
+        <IdeogramKeyDialog open={showIdeogramKeyDialog} onOpenChange={setShowIdeogramKeyDialog} onApiKeySet={handleIdeogramApiKeySet} />
+
+        {/* Proxy Settings Dialog */}
         <ProxySettingsDialog open={showProxySettingsDialog} onOpenChange={setShowProxySettingsDialog} />
+
+        {/* CORS Retry Dialog */}
         <CorsRetryDialog open={showCorsRetryDialog} onOpenChange={setShowCorsRetryDialog} onRetry={handleGenerateImage} />
 
       </div>
     </div>
   );
 };
-
 export default Index;
