@@ -5223,21 +5223,24 @@ const Index = () => {
       }
     }, 250);
   };
-  return <div className="min-h-screen bg-background py-12 px-4 pb-32">
+  return (
+    <div className="min-h-screen bg-background py-12 px-4 pb-32">
       <div className="max-w-6xl mx-auto">
         
         {/* Step Progress Header */}
         <StepProgress currentStep={currentStep} />
         
-        {currentStep === 1 && <>
+        {currentStep === 1 && (
+          <>
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Category</h2>
               <p className="text-xl text-muted-foreground">Select the Category that best fits your Viibe</p>
             </div>
             
             {/* Show all cards when no style is selected, or only the selected card */}
-        {!selectedStyle ? <>
-            {/* Search Bar */}
+            {!selectedStyle ? (
+              <>
+                {/* Search Bar */}
             <div className="max-w-md mx-auto mb-12">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -6439,11 +6442,12 @@ const Index = () => {
                                  </div>
                                </div>
                              )}
-                           </div>
-                         </div>
-                    )}
+                            </div>
+                          </div>
+                        }
+                     )}
 
-                {/* General Dimensions Selection - Show only for non-AI assist options */}
+                 {/* General Dimensions Selection - Show only for non-AI assist options */}
                  {selectedSubjectOption && (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed || selectedSubjectOption === "no-subject" || selectedSubjectOption === "single-person" || selectedSubjectOption === "multiple-people") && (
                    <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
@@ -6451,8 +6455,10 @@ const Index = () => {
                     </div>
 
                     {/* Show dimension selection grid when no dimension is selected */}
-                    {!selectedDimension ? <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
-                        {dimensionOptions.map(dimension => <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
+                    {!selectedDimension ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center max-w-4xl mx-auto">
+                        {dimensionOptions.map(dimension => (
+                          <Card key={dimension.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full max-w-md" onClick={() => setSelectedDimension(dimension.id)}>
                             <CardHeader className="pb-3 text-center">
                               <CardTitle className="text-lg font-semibold text-card-foreground">
                                 {dimension.name}
@@ -6463,10 +6469,14 @@ const Index = () => {
                                 {dimension.description}
                               </CardDescription>
                             </CardContent>
-                          </Card>)}
-                      </div> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Custom dimension inputs */}
-                        {selectedDimension === "custom" && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {selectedDimension === "custom" && (
+                          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="text-center mb-8">
                               <h3 className="text-xl font-semibold text-muted-foreground mb-4">Enter custom dimensions</h3>
                             </div>
@@ -6479,10 +6489,12 @@ const Index = () => {
                                 <Input type="number" value={customHeight} onChange={e => setCustomHeight(e.target.value)} placeholder="Height" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-4 text-base font-medium rounded-lg" />
                               </div>
                             </div>
-                           </div>}
-                        </div>}
-                     </div>)
-                   }
+                          </div>
+                        )}
+                      </div>
+                    )}
+                   </div>
+                 )}
           </>}
 
         {currentStep === 4 && <>
