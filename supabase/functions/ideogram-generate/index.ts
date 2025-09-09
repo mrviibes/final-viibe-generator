@@ -129,7 +129,7 @@ serve(async (req) => {
       console.log('V3 API payload:', JSON.stringify(requestPayload, null, 2));
       
       // Use correct V3 endpoint with JSON payload
-      const ideogramResponse = await fetch('https://api.ideogram.ai/generate-v3', {
+      const ideogramResponse = await fetch('https://api.ideogram.ai/generate', {
         method: 'POST',
         headers: {
           'Api-Key': ideogramApiKey,
@@ -157,7 +157,7 @@ serve(async (req) => {
             }
           };
           
-          const fallbackResponse = await fetch('https://api.ideogram.ai/generate-v3', {
+          const fallbackResponse = await fetch('https://api.ideogram.ai/generate', {
             method: 'POST',
             headers: {
               'Api-Key': ideogramApiKey,
