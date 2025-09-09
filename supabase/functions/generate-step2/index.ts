@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// System prompt with comedian style palette and Spartan writing rules
+// System prompt with comedian style palette and Spartan writing rules (UNUSED - kept for reference)
 const SYSTEM_PROMPT_WITH_ANCHORS = `Return ONLY valid JSON:
 {
   "lines": [
@@ -46,17 +46,17 @@ BANNED WORDS (never use):
 can, may, just, really, literally, actually, probably, basically, maybe, utilize, moreover, additionally, furthermore, overall, ultimately, "in conclusion", "at the end of the day", "here's how", "let's explore"
 
 OCCASION THROTTLE:
-• Context props are background, not punchlines
-• Maximum 1 explicit occasion mention across all 4 lines
-• Focus on wit and personality over scene details
+• ZERO explicit occasion mentions allowed across all 4 lines
+• Write like a stand-up comedian - indirect, not scene-based
+• Focus on wit and personality over literal context
 
 LENGTH EXAMPLES:
-✓ Option 1 (30 chars): "Your cake expired."
-✓ Option 2 (45 chars): "Why do birthday parties feel like job interviews?"
-✓ Option 3 (60 chars): "Your candles cost more than your last three relationships."
-✓ Option 4 (68 chars): "This confetti applied for witness protection after seeing you dance."`;
+✓ Option 1 (29 chars): "That timing expired."
+✓ Option 2 (47 chars): "Have you noticed things feel like job interviews?"
+✓ Option 3 (58 chars): "This costs more than your last three relationships did."
+✓ Option 4 (67 chars): "Everything here applied for witness protection after you arrived."`;
 
-// System prompt for categories WITHOUT anchors
+// System prompt for categories WITHOUT anchors (MAIN PROMPT)
 const SYSTEM_PROMPT_NO_ANCHORS = `Return ONLY valid JSON:
 {
   "lines": [
@@ -93,16 +93,17 @@ SPARTAN HOUSE RULES (NON-NEGOTIABLE):
 BANNED WORDS (never use):
 can, may, just, really, literally, actually, probably, basically, maybe, utilize, moreover, additionally, furthermore, overall, ultimately, "in conclusion", "at the end of the day", "here's how", "let's explore"
 
-OCCASION THROTTLE:
-• Context props are background, not punchlines
-• Maximum 1 explicit occasion mention across all 4 lines
-• Focus on wit and personality over scene details
+OCCASION THROTTLE (CRITICAL):
+• ZERO explicit occasion mentions allowed across all 4 lines
+• Write like a stand-up comedian - indirect, not scene-based
+• Focus on wit and personality over literal context
+• Do NOT mention: cake, candles, balloons, confetti, birthday, party, celebrate
 
 LENGTH EXAMPLES:
-✓ Option 1 (30 chars): "Your cake expired."
-✓ Option 2 (45 chars): "Why do birthday parties feel like job interviews?"
-✓ Option 3 (60 chars): "Your candles cost more than your last three relationships."
-✓ Option 4 (68 chars): "This confetti applied for witness protection after seeing you dance."`;
+✓ Option 1 (29 chars): "That timing expired."
+✓ Option 2 (47 chars): "Have you noticed things feel like job interviews?"
+✓ Option 3 (58 chars): "This costs more than your last three relationships did."
+✓ Option 4 (67 chars): "Everything here applied for witness protection after you arrived."`;
 
 // Category-specific anchor dictionaries
 const ANCHORS = {
@@ -123,35 +124,35 @@ const BANNED_PHRASES = [
 ];
 
 // Category-agnostic fallback with comedian style palette
-function generateSavageFallback(inputs: any): any {
-  console.log("Using comedian style fallback");
+function generateComedianFallback(inputs: any): any {
+  console.log("Using non-literal comedian fallback");
   
   const { tags = [], tone = "Savage" } = inputs;
   const tagString = tags.length > 0 ? tags.join(" ") : "";
   
-  // Style-based templates (category-agnostic)
+  // Non-literal comedian templates (zero occasion words)
   let styleTemplates: string[] = [];
   
   if (tone.toLowerCase().includes("savage") || tone.toLowerCase().includes("humorous")) {
     styleTemplates = [
-      tagString ? `${tagString} expired.` : "That expired.", // Deadpan (20-35)
-      tagString ? `Why does ${tagString} feel like a job interview?` : "Why does this feel like a job interview?", // Observational (36-50)
-      tagString ? `${tagString} costs more than your last three relationships.` : "This costs more than your last three relationships.", // Extended roast (51-65)
-      tagString ? `${tagString} applied for witness protection after seeing you.` : "Everything here applied for witness protection after seeing you." // Absurdist (66-70)
+      tagString ? `${tagString} got downgraded.` : "That got downgraded.", // Deadpan (20-35)
+      tagString ? `Have you noticed ${tagString} ages in dog years?` : "Have you noticed everything ages in dog years?", // Observational (36-50)
+      tagString ? `${tagString} filed for witness protection after meeting you.` : "This filed for witness protection after meeting you.", // Extended roast (51-65)
+      tagString ? `${tagString} negotiates with gravity like they're personal enemies now.` : "Everything negotiates with gravity like they're personal enemies now." // Absurdist (66-70)
     ];
   } else if (tone.toLowerCase().includes("sentimental") || tone.toLowerCase().includes("romantic")) {
     styleTemplates = [
-      tagString ? `${tagString} warms hearts.` : "This warms hearts.", // Deadpan (20-35)
-      tagString ? `Have you noticed how ${tagString} brings people together?` : "Have you noticed how moments bring people together?", // Observational (36-50)
-      tagString ? `${tagString} represents all the beautiful memories we treasure.` : "This represents all the beautiful memories we treasure.", // Extended sentiment (51-65)
-      tagString ? `${tagString} whispers secrets of love that only true hearts understand.` : "This whispers secrets of love that only true hearts understand." // Absurdist (66-70)
+      tagString ? `${tagString} touches souls.` : "This touches souls.", // Deadpan (20-35)
+      tagString ? `Have you noticed how ${tagString} makes hearts smile?` : "Have you noticed how moments make hearts smile?", // Observational (36-50)
+      tagString ? `${tagString} creates memories that warm us through all seasons.` : "This creates memories that warm us through all seasons.", // Extended sentiment (51-65)
+      tagString ? `${tagString} whispers poetry to hearts that understand true connection.` : "This whispers poetry to hearts that understand true connection." // Absurdist (66-70)
     ];
   } else { // Inspirational or other tones
     styleTemplates = [
-      tagString ? `${tagString} inspires.` : "This inspires.", // Deadpan (20-35)
-      tagString ? `Have you noticed how ${tagString} motivates us?` : "Have you noticed how moments motivate us?", // Observational (36-50)
-      tagString ? `${tagString} reminds us that anything is truly possible today.` : "This reminds us that anything is truly possible today.", // Extended thought (51-65)
-      tagString ? `${tagString} dances with possibilities that dreams never imagined before.` : "This dances with possibilities that dreams never imagined before." // Absurdist (66-70)
+      tagString ? `${tagString} elevates.` : "This elevates.", // Deadpan (20-35)
+      tagString ? `Have you noticed how ${tagString} ignites dreams?` : "Have you noticed how moments ignite dreams?", // Observational (36-50)
+      tagString ? `${tagString} transforms ordinary moments into extraordinary memories.` : "This transforms ordinary moments into extraordinary memories.", // Extended thought (51-65)
+      tagString ? `${tagString} choreographs possibilities that dance beyond imagination.` : "This choreographs possibilities that dance beyond imagination." // Absurdist (66-70)
     ];
   }
   
@@ -163,7 +164,7 @@ function generateSavageFallback(inputs: any): any {
     
     // Adjust length if needed
     if (text.length < minLen) {
-      const expansions = [" now", " here", " always", " forever"];
+      const expansions = [" today", " here", " always", " forever"];
       text = text.replace(".", `${expansions[index]}.`);
     } else if (text.length > maxLen) {
       // Truncate if too long
@@ -180,7 +181,7 @@ function generateSavageFallback(inputs: any): any {
     })),
     model: "comedian-fallback",
     validated: true,
-    reason: "comedian_style_fallback",
+    reason: "non_literal_comedian_fallback",
     tone: tone,
     tags_used: tags.length > 0,
     lengths: finalTemplates.map(t => t.length)
@@ -338,13 +339,15 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       }
     }
     
-    // Occasion throttle (always apply for balanced mode)
+    // Occasion throttle (ZERO explicit occasion words allowed)
     const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
     const anchors = ANCHORS[ctxKey] || [];
     const occasionTokens = [
       inputs.category?.toLowerCase(),
       inputs.subcategory?.toLowerCase(),
-      ...anchors
+      ...anchors,
+      // Additional literal occasion words to block
+      'cake', 'candles', 'balloons', 'confetti', 'birthday', 'party', 'celebrate', 'celebration'
     ].filter((token, index, arr) => arr.indexOf(token) === index && token);
       
     if (occasionTokens.length > 0) {
@@ -352,8 +355,8 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
         occasionTokens.some(token => line.text.toLowerCase().includes(token.toLowerCase()))
       );
       
-      if (linesWithOccasionTokens.length > 1) {
-        errors.push(`Occasion throttle: Found ${linesWithOccasionTokens.length} lines with occasion words - max 1 allowed`);
+      if (linesWithOccasionTokens.length > 0) {
+        errors.push(`Occasion throttle: Found ${linesWithOccasionTokens.length} lines with occasion words - ZERO allowed for comedian style`);
       }
     }
     
@@ -425,10 +428,8 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     
     console.log(`Using model: ${model}`);
     
-    // Choose system prompt based on whether anchors exist
-    const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
-    const anchors = ANCHORS[ctxKey] || [];
-    const systemPrompt = anchors.length > 0 ? SYSTEM_PROMPT_WITH_ANCHORS : SYSTEM_PROMPT_NO_ANCHORS;
+    // Always use NO_ANCHORS prompt for comedian-first approach
+    const systemPrompt = SYSTEM_PROMPT_NO_ANCHORS;
     
     const requestBody: any = {
       model,
@@ -544,7 +545,7 @@ serve(async (req) => {
     // If no API key, return fallback immediately
     if (!openAIApiKey) {
       console.log("No OpenAI API key, using fallback");
-      const fallback = generateSavageFallback(inputs);
+      const fallback = generateComedianFallback(inputs);
       return new Response(JSON.stringify(fallback), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -592,22 +593,41 @@ serve(async (req) => {
       }
     }
     
-    // If validation failed, return the model's raw output anyway (no generic fallback)
+    // If validation failed, attempt repair pass for occasion words
     if (!finalResult && lastAttemptResult && lastAttemptResult.rawLines) {
-      console.log("Validation failed but returning model's raw output instead of fallback");
-      finalResult = {
-        lines: lastAttemptResult.rawLines,
-        model: `${lastAttemptResult.model || 'unknown'} (raw-unvalidated)`,
-        validated: false,
-        validation_errors: allErrors,
-        note: "Returning model output despite validation issues"
-      };
+      console.log("Attempting repair pass for occasion words...");
+      
+      // Check if errors are primarily about occasion words
+      const hasOccasionErrors = allErrors.some(err => err.includes("Occasion throttle"));
+      
+      if (hasOccasionErrors && allErrors.length <= 2) {
+        // Attempt one repair pass
+        const repairMessage = buildUserMessage(inputs) + `\n\nREPAIR PASS: The previous response contained occasion words. Rewrite ALL 4 lines to be indirect and comedic WITHOUT mentioning: cake, candles, balloons, confetti, birthday, party, celebrate. Write like a stand-up comedian - focus on wit, not literal context.`;
+        
+        try {
+          const repairResult = await attemptGeneration({...inputs, repairPass: true}, 1, [`Repair: ${allErrors.join("; ")}`]);
+          if (repairResult.validated) {
+            console.log("Repair pass succeeded!");
+            finalResult = repairResult;
+          }
+        } catch (repairError) {
+          console.log("Repair pass failed:", repairError);
+        }
+      }
+      
+      // If repair failed or wasn't attempted, use non-literal fallback
+      if (!finalResult) {
+        console.log("Using non-literal comedian fallback");
+        finalResult = generateComedianFallback(inputs);
+        finalResult.validation_errors = allErrors;
+        finalResult.fallback_reason = "repair_failed_using_comedian_fallback";
+      }
     }
     
-    // ONLY use fallback if API completely failed (no model output at all)
+    // ONLY use old fallback if API completely failed (no model output at all)
     if (!finalResult) {
       console.log("API completely failed, using emergency fallback:", allErrors);
-      finalResult = generateSavageFallback(inputs);
+      finalResult = generateComedianFallback(inputs);
       finalResult.llm_errors = allErrors;
       finalResult.fallback_reason = "api_completely_failed";
     }
@@ -619,15 +639,15 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-step2 function:', error);
     
-    // Emergency fallback for any catastrophic errors
+    // Emergency non-literal comedian fallback
     const emergencyFallback = {
       lines: [
-        { lane: "option1", text: "Your cake looks sadder than your life choices." },
-        { lane: "option2", text: "Even the balloons are trying to escape this disaster." },
-        { lane: "option3", text: "Those candles have more personality than you ever will." },
-        { lane: "option4", text: "Your party hats and confetti are filing for divorce from you." }
+        { lane: "option1", text: "That timing expired." },
+        { lane: "option2", text: "Have you noticed everything feels awkward now?" },
+        { lane: "option3", text: "This situation costs more than your dignity ever will." },
+        { lane: "option4", text: "Everything here applied for witness protection after meeting you." }
       ],
-      model: "emergency-fallback",
+      model: "emergency-comedian-fallback",
       validated: true,
       error: error.message
     };
