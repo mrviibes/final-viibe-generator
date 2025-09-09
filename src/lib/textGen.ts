@@ -14,7 +14,7 @@ STRICT RULES:
 }
 
 2. CONTENT RULES:
-- Each line must be ≤ 70 characters
+- Option 1: ≤ 35 characters, Option 2: ≤ 50 characters, Option 3: ≤ 80 characters, Option 4: ≤ 100 characters
 - All 4 lines must be completely different
 - Use simple punctuation: commas, periods, colons
 - NO em-dashes (—) or double dashes (--)
@@ -68,14 +68,18 @@ function sanitizeAndValidate(text: string): TextGenOutput | null {
       return null;
     }
     
+    // Lane-aware character limits
+    const maxLengths = { option1: 35, option2: 50, option3: 80, option4: 100 };
+    
     // Validate each line
     for (const line of parsed.lines) {
       if (!line.lane || !line.text || typeof line.text !== 'string') {
         return null;
       }
       
-      // Hard character limit of 70
-      if (line.text.length > 70) {
+      // Lane-aware character limit
+      const maxLength = maxLengths[line.lane as keyof typeof maxLengths] || 100;
+      if (line.text.length > maxLength) {
         return null;
       }
     }
@@ -103,12 +107,36 @@ const FALLBACK_LINES: TextGenOutput = {
   ]
 };
 
-function gentleAutoFix(text: string): string {
-  return text
+function gentleAutoFix(text: string, lane?: string): string {
+  // Lane-aware character limits
+  const maxLengths = { option1: 35, option2: 50, option3: 80, option4: 100 };
+  const maxLength = lane ? (maxLengths[lane as keyof typeof maxLengths] || 100) : 100;
+  
+  let fixed = text
     .trim() // Remove leading/trailing whitespace
     .replace(/—/g, '-') // Replace em-dashes with hyphens
-    .replace(/--+/g, '-') // Replace multiple dashes with single dash
-    .substring(0, 70); // Hard cap at 70 characters
+    .replace(/--+/g, '-'); // Replace multiple dashes with single dash
+  
+  // Smart truncation to avoid mid-word cuts
+  if (fixed.length > maxLength) {
+    const truncated = fixed.substring(0, maxLength);
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    
+    if (lastSpaceIndex > maxLength * 0.8) {
+      // If we can find a space in the last 20% of the text, cut there
+      fixed = truncated.substring(0, lastSpaceIndex);
+    } else {
+      // Otherwise, hard truncate
+      fixed = truncated;
+    }
+    
+    // Ensure it ends with proper punctuation
+    if (!/[.!?]$/.test(fixed)) {
+      fixed += '.';
+    }
+  }
+  
+  return fixed;
 }
 
 function parseModelResponse(modelString: string): { modelName: string; status: string | null } {
@@ -148,7 +176,7 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
     if (status === 'raw-unvalidated') {
       processedLines = data.lines.map(line => ({
         ...line,
-        text: gentleAutoFix(line.text)
+        text: gentleAutoFix(line.text, line.lane)
       }));
       console.log('🔧 Applied gentle auto-fix to raw-unvalidated lines');
     }
