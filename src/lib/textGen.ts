@@ -14,7 +14,7 @@ STRICT RULES:
 }
 
 2. CONTENT RULES:
-- Each line must be ≤ 70 characters
+- Each line must be ≤ 100 characters
 - All 4 lines must be completely different
 - Use simple punctuation: commas, periods, colons
 - NO em-dashes (—) or double dashes (--)
@@ -74,8 +74,8 @@ function sanitizeAndValidate(text: string): TextGenOutput | null {
         return null;
       }
       
-      // Hard character limit of 70
-      if (line.text.length > 70) {
+      // Hard character limit of 100
+      if (line.text.length > 100) {
         return null;
       }
     }
@@ -104,11 +104,24 @@ const FALLBACK_LINES: TextGenOutput = {
 };
 
 function gentleAutoFix(text: string): string {
-  return text
+  let fixed = text
     .trim() // Remove leading/trailing whitespace
     .replace(/—/g, '-') // Replace em-dashes with hyphens
-    .replace(/--+/g, '-') // Replace multiple dashes with single dash
-    .substring(0, 70); // Hard cap at 70 characters
+    .replace(/--+/g, '-'); // Replace multiple dashes with single dash
+  
+  // Trim to 100 chars at word boundary to avoid mid-word cuts
+  if (fixed.length > 100) {
+    const truncated = fixed.substring(0, 100);
+    const lastSpace = truncated.lastIndexOf(' ');
+    fixed = lastSpace > 80 ? truncated.substring(0, lastSpace) : truncated;
+  }
+  
+  // Ensure proper ending punctuation
+  if (!/[.!?]$/.test(fixed)) {
+    fixed += '.';
+  }
+  
+  return fixed;
 }
 
 function parseModelResponse(modelString: string): { modelName: string; status: string | null } {
