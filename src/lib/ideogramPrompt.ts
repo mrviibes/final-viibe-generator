@@ -1,7 +1,7 @@
 import { IdeogramHandoff } from './ideogram';
 import { normalizeTypography } from './textUtils';
 
-export function buildIdeogramPrompt(handoff: IdeogramHandoff, cleanBackground: boolean = false, layoutToken?: string): string {
+export function buildIdeogramPrompt(handoff: IdeogramHandoff, cleanBackground: boolean = false): string {
   const parts: string[] = [];
   
   // REMOVED: No longer inject text into image prompt to prevent baked-in text
@@ -27,11 +27,6 @@ export function buildIdeogramPrompt(handoff: IdeogramHandoff, cleanBackground: b
   // Background-only instruction for clean overlay text
   const background = handoff.rec_background || handoff.chosen_visual || "appropriate background";
   parts.push(`Background: ${background}`);
-  
-  // Add layout token if provided for text overlay space
-  if (layoutToken) {
-    parts.push(layoutToken);
-  }
   
   // Always append "no text" when finalText is present to ensure background-only
   if (handoff.key_line && handoff.key_line.trim()) {
