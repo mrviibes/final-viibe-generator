@@ -6274,8 +6274,8 @@ const Index = () => {
                             ))}
                          </div>
                         </div>
-                       </div>
-                      )}
+                        </div>
+                       )}
 
                     {/* Dimensions Selection - Show when AI assist visual is selected */}
                      {selectedSubjectOption === "ai-assist" && selectedVisualIndex !== null && (
@@ -6442,10 +6442,11 @@ const Index = () => {
                              )}
                            </div>
                        </div>
-                  </div>)}
+                   )}
 
                 {/* General Dimensions Selection - Show only for non-AI assist options */}
-                {selectedSubjectOption && (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed || selectedSubjectOption === "no-subject" || selectedSubjectOption === "single-person" || selectedSubjectOption === "multiple-people") && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                 {selectedSubjectOption && (selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed || selectedSubjectOption === "no-subject" || selectedSubjectOption === "single-person" || selectedSubjectOption === "multiple-people") && (
+                   <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">Choose your dimensions</p>
                     </div>
@@ -6937,8 +6938,7 @@ const Index = () => {
               </Button>
             </div>
           </div>
-           </>
-         )}
+        )}
 
         {/* API Key Dialog */}
         <ApiKeyDialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog} onApiKeySet={handleApiKeySet} />
