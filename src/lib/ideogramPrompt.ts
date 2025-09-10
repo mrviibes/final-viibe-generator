@@ -46,23 +46,52 @@ function getToneFonts(tone: string): string[] {
   return fontsByTone[tone.toLowerCase()] || fontsByTone.default;
 }
 
-function getLayoutToken(handoff: IdeogramHandoff): string {
-  if (!handoff.chosen_visual) return 'composition with ample negative space for text overlay';
+function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; textPlacement: string } {
+  if (!handoff.chosen_visual) {
+    return {
+      composition: 'composition with ample negative space for text overlay',
+      textPlacement: 'negative space caption'
+    };
+  }
   
-  // Extract layout tokens from chosen visual
-  const layoutTokens = [
-    'clear empty area near largest margin',
-    'clear top band', 'clear bottom band', 'clear lower third',
-    'clear left panel', 'badge space top-right', 'clear narrow bottom strip'
-  ];
+  // Map layout tokens to specific text rendering instructions
+  const layoutMappings = {
+    'clear top band': {
+      composition: 'composition ensures clear top band for text overlay',
+      textPlacement: 'meme top style: bold centered text at top with strong outline'
+    },
+    'clear bottom band': {
+      composition: 'composition ensures clear bottom band for text overlay', 
+      textPlacement: 'meme bottom style: bold centered text at bottom with strong outline'
+    },
+    'clear lower third': {
+      composition: 'composition ensures clear lower third for text overlay',
+      textPlacement: 'lower third banner: elegant overlay text in bottom third'
+    },
+    'clear left panel': {
+      composition: 'composition ensures clear left panel for text overlay',
+      textPlacement: 'left panel caption: vertical text placement on left side'
+    },
+    'badge space top-right': {
+      composition: 'composition ensures badge space top-right for text overlay',
+      textPlacement: 'top-right badge: compact text in corner badge style'
+    },
+    'clear narrow bottom strip': {
+      composition: 'composition ensures clear narrow bottom strip for text overlay',
+      textPlacement: 'narrow bottom banner: condensed text strip at bottom'
+    }
+  };
   
-  for (const token of layoutTokens) {
+  for (const [token, layout] of Object.entries(layoutMappings)) {
     if (handoff.chosen_visual.toLowerCase().includes(token)) {
-      return `composition ensures ${token} for text overlay`;
+      return layout;
     }
   }
   
-  return 'composition with ample negative space for text overlay';
+  return {
+    composition: 'composition with ample negative space for text overlay',
+    textPlacement: 'negative space caption'
+  };
 }
 
 export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts {
@@ -84,9 +113,9 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
   const angle = getRandomElement(angleVariations);
   parts.push(`${lighting}, ${angle} with cinematic atmosphere.`);
   
-  // 4. Layout token for text space
-  const layoutInstruction = getLayoutToken(handoff);
-  parts.push(`${layoutInstruction}.`);
+  // 4. Layout instruction for text space
+  const layout = getLayoutInstruction(handoff);
+  parts.push(`${layout.composition}.`);
   
   // 5. Tone-driven feeling (randomized)
   const moodOptions = moodEnhancers[handoff.tone.toLowerCase()] || moodEnhancers.default;
@@ -98,7 +127,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
     parts.push(`Visual elements: ${handoff.visual_tags_csv}.`);
   }
   
-  // 7. Text overlay with styling rules
+  // 7. EXPLICIT TEXT RENDERING INSTRUCTION
   if (handoff.key_line && handoff.key_line.trim()) {
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
@@ -107,7 +136,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
     const styles = ['subtle shadow', 'soft glow', 'clean stroke', 'elegant gradient'];
     const textStyle = getRandomElement(styles);
     
-    parts.push(`Overlay text: "${handoff.key_line}" styled with ${selectedFont}, ${alignment} aligned, ${textStyle} for maximum contrast and readability.`);
+    parts.push(`Render the following text directly in the image: "${handoff.key_line}". Use ${layout.textPlacement} with ${selectedFont}, ${alignment} aligned, ${textStyle} for maximum contrast and readability.`);
   }
   
   // Static negative prompt for consistent quality
