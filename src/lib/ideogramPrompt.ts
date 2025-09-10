@@ -145,35 +145,35 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
   if (!handoff.chosen_visual) {
     return {
       composition: 'composition with ample negative space for text overlay',
-      textPlacement: 'negative space caption'
+      textPlacement: 'subtle caption overlay at bottom, small clean sans-serif, center aligned, high contrast'
     };
   }
   
-  // Map layout tokens to specific text rendering instructions
+  // Map layout tokens to specific text rendering instructions for text-in-image mode
   const layoutMappings = {
     'clear top band': {
-      composition: 'composition with clear top space for integrated text',
-      textPlacement: 'render text clearly at top of image with bold readable font'
+      composition: 'composition with clear horizontal band at top',
+      textPlacement: 'bold readable text at top of image, meme-style format, large sans-serif font, center aligned'
     },
     'clear bottom band': {
-      composition: 'composition with clear bottom space for integrated text', 
-      textPlacement: 'render text clearly at bottom of image with bold readable font'
+      composition: 'composition with clear horizontal band at bottom', 
+      textPlacement: 'bold readable text at bottom of image, meme-style format, large sans-serif font, center aligned'
     },
     'clear lower third': {
-      composition: 'composition with clear lower area for integrated text',
-      textPlacement: 'render text clearly in lower third with elegant typography'
+      composition: 'composition with clear lower third area',
+      textPlacement: 'elegant text in lower third banner style, clean typography, left aligned'
     },
     'clear left panel': {
-      composition: 'composition with clear left space for integrated text',
-      textPlacement: 'render text clearly on left side with vertical layout'
+      composition: 'composition with clear vertical left panel',
+      textPlacement: 'vertical text on left side, readable font, top to bottom orientation'
     },
     'badge space top-right': {
-      composition: 'composition with clear top-right space for integrated text',
-      textPlacement: 'render text clearly as badge in top-right corner'
+      composition: 'composition with clear corner space top-right',
+      textPlacement: 'text as badge callout in top-right corner, compact design'
     },
     'clear narrow bottom strip': {
-      composition: 'composition with clear narrow bottom space for integrated text',
-      textPlacement: 'render text clearly in narrow strip at bottom'
+      composition: 'composition with clear narrow horizontal strip at bottom',
+      textPlacement: 'subtle caption overlay at narrow bottom strip, small clean sans-serif, center aligned, high contrast'
     }
   };
   
@@ -185,7 +185,7 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
   
   return {
     composition: 'composition with clear space for integrated text',
-    textPlacement: 'render text clearly with readable typography'
+    textPlacement: 'subtle caption overlay at bottom, small clean sans-serif, center aligned, high contrast'
   };
 }
 
@@ -197,19 +197,16 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const layout = getLayoutInstruction(handoff);
   
   // 1. TEXT-FIRST: EXPLICIT TEXT RENDERING INSTRUCTION (highest priority)
-  // Only inject text instructions if explicitly requested (textInsideImage mode)
-  const shouldInjectText = options.injectText === true;
+  // Default to text-in-image mode unless explicitly set to false
+  const shouldInjectText = options.injectText !== false;
   
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
-    const alignments = ['left', 'center', 'right'];
-    const alignment = getRandomElement(alignments);
-    const styles = ['subtle shadow', 'soft glow', 'clean stroke', 'elegant gradient'];
-    const textStyle = getRandomElement(styles);
+    const textStyle = getRandomElement(['subtle shadow', 'soft glow', 'clean stroke']);
     
-    // Stronger text directive to prevent duplication
-    textParts.push(`Render the following text exactly once: "${handoff.key_line}". Do not repeat words or phrases. Do not paraphrase. No alternate captions. Place it as ${layout.textPlacement} with large high-contrast, clean ${selectedFont} typography.`);
+    // Put text instruction at the very beginning with explicit styling
+    textParts.push(`Render the following text directly in the image: "${handoff.key_line}". Style: ${layout.textPlacement}, ${selectedFont}, ${textStyle}, minimal styling. The text must be clearly visible and spelled correctly.`);
   }
   
   // 2. SCENE DESCRIPTION: Core subject with tone + SUBCATEGORY LOCK
@@ -267,13 +264,13 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const allParts = [...textParts, ...sceneParts];
   let positivePrompt = allParts.join(' ');
   
-  // Add overlay-mode text avoidance directive when not injecting text
+  // Add overlay-mode text avoidance directive only when explicitly avoiding text
   if (!shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
     const layoutArea = layout.textPlacement.includes('bottom') ? 'bottom area' : 
                       layout.textPlacement.includes('top') ? 'top area' :
                       layout.textPlacement.includes('left') ? 'left area' : 
                       'designated text area';
-    positivePrompt += ` Do not render any text, letters, numbers, or captions in the image. Reserve the ${layoutArea} as clear space for an overlay caption added later.`;
+    positivePrompt += ` Reserve the ${layoutArea} as clear space for overlay caption added later. Do not render any text, letters, numbers, or captions in the image.`;
   }
   
   // Sanitize the final prompt
@@ -282,8 +279,8 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   
   // Choose negative prompt based on text injection mode  
   const negativePrompt = shouldInjectText 
-    ? "no duplicated words, no repeated phrases, no second caption, no alternate caption, no overlapping text, no misspelled text, no garbled letters, no mirrored or warped characters" // Enhanced for text mode
-    : "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no embedded text, no letters, no words, no signage, no watermarks"; // Enhanced for overlay mode
+    ? "no misspelled text, no duplicated words, no random letters, no blurry or overlapping text, no unwanted logos, no unrelated sports or activities" // Focused for text mode
+    : "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no embedded text, no letters, no words, no signage"; // Enhanced for overlay mode
 
   return {
     positive_prompt: positivePrompt,

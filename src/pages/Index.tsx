@@ -4478,7 +4478,7 @@ const Index = () => {
   const [proxyApiKey, setProxyApiKey] = useState('');
 
   // Text rendering mode states
-  const [textInsideImage, setTextInsideImage] = useState<boolean>(false);
+  const [textInsideImage, setTextInsideImage] = useState<boolean>(true);
   const [showRetryLayoutDialog, setShowRetryLayoutDialog] = useState<boolean>(false);
   const [showSafetyValidationDialog, setShowSafetyValidationDialog] = useState<boolean>(false);
   const [safetyModifications, setSafetyModifications] = useState<{
@@ -4551,7 +4551,7 @@ const Index = () => {
       const prompts = buildIdeogramPrompts(handoff, { injectText: textInsideImage });
       setDebugPrompts(prompts);
     }
-  }, [currentStep, selectedStyle, selectedSubOption, selectedTextStyle, selectedGeneratedOption, stepTwoText, selectedVisualStyle, selectedDimension, customWidth, customHeight, tags, subjectTags, selectedVisualIndex, visualOptions, selectedSubjectOption, subjectDescription, selectedPick, selectedCompletionOption]);
+  }, [currentStep, selectedStyle, selectedSubOption, selectedTextStyle, selectedGeneratedOption, stepTwoText, selectedVisualStyle, selectedDimension, customWidth, customHeight, tags, subjectTags, selectedVisualIndex, visualOptions, selectedSubjectOption, subjectDescription, selectedPick, selectedCompletionOption, textInsideImage]);
 
   // Generate visual recommendations when reaching step 4 or when visualSpice changes
   useEffect(() => {
@@ -7177,18 +7177,18 @@ const Index = () => {
                          <td className="p-3 text-sm">AI Visual Assist</td>
                          <td className="p-3 text-sm">{selectedSubjectOption === "ai-assist" ? "Yes" : "No"}</td>
                        </tr>
-                       <tr>
-                         <td className="p-3 text-sm">Positive Prompt</td>
-                         <td className="p-3 text-sm font-mono text-xs whitespace-normal break-words">
-                           {debugPrompts.positive_prompt || "No prompt generated yet"}
-                         </td>
-                       </tr>
-                       <tr>
-                         <td className="p-3 text-sm">Negative Prompt</td>
-                         <td className="p-3 text-sm font-mono text-xs whitespace-normal break-words">
-                           {debugPrompts.negative_prompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe"}
-                         </td>
-                       </tr>
+                        <tr>
+                          <td className="p-3 text-sm">Positive Prompt</td>
+                          <td className="p-3 text-sm font-mono text-xs whitespace-normal break-words">
+                            {lastIdeogramPrompt || debugPrompts.positive_prompt || "No prompt generated yet"}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 text-sm">Negative Prompt</td>
+                          <td className="p-3 text-sm font-mono text-xs whitespace-normal break-words">
+                            {lastIdeogramNegativePrompt || debugPrompts.negative_prompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe"}
+                          </td>
+                        </tr>
                     </tbody>
                   </table>
                 </div>
