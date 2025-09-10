@@ -5301,7 +5301,7 @@ const Index = () => {
             <div className="max-w-md mx-auto mb-12">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search styles..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                <Input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search categories..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
               </div>
             </div>
 
