@@ -97,23 +97,241 @@ function getVibeKeywords(category: string, subcategory: string): string[] {
   return vibes;
 }
 
+function getToneDefinition(tone: string): { definition: string; dos: string[]; donts: string[]; microExamples: string[] } {
+  const definitions = {
+    "Savage": {
+      definition: "Brutally honest, cutting wit, zero mercy. Like roasting your best friend who can take it.",
+      dos: [
+        "Point out obvious flaws or failures",
+        "Use cutting observations about reality",
+        "Be blunt about uncomfortable truths",
+        "Mock pretensions and delusions",
+        "Call out hypocrisy directly"
+      ],
+      donts: [
+        "Be genuinely mean or cruel",
+        "Attack personal appearance maliciously", 
+        "Add softening words like 'kinda' or 'maybe'",
+        "Use hedging phrases that weaken the burn",
+        "Be polite or diplomatic"
+      ],
+      microExamples: [
+        "Another year closer to irrelevance",
+        "Your planning skills peaked in kindergarten",
+        "We're pretending this was intentional"
+      ]
+    },
+    "Humorous": {
+      definition: "Clever and funny observations that make people laugh, not wince.",
+      dos: [
+        "Find the absurd in everyday situations",
+        "Use timing and setup for punchlines",
+        "Make relatable observations",
+        "Use wordplay and clever connections",
+        "Point out ironic contradictions"
+      ],
+      donts: [
+        "Be mean-spirited or harsh",
+        "Use tired joke formats",
+        "Over-explain the humor",
+        "Force puns or wordplay",
+        "Be too aggressive or cutting"
+      ],
+      microExamples: [
+        "Adulting is just Googling how to do things",
+        "My life runs on caffeine and good intentions",
+        "Reality called but I sent it to voicemail"
+      ]
+    },
+    "Playful": {
+      definition: "Light, fun, and mischievous. Like teasing someone you genuinely like.",
+      dos: [
+        "Use gentle teasing and banter",
+        "Be silly and lighthearted",
+        "Make playful observations",
+        "Use fun comparisons and metaphors",
+        "Keep energy upbeat and bouncy"
+      ],
+      donts: [
+        "Be cutting or harsh",
+        "Use serious or heavy topics",
+        "Be sarcastic in a mean way",
+        "Make anyone feel bad",
+        "Be too adult or sophisticated"
+      ],
+      microExamples: [
+        "Look who's getting fancy with actual plans",
+        "Someone's feeling ambitious today",
+        "We're all just winging it and hoping for snacks"
+      ]
+    },
+    "Sentimental": {
+      definition: "Heartfelt and warm, expressing genuine emotion without being cheesy.",
+      dos: [
+        "Express genuine appreciation",
+        "Reference shared memories",
+        "Use warm, caring language",
+        "Be authentic about feelings",
+        "Focus on connection and gratitude"
+      ],
+      donts: [
+        "Be overly dramatic or flowery",
+        "Use greeting card language",
+        "Be too formal or stilted",
+        "Over-sentimentalize simple moments",
+        "Use cliché emotional phrases"
+      ],
+      microExamples: [
+        "Grateful for moments like these with you",
+        "Another year of memories we'll laugh about later",
+        "You make ordinary days feel special"
+      ]
+    },
+    "Serious": {
+      definition: "Thoughtful and straightforward, showing respect for the moment.",
+      dos: [
+        "Be direct and honest",
+        "Show genuine respect",
+        "Use measured, thoughtful language",
+        "Focus on meaning and significance",
+        "Be authentic without drama"
+      ],
+      donts: [
+        "Be overly formal or stiff",
+        "Use corporate speak",
+        "Be preachy or lecture-like",
+        "Over-philosophize simple things",
+        "Sound robotic or template-like"
+      ],
+      microExamples: [
+        "This matters more than you know",
+        "Taking time to appreciate what we've built",
+        "Some moments deserve proper recognition"
+      ]
+    },
+    "Inspirational": {
+      definition: "Uplifting and motivating without being preachy or cliché.",
+      dos: [
+        "Focus on growth and possibility",
+        "Use empowering language",
+        "Reference overcoming challenges",
+        "Celebrate progress and potential",
+        "Be genuinely encouraging"
+      ],
+      donts: [
+        "Use generic motivational quotes",
+        "Be preachy or lecture-like",
+        "Sound like a corporate poster",
+        "Use empty buzzwords",
+        "Be unrealistic or naive"
+      ],
+      microExamples: [
+        "Every challenge makes you stronger than before",
+        "You're building something worth celebrating",
+        "This is what progress actually looks like"
+      ]
+    }
+  };
+  
+  return definitions[tone] || definitions["Humorous"];
+}
+
+function checkToneAlignment(lines: Array<{lane: string, text: string}>, tone: string): string | null {
+  const toneInfo = getToneDefinition(tone);
+  const issues: string[] = [];
+  
+  // Check for hedging words that weaken tone
+  const hedgingWords = ["kinda", "maybe", "sort of", "kind of", "perhaps", "possibly", "somewhat"];
+  const politeWords = ["please", "thank you", "excuse me", "pardon", "sorry"];
+  
+  if (tone === "Savage") {
+    // Savage should be direct and cutting
+    for (const line of lines) {
+      const lowerText = line.text.toLowerCase();
+      
+      // Check for hedging that weakens savage tone
+      for (const hedge of hedgingWords) {
+        if (lowerText.includes(hedge)) {
+          issues.push(`Savage tone weakened by hedging word "${hedge}" in: "${line.text}"`);
+        }
+      }
+      
+      // Check for politeness that contradicts savage tone
+      for (const polite of politeWords) {
+        if (lowerText.includes(polite)) {
+          issues.push(`Savage tone contradicted by politeness "${polite}" in: "${line.text}"`);
+        }
+      }
+      
+      // Check for overly gentle phrasing
+      if (lowerText.includes("i think") || lowerText.includes("i guess") || lowerText.includes("i suppose")) {
+        issues.push(`Savage tone weakened by uncertain phrasing in: "${line.text}"`);
+      }
+    }
+  } else if (tone === "Sentimental") {
+    // Sentimental should be warm but not cheesy
+    const cheesyPhrases = ["blessed", "grateful heart", "so blessed", "sending love", "love and light"];
+    
+    for (const line of lines) {
+      const lowerText = line.text.toLowerCase();
+      
+      for (const cheesy of cheesyPhrases) {
+        if (lowerText.includes(cheesy)) {
+          issues.push(`Sentimental tone too cheesy with phrase "${cheesy}" in: "${line.text}"`);
+        }
+      }
+    }
+  }
+  
+  // General tone authenticity check
+  let authenticLines = 0;
+  for (const line of lines) {
+    const lowerText = line.text.toLowerCase();
+    
+    // Check if line sounds human vs AI-generated
+    const aiPatterns = [
+      "achievement unlocked",
+      "plot twist",
+      "level up",
+      "mission accomplished",
+      "status update",
+      "news flash"
+    ];
+    
+    const hasAiPattern = aiPatterns.some(pattern => lowerText.includes(pattern));
+    if (!hasAiPattern) {
+      authenticLines++;
+    }
+  }
+  
+  if (authenticLines < 3) {
+    issues.push(`Lines sound too AI-generated for ${tone} tone. Need more natural, human-like phrasing.`);
+  }
+  
+  return issues.length > 0 ? issues.join("; ") : null;
+}
+
 function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[]): string {
   const banList = getClicheBanList(category, subcategory);
   const anchors = getTopicalAnchors(category, subcategory);
   const vibes = getVibeKeywords(category, subcategory);
+  const toneInfo = getToneDefinition(tone);
   
   const banPhrase = banList.length > 0 ? `\n\nSTRICTLY AVOID these overused props: ${banList.join(", ")}. Find unexpected angles instead.` : "";
   const anchorPhrase = anchors.length > 0 ? `\n\nTOPICALITY REQUIREMENT: At least 2 of 4 lines must include one of these fresh angles: ${anchors.join(", ")}. Ground lines in the actual situation.` : "";
   const vibePhrase = vibes.length > 0 ? `\n\nVIBE GROUNDING: At least 2 of 4 lines should reference "${subcategory}" context naturally.` : "";
   
-  const comedyInstructions = tone === "Savage" || tone === "Humorous" || tone === "Playful" ? 
-    `\n\nCOMEDY VOICE: Write like you're texting a friend who gets your humor. Use different comedy styles:
-- Observational ("when you realize...")  
-- Contrast/irony ("supposed to be X but...")
-- Exaggeration ("47 notifications...")
-- Timing/punchlines ("...and then I knew...")
-- Unexpected comparisons ("like trying to...")
-- Specific relatable details` : "";
+  const toneGuidance = `\n\n${tone.toUpperCase()} TONE DEFINITION:
+${toneInfo.definition}
+
+DO:
+${toneInfo.dos.map(item => `- ${item}`).join('\n')}
+
+DON'T:
+${toneInfo.donts.map(item => `- ${item}`).join('\n')}
+
+MICRO-EXAMPLES (${tone} style):
+${toneInfo.microExamples.map(ex => `- "${ex}"`).join('\n')}`;
   
   const tagGuidance = tags.length > 0 ? `\n\nTAG INTEGRATION (HUMAN-LIKE):
 - Tags: [${tags.join(", ")}] must appear in at least 3 lines
@@ -144,10 +362,7 @@ HUMAN-LIKE RULES:
 LENGTH VARIETY (MANDATORY):
 - At least one SHORT line (15-35 chars): punchy, snappy
 - At least one LONG line (70-90 chars): flowing, detailed
-- Mix it up so every batch feels different
-
-TONE: ${tone}
-- ${tone === "Savage" || tone === "Humorous" || tone === "Playful" ? "Witty and sharp but conversational, like roasting a friend" : "Warm and genuine, like talking to someone you care about"}${comedyInstructions}
+- Mix it up so every batch feels different${toneGuidance}
 
 CATEGORY: ${category} > ${subcategory}${banPhrase}${anchorPhrase}${vibePhrase}${tagGuidance}
 
@@ -330,6 +545,12 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, category:
     warnings.push(varietyError);
   }
   
+  // Tone alignment check (critical)
+  const toneError = checkToneAlignment(lines, tone);
+  if (toneError) {
+    errors.push(`Tone alignment issues: ${toneError}`);
+  }
+  
   return {
     isValid: errors.length === 0,
     errors,
@@ -472,51 +693,117 @@ function ensureTagCoverage(lines: Array<{lane: string, text: string}>, tags: str
 }
 
 function getToneAwareFallback(category: string, subcategory: string, tone: string, tags: string[]): Array<{lane: string, text: string}> {
-  // Try to create category-specific fallback that follows our rules
-  if (category === "Celebrations" && subcategory === "Christmas Day") {
-    if (tone === "Savage" || tone === "Humorous") {
-      let fallbackLines = [
-        { lane: "option1", text: "Christmas morning: when adult assembly skills meet childhood expectations" },
-        { lane: "option2", text: "Holiday budget vs. December reality, a tragic love story in 37 receipts" },
-        { lane: "option3", text: "Family group chat peace treaty negotiations failed, thermostat warfare continues" },
-        { lane: "option4", text: "Christmas dinner: dietary restrictions meet traditional guilt, nobody wins" }
-      ];
-      
-      return ensureTagCoverage(fallbackLines, tags);
-    } else {
-      let fallbackLines = [
-        { lane: "option1", text: "Christmas brings us together, assembly instructions and all" },
-        { lane: "option2", text: "Holiday traditions: where organized chaos meets matching pajama diplomacy" },
-        { lane: "option3", text: "December teaches patience, one missing screw at a time" },
-        { lane: "option4", text: "Christmas love comes with shipping delays and family group chat drama" }
-      ];
-      
-      return ensureTagCoverage(fallbackLines, tags);
+  const tagIntegration = tags.length > 0 ? tags[0] : "";
+  
+  const fallbacks = {
+    "Celebrations": {
+      "Birthday": {
+        "Savage": [
+          `${tagIntegration ? tagIntegration + ', ' : ''}another year closer to irrelevance`,
+          `Your planning skills${tagIntegration ? ' ' + tagIntegration : ''} peaked in kindergarten`, 
+          `We're all pretending${tagIntegration ? ' ' + tagIntegration + ' has' : ' this has'} a plan`,
+          `${tagIntegration ? tagIntegration + ' celebrating' : 'Celebrating'} aging out of relevance`
+        ],
+        "Humorous": [
+          `${tagIntegration ? tagIntegration + ' and' : 'Another'} the annual aging process`,
+          `Adulting is just Googling${tagIntegration ? ' with ' + tagIntegration : ''} how to do things`,
+          `${tagIntegration ? tagIntegration + ' living on' : 'Life runs on'} caffeine and good intentions`,
+          `Reality called${tagIntegration ? ' ' + tagIntegration : ''} but we sent it to voicemail`
+        ],
+        "Playful": [
+          `Look who's${tagIntegration ? ' ' + tagIntegration + ' is' : ''} getting fancy with actual plans`,
+          `Someone${tagIntegration ? ' ' + tagIntegration : ''} is feeling ambitious today`,
+          `We're all${tagIntegration ? ' including ' + tagIntegration : ''} just winging it and hoping for snacks`,
+          `${tagIntegration ? tagIntegration + ' making' : 'Making'} this look way too easy`
+        ],
+        "Sentimental": [
+          `Grateful for${tagIntegration ? ' ' + tagIntegration + ' and' : ''} moments like these`,
+          `Another year${tagIntegration ? ' with ' + tagIntegration : ''} of memories we'll treasure`,
+          `You${tagIntegration ? ' and ' + tagIntegration : ''} make ordinary days feel special`,
+          `Celebrating${tagIntegration ? ' ' + tagIntegration + ' and' : ''} the gift of connection`
+        ],
+        "Serious": [
+          `This${tagIntegration ? ' moment with ' + tagIntegration : ''} matters more than you know`,
+          `Taking time${tagIntegration ? ' with ' + tagIntegration : ''} to appreciate what we've built`,
+          `Some moments${tagIntegration ? ' with ' + tagIntegration : ''} deserve proper recognition`,
+          `The value${tagIntegration ? ' of ' + tagIntegration : ''} of genuine celebration`
+        ],
+        "Inspirational": [
+          `Every challenge${tagIntegration ? ' ' + tagIntegration + ' faces' : ''} makes you stronger`,
+          `You're${tagIntegration ? ' ' + tagIntegration + ' is' : ''} building something worth celebrating`,
+          `This is${tagIntegration ? ' ' + tagIntegration + ' showing' : ''} what progress looks like`,
+          `Your journey${tagIntegration ? ' with ' + tagIntegration : ''} inspires everyone around you`
+        ]
+      }
     }
+  };
+  
+  const categoryFallbacks = fallbacks[category];
+  if (!categoryFallbacks) {
+    return getEmergencyFallback(tone, tagIntegration);
   }
   
-  if (category === "Celebrations" && subcategory === "Birthday") {
-    if (tone === "Savage" || tone === "Humorous") {
-      let fallbackLines = [
-        { lane: "option1", text: "Another year older, group chat notifications unchanged." },
-        { lane: "option2", text: "Age is just a number. Mine's in witness protection." },
-        { lane: "option3", text: "Birthday planning: where optimism goes to die slowly." },
-        { lane: "option4", text: "Growing up is optional, phone storage is not." }
-      ];
-      
-      return ensureTagCoverage(fallbackLines, tags);
-    }
+  const subcategoryFallbacks = categoryFallbacks[subcategory];
+  if (!subcategoryFallbacks) {
+    return getEmergencyFallback(tone, tagIntegration);
   }
   
-  // Generic fallback that avoids banned phrases
-  let fallbackLines = [
-    { lane: "option1", text: "When moments get memorable, documentation required." },
-    { lane: "option2", text: "This situation brought to you by poor planning." },
-    { lane: "option3", text: "Life's like a group chat: everyone's got opinions." },
-    { lane: "option4", text: "Some days require assembly, instructions sold separately." }
-  ];
+  const toneFallbacks = subcategoryFallbacks[tone];
+  if (!toneFallbacks) {
+    return getEmergencyFallback(tone, tagIntegration);
+  }
   
-  return ensureTagCoverage(fallbackLines, tags);
+  return toneFallbacks.map((text, index) => ({
+    lane: `option${index + 1}`,
+    text
+  }));
+}
+
+function getEmergencyFallback(tone: string, tagIntegration: string): Array<{lane: string, text: string}> {
+  const toneDefaults = {
+    "Savage": [
+      `Well this${tagIntegration ? ' ' + tagIntegration + ' situation' : ''} is awkward`,
+      `Expected more${tagIntegration ? ' from ' + tagIntegration : ''}, got this instead`,
+      `Someone${tagIntegration ? ' ' + tagIntegration : ''} is really phoning it in`,
+      `The bar was low${tagIntegration ? ' for ' + tagIntegration : ''} and we still missed it`
+    ],
+    "Humorous": [
+      `Reality called${tagIntegration ? ' ' + tagIntegration : ''} but we sent it to voicemail`,
+      `This is fine${tagIntegration ? ' with ' + tagIntegration : ''} - everything is fine`,
+      `Working as intended${tagIntegration ? ' by ' + tagIntegration : ''} (definitely not)`,
+      `Adulting${tagIntegration ? ' with ' + tagIntegration : ''} is just making it up as we go`
+    ],
+    "Playful": [
+      `Oops${tagIntegration ? ' ' + tagIntegration : ''} - did we do that right?`,
+      `Adventure mode${tagIntegration ? ' with ' + tagIntegration : ''}: activated`,
+      `Well that was interesting${tagIntegration ? ' ' + tagIntegration : ''}`,
+      `Someone${tagIntegration ? ' ' + tagIntegration : ''} is feeling ambitious today`
+    ],
+    "Sentimental": [
+      `Grateful for${tagIntegration ? ' ' + tagIntegration + ' and' : ''} whatever comes our way`,
+      `Every moment${tagIntegration ? ' with ' + tagIntegration : ''} has its own beauty`,
+      `Finding joy${tagIntegration ? ' in ' + tagIntegration : ''} in the unexpected`,
+      `These moments${tagIntegration ? ' with ' + tagIntegration : ''} matter more than we know`
+    ],
+    "Serious": [
+      `Taking a moment${tagIntegration ? ' with ' + tagIntegration : ''} to regroup`,
+      `Sometimes${tagIntegration ? ' ' + tagIntegration + ' shows us' : ''} the path isn't clear`,
+      `Working through this${tagIntegration ? ' with ' + tagIntegration : ''} step by step`,
+      `Focus${tagIntegration ? ' on ' + tagIntegration + ' and' : ''} on what matters most`
+    ],
+    "Inspirational": [
+      `Every challenge${tagIntegration ? ' ' + tagIntegration + ' faces' : ''} makes you stronger`,
+      `This is just${tagIntegration ? ' ' + tagIntegration + ' showing' : ''} part of the journey`,
+      `Growing stronger${tagIntegration ? ' with ' + tagIntegration : ''} through every challenge`,
+      `The best${tagIntegration ? ' of ' + tagIntegration : ''} is yet to come`
+    ]
+  };
+
+  const defaults = toneDefaults[tone] || toneDefaults["Humorous"];
+  return defaults.map((text, index) => ({
+    lane: `option${index + 1}`,
+    text
+  }));
 }
 
 async function attemptGeneration(inputs: any, attemptNumber: number, previousErrors: string[] = []): Promise<any> {
