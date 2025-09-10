@@ -45,6 +45,22 @@ const cleanVisualDescription = (text: string): string => {
     .trim();
 };
 
+// Helper function to derive short, readable titles from prompts for UI display
+const deriveShortTitle = (prompt: string): string => {
+  if (!prompt) return 'Visual Option';
+  
+  // Remove layout tokens first
+  let cleaned = cleanVisualDescription(prompt);
+  
+  // Extract the main subject/action
+  const words = cleaned.split(' ').filter(w => w.length > 0);
+  if (words.length <= 4) return cleaned;
+  
+  // Take first 3-4 meaningful words
+  const shortTitle = words.slice(0, 4).join(' ');
+  return shortTitle.charAt(0).toUpperCase() + shortTitle.slice(1);
+};
+
 // Layout mappings for display
 const layoutMappings = {
   negativeSpace: {
@@ -77,14 +93,17 @@ const layoutMappings = {
 function ensureVisualVariance(options: Array<{
   lane: string;
   prompt: string;
-}>, textContent: string, layoutId: string, enforceVariety: boolean = true): {
+}>, textContent: string, layoutId: string, enforceVariety: boolean = true, recommendationMode: string = "balanced"): {
   diversifiedOptions: Array<{
     lane: string;
     prompt: string;
   }>;
   reasons: string[];
 } {
-  if (!enforceVariety) {
+  // Enable variety enforcement for all modes to strengthen impact
+  const shouldEnforceVariety = true;
+  
+  if (!shouldEnforceVariety) {
     return {
       diversifiedOptions: options,
       reasons: []
@@ -140,10 +159,11 @@ function ensureVisualVariance(options: Array<{
     let needsRewrite = false;
     let currentPrompt = option.prompt;
 
-    // Check for high similarity with previous options
+    // Check for high similarity with previous options (reduced threshold for stronger modes)
+    const similarityThreshold = recommendationMode === "chaos" || recommendationMode === "surreal" ? 0.6 : 0.7;
     for (let i = 0; i < diversifiedOptions.length; i++) {
       const similarity = calculateSimilarity(currentPrompt, diversifiedOptions[i].prompt);
-      if (similarity > 0.8) {
+      if (similarity > similarityThreshold) {
         needsRewrite = true;
         break;
       }
@@ -181,7 +201,7 @@ function ensureVisualVariance(options: Array<{
 function validateLayoutAwareVisuals(options: Array<{
   lane: string;
   prompt: string;
-}>, layoutId: string): {
+}>, layoutId: string, session?: Session): {
   validOptions: Array<{
     lane: string;
     prompt: string;
@@ -211,24 +231,52 @@ function validateLayoutAwareVisuals(options: Array<{
     let isValid = true;
     const issues: string[] = [];
 
-    // Check token requirements - auto-append if missing
-    const hasAllTokens = requiredTokens.every(token => option.prompt.toLowerCase().includes(token.toLowerCase()));
-    if (!hasAllTokens) {
-      // Auto-append missing tokens
-      const missingTokens = requiredTokens.filter(token => !option.prompt.toLowerCase().includes(token.toLowerCase()));
+    // Check token requirements - accept both "clear..." and "space..." as synonyms
+    const synonymMap = {
+      "clear empty area near largest margin": ["space for text"],
+      "clear top band": ["space at top"],
+      "clear bottom band": ["space at bottom"], 
+      "clear lower third": ["space at bottom"],
+      "clear left panel": ["space on left side"],
+      "badge space top-right": ["space in corner"],
+      "clear narrow bottom strip": ["space for small text"]
+    };
+    
+    const hasValidTokens = requiredTokens.every(token => {
+      const synonyms = synonymMap[token as keyof typeof synonymMap] || [];
+      return option.prompt.toLowerCase().includes(token.toLowerCase()) || 
+             synonyms.some(syn => option.prompt.toLowerCase().includes(syn.toLowerCase()));
+    });
+    
+    if (!hasValidTokens) {
+      // Auto-append missing tokens using the required format
+      const missingTokens = requiredTokens.filter(token => {
+        const synonyms = synonymMap[token as keyof typeof synonymMap] || [];
+        return !option.prompt.toLowerCase().includes(token.toLowerCase()) && 
+               !synonyms.some(syn => option.prompt.toLowerCase().includes(syn.toLowerCase()));
+      });
       option.prompt = `${option.prompt}, ${missingTokens.join(', ')}`;
       console.log(`🔧 Auto-appended tokens to ${option.lane}: ${missingTokens.join(', ')}`);
     }
 
-    // Check word count (1-12 words for subject, excluding layout tokens)
+    // Check word count (4-22 words for subject, excluding layout tokens)
     let promptWithoutTokens = option.prompt.toLowerCase();
-    requiredTokens.forEach(token => {
+    
+    // Remove both "clear..." and "space..." token families as synonyms
+    const allLayoutTokens = [
+      "clear empty area near largest margin", "clear top band", "clear bottom band", 
+      "clear lower third", "clear left panel", "badge space top-right", "clear narrow bottom strip",
+      "space for text", "space at top and bottom", "space at bottom", 
+      "space on left side", "space in corner", "space for small text"
+    ];
+    
+    allLayoutTokens.forEach(token => {
       promptWithoutTokens = promptWithoutTokens.replace(token.toLowerCase(), '');
     });
     promptWithoutTokens = promptWithoutTokens.replace(/,\s*/g, ' ').trim();
     const subjectWordCount = promptWithoutTokens.split(/\s+/).filter(w => w.length > 0).length;
-    if (subjectWordCount < 1 || subjectWordCount > 12) {
-      issues.push(`word count: ${subjectWordCount} (need 1-12)`);
+    if (subjectWordCount < 4 || subjectWordCount > 22) {
+      issues.push(`word count: ${subjectWordCount} (need 4-22)`);
       isValid = false;
     }
 
@@ -244,25 +292,65 @@ function validateLayoutAwareVisuals(options: Array<{
     }
   });
 
-  // If no valid options, generate deterministic fallbacks
+  // If no valid options, generate smarter context-aware fallbacks
   if (validOptions.length === 0) {
-    console.log('🔄 Generating fallback prompts...');
+    console.log('🔄 Generating context-aware fallback prompts...');
     const tokenSuffix = requiredTokens.join(', ');
-    const fallbacks = [{
-      lane: "option1",
-      prompt: `simple object, ${tokenSuffix}`
-    }, {
-      lane: "option2",
-      prompt: `colorful background, ${tokenSuffix}`
-    }, {
-      lane: "option3",
-      prompt: `minimal scene, ${tokenSuffix}`
-    }, {
-      lane: "option4",
-      prompt: `abstract shapes, ${tokenSuffix}`
-    }];
-    validOptions.push(...fallbacks);
-    reasons.push('Auto-generated fallback prompts due to validation failures');
+    
+    // Generate contextual fallbacks based on current session if available
+    const contextualFallbacks = (() => {
+      // Christmas-themed fallbacks for Christmas categories
+      if (session?.subcategory?.toLowerCase().includes('christmas')) {
+        return [{
+          lane: "option1",
+          prompt: `person wearing ugly Christmas sweater looking confused, ${tokenSuffix}`
+        }, {
+          lane: "option2", 
+          prompt: `tangled Christmas lights on floor, ${tokenSuffix}`
+        }, {
+          lane: "option3",
+          prompt: `empty gift boxes scattered around, ${tokenSuffix}`
+        }, {
+          lane: "option4",
+          prompt: `melting snowman with carrot nose, ${tokenSuffix}`
+        }];
+      }
+      
+      // Birthday fallbacks
+      if (session?.subcategory?.toLowerCase().includes('birthday')) {
+        return [{
+          lane: "option1",
+          prompt: `person staring at birthday cake, ${tokenSuffix}`
+        }, {
+          lane: "option2",
+          prompt: `deflated birthday balloons, ${tokenSuffix}`
+        }, {
+          lane: "option3", 
+          prompt: `birthday candles melting, ${tokenSuffix}`
+        }, {
+          lane: "option4",
+          prompt: `empty party hats on table, ${tokenSuffix}`
+        }];
+      }
+      
+      // Generic comedian-quality fallbacks
+      return [{
+        lane: "option1",
+        prompt: `person looking dramatically disappointed, ${tokenSuffix}`
+      }, {
+        lane: "option2",
+        prompt: `random everyday object sitting alone, ${tokenSuffix}`
+      }, {
+        lane: "option3",
+        prompt: `empty room with single chair, ${tokenSuffix}`
+      }, {
+        lane: "option4",
+        prompt: `abstract shapes suggesting confusion, ${tokenSuffix}`
+      }];
+    })();
+    
+    validOptions.push(...contextualFallbacks);
+    reasons.push('Auto-generated context-aware fallback prompts due to validation failures');
   }
   return {
     validOptions,
@@ -4399,17 +4487,17 @@ const Index = () => {
             recommendationMode: visualSpice
           });
 
-          // Ensure visual variance (disabled)
-          const varianceResult = ensureVisualVariance(result.visualOptions, selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ""), selectedTextLayout || "negativeSpace", false);
+          // Ensure visual variance (enabled for stronger mode effects)
+          const varianceResult = ensureVisualVariance(result.visualOptions, selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ""), selectedTextLayout || "negativeSpace", true, visualSpice);
 
           // Validate layout-aware options
-          const validation = validateLayoutAwareVisuals(varianceResult.diversifiedOptions, selectedTextLayout || "negativeSpace");
+          const validation = validateLayoutAwareVisuals(varianceResult.diversifiedOptions, selectedTextLayout || "negativeSpace", session);
           if (validation.reasons.length > 0 && !validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
             console.warn('⚠️ Some visuals filtered:', validation.reasons);
             sonnerToast.warning('Some visual options were filtered - using best available');
-          } else if (validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
-            console.warn('🔄 Using fallback visuals:', validation.reasons);
-            sonnerToast.warning('Using fallback visuals - AI prompts needed adjustment');
+          } else if (validation.reasons.includes('Auto-generated context-aware fallback prompts due to validation failures')) {
+            console.warn('🔄 Using context-aware fallback visuals:', validation.reasons);
+            sonnerToast.warning('Using context-aware fallback visuals - AI prompts needed adjustment');
           }
 
           // Log any filtered options
@@ -4908,17 +4996,17 @@ const Index = () => {
         recommendationMode: visualSpice
       });
 
-      // Ensure visual variance (disabled)
-      const varianceResult = ensureVisualVariance(result.visualOptions, finalLine || "", selectedTextLayout || "negativeSpace", false);
+      // Ensure visual variance (enabled for stronger mode effects)
+      const varianceResult = ensureVisualVariance(result.visualOptions, finalLine || "", selectedTextLayout || "negativeSpace", true, visualSpice);
 
       // Validate layout-aware options
-      const validation = validateLayoutAwareVisuals(varianceResult.diversifiedOptions, selectedTextLayout || "negativeSpace");
+      const validation = validateLayoutAwareVisuals(varianceResult.diversifiedOptions, selectedTextLayout || "negativeSpace", session);
       if (validation.reasons.length > 0 && !validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
         console.warn('⚠️ Some visuals filtered:', validation.reasons);
         sonnerToast.warning('Some visual options were filtered - using best available');
-      } else if (validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
-        console.warn('🔄 Using fallback visuals:', validation.reasons);
-        sonnerToast.warning('Using fallback visuals - AI prompts needed adjustment');
+      } else if (validation.reasons.includes('Auto-generated context-aware fallback prompts due to validation failures')) {
+        console.warn('🔄 Using context-aware fallback visuals:', validation.reasons);
+        sonnerToast.warning('Using context-aware fallback visuals - AI prompts needed adjustment');
       }
 
       // Log any filtered options

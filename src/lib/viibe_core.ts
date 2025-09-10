@@ -136,12 +136,12 @@ CRITICAL RULES:
    - **Option4**: Focus on an abstract or creative concept (artistic, unexpected)
 
 4. **Layout Space** (add one based on textLayoutId):
-   - negativeSpace  → ", space for text"
-   - memeTopBottom  → ", space at top and bottom" 
-   - lowerThird     → ", space at bottom"
-   - sideBarLeft    → ", space on left side"
-   - badgeSticker   → ", space in corner"
-   - subtleCaption  → ", space for small text"
+   - negativeSpace  → ", clear empty area near largest margin"
+   - memeTopBottom  → ", clear top band, clear bottom band" 
+   - lowerThird     → ", clear lower third"
+   - sideBarLeft    → ", clear left panel"
+   - badgeSticker   → ", badge space top-right"
+   - subtleCaption  → ", clear narrow bottom strip"
 
 5. **Recommendation Mode Effects** (CRITICAL - Apply Heavily):
    ${getModeGuidance(recommendationMode)}
@@ -159,10 +159,10 @@ CRITICAL RULES:
 EXAMPLE for birthday + balanced:
 {
   "visualOptions":[
-    {"lane":"option1","prompt":"person blowing out birthday candles with big smile, space at bottom"},
-    {"lane":"option2","prompt":"colorful balloons floating in bright room, space at bottom"},  
-    {"lane":"option3","prompt":"party decorations scattered on table, space at bottom"},
-    {"lane":"option4","prompt":"abstract celebration with confetti explosion, space at bottom"}
+    {"lane":"option1","prompt":"person blowing out birthday candles with big smile, clear lower third"},
+    {"lane":"option2","prompt":"colorful balloons floating in bright room, clear lower third"},  
+    {"lane":"option3","prompt":"party decorations scattered on table, clear lower third"},
+    {"lane":"option4","prompt":"abstract celebration with confetti explosion, clear lower third"}
   ],
   "negativePrompt":"no text, no words, no letters, no watermarks, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects"
 }`;
