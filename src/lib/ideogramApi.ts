@@ -131,33 +131,23 @@ export async function findBestProxy(): Promise<ProxySettings['type']> {
 }
 
 export async function generateIdeogramImage(request: IdeogramGenerateRequest): Promise<IdeogramGenerateResponse> {
+  // Remove client-side API key check - let backend handle it
+  // This prevents blocking calls when backend generation succeeds
+
   // Import supabase client dynamically
   const { supabase } = await import('@/integrations/supabase/client');
-  
-  // Validate and sanitize prompt before sending
-  const { sanitizePrompt } = await import('./ideogramPrompt');
-  const promptValidation = sanitizePrompt(request.prompt);
-  
-  if (promptValidation.wasModified) {
-    console.log('Content safety: Prompt was sanitized before generation');
-  }
-  
-  const sanitizedRequest = {
-    ...request,
-    prompt: promptValidation.cleaned
-  };
   
   try {
     console.log('Calling Supabase Edge Function for Ideogram generation...');
     
     const { data, error } = await supabase.functions.invoke('ideogram-generate', {
       body: {
-        prompt: sanitizedRequest.prompt,
-        aspect_ratio: sanitizedRequest.aspect_ratio,
-        model: sanitizedRequest.model,
-        magic_prompt_option: sanitizedRequest.magic_prompt_option,
-        style_type: sanitizedRequest.style_type,
-        negative_prompt: sanitizedRequest.negative_prompt
+        prompt: request.prompt,
+        aspect_ratio: request.aspect_ratio,
+        model: request.model,
+        magic_prompt_option: request.magic_prompt_option,
+        style_type: request.style_type,
+        negative_prompt: request.negative_prompt
       }
     });
 
@@ -168,40 +158,7 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
 
     if (data.error) {
       console.error('Generation error from edge function:', data.error);
-      
-      // Check if it's a safety error and attempt retry with further sanitization
-      if (data.error.includes('safety checks') || data.error.includes('inappropriate')) {
-        console.log('Safety error detected, attempting retry with enhanced sanitization...');
-        
-        // Apply more aggressive sanitization
-        const enhancedSanitization = applyEnhancedSanitization(sanitizedRequest.prompt);
-        
-        if (enhancedSanitization !== sanitizedRequest.prompt) {
-          console.log('Retrying with enhanced sanitization...');
-          
-          const { data: retryData, error: retryError } = await supabase.functions.invoke('ideogram-generate', {
-            body: {
-              ...sanitizedRequest,
-              prompt: enhancedSanitization
-            }
-          });
-          
-          if (!retryError && retryData && !retryData.error) {
-            console.log('Retry with enhanced sanitization succeeded');
-            return {
-              created: new Date().toISOString(),
-              data: [{
-                prompt: enhancedSanitization,
-                resolution: sanitizedRequest.aspect_ratio,
-                url: retryData.image_url,
-                is_image_safe: true
-              }]
-            };
-          }
-        }
-      }
-      
-      throw new IdeogramAPIError(data.error, 422);
+      throw new IdeogramAPIError(data.error, 500);
     }
 
     if (!data.image_url) {
@@ -212,8 +169,8 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
     return {
       created: new Date().toISOString(),
       data: [{
-        prompt: sanitizedRequest.prompt,
-        resolution: sanitizedRequest.aspect_ratio,
+        prompt: request.prompt,
+        resolution: request.aspect_ratio,
         url: data.image_url,
         is_image_safe: true
       }]
@@ -230,50 +187,4 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
       500
     );
   }
-}
-
-// Generate with stricter layout for text rendering retry
-export async function generateWithStricterLayout(
-  request: IdeogramGenerateRequest, 
-  stricterLayoutToken: string
-): Promise<IdeogramGenerateResponse> {
-  console.log('🎯 Generating with stricter layout token:', stricterLayoutToken);
-  
-  // Modify the prompt to include stricter layout instructions
-  const modifiedPrompt = `IMPORTANT: Render text prominently with ${stricterLayoutToken} layout. ${request.prompt}`;
-  
-  return generateIdeogramImage({
-    ...request,
-    prompt: modifiedPrompt
-  });
-}
-
-// Enhanced sanitization for retry attempts
-function applyEnhancedSanitization(prompt: string): string {
-  let cleaned = prompt;
-  
-  // More aggressive replacements
-  const enhancedReplacements: Record<string, string> = {
-    'woman': 'person',
-    'girl': 'person', 
-    'man': 'person',
-    'guy': 'person',
-    'figure': 'silhouette',
-    'body': 'form',
-    'attractive': 'artistic',
-    'beautiful': 'elegant',
-    'gorgeous': 'stunning',
-    'hot': 'warm-toned',
-    'steamy': 'misty'
-  };
-  
-  for (const [term, replacement] of Object.entries(enhancedReplacements)) {
-    const regex = new RegExp(`\\b${term}\\b`, 'gi');
-    cleaned = cleaned.replace(regex, replacement);
-  }
-  
-  // Remove any remaining risky descriptors
-  cleaned = cleaned.replace(/\b(sensual|sultry|provocative|seductive)\b/gi, 'artistic');
-  
-  return cleaned;
 }
