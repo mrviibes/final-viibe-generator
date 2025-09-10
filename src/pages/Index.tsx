@@ -6182,9 +6182,6 @@ const Index = () => {
 
                 {/* Subject options selection */}
                 {!selectedSubjectOption ? <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="text-center mb-8">
-                      <p className="text-xl text-muted-foreground">Choose your option for your subject (what's the focus of image)</p>
-                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
                       {subjectOptions.map(option => <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => {
                 setSelectedSubjectOption(option.id);
@@ -6213,34 +6210,34 @@ const Index = () => {
                           <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for visual generation</h2>
                         </div>
 
-                        <div className="max-w-lg mx-auto space-y-6">
-                          {/* Tag Input */}
-                          <div className="space-y-4">
-                             <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
-                             
-                             {/* Magic Prompt Enhancement Toggle */}
-                             <div className="flex items-center justify-center gap-3 py-4">
-                               <label className="text-sm font-medium text-foreground">Visually Enhance Your Viibe</label>
-                               <Switch checked={enableMagicPrompt} onCheckedChange={setEnableMagicPrompt} />
+                         <div className="max-w-lg mx-auto space-y-6">
+                           {/* Tag Input */}
+                           <div className="space-y-4">
+                              <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                              
+                              {/* Display tags - moved above toggle */}
+                              {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
+                                 {subjectTags.map((tag, index) => <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
+                                     {tag}
+                                     <X className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeSubjectTag(tag)} />
+                                   </Badge>)}
+                               </div>}
+                              
+                              {/* Magic Prompt Enhancement Toggle */}
+                              <div className="flex items-center justify-center gap-3 py-4">
+                                <label className="text-sm font-medium text-foreground">Visually Enhance Your Viibe</label>
+                                <Switch checked={enableMagicPrompt} onCheckedChange={setEnableMagicPrompt} />
+                              </div>
+                              
+                              {/* Generate Button - Below the toggle */}
+                              <div className="flex justify-center">
+                               <Button variant="brand" size="lg" className="px-8 py-3 text-base font-medium rounded-lg" onClick={handleGenerateSubject} disabled={isGeneratingSubject}>
+                                 {isGeneratingSubject ? <>
+                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                     Generating...
+                                   </> : "Generate Visual Now"}
+                               </Button>
                              </div>
-                             
-                             {/* Generate Button - Below the input */}
-                             <div className="flex justify-center">
-                              <Button variant="brand" size="lg" className="px-8 py-3 text-base font-medium rounded-lg" onClick={handleGenerateSubject} disabled={isGeneratingSubject}>
-                                {isGeneratingSubject ? <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Generating...
-                                  </> : "Generate Visual Now"}
-                              </Button>
-                            </div>
-                            
-                            {/* Display tags */}
-                            {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
-                                {subjectTags.map((tag, index) => <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
-                                    {tag}
-                                    <X className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeSubjectTag(tag)} />
-                                  </Badge>)}
-                              </div>}
                           </div>
                         </div>
                       </div>}
