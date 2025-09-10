@@ -6048,6 +6048,9 @@ const Index = () => {
                       {/* Tags Input */}
                       <div className="space-y-3">
                         <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                        <p className="text-xs text-muted-foreground text-center">
+                          Add steer tags (e.g., 'group chat', 'thermostat war', 'travel delay') for sharper jokes
+                        </p>
                         
                         {/* Display Tags */}
                         {tags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
