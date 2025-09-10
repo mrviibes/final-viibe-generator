@@ -275,16 +275,15 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       };
     });
     
-    // Length band validation (comedian style palette) - with ±5 char tolerance
+    // Length band validation (comedian style palette)
     const lengthBands = [[20, 35], [36, 50], [51, 65], [66, 70]];
     processedLines.forEach((line, index) => {
       const [minLen, maxLen] = lengthBands[index];
       const lineLength = line.text.length;
-      const tolerance = 5;
       
-      if (lineLength < minLen - tolerance) {
+      if (lineLength < minLen) {
         errors.push(`Option ${index + 1}: Too short (${lineLength} chars) - need ${minLen}-${maxLen} for ${['Deadpan', 'Observational', 'Extended', 'Absurdist'][index]} style`);
-      } else if (lineLength > maxLen + tolerance) {
+      } else if (lineLength > maxLen) {
         errors.push(`Option ${index + 1}: Too long (${lineLength} chars) - max ${maxLen} for ${['Deadpan', 'Observational', 'Extended', 'Absurdist'][index]} style`);
       }
     });
@@ -345,24 +344,22 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       }
     }
     
-    // Occasion throttle - only enforce when tags are provided
-    if (tags.length > 0) {
-      const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
-      const anchors = ANCHORS[ctxKey] || [];
-      const occasionTokens = [
-        inputs.category?.toLowerCase(),
-        inputs.subcategory?.toLowerCase(),
-        ...anchors
-      ].filter((token, index, arr) => arr.indexOf(token) === index && token);
+    // Occasion throttle
+    const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
+    const anchors = ANCHORS[ctxKey] || [];
+    const occasionTokens = [
+      inputs.category?.toLowerCase(),
+      inputs.subcategory?.toLowerCase(),
+      ...anchors
+    ].filter((token, index, arr) => arr.indexOf(token) === index && token);
+    
+    if (occasionTokens.length > 0) {
+      const linesWithOccasionTokens = processedLines.filter(line => 
+        occasionTokens.some(token => line.text.toLowerCase().includes(token.toLowerCase()))
+      );
       
-      if (occasionTokens.length > 0) {
-        const linesWithOccasionTokens = processedLines.filter(line => 
-          occasionTokens.some(token => line.text.toLowerCase().includes(token.toLowerCase()))
-        );
-        
-        if (linesWithOccasionTokens.length > 1) {
-          errors.push(`Occasion throttle: Found ${linesWithOccasionTokens.length} lines with occasion words - max 1 allowed`);
-        }
+      if (linesWithOccasionTokens.length > 1) {
+        errors.push(`Occasion throttle: Found ${linesWithOccasionTokens.length} lines with occasion words - max 1 allowed`);
       }
     }
     
