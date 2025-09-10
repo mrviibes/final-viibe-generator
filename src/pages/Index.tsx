@@ -20,9 +20,10 @@ import { TextLayoutSelector } from "@/components/TextLayoutSelector";
 import { useNavigate } from "react-router-dom";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
 import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
-import { generateIdeogramImage, generateWithStricterLayout, retryWithTextFallback, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
-import { buildIdeogramPrompts, buildStricterLayoutPrompts, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
+import { generateIdeogramImage, generateWithStricterLayout, generateWithStrictTextMode, retryWithTextFallback, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
+import { buildIdeogramPrompts, buildStricterLayoutPrompts, buildStrictTextModePrompts, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { TextRenderIndicator } from "@/components/TextRenderIndicator";
+import { TextRenderModeToggle } from "@/components/TextRenderModeToggle";
 import { RetryWithLayoutDialog } from "@/components/RetryWithLayoutDialog";
 import { SafetyValidationDialog } from "@/components/SafetyValidationDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -4485,6 +4486,8 @@ const Index = () => {
   // Text rendering mode states
   const [textInsideImage, setTextInsideImage] = useState<boolean>(true);
   const [showRetryLayoutDialog, setShowRetryLayoutDialog] = useState<boolean>(false);
+  const [isRetryingTextRender, setIsRetryingTextRender] = useState<boolean>(false);
+  const [strictTextMode, setStrictTextMode] = useState<boolean>(false);
   const [showSafetyValidationDialog, setShowSafetyValidationDialog] = useState<boolean>(false);
   const [safetyModifications, setSafetyModifications] = useState<{
     prompt_modified: boolean;
@@ -5295,6 +5298,8 @@ const Index = () => {
     if (!generatedImageUrl) return;
     
     setIsRetryingText(true);
+    setStrictTextMode(true);
+    sonnerToast.info("Retrying with strict text mode...");
     try {
       // Get the current generation parameters
       const finalText = selectedGeneratedOption || stepTwoText || "";
@@ -5360,8 +5365,31 @@ const Index = () => {
 
   const handleRetryAsOverlay = () => {
     setTextInsideImage(false);
+    setStrictTextMode(false);
     sonnerToast.info("Switched to overlay mode. Regenerating...");
     setTimeout(() => handleGenerateImage(), 100);
+  };
+
+  const handleRetryTextRenderingNew = async () => {
+    setIsRetryingTextRender(true);
+    setStrictTextMode(true);
+    sonnerToast.info("Retrying with strict text mode...");
+    try {
+      await handleGenerateImage();
+    } finally {
+      setIsRetryingTextRender(false);
+    }
+  };
+
+  const handleRetryWithStricterLayoutNew = async () => {
+    setIsRetryingTextRender(true);
+    setStrictTextMode(true);
+    sonnerToast.info("Retrying with stricter layout...");
+    try {
+      await handleGenerateImage();
+    } finally {
+      setIsRetryingTextRender(false);
+    }
   };
 
   const handleGenerateImage = async () => {
@@ -5629,6 +5657,8 @@ const Index = () => {
     // Clear overlay/text modes
     setTextInsideImage(false);
     setSpellingGuaranteeMode(false);
+    setStrictTextMode(false);
+    setIsRetryingTextRender(false);
     setShowTextOverlay(false);
     setBackgroundOnlyImageUrl(null);
     setFinalImageWithText(null);
@@ -7051,31 +7081,54 @@ const Index = () => {
                   </div>
                 </div>
                 
-                <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
-                  {isGeneratingImage ? <div className="text-center">
-                      <Button variant="brand" disabled className="mb-4">
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Generating VIIBE...
-                      </Button>
-                      <p className="text-sm text-muted-foreground">This may take a few moments</p>
-                    </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
-                      <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
-                    </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
-                      <AlertCircle className="h-8 w-8 text-destructive" />
-                      <div>
-                        <p className="text-destructive text-lg font-medium">Generation Failed</p>
-                        <p className="text-muted-foreground text-sm mt-1">{imageGenerationError}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button onClick={handleGenerateImage} variant="outline" size="sm">
-                          Try Again
-                        </Button>
-                        {imageGenerationError.includes('CORS proxy needs activation') && <Button variant="brand" size="sm" onClick={() => setShowCorsRetryDialog(true)}>
-                            Enable CORS Proxy
-                          </Button>}
-                      </div>
-                    </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
-                 </div>
+                 <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
+                   {isGeneratingImage ? <div className="text-center">
+                       <Button variant="brand" disabled className="mb-4">
+                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                         Generating VIIBE...
+                       </Button>
+                       <p className="text-sm text-muted-foreground">This may take a few moments</p>
+                     </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
+                       <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+                     </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
+                       <AlertCircle className="h-8 w-8 text-destructive" />
+                       <div>
+                         <p className="text-destructive text-lg font-medium">Generation Failed</p>
+                         <p className="text-muted-foreground text-sm mt-1">{imageGenerationError}</p>
+                       </div>
+                       <div className="flex gap-2">
+                         <Button onClick={handleGenerateImage} variant="outline" size="sm">
+                           Try Again
+                         </Button>
+                         {imageGenerationError.includes('CORS proxy needs activation') && <Button variant="brand" size="sm" onClick={() => setShowCorsRetryDialog(true)}>
+                             Enable CORS Proxy
+                           </Button>}
+                       </div>
+                     </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
+                  </div>
+
+                  {/* Text Rendering Controls - show before generation */}
+                  {!generatedImageUrl && !isGeneratingImage && (selectedGeneratedOption || stepTwoText) && (
+                    <div className="space-y-4">
+                      <TextRenderModeToggle 
+                        textInsideImage={textInsideImage}
+                        onToggleChange={setTextInsideImage}
+                      />
+                    </div>
+                  )}
+
+                  {/* Text Rendering Indicator - show after generation if text expected */}
+                  {generatedImageUrl && (selectedGeneratedOption || stepTwoText) && (
+                    <TextRenderIndicator 
+                      textInsideImage={textInsideImage}
+                      hasTextInPrompt={!!(selectedGeneratedOption || stepTwoText)}
+                      imageUrl={generatedImageUrl}
+                      onRetryAsOverlay={handleRetryAsOverlay}
+                      onRetryTextRendering={handleRetryTextRenderingNew}
+                      isRetrying={isRetryingTextRender}
+                      className="mb-4"
+                    />
+                  )}
 
                  
                   {/* Text Misspelling Detection */}
@@ -7374,15 +7427,8 @@ const Index = () => {
         <RetryWithLayoutDialog 
           open={showRetryLayoutDialog}
           onOpenChange={setShowRetryLayoutDialog}
-          onRetryWithStricterLayout={() => {
-            const stricterLayout = "clear top band";
-            // Regenerate with stricter layout
-            handleGenerateImage();
-          }}
-          onSwitchToOverlay={() => {
-            setTextInsideImage(false);
-            handleGenerateImage();
-          }}
+          onRetryWithStricterLayout={handleRetryWithStricterLayoutNew}
+          onSwitchToOverlay={handleRetryAsOverlay}
           currentLayout={selectedTextLayout || "negativeSpace"}
         />
 
