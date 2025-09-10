@@ -5414,17 +5414,157 @@ const Index = () => {
       setIsGeneratingImage(false);
     }
   };
-  const handleDownloadImage = () => {
+  const handleDownloadImage = async () => {
     if (!generatedImageUrl) return;
-    const link = document.createElement('a');
-    link.href = generatedImageUrl;
-    link.download = 'viibe-image.jpg';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    
+    // Generate filename based on current selections
+    const generateFilename = () => {
+      const date = new Date().toISOString().split('T')[0];
+      const category = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name?.toLowerCase().replace(/\s+/g, '-') || 'viibe' : 'viibe';
+      const subcategory = selectedSubOption ? selectedSubOption.toLowerCase().replace(/\s+/g, '-') : '';
+      const tone = selectedTextStyle ? selectedTextStyle.toLowerCase().replace(/\s+/g, '-') : '';
+      
+      let filename = 'viibe';
+      if (category !== 'viibe') filename += `-${category}`;
+      if (subcategory) filename += `-${subcategory}`;
+      if (tone) filename += `-${tone}`;
+      filename += `-${date}.jpg`;
+      
+      return filename.replace(/--+/g, '-'); // Remove multiple consecutive dashes
+    };
+
+    const filename = generateFilename();
+
+    try {
+      // Try to download as blob first (preferred method)
+      const response = await fetch(generatedImageUrl, { mode: 'cors' });
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the blob URL
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Download Started",
+        description: `Your VIIBE image "${filename}" is being downloaded.`
+      });
+    } catch (error) {
+      // Fallback: open in new tab if CORS blocks download
+      console.log('CORS blocked blob download, falling back to new tab:', error);
+      const link = document.createElement('a');
+      link.href = generatedImageUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Image Opened",
+        description: "Image opened in new tab. Right-click to save it locally."
+      });
+    }
+  };
+  
+  const handleStartOverReset = () => {
+    // Reset all step/session state to initial defaults
+    setCurrentStep(1);
+    setSession(null);
+    
+    // Clear selections
+    setSelectedStyle(null);
+    setSelectedSubOption(null);
+    setSelectedTextStyle(null);
+    setSelectedSubjectOption(null);
+    setSelectedVisualStyle(null);
+    setSelectedPick(null);
+    setSelectedCompletionOption(null);
+    setSelectedDimension(null);
+    setSelectedTextLayout(null);
+    setSelectedGeneratedOption(null);
+    setSelectedGeneratedIndex(null);
+    setSelectedVisualIndex(null);
+    
+    // Clear generated data
+    setGeneratedOptions([]);
+    setVisualOptions([]);
+    setVisualRecommendations(null);
+    setSelectedRecommendation(null);
+    setVisualModel(null);
+    
+    // Clear text data
+    setStepTwoText("");
+    setIsCustomTextConfirmed(false);
+    setTags([]);
+    setTagInput("");
+    setSubjectTags([]);
+    setSubjectTagInput("");
+    setSubjectDescription("");
+    setIsSubjectDescriptionConfirmed(false);
+    
+    // Clear generation state
+    setIsGenerating(false);
+    setIsGeneratingImage(false);
+    setGeneratedImageUrl(null);
+    setImageGenerationError("");
+    setTextGenerationModel(null);
+    
+    // Clear prompts and controls
+    setDirectPrompt("");
+    setNegativePrompt("");
+    setExactPromptMode(false);
+    setEnableMagicPrompt(false);
+    setCustomSeed("");
+    setDefaultStyleType('GENERAL');
+    setVisualSpice('balanced');
+    
+    // Clear overlay/text modes
+    setTextInsideImage(true);
+    setSpellingGuaranteeMode(false);
+    setShowTextOverlay(false);
+    setBackgroundOnlyImageUrl(null);
+    setFinalImageWithText(null);
+    setTextMisspellingDetected(false);
+    setCleanBackgroundMode(true);
+    
+    // Clear misc states
+    setDebugPrompts({});
+    setSearchTerm("");
+    setFinalSearchTerm("");
+    setSubOptionSearchTerm("");
+    setSearchResults([]);
+    setSearchError("");
+    setCustomWidth("");
+    setCustomHeight("");
+    setLastIdeogramPrompt("");
+    setLastIdeogramNegativePrompt("");
+    
+    // Clear UI states (but keep API key dialogs untouched)
+    setShowRetryLayoutDialog(false);
+    setShowSafetyValidationDialog(false);
+    setSafetyModifications(null);
+    setShowAdvanced(false);
+    setAutoStartImageGen(false);
+    setShowSubjectTagEditor(false);
+    setIsGeneratingSubject(false);
+    setIsLoadingRecommendations(false);
+    setIsSearchFocused(false);
+    setIsFinalSearchFocused(false);
+    setIsSearching(false);
+    
+    // Scroll to top and show success message
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
     toast({
-      title: "Download Started",
-      description: "Your VIIBE image is being downloaded."
+      title: "Reset Complete",
+      description: "Starting fresh — all previous data cleared."
     });
   };
   const handleSearch = async (searchTerm: string) => {
@@ -6762,7 +6902,7 @@ const Index = () => {
                         </svg>}
                       Generate Again
                     </Button>
-                    <Button variant="outline" onClick={() => setCurrentStep(1)}>
+                    <Button variant="outline" onClick={handleStartOverReset}>
                       <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                       </svg>
