@@ -450,9 +450,6 @@ function enforceOccasionThrottle(rawLines: any[], inputs: any): any[] | null {
 }
 
 // Enhanced generation with feedback-driven retries and raw output preservation
-}
-
-// Enhanced generation with feedback-driven retries and raw output preservation
 async function attemptGeneration(inputs: any, attemptNumber: number, previousErrors: string[] = []): Promise<any> {
   let userMessage = buildUserMessage(inputs);
   
