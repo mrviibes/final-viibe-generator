@@ -5215,30 +5215,6 @@ const Index = () => {
             {showAdvanced && (
               <div className="bg-muted/50 rounded-lg p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Exact Prompt Mode */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-foreground">Exact Prompt Mode</label>
-                      <Switch
-                        checked={exactPromptMode}
-                        onCheckedChange={setExactPromptMode}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Use your direct prompt exactly as written, without AI modification or layout tokens
-                    </p>
-                    {exactPromptMode && (
-                      <div className="space-y-2">
-                        <Input
-                          placeholder="Enter your exact prompt..."
-                          value={directPrompt}
-                          onChange={(e) => setDirectPrompt(e.target.value)}
-                          className="text-sm"
-                        />
-                      </div>
-                    )}
-                  </div>
-
                   {/* Magic Prompt Enhancement */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -5250,42 +5226,6 @@ const Index = () => {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Let Ideogram AI enhance your prompt for better results (may differ from website behavior)
-                    </p>
-                  </div>
-
-                  {/* Default Style Type */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium text-foreground">Default Style Type</label>
-                    <Select value={defaultStyleType} onValueChange={(value) => setDefaultStyleType(value as typeof defaultStyleType)}>
-                      <SelectTrigger className="text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="AUTO">Auto</SelectItem>
-                        <SelectItem value="GENERAL">General</SelectItem>
-                        <SelectItem value="REALISTIC">Realistic</SelectItem>
-                        <SelectItem value="DESIGN">Design</SelectItem>
-                        <SelectItem value="RENDER_3D">3D Render</SelectItem>
-                        <SelectItem value="ANIME">Anime</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Style type to use when exact prompt mode is enabled
-                    </p>
-                  </div>
-
-                  {/* Custom Seed */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium text-foreground">Custom Seed (Optional)</label>
-                    <Input
-                      type="number"
-                      placeholder="Enter seed number for reproducible results..."
-                      value={customSeed}
-                      onChange={(e) => setCustomSeed(e.target.value)}
-                      className="text-sm"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Use the same seed to get consistent results across generations
                     </p>
                   </div>
                 </div>
