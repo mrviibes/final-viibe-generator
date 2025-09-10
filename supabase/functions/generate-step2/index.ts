@@ -45,11 +45,10 @@ SPARTAN HOUSE RULES (NON-NEGOTIABLE):
 BANNED WORDS (never use):
 can, may, just, really, literally, actually, probably, basically, maybe, utilize, moreover, additionally, furthermore, overall, ultimately, "in conclusion", "at the end of the day", "here's how", "let's explore"
 
-OCCASION THROTTLE (STRICTLY ENFORCED):
-• Context props are subtle background only - NOT punchlines
-• ZERO explicit occasion mentions allowed across all 4 lines
-• Focus ENTIRELY on wit, personality, and creativity over scene details
-• Avoid obvious birthday/celebration words: cake, candles, balloons, party, gifts, celebrate
+OCCASION THROTTLE:
+• Context props are background, not punchlines
+• Maximum 1 explicit occasion mention across all 4 lines
+• Focus on wit and personality over scene details
 
 LENGTH EXAMPLES:
 ✓ Option 1 (30 chars): "Your cake expired."
@@ -94,11 +93,10 @@ SPARTAN HOUSE RULES (NON-NEGOTIABLE):
 BANNED WORDS (never use):
 can, may, just, really, literally, actually, probably, basically, maybe, utilize, moreover, additionally, furthermore, overall, ultimately, "in conclusion", "at the end of the day", "here's how", "let's explore"
 
-OCCASION THROTTLE (STRICTLY ENFORCED):
-• Context props are subtle background only - NOT punchlines
-• ZERO explicit occasion mentions allowed across all 4 lines
-• Focus ENTIRELY on wit, personality, and creativity over scene details
-• Avoid obvious birthday/celebration words: cake, candles, balloons, party, gifts, celebrate
+OCCASION THROTTLE:
+• Context props are background, not punchlines
+• Maximum 1 explicit occasion mention across all 4 lines
+• Focus on wit and personality over scene details
 
 LENGTH EXAMPLES:
 ✓ Option 1 (30 chars): "Your cake expired."
@@ -138,8 +136,8 @@ function generateSavageFallback(inputs: any): any {
     styleTemplates = [
       tagString ? `${tagString} expired.` : "That expired.", // Deadpan (20-35)
       tagString ? `Why does ${tagString} feel like a job interview?` : "Why does this feel like a job interview?", // Observational (36-50)
-      tagString ? `${tagString} has the energy of a broken elevator.` : "This has the energy of a broken elevator.", // Extended roast (51-65)
-      tagString ? `${tagString} violated several laws of social physics.` : "This situation violated several laws of social physics." // Absurdist (66-70)
+      tagString ? `${tagString} costs more than your last three relationships.` : "This costs more than your last three relationships.", // Extended roast (51-65)
+      tagString ? `${tagString} applied for witness protection after seeing you.` : "Everything here applied for witness protection after seeing you." // Absurdist (66-70)
     ];
   } else if (tone.toLowerCase().includes("sentimental") || tone.toLowerCase().includes("romantic")) {
     styleTemplates = [
@@ -204,14 +202,12 @@ Tone: ${tone}`;
     message += `\nTAGS: (none)`;
   }
   
-  // Reduce anchor pressure for celebrations to avoid cliche birthday content
+  // Get category-specific anchors and mark as optional context
   const ctxKey = `${category.toLowerCase()}.${subcategory.toLowerCase()}`;
   const anchors = ANCHORS[ctxKey] || [];
   
-  if (anchors.length > 0 && !category.toLowerCase().includes('celebration')) {
-    message += `\nCONTEXT PROPS: ${anchors.join(", ")} (subtle background only)`;
-  } else if (anchors.length > 0) {
-    message += `\nAVOID OBVIOUS: ${anchors.join(", ")} (focus on wit, not scene details)`;
+  if (anchors.length > 0) {
+    message += `\nCONTEXT PROPS: ${anchors.join(", ")} (use sparingly for context)`;
   }
   
   // Style palette reminder
@@ -348,15 +344,13 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       }
     }
     
-    // STRICT Occasion throttle - zero tolerance
+    // Occasion throttle
     const ctxKey = `${inputs.category?.toLowerCase() || ''}.${inputs.subcategory?.toLowerCase() || ''}`;
     const anchors = ANCHORS[ctxKey] || [];
     const occasionTokens = [
       inputs.category?.toLowerCase(),
       inputs.subcategory?.toLowerCase(),
-      ...anchors,
-      // Extra celebration blockers
-      'birthday', 'party', 'celebration', 'anniversary', 'holiday'
+      ...anchors
     ].filter((token, index, arr) => arr.indexOf(token) === index && token);
     
     if (occasionTokens.length > 0) {
@@ -364,8 +358,8 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
         occasionTokens.some(token => line.text.toLowerCase().includes(token.toLowerCase()))
       );
       
-      if (linesWithOccasionTokens.length > 0) {
-        errors.push(`Occasion throttle: Found ${linesWithOccasionTokens.length} lines with occasion words - ZERO allowed, focus on wit/personality instead`);
+      if (linesWithOccasionTokens.length > 1) {
+        errors.push(`Occasion throttle: Found ${linesWithOccasionTokens.length} lines with occasion words - max 1 allowed`);
       }
     }
     
@@ -381,73 +375,8 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
     
   } catch (e) {
     errors.push(`JSON parse error: ${e.message}`);
-  return { result: null, errors, repairs };
-}
-
-// New function to enforce occasion throttle and replace generic content
-function enforceOccasionThrottle(rawLines: any[], inputs: any): any[] | null {
-  if (!rawLines || rawLines.length !== 4) return null;
-  
-  const { category, subcategory, tags = [], tone = "Savage" } = inputs;
-  
-  // Define occasion-heavy words to detect and replace
-  const occasionWords = [
-    'birthday', 'party', 'celebration', 'anniversary', 'holiday',
-    'cake', 'candles', 'balloons', 'confetti', 'gifts', 'presents',
-    'celebrate', 'wish', 'special day', 'big day'
-  ];
-  
-  // Style-aware replacement templates - COMPLETELY OCCASION-AGNOSTIC
-  const replacementsByStyle = [
-    // Deadpan (20-35 chars) - Pure wit, zero occasion references
-    ["That expired.", "You peaked early.", "This feels familiar.", "Not impressed.", "Standards? What standards.", "Been there, done worse."],
-    
-    // Observational (36-50 chars) - Professional comedian observations
-    ["Why does this feel like a job interview?", "Have you noticed how awkward this gets?", "Does anyone else see the irony here?", "When did this become so complicated?", "Is it me or does this feel scripted?", "Why do we pretend this matters?"],
-    
-    // Extended (51-65 chars) - Depends on tone
-    tone.toLowerCase().includes('savage') || tone.toLowerCase().includes('humorous') ?
-      ["This costs more than your last three relationships.", "You put more effort into ordering takeout than this.", "Your standards have officially hit rock bottom here.", "I've seen more enthusiasm at a tax audit meeting.", "This has the energy of a broken elevator."] :
-      ["This moment reminds us that beauty exists in simple things.", "Sometimes the quietest gestures carry the deepest meaning.", "These small details create the memories we treasure most.", "Life's richest moments often come in humble packages.", "True connection happens in the spaces between words."],
-    
-    // Absurdist (66-70 chars) - Surreal comedy, no occasions
-    ["Everything here applied for witness protection after seeing you.", "This filed a restraining order against your vibes today.", "Even gravity seems disappointed by your presence right now.", "Your energy just made my confidence file for bankruptcy.", "This situation violated several laws of social physics."]
-  ];
-  
-  const lengthBands = [[20, 35], [36, 50], [51, 65], [66, 70]];
-  
-  return rawLines.map((line, index) => {
-    let text = line.text || "";
-    
-    // Check if this line contains occasion words
-    const hasOccasionWords = occasionWords.some(word => 
-      text.toLowerCase().includes(word.toLowerCase())
-    );
-    
-    if (hasOccasionWords) {
-      // Replace with style-appropriate template
-      const templates = replacementsByStyle[index];
-      let replacement = templates[Math.floor(Math.random() * templates.length)];
-      
-      // Add tags if they exist and fit
-      if (tags.length > 0) {
-        const tagText = tags.join(" ");
-        const [minLen, maxLen] = lengthBands[index];
-        const testReplacement = `${tagText} ${replacement.toLowerCase()}`;
-        
-        if (testReplacement.length >= minLen && testReplacement.length <= maxLen) {
-          replacement = testReplacement;
-        }
-      }
-      
-      return {
-        ...line,
-        text: replacement
-      };
-    }
-    
-    return line;
-  });
+    return { result: null, errors, repairs };
+  }
 }
 
 // Enhanced generation with feedback-driven retries and raw output preservation
@@ -669,28 +598,24 @@ serve(async (req) => {
       }
     }
     
-    // Apply strict occasion throttle to any remaining content
+    // If validation failed, return the model's raw output anyway (no generic fallback)
     if (!finalResult && lastAttemptResult && lastAttemptResult.rawLines) {
-      console.log("Attempting to repair raw output with occasion throttle");
-      const repairedLines = enforceOccasionThrottle(lastAttemptResult.rawLines, inputs);
-      
-      if (repairedLines && repairedLines.length === 4) {
-        finalResult = {
-          lines: repairedLines,
-          model: `${lastAttemptResult.model || 'unknown'} (occasion-throttled)`,
-          validated: false,
-          validation_errors: allErrors,
-          note: "Applied occasion throttle to remove generic content"
-        };
-      }
+      console.log("Validation failed but returning model's raw output instead of fallback");
+      finalResult = {
+        lines: lastAttemptResult.rawLines,
+        model: `${lastAttemptResult.model || 'unknown'} (raw-unvalidated)`,
+        validated: false,
+        validation_errors: allErrors,
+        note: "Returning model output despite validation issues"
+      };
     }
     
-    // ONLY use fallback if all repair attempts failed
+    // ONLY use fallback if API completely failed (no model output at all)
     if (!finalResult) {
-      console.log("All repair attempts failed, using emergency fallback:", allErrors);
+      console.log("API completely failed, using emergency fallback:", allErrors);
       finalResult = generateSavageFallback(inputs);
       finalResult.llm_errors = allErrors;
-      finalResult.fallback_reason = "repair_attempts_failed";
+      finalResult.fallback_reason = "api_completely_failed";
     }
     
     return new Response(JSON.stringify(finalResult), {
@@ -700,13 +625,13 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-step2 function:', error);
     
-    // Emergency fallback - pure comedian style, zero occasion content
+    // Emergency fallback for any catastrophic errors
     const emergencyFallback = {
       lines: [
-        { lane: "option1", text: "That expired." },
-        { lane: "option2", text: "Why does this feel like a job interview?" },
-        { lane: "option3", text: "This has the energy of a broken elevator." },
-        { lane: "option4", text: "Your vibes just violated several laws of social physics." }
+        { lane: "option1", text: "Your cake looks sadder than your life choices." },
+        { lane: "option2", text: "Even the balloons are trying to escape this disaster." },
+        { lane: "option3", text: "Those candles have more personality than you ever will." },
+        { lane: "option4", text: "Your party hats and confetti are filing for divorce from you." }
       ],
       model: "emergency-fallback",
       validated: true,
@@ -718,5 +643,4 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-}
 });
