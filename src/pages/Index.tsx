@@ -30,39 +30,56 @@ import { generateStep2Lines } from "@/lib/textGen";
 // Helper function to clean layout tokens from visual descriptions for display
 const cleanVisualDescription = (text: string): string => {
   if (!text) return text;
-  
+
   // Remove layout-specific tokens that users don't need to see
-  return text
-    .replace(/,?\s*(clear empty area near largest margin|clear top band|clear bottom band|clear lower third|clear left panel|badge space top-right|clear narrow bottom strip)/gi, '')
-    .replace(/,\s*,/g, ',')
-    .replace(/^,\s*|,\s*$/g, '')
-    .trim();
+  return text.replace(/,?\s*(clear empty area near largest margin|clear top band|clear bottom band|clear lower third|clear left panel|badge space top-right|clear narrow bottom strip)/gi, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim();
 };
 
 // Layout mappings for display
 const layoutMappings = {
-  negativeSpace: { label: "Negative Space", token: "clear empty area near largest margin" },
-  memeTopBottom: { label: "Meme Top/Bottom", token: "clear top band, clear bottom band" },
-  lowerThird: { label: "Lower Third Banner", token: "clear lower third" },
-  sideBarLeft: { label: "Side Bar (Left)", token: "clear left panel" },
-  badgeSticker: { label: "Badge/Sticker Callout", token: "badge space top-right" },
-  subtleCaption: { label: "Subtle Caption", token: "clear narrow bottom strip" }
+  negativeSpace: {
+    label: "Negative Space",
+    token: "clear empty area near largest margin"
+  },
+  memeTopBottom: {
+    label: "Meme Top/Bottom",
+    token: "clear top band, clear bottom band"
+  },
+  lowerThird: {
+    label: "Lower Third Banner",
+    token: "clear lower third"
+  },
+  sideBarLeft: {
+    label: "Side Bar (Left)",
+    token: "clear left panel"
+  },
+  badgeSticker: {
+    label: "Badge/Sticker Callout",
+    token: "badge space top-right"
+  },
+  subtleCaption: {
+    label: "Subtle Caption",
+    token: "clear narrow bottom strip"
+  }
 };
 
 // Visual variance enforcer to prevent duplicate/similar prompts
-function ensureVisualVariance(
-  options: Array<{ lane: string; prompt: string }>, 
-  textContent: string, 
-  layoutId: string,
-  enforceVariety: boolean = true
-): { 
-  diversifiedOptions: Array<{ lane: string; prompt: string }>, 
-  reasons: string[] 
+function ensureVisualVariance(options: Array<{
+  lane: string;
+  prompt: string;
+}>, textContent: string, layoutId: string, enforceVariety: boolean = true): {
+  diversifiedOptions: Array<{
+    lane: string;
+    prompt: string;
+  }>;
+  reasons: string[];
 } {
   if (!enforceVariety) {
-    return { diversifiedOptions: options, reasons: [] };
+    return {
+      diversifiedOptions: options,
+      reasons: []
+    };
   }
-
   const layoutTokens = {
     negativeSpace: ["clear empty area near largest margin"],
     memeTopBottom: ["clear top band", "clear bottom band"],
@@ -71,10 +88,8 @@ function ensureVisualVariance(
     badgeSticker: ["badge space top-right"],
     subtleCaption: ["clear narrow bottom strip"]
   };
-
   const requiredTokens = layoutTokens[layoutId as keyof typeof layoutTokens] || layoutTokens.negativeSpace;
   const tokenSuffix = requiredTokens.join(', ');
-  
   function normalizePrompt(prompt: string): string {
     let normalized = prompt.toLowerCase();
     // Remove layout tokens
@@ -87,14 +102,12 @@ function ensureVisualVariance(
     const stopwords = ['a', 'an', 'the', 'with', 'and', 'or', 'but', 'at', 'on', 'in', 'of', 'to', 'for', 'by'];
     return normalized.split(' ').filter(word => word.length > 2 && !stopwords.includes(word)).join(' ');
   }
-
   function getMainAnchor(literalPrompt: string): string {
     const normalized = normalizePrompt(literalPrompt);
     const words = normalized.split(' ').filter(w => w.length > 0);
     // Return the most prominent word (longest or first meaningful noun)
     return words.sort((a, b) => b.length - a.length)[0] || '';
   }
-
   function calculateSimilarity(prompt1: string, prompt2: string): number {
     const words1 = new Set(normalizePrompt(prompt1).split(' '));
     const words2 = new Set(normalizePrompt(prompt2).split(' '));
@@ -102,19 +115,21 @@ function ensureVisualVariance(
     const union = new Set([...words1, ...words2]);
     return union.size > 0 ? intersection.size / union.size : 0;
   }
-
-  const diversifiedOptions: Array<{ lane: string; prompt: string }> = [];
+  const diversifiedOptions: Array<{
+    lane: string;
+    prompt: string;
+  }> = [];
   const reasons: string[] = [];
-  
+
   // Find main option and extract main anchor
   const mainOption = options.find(opt => opt.lane === 'option1') || options[0];
   const mainAnchor = mainOption ? getMainAnchor(mainOption.prompt) : '';
-  
+
   // Process each option
   options.forEach((option, index) => {
     let needsRewrite = false;
     let currentPrompt = option.prompt;
-    
+
     // Check for high similarity with previous options
     for (let i = 0; i < diversifiedOptions.length; i++) {
       const similarity = calculateSimilarity(currentPrompt, diversifiedOptions[i].prompt);
@@ -123,12 +138,12 @@ function ensureVisualVariance(
         break;
       }
     }
-    
+
     // Check if non-primary options contain the main anchor
     if (option.lane !== 'option1' && mainAnchor && normalizePrompt(currentPrompt).includes(mainAnchor)) {
       needsRewrite = true;
     }
-    
+
     // Rewrite if needed (but never rewrite option1)
     if (needsRewrite && option.lane !== 'option1') {
       const templates = {
@@ -136,104 +151,113 @@ function ensureVisualVariance(
         option3: ['related object close-up', 'empty scene with props', 'worn items', 'equipment on table', 'background setting'],
         option4: ['symbolic metaphor', 'abstract shapes', 'artistic representation', 'conceptual imagery', 'geometric forms']
       };
-      
       const laneTemplates = templates[option.lane as keyof typeof templates] || templates.option4;
       const templateIndex = Math.abs(mainAnchor.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % laneTemplates.length;
       currentPrompt = `${laneTemplates[templateIndex]}, ${tokenSuffix}`;
-      
       reasons.push(`Rewrote ${option.lane} option to avoid similarity/anchor conflict`);
     }
-    
-    diversifiedOptions.push({ lane: option.lane, prompt: currentPrompt });
+    diversifiedOptions.push({
+      lane: option.lane,
+      prompt: currentPrompt
+    });
   });
-
-  return { diversifiedOptions, reasons };
+  return {
+    diversifiedOptions,
+    reasons
+  };
 }
 
 // Layout-aware visual validation with relaxed rules and fallbacks
-function validateLayoutAwareVisuals(options: Array<{ lane: string; prompt: string }>, layoutId: string): { 
-  validOptions: Array<{ lane: string; prompt: string }>, 
-  reasons: string[] 
+function validateLayoutAwareVisuals(options: Array<{
+  lane: string;
+  prompt: string;
+}>, layoutId: string): {
+  validOptions: Array<{
+    lane: string;
+    prompt: string;
+  }>;
+  reasons: string[];
 } {
   const layoutTokens = {
     negativeSpace: ["clear empty area near largest margin"],
-    memeTopBottom: ["clear top band", "clear bottom band"], // both required
+    memeTopBottom: ["clear top band", "clear bottom band"],
+    // both required
     lowerThird: ["clear lower third"],
     sideBarLeft: ["clear left panel"],
     badgeSticker: ["badge space top-right"],
     subtleCaption: ["clear narrow bottom strip"]
   };
-
   const requiredTokens = layoutTokens[layoutId as keyof typeof layoutTokens] || layoutTokens.negativeSpace;
-  const validOptions: Array<{ lane: string; prompt: string }> = [];
+  const validOptions: Array<{
+    lane: string;
+    prompt: string;
+  }> = [];
   const reasons: string[] = [];
-  
   options.forEach(option => {
     if (!option.prompt) {
       reasons.push(`${option.lane}: No prompt provided`);
       return;
     }
-    
     let isValid = true;
     const issues: string[] = [];
-    
+
     // Check token requirements - auto-append if missing
-    const hasAllTokens = requiredTokens.every(token => 
-      option.prompt.toLowerCase().includes(token.toLowerCase())
-    );
-    
+    const hasAllTokens = requiredTokens.every(token => option.prompt.toLowerCase().includes(token.toLowerCase()));
     if (!hasAllTokens) {
       // Auto-append missing tokens
-      const missingTokens = requiredTokens.filter(token => 
-        !option.prompt.toLowerCase().includes(token.toLowerCase())
-      );
+      const missingTokens = requiredTokens.filter(token => !option.prompt.toLowerCase().includes(token.toLowerCase()));
       option.prompt = `${option.prompt}, ${missingTokens.join(', ')}`;
       console.log(`🔧 Auto-appended tokens to ${option.lane}: ${missingTokens.join(', ')}`);
     }
-    
+
     // Check word count (1-12 words for subject, excluding layout tokens)
     let promptWithoutTokens = option.prompt.toLowerCase();
     requiredTokens.forEach(token => {
       promptWithoutTokens = promptWithoutTokens.replace(token.toLowerCase(), '');
     });
     promptWithoutTokens = promptWithoutTokens.replace(/,\s*/g, ' ').trim();
-    
     const subjectWordCount = promptWithoutTokens.split(/\s+/).filter(w => w.length > 0).length;
     if (subjectWordCount < 1 || subjectWordCount > 12) {
       issues.push(`word count: ${subjectWordCount} (need 1-12)`);
       isValid = false;
     }
-    
+
     // Check for specific text-like terms (narrowed list)
     if (/(typography|signage|watermark|logo)/i.test(option.prompt)) {
       issues.push('contains banned text terms');
       isValid = false;
     }
-    
     if (isValid) {
       validOptions.push(option);
     } else {
       reasons.push(`${option.lane}: ${issues.join(', ')}`);
     }
   });
-  
+
   // If no valid options, generate deterministic fallbacks
   if (validOptions.length === 0) {
     console.log('🔄 Generating fallback prompts...');
     const tokenSuffix = requiredTokens.join(', ');
-    
-    const fallbacks = [
-      { lane: "option1", prompt: `simple object, ${tokenSuffix}` },
-      { lane: "option2", prompt: `colorful background, ${tokenSuffix}` },
-      { lane: "option3", prompt: `minimal scene, ${tokenSuffix}` },
-      { lane: "option4", prompt: `abstract shapes, ${tokenSuffix}` }
-    ];
-    
+    const fallbacks = [{
+      lane: "option1",
+      prompt: `simple object, ${tokenSuffix}`
+    }, {
+      lane: "option2",
+      prompt: `colorful background, ${tokenSuffix}`
+    }, {
+      lane: "option3",
+      prompt: `minimal scene, ${tokenSuffix}`
+    }, {
+      lane: "option4",
+      prompt: `abstract shapes, ${tokenSuffix}`
+    }];
     validOptions.push(...fallbacks);
     reasons.push('Auto-generated fallback prompts due to validation failures');
   }
-  
-  return { validOptions, reasons };
+  return {
+    validOptions,
+    reasons
+  };
 }
 const styleOptions = [{
   id: "celebrations",
@@ -4208,13 +4232,12 @@ const Index = () => {
   const [barebonesMode, setBarebonesMode] = useState<boolean>(false);
   const [directPrompt, setDirectPrompt] = useState<string>("");
   const [negativePrompt, setNegativePrompt] = useState<string>("");
-  
+
   // New prompt control options
   const [exactPromptMode, setExactPromptMode] = useState<boolean>(false);
   const [enableMagicPrompt, setEnableMagicPrompt] = useState<boolean>(false);
   const [customSeed, setCustomSeed] = useState<string>("");
   const [defaultStyleType, setDefaultStyleType] = useState<'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME'>('GENERAL');
-  
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [autoStartImageGen, setAutoStartImageGen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -4226,7 +4249,12 @@ const Index = () => {
   const [selectedCompletionOption, setSelectedCompletionOption] = useState<string | null>(null);
   const [selectedVisualStyle, setSelectedVisualStyle] = useState<string | null>(null);
   const [selectedSubjectOption, setSelectedSubjectOption] = useState<string | null>(null);
-  const [visualOptions, setVisualOptions] = useState<Array<{ subject: string; background: string; prompt: string; slot: string }>>([]);
+  const [visualOptions, setVisualOptions] = useState<Array<{
+    subject: string;
+    background: string;
+    prompt: string;
+    slot: string;
+  }>>([]);
   const [selectedVisualIndex, setSelectedVisualIndex] = useState<number | null>(null);
   const [visualModel, setVisualModel] = useState<string | null>(null); // Track which model was used
   const [subjectTags, setSubjectTags] = useState<string[]>([]);
@@ -4290,7 +4318,7 @@ const Index = () => {
   const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
   const [selectedRecommendation, setSelectedRecommendation] = useState<number | null>(null);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
-  
+
   // Update debug prompts when form changes
   useEffect(() => {
     if (currentStep === 4 && selectedStyle && selectedSubOption && selectedTextStyle && (selectedGeneratedOption || stepTwoText)) {
@@ -4314,7 +4342,6 @@ const Index = () => {
       const visualTagsStr = subjectTags.join(', ') || "None";
       const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : selectedSubjectOption === "design-myself" && subjectDescription ? subjectDescription : "";
       const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
-      
       const handoff = buildIdeogramHandoff({
         visual_style: visualStyle,
         subcategory: subcategory,
@@ -4330,7 +4357,6 @@ const Index = () => {
         ai_text_assist_used: selectedCompletionOption === "ai-assist",
         ai_visual_assist_used: selectedSubjectOption === "ai-assist"
       });
-      
       const prompts = buildIdeogramPrompts(handoff);
       setDebugPrompts(prompts);
     }
@@ -4353,18 +4379,12 @@ const Index = () => {
             textLayoutId: selectedTextLayout || "negativeSpace",
             spiceLevel: visualSpice
           });
-          
+
           // Ensure visual variance (disabled)
-          const varianceResult = ensureVisualVariance(
-            result.visualOptions, 
-            selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ""),
-            selectedTextLayout || "negativeSpace",
-            false
-          );
-          
+          const varianceResult = ensureVisualVariance(result.visualOptions, selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ""), selectedTextLayout || "negativeSpace", false);
+
           // Validate layout-aware options
           const validation = validateLayoutAwareVisuals(varianceResult.diversifiedOptions, selectedTextLayout || "negativeSpace");
-          
           if (validation.reasons.length > 0 && !validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
             console.warn('⚠️ Some visuals filtered:', validation.reasons);
             sonnerToast.warning('Some visual options were filtered - using best available');
@@ -4372,33 +4392,32 @@ const Index = () => {
             console.warn('🔄 Using fallback visuals:', validation.reasons);
             sonnerToast.warning('Using fallback visuals - AI prompts needed adjustment');
           }
-          
+
           // Log any filtered options
           if (validation.reasons.length > 0) {
             console.warn('⚠️ Some visuals filtered:', validation.reasons);
             sonnerToast.warning(`${validation.validOptions.length}/4 visuals passed validation`);
           }
-          
+
           // Ensure all 4 lanes are present
           const lanes = new Set(validation.validOptions.map(opt => opt.lane));
           if (lanes.size < 4) {
             sonnerToast.warning("Some visual options were filtered out for layout safety");
           }
-          const mappedOptions = validation.validOptions.map((option) => ({
-            subject: option.prompt || (option.lane === 'objects' ? 'Objects and environment' : 
-                    option.lane === 'group' ? 'Group of people, candid gestures' :
-                    option.lane === 'solo' ? 'One person — clear action' :
-                    'Symbolic/abstract arrangement'),
-            background: option.lane === 'objects' ? 'Arranged props with text-safe area' :
-                       `Context: ${selectedSubOption || ''}`,
+          const mappedOptions = validation.validOptions.map(option => ({
+            subject: option.prompt || (option.lane === 'objects' ? 'Objects and environment' : option.lane === 'group' ? 'Group of people, candid gestures' : option.lane === 'solo' ? 'One person — clear action' : 'Symbolic/abstract arrangement'),
+            background: option.lane === 'objects' ? 'Arranged props with text-safe area' : `Context: ${selectedSubOption || ''}`,
             prompt: option.prompt,
             slot: option.lane
           }));
-          const recommendations = { options: mappedOptions, model: result.model };
+          const recommendations = {
+            options: mappedOptions,
+            model: result.model
+          };
           setVisualRecommendations(recommendations);
         } catch (error) {
           console.error('Failed to generate visual recommendations:', error);
-          
+
           // Show specific error message based on error type
           let errorMessage = "Failed to generate visual recommendations";
           if (error instanceof Error) {
@@ -4410,8 +4429,9 @@ const Index = () => {
               errorMessage = "AI response format error. Please retry.";
             }
           }
-          
-          const { toast } = useToast();
+          const {
+            toast
+          } = useToast();
           toast({
             title: "Visual Generation Error",
             description: errorMessage,
@@ -4433,7 +4453,6 @@ const Index = () => {
         setAutoStartImageGen(false);
         return;
       }
-      
       handleGenerateImage();
       setAutoStartImageGen(false);
     }
@@ -4514,7 +4533,6 @@ const Index = () => {
         };
         return styleMap[selectedVisualStyle] || selectedVisualStyle;
       })();
-      
       const visualStyle = visualStyleOptions.find(s => s.id === normalizedVisualStyle);
       selections.push({
         title: `Visual Style: ${visualStyle?.name}`,
@@ -4629,14 +4647,25 @@ const Index = () => {
 
     // Text Layout selection
     if (selectedTextLayout && selectedCompletionOption !== "no-text") {
-      const layoutOptions = [
-        { id: "negativeSpace", name: "Negative Space" },
-        { id: "memeTopBottom", name: "Meme Top/Bottom" },
-        { id: "lowerThird", name: "Lower Third Banner" },
-        { id: "sideBarLeft", name: "Side Bar (Left)" },
-        { id: "badgeSticker", name: "Badge/Sticker Callout" },
-        { id: "subtleCaption", name: "Subtle Caption" }
-      ];
+      const layoutOptions = [{
+        id: "negativeSpace",
+        name: "Negative Space"
+      }, {
+        id: "memeTopBottom",
+        name: "Meme Top/Bottom"
+      }, {
+        id: "lowerThird",
+        name: "Lower Third Banner"
+      }, {
+        id: "sideBarLeft",
+        name: "Side Bar (Left)"
+      }, {
+        id: "badgeSticker",
+        name: "Badge/Sticker Callout"
+      }, {
+        id: "subtleCaption",
+        name: "Subtle Caption"
+      }];
       const layout = layoutOptions.find(l => l.id === selectedTextLayout);
       selections.push({
         title: layout?.name || selectedTextLayout,
@@ -4644,7 +4673,6 @@ const Index = () => {
         onChangeSelection: () => setSelectedTextLayout(null)
       });
     }
-
     return selections;
   };
 
@@ -4696,7 +4724,6 @@ const Index = () => {
     if (barebonesMode) {
       return !!directPrompt.trim() && !!selectedDimension && (selectedDimension !== "custom" || !!(customWidth && customHeight));
     }
-    
     if (!selectedVisualStyle || !selectedSubjectOption) return false;
 
     // If AI Assist is selected, require visual option selection and dimensions
@@ -4773,7 +4800,6 @@ const Index = () => {
       sonnerToast.error("AI visual generation is disabled in barebones mode. Please use direct prompts.");
       return;
     }
-    
     if (!openAIService.hasApiKey()) {
       setShowApiKeyDialog(true);
       return;
@@ -4842,7 +4868,10 @@ const Index = () => {
 
       // Get final line from Step 2 if available
       const finalLine = selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : undefined);
-      const session = createSession({ category, subcategory });
+      const session = createSession({
+        category,
+        subcategory
+      });
       const result = await generateVisualOptions(session, {
         tone: tone.toLowerCase(),
         tags: finalTags,
@@ -4850,18 +4879,12 @@ const Index = () => {
         textLayoutId: selectedTextLayout || "negativeSpace",
         spiceLevel: visualSpice
       });
-      
+
       // Ensure visual variance (disabled)
-      const varianceResult = ensureVisualVariance(
-        result.visualOptions, 
-        finalLine || "",
-        selectedTextLayout || "negativeSpace",
-        false
-      );
-      
+      const varianceResult = ensureVisualVariance(result.visualOptions, finalLine || "", selectedTextLayout || "negativeSpace", false);
+
       // Validate layout-aware options
       const validation = validateLayoutAwareVisuals(varianceResult.diversifiedOptions, selectedTextLayout || "negativeSpace");
-      
       if (validation.reasons.length > 0 && !validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
         console.warn('⚠️ Some visuals filtered:', validation.reasons);
         sonnerToast.warning('Some visual options were filtered - using best available');
@@ -4869,27 +4892,27 @@ const Index = () => {
         console.warn('🔄 Using fallback visuals:', validation.reasons);
         sonnerToast.warning('Using fallback visuals - AI prompts needed adjustment');
       }
-      
+
       // Log any filtered options
       if (validation.reasons.length > 0) {
         console.warn('⚠️ Some visuals filtered:', validation.reasons);
       }
-      
+
       // Ensure all 4 options are present
       const lanes = new Set(validation.validOptions.map(opt => opt.lane));
       if (lanes.size < 4) {
         console.warn(`🎯 Missing options:`, Array.from(['option1', 'option2', 'option3', 'option4']).filter(l => !lanes.has(l)));
       }
-      const mappedOptions = validation.validOptions.map((option) => ({
-        subject: option.prompt || (option.lane === 'option1' ? 'Direct visual concept' : 
-                option.lane === 'option2' ? 'Environmental perspective' :
-                option.lane === 'option3' ? 'Alternative viewpoint' :
-                'Abstract interpretation'),
+      const mappedOptions = validation.validOptions.map(option => ({
+        subject: option.prompt || (option.lane === 'option1' ? 'Direct visual concept' : option.lane === 'option2' ? 'Environmental perspective' : option.lane === 'option3' ? 'Alternative viewpoint' : 'Abstract interpretation'),
         background: `Context: ${subcategory}`,
         prompt: option.prompt,
         slot: option.lane
       }));
-      const visualResult = { options: mappedOptions, model: result.model };
+      const visualResult = {
+        options: mappedOptions,
+        model: result.model
+      };
       console.log('🎨 Visual generation completed with result:', {
         optionsCount: visualResult.options.length,
         model: visualResult.model,
@@ -4917,7 +4940,7 @@ const Index = () => {
       if (errorCode) {
         const fallbackMessages: Record<string, string> = {
           'TIMEOUT': 'Visual generation timed out - using fallback options',
-          'TRUNCATED': 'Request too complex - using fallback options', 
+          'TRUNCATED': 'Request too complex - using fallback options',
           'PARSE_ERROR': 'AI response error - using fallback options',
           'ALL_REJECTED': 'AI options failed quality check - using fallback options',
           'GENERATION_FAILED': 'Visual generation failed - using fallback options'
@@ -4940,7 +4963,6 @@ const Index = () => {
       sonnerToast.error("AI text generation is disabled in barebones mode. Please use 'Write my own line' option.");
       return;
     }
-    
     setIsGenerating(true);
     try {
       // Map UI selections to text generator inputs
@@ -4991,7 +5013,7 @@ const Index = () => {
 
       // Prepare tags for generation
       let finalTagsForGeneration = [...tags];
-      
+
       // For pop culture entities, add the entity name as a tag if not already present
       if (selectedStyle === 'pop-culture' && selectedPick) {
         const entityTag = selectedPick.toLowerCase();
@@ -4999,7 +5021,6 @@ const Index = () => {
           finalTagsForGeneration.push(selectedPick);
         }
       }
-
       console.log('📋 Final parameters for text generation:', {
         category,
         subcategory,
@@ -5014,7 +5035,6 @@ const Index = () => {
         tone,
         tags: finalTagsForGeneration
       });
-
       console.log('✅ Generated text options:', result);
 
       // Clear previous selection when generating/regenerating
@@ -5093,7 +5113,7 @@ const Index = () => {
 
       // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
       let prompt = directPrompt.trim();
-      
+
       // In exact prompt mode, use direct prompt only
       if (exactPromptMode && directPrompt.trim()) {
         prompt = directPrompt.trim();
@@ -5102,7 +5122,6 @@ const Index = () => {
         if (prompt && finalText && finalText.trim() && !exactPromptMode) {
           prompt += `, Include the phrase: "${finalText}"`;
         }
-        
         if (!prompt && selectedRecommendation !== null && visualRecommendations) {
           prompt = visualRecommendations.options[selectedRecommendation].prompt;
         }
@@ -5112,7 +5131,7 @@ const Index = () => {
           setDebugPrompts(prompts);
         }
       }
-      
+
       // In barebones mode or exact mode, require direct prompt
       if ((barebonesMode || exactPromptMode) && !prompt) {
         sonnerToast.error(`Please provide a direct prompt in ${exactPromptMode ? 'exact prompt' : 'barebones'} mode.`);
@@ -5120,13 +5139,11 @@ const Index = () => {
       }
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
       // Always respect the selected visual style, but use default if exact mode
-      const styleForIdeogram = exactPromptMode ? defaultStyleType : 
-        (visualStyle ? getStyleTypeForIdeogram(visualStyle) : defaultStyleType);
-      
+      const styleForIdeogram = exactPromptMode ? defaultStyleType : visualStyle ? getStyleTypeForIdeogram(visualStyle) : defaultStyleType;
+
       // Use custom seed if provided
       const seedValue = customSeed.trim() ? parseInt(customSeed.trim()) : undefined;
       const magicPromptOption = enableMagicPrompt ? 'AUTO' : 'OFF';
-      
       console.log('=== Ideogram Generation Debug ===');
       console.log('Exact prompt mode:', exactPromptMode);
       console.log('Direct prompt provided:', !!directPrompt.trim());
@@ -5145,15 +5162,13 @@ const Index = () => {
         negative_prompt: negativePrompt || undefined
       });
       const modelForIdeogram = 'V_3'; // V_3 model for better quality
-      
+
       // Store the final prompt for display
       setLastIdeogramPrompt(prompt);
       setLastIdeogramNegativePrompt(negativePrompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe");
-      
-      // Use structured prompts if available, fallback to manual prompts
-      const finalNegativePrompt = negativePrompt.trim() || 
-        (debugPrompts.negative_prompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe");
 
+      // Use structured prompts if available, fallback to manual prompts
+      const finalNegativePrompt = negativePrompt.trim() || debugPrompts.negative_prompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe";
       const response = await generateIdeogramImage({
         prompt,
         negative_prompt: finalNegativePrompt,
@@ -5169,39 +5184,36 @@ const Index = () => {
       } else {
         throw new Error("No image data received from Ideogram API");
       }
-     } catch (error) {
-       console.error('Image generation failed:', error);
-       
-       let errorMessage = 'Image generation failed';
-       
-       if (error instanceof IdeogramAPIError) {
-         // Handle specific CORS demo activation error
-         if (error.message === 'CORS_DEMO_REQUIRED') {
-           setShowCorsRetryDialog(true);
-           setImageGenerationError('CORS proxy needs activation. Click "Enable CORS Proxy" button below, then try again.');
-           return;
-         } else if (error.message.includes('proxy.cors.sh') && !getProxySettings().apiKey) {
-           errorMessage = 'Proxy.cors.sh selected but no API key provided. Add an API key in Proxy Settings for better reliability.';
-           setTimeout(() => setShowProxySettingsDialog(true), 2000);
-         } else if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
-           errorMessage = 'Connection failed. Trying alternative proxy methods automatically...';
-           setTimeout(() => setShowProxySettingsDialog(true), 2000);
-         } else {
-           // Show the actual Ideogram API error message
-           errorMessage = error.message;
-         }
-       } else if (error instanceof Error) {
-         // Show the actual error message from the edge function
-         errorMessage = error.message;
-       } else {
-         errorMessage = 'An unexpected error occurred while generating the image.';
-       }
-       
-       setImageGenerationError(errorMessage);
-       sonnerToast.error(errorMessage);
-     } finally {
-       setIsGeneratingImage(false);
-     }
+    } catch (error) {
+      console.error('Image generation failed:', error);
+      let errorMessage = 'Image generation failed';
+      if (error instanceof IdeogramAPIError) {
+        // Handle specific CORS demo activation error
+        if (error.message === 'CORS_DEMO_REQUIRED') {
+          setShowCorsRetryDialog(true);
+          setImageGenerationError('CORS proxy needs activation. Click "Enable CORS Proxy" button below, then try again.');
+          return;
+        } else if (error.message.includes('proxy.cors.sh') && !getProxySettings().apiKey) {
+          errorMessage = 'Proxy.cors.sh selected but no API key provided. Add an API key in Proxy Settings for better reliability.';
+          setTimeout(() => setShowProxySettingsDialog(true), 2000);
+        } else if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+          errorMessage = 'Connection failed. Trying alternative proxy methods automatically...';
+          setTimeout(() => setShowProxySettingsDialog(true), 2000);
+        } else {
+          // Show the actual Ideogram API error message
+          errorMessage = error.message;
+        }
+      } else if (error instanceof Error) {
+        // Show the actual error message from the edge function
+        errorMessage = error.message;
+      } else {
+        errorMessage = 'An unexpected error occurred while generating the image.';
+      }
+      setImageGenerationError(errorMessage);
+      sonnerToast.error(errorMessage);
+    } finally {
+      setIsGeneratingImage(false);
+    }
   };
   const handleDownloadImage = () => {
     if (!generatedImageUrl) return;
@@ -5976,16 +5988,13 @@ const Index = () => {
                 {!selectedCompletionOption ? <>
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">
-                        {barebonesMode 
-                          ? "Write your custom text directly" 
-                          : "Choose your option for completing your text"
-                        }
+                        {barebonesMode ? "Write your custom text directly" : "Choose your option for completing your text"}
                       </p>
                     </div>
 
-                    {barebonesMode ? (
-                      // Barebones mode: Show only write-myself option
-                      <div className="max-w-md mx-auto">
+                    {barebonesMode ?
+            // Barebones mode: Show only write-myself option
+            <div className="max-w-md mx-auto">
                         <Card className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption("write-myself")}>
                           <CardHeader className="pb-3">
                             <CardTitle className="text-lg font-semibold text-card-foreground">
@@ -5998,10 +6007,9 @@ const Index = () => {
                             </CardDescription>
                           </CardContent>
                         </Card>
-                      </div>
-                    ) : (
-                      // Normal mode: Show all options
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center max-w-4xl mx-auto">
+                      </div> :
+            // Normal mode: Show all options
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center max-w-4xl mx-auto">
                         {completionOptions.map(option => <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption(option.id)}>
                             <CardHeader className="pb-3">
                               <CardTitle className="text-lg font-semibold text-card-foreground">
@@ -6014,14 +6022,13 @@ const Index = () => {
                               </CardDescription>
                             </CardContent>
                           </Card>)}
-                      </div>
-                    )}
+                      </div>}
                   </> : null}
 
                 {/* Show AI Assist form when selected and no options generated yet */}
                 {selectedCompletionOption === "ai-assist" && generatedOptions.length === 0 && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
-                      <p className="text-xl text-muted-foreground">Add relevant tags for visual generation</p>
+                      <p className="text-xl text-muted-foreground">Add relevant tags for text generation</p>
                     </div>
 
                     <div className="max-w-md mx-auto space-y-6">
@@ -6039,16 +6046,14 @@ const Index = () => {
                       </div>
 
                       {/* Generate Button - Hide in barebones mode */}
-                      {!barebonesMode && (
-                        <div className="text-center">
+                      {!barebonesMode && <div className="text-center">
                           <Button variant="brand" className="px-8 py-3 text-base font-medium rounded-lg" onClick={handleGenerateText} disabled={isGenerating}>
                             {isGenerating ? <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                 Generating...
                               </> : "Generate Text Now"}
                           </Button>
-                        </div>
-                      )}
+                        </div>}
                     </div>
                   </div>}
 
@@ -6066,13 +6071,11 @@ const Index = () => {
                           {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
                         </Button>
                       </div>
-                      {textGenerationModel && (
-                        <div className="mb-3">
+                      {textGenerationModel && <div className="mb-3">
                           <Badge variant={textGenerationModel === 'fallback' ? 'secondary' : 'default'} className="text-xs">
                             {textGenerationModel === 'fallback' ? 'Fallback' : textGenerationModel}
                           </Badge>
-                        </div>
-                      )}
+                        </div>}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
@@ -6136,17 +6139,9 @@ const Index = () => {
                   </>}
 
                 {/* Text Layout Selection - Show after text is chosen (AI or custom) and when not "no-text" */}
-                {selectedCompletionOption !== "no-text" && 
-                  ((selectedCompletionOption === "ai-assist" && selectedGeneratedOption) || 
-                   (selectedCompletionOption === "write-myself" && isCustomTextConfirmed)) && 
-                  !selectedTextLayout && (
-                    <div className="mt-8">
-                      <TextLayoutSelector 
-                        selectedLayout={selectedTextLayout}
-                        onLayoutSelect={setSelectedTextLayout}
-                      />
-                    </div>
-                )}
+                {selectedCompletionOption !== "no-text" && (selectedCompletionOption === "ai-assist" && selectedGeneratedOption || selectedCompletionOption === "write-myself" && isCustomTextConfirmed) && !selectedTextLayout && <div className="mt-8">
+                      <TextLayoutSelector selectedLayout={selectedTextLayout} onLayoutSelect={setSelectedTextLayout} />
+                    </div>}
 
 
                 {/* TODO: Add additional sub-options here after text style is selected */}
@@ -6231,10 +6226,7 @@ const Index = () => {
                              {/* Magic Prompt Enhancement Toggle */}
                              <div className="flex items-center justify-center gap-3 py-4">
                                <label className="text-sm font-medium text-foreground">Visually Enhance Your Viibe</label>
-                               <Switch
-                                 checked={enableMagicPrompt}
-                                 onCheckedChange={setEnableMagicPrompt}
-                               />
+                               <Switch checked={enableMagicPrompt} onCheckedChange={setEnableMagicPrompt} />
                              </div>
                              
                              {/* Generate Button - Below the input */}
@@ -6518,15 +6510,13 @@ const Index = () => {
                 </div>
                 
                 <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
-                  {isGeneratingImage ? (
-                    <div className="text-center">
+                  {isGeneratingImage ? <div className="text-center">
                       <Button variant="brand" disabled className="mb-4">
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Generating VIIBE...
                       </Button>
                       <p className="text-sm text-muted-foreground">This may take a few moments</p>
-                    </div>
-                  ) : generatedImageUrl ? <div className="max-w-full max-h-full">
+                    </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
                       <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
                     </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
                       <AlertCircle className="h-8 w-8 text-destructive" />
@@ -6717,8 +6707,7 @@ const Index = () => {
                         <td className="p-3 text-sm">Final Text</td>
                         <td className="p-3 text-sm">{selectedGeneratedOption || stepTwoText || "Not generated"}</td>
                       </tr>
-                      {(selectedGeneratedOption || stepTwoText) && selectedTextLayout && (
-                        <>
+                      {(selectedGeneratedOption || stepTwoText) && selectedTextLayout && <>
                           <tr>
                             <td className="p-3 text-sm">Text Placement</td>
                             <td className="p-3 text-sm">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.label || selectedTextLayout}</td>
@@ -6727,8 +6716,7 @@ const Index = () => {
                             <td className="p-3 text-sm">Layout Token</td>
                             <td className="p-3 text-sm font-mono text-xs">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.token || "Unknown layout"}</td>
                           </tr>
-                        </>
-                      )}
+                        </>}
                       <tr>
                         <td className="p-3 text-sm">Visual Style</td>
                         <td className="p-3 text-sm">{selectedVisualStyle || "Not selected"}</td>
@@ -6773,8 +6761,7 @@ const Index = () => {
               </div>
 
               {/* Debug Prompts Preview */}
-              {(debugPrompts.positive_prompt || lastIdeogramPrompt) && (
-                <div className="mt-6">
+              {(debugPrompts.positive_prompt || lastIdeogramPrompt) && <div className="mt-6">
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-lg">Generated Prompts</CardTitle>
@@ -6795,15 +6782,13 @@ const Index = () => {
                       </div>
                     </CardContent>
                   </Card>
-                </div>
-              )}
+                </div>}
 
             </div>
           </>}
 
         {/* Bottom Navigation */}
-        {currentStep < 4 && (
-          <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4">
+        {currentStep < 4 && <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4">
             <div className="max-w-6xl mx-auto flex justify-between items-center">
               <Button variant="outline" onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))} className={currentStep === 1 ? "invisible" : ""} disabled={currentStep === 1}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -6811,21 +6796,20 @@ const Index = () => {
               </Button>
               
               <Button variant={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete() ? "outline" : "brand"} onClick={() => {
-              if (currentStep === 3) {
-                setCurrentStep(4);
-                setAutoStartImageGen(true);
-              } else {
-                setCurrentStep(prev => prev + 1);
-              }
-            }} disabled={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete()}>
+            if (currentStep === 3) {
+              setCurrentStep(4);
+              setAutoStartImageGen(true);
+            } else {
+              setCurrentStep(prev => prev + 1);
+            }
+          }} disabled={currentStep === 1 && !isStep1Complete() || currentStep === 2 && !isStep2Complete() || currentStep === 3 && !isStep3Complete()}>
                 {currentStep === 3 && isStep3Complete() && selectedDimension ? "Generate VIIBE" : <>
                     Continue
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </>}
               </Button>
             </div>
-          </div>
-        )}
+          </div>}
 
         {/* API Key Dialog */}
         <ApiKeyDialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog} onApiKeySet={handleApiKeySet} />
