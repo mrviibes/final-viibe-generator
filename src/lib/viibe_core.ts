@@ -64,7 +64,7 @@ export async function generateTextOptions(session: Session, { tone, tags = [] }:
 ========================================================= */
 import { openAIService } from './openai';
 
-export async function generateVisualOptions(session: Session, { tone, tags = [], textContent = "", textLayoutId = "negativeSpace", spiceLevel = "spicy" }: { tone: string; tags?: string[]; textContent?: string; textLayoutId?: string; spiceLevel?: "balanced" | "spicy" | "wild" }): Promise<{
+export async function generateVisualOptions(session: Session, { tone, tags = [], textContent = "", textLayoutId = "negativeSpace", recommendationMode = "balanced" }: { tone: string; tags?: string[]; textContent?: string; textLayoutId?: string; recommendationMode?: "balanced" | "cinematic" | "surreal" | "dynamic" | "chaos" }): Promise<{
   visualOptions: Array<{ lane: string; prompt: string }>;
   negativePrompt: string;
   model: string;
@@ -80,6 +80,22 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
       textLayoutId 
     });
     
+    // Generate mode-specific style guidance
+    const getModeGuidance = (mode: string) => {
+      switch (mode) {
+        case 'cinematic':
+          return 'Add dramatic lighting, movie-poster quality, intense atmosphere';
+        case 'surreal':
+          return 'Add dreamlike elements, impossible physics, unexpected details';
+        case 'dynamic':
+          return 'Add high energy, movement, action, dramatic framing';
+        case 'chaos':
+          return 'Mix completely different styles, angles, and unexpected combinations';
+        default: // balanced
+          return 'Keep it polished but natural, mix realism with creativity';
+      }
+    };
+
     const systemPrompt = `Generate 4 COMPLETELY different visual concepts for image generation. Return ONLY valid JSON:
 
 {
@@ -122,15 +138,18 @@ CRITICAL RULES:
    - badgeSticker   → ", space in corner"
    - subtleCaption  → ", space for small text"
 
-5. **Keep It Natural**:
+5. **Recommendation Mode Effects**:
+   ${getModeGuidance(recommendationMode)}
+
+6. **Keep It Natural**:
    - NO technical terms (aperture, ISO, focal length, etc.)
    - NO confusing photography jargon
    - Write how humans naturally describe images
    - Make it easy to understand what the image will look like
 
-6. **Negative Prompt**: "no text, no words, no letters, no watermarks"
+7. **Negative Prompt**: "no text, no words, no letters, no watermarks"
 
-EXAMPLE for birthday + spicy:
+EXAMPLE for birthday + balanced:
 {
   "visualOptions":[
     {"lane":"option1","prompt":"person blowing out birthday candles with big smile, space at bottom"},
@@ -144,7 +163,7 @@ EXAMPLE for birthday + spicy:
     const userPrompt = `Category: ${session.category}
 Subcategory: ${session.subcategory}
 Tone: ${tone}
-Energy Level: ${spiceLevel}
+Recommendation Mode: ${recommendationMode}
 Text Content: "${textContent}"
 Layout: ${textLayoutId}
 Tags: ${tags.join(', ') || 'none'}
