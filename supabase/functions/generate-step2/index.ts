@@ -29,15 +29,23 @@ LINE CHARACTERISTICS:
 • Option 4: Creative twist (45-70 chars) - Unexpected angle
 
 CORE WRITING RULES:
-• Write complete sentences that end with proper punctuation
-• Avoid overused words: can, may, just, really, literally, actually, probably, basically, maybe
-• No semicolons, em dashes, or excessive commas
+• Write like a real person talking - natural, conversational, human
+• Each line gets ONE comma OR colon maximum - never both, never multiple commas
+• Complete sentences with proper punctuation
+• No corporate buzzwords or AI-sounding phrases
+• No semicolons, em dashes, or multiple pauses
 • No markdown formatting (*bold* #hashtag @mentions)
-• Keep it natural and conversational
+
+HUMAN WRITING GUIDELINES:
+• Use contractions naturally (you're, don't, can't, won't, it's)
+• Write how people actually talk in real conversations
+• Avoid formal or academic language
+• Make it feel authentic and relatable
+• Skip overused transition words and filler
 
 ${getToneSpecificGuidance(tone)}
 
-Quality over rigid structure - prioritize ${tone.toLowerCase()} feeling and natural flow.`;
+Write like a human having a real conversation - authentic ${tone.toLowerCase()} voice that flows naturally.`;
 
   return basePrompt;
 }
@@ -110,32 +118,32 @@ function generateToneAwareFallback(inputs: any): any {
   
   if (lowerTone.includes('savage') || lowerTone.includes('roast')) {
     fallbackLines = [
-      "That expired.",
+      "That's expired.",
       "Why does this feel like a job interview?", 
-      "This costs more than your last three relationships.",
-      "Everything here applied for witness protection after you arrived."
+      "This costs more than your last relationship.",
+      "Everything here applied for witness protection after you showed up."
     ];
   } else if (lowerTone.includes('romantic') || lowerTone.includes('sentimental')) {
     fallbackLines = [
       "This moment sparkles.",
-      "Have you noticed how time stops here?",
-      "Every detail here whispers stories of love and connection.",
-      "This feeling dances through memories that hearts treasure forever."
+      "You notice how time stops here?",
+      "Every detail whispers stories of love and connection.",
+      "This feeling dances through memories hearts treasure forever."
     ];
   } else if (lowerTone.includes('inspirational') || lowerTone.includes('motivational')) {
     fallbackLines = [
       "Dreams start here.",
       "Notice how possibilities multiply in moments like this?",
-      "Every step forward creates new paths to amazing destinations.", 
+      "Every step forward creates new paths to amazing places.", 
       "This energy transforms ordinary moments into extraordinary adventures."
     ];
   } else {
     // Default balanced tone
     fallbackLines = [
       "This moment matters.",
-      "Have you noticed how special this feels?",
-      "Everything here tells a story worth remembering and sharing.",
-      "This experience creates connections that time cannot diminish or fade."
+      "You notice how special this feels?",
+      "Everything here tells a story worth remembering.",
+      "This experience creates connections that time can't diminish."
     ];
   }
   
