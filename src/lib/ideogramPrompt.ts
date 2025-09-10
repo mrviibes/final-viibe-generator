@@ -42,6 +42,32 @@ function getRandomElement<T>(array: T[]): T {
   return array[Math.floor(Math.random() * array.length)];
 }
 
+// Sanitize visual tags for safety compliance
+function sanitizeVisualTag(tag: string): string | null {
+  const safetyReplacements: Record<string, string> = {
+    'fake tits': 'elegant figure',
+    'big tits': 'confident person',
+    'hot busty woman': 'confident woman',
+    'cumshot': 'artistic splash',
+    'busty': 'confident',
+    'tits': 'figure',
+    'sexy': 'elegant',
+    'nude': 'artistic figure'
+  };
+
+  const lowerTag = tag.toLowerCase();
+  
+  // Check if tag contains inappropriate content
+  for (const [inappropriate, replacement] of Object.entries(safetyReplacements)) {
+    if (lowerTag.includes(inappropriate)) {
+      return replacement;
+    }
+  }
+  
+  // Return original tag if it's safe
+  return tag;
+}
+
 function getToneFonts(tone: string): string[] {
   return fontsByTone[tone.toLowerCase()] || fontsByTone.default;
 }
@@ -137,9 +163,17 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
   const mood = getRandomElement(moodOptions);
   sceneParts.push(`Emphasize ${mood}.`);
   
-  // 7. Visual tags if provided
+  // 7. Visual tags if provided (filtered for safety)
   if (handoff.visual_tags_csv && handoff.visual_tags_csv !== "None") {
-    sceneParts.push(`Visual elements: ${handoff.visual_tags_csv}.`);
+    const safeVisualElements = handoff.visual_tags_csv
+      .split(',')
+      .map(tag => sanitizeVisualTag(tag.trim()))
+      .filter(tag => tag !== null)
+      .join(', ');
+    
+    if (safeVisualElements) {
+      sceneParts.push(`Visual elements: ${safeVisualElements}.`);
+    }
   }
   
   // CRITICAL: Text instructions FIRST, then scene description
