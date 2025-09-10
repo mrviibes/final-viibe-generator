@@ -31,7 +31,7 @@ export function SafetyValidationDialog({
   originalPrompt,
   sanitizedPrompt
 }: SafetyValidationDialogProps) {
-  const hasModifications = modifications.prompt_modified || modifications.tags_modified.length > 0;
+  const hasModifications = modifications?.prompt_modified || (modifications?.tags_modified?.length ?? 0) > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,7 +61,7 @@ export function SafetyValidationDialog({
         <div className="space-y-4">
           {hasModifications && (
             <>
-              {modifications.prompt_modified && (
+              {modifications?.prompt_modified && (
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
@@ -70,11 +70,11 @@ export function SafetyValidationDialog({
                 </Alert>
               )}
               
-              {modifications.tags_modified.length > 0 && (
+              {(modifications?.tags_modified?.length ?? 0) > 0 && (
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>Visual tags updated:</strong> {modifications.tags_modified.length} tag(s) were adjusted for safety compliance.
+                    <strong>Visual tags updated:</strong> {modifications?.tags_modified?.length ?? 0} tag(s) were adjusted for safety compliance.
                   </AlertDescription>
                 </Alert>
               )}

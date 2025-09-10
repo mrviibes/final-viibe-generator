@@ -6872,9 +6872,8 @@ const Index = () => {
             handleGenerateImage();
           }}
           modifications={{
-            hasModifications: true,
-            tagModifications: [],
-            promptModifications: "Prompt sanitized"
+            prompt_modified: true,
+            tags_modified: []
           }}
           originalPrompt=""
           sanitizedPrompt=""
