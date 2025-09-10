@@ -35,8 +35,14 @@ import { generateStep2Lines } from "@/lib/textGen";
 const cleanVisualDescription = (text: string): string => {
   if (!text) return text;
 
-  // Remove layout-specific tokens that users don't need to see
-  return text.replace(/,?\s*(clear empty area near largest margin|clear top band|clear bottom band|clear lower third|clear left panel|badge space top-right|clear narrow bottom strip)/gi, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim();
+  // Remove all layout-specific tokens that users don't need to see
+  return text
+    .replace(/,?\s*(clear empty area near largest margin|clear top band|clear bottom band|clear lower third|clear left panel|badge space top-right|clear narrow bottom strip)/gi, '')
+    .replace(/,?\s*(space for text|space at top and bottom|space at bottom|space on left side|space in corner|space for small text)/gi, '')
+    .replace(/,?\s*(TEXT_SAFE_ZONE[^,]*|CONTRAST_PLAN[^,]*|NEGATIVE_PROMPT[^,]*|ASPECTS[^,]*|TEXT_HINT[^,]*)/gi, '')
+    .replace(/,\s*,/g, ',')
+    .replace(/^,\s*|,\s*$/g, '')
+    .trim();
 };
 
 // Layout mappings for display
@@ -4375,10 +4381,10 @@ const Index = () => {
     }
   }, [currentStep, selectedStyle, selectedSubOption, selectedTextStyle, selectedGeneratedOption, stepTwoText, selectedVisualStyle, selectedDimension, customWidth, customHeight, tags, subjectTags, selectedVisualIndex, visualOptions, selectedSubjectOption, subjectDescription, selectedPick, selectedCompletionOption]);
 
-  // Generate visual recommendations when reaching step 4
+  // Generate visual recommendations when reaching step 4 or when visualSpice changes
   useEffect(() => {
     const generateRecommendations = async () => {
-      if (currentStep === 4 && !visualRecommendations && !isLoadingRecommendations) {
+      if (currentStep === 4 && !isLoadingRecommendations) {
         setIsLoadingRecommendations(true);
         try {
           const session = createSession({
@@ -4455,7 +4461,16 @@ const Index = () => {
       }
     };
     generateRecommendations();
-  }, [currentStep, visualRecommendations, isLoadingRecommendations, selectedStyle, selectedSubOption, selectedTextStyle, tags, selectedVisualStyle, selectedGeneratedOption]);
+  }, [currentStep, visualRecommendations, isLoadingRecommendations, selectedStyle, selectedSubOption, selectedTextStyle, tags, selectedVisualStyle, selectedGeneratedOption, visualSpice]);
+
+  // Auto-regenerate when visual spice mode changes
+  useEffect(() => {
+    if (currentStep === 4 && visualRecommendations && !isLoadingRecommendations) {
+      console.log('🎨 Visual spice changed to:', visualSpice, '- regenerating options...');
+      setVisualRecommendations(null); // Clear existing to trigger regeneration
+      setSelectedVisualIndex(null); // Reset selection
+    }
+  }, [visualSpice]);
 
   // Auto-start image generation when reaching step 4
   useEffect(() => {

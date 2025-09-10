@@ -107,16 +107,17 @@ function hasVagueFillers(text: string): boolean {
 }
 
 function validateVisualOptions(options: VisualOption[]): VisualOption[] {
+  // Relaxed validation - only reject extremely problematic options
   return options.filter(option => {
-    // Reject options with vague fillers
-    if (hasVagueFillers(option.subject) || hasVagueFillers(option.background)) {
-      console.warn('🚫 Rejected vague option:', option.subject);
+    // Only reject if completely empty or malformed
+    if (!option.subject || !option.background || !option.prompt) {
+      console.warn('🚫 Rejected empty option');
       return false;
     }
     
-    // Ensure minimum detail in prompts
-    if (option.prompt.length < 100) {
-      console.warn('🚫 Rejected short prompt:', option.prompt.substring(0, 50));
+    // Very basic minimum length check (reduced from 100 to 30)
+    if (option.prompt.length < 30) {
+      console.warn('🚫 Rejected extremely short prompt:', option.prompt);
       return false;
     }
     
@@ -346,15 +347,30 @@ Return pure JSON only.`;
         slot: opt.slot || expectedSlots[index] // Ensure slot is present
       }));
 
-    // Apply quality validation to reject vague options
+    // Apply relaxed validation to reject only severely problematic options
     validOptions = validateVisualOptions(validOptions);
 
-    // If we rejected too many options, fill with high-quality fallbacks
-    if (validOptions.length < 4) {
-      console.warn(`⚠️ Only ${validOptions.length} quality options generated, adding fallbacks`);
+    // Always ensure we have exactly 4 options
+    while (validOptions.length < 4) {
+      console.log(`🔄 Adding fallback option ${validOptions.length + 1}/4`);
       const fallbacks = getSlotBasedFallbacks(enrichedInputs);
-      validOptions = [...validOptions, ...fallbacks].slice(0, 4);
+      const missingSlots = ['background-only', 'subject+background', 'object', 'tone-twist']
+        .filter(slot => !validOptions.some(opt => opt.slot === slot));
+      
+      if (missingSlots.length > 0) {
+        const slotFallback = fallbacks.find(f => f.slot === missingSlots[0]);
+        if (slotFallback) {
+          validOptions.push(slotFallback);
+          continue;
+        }
+      }
+      
+      // Generic fallback if slot-based doesn't work
+      validOptions.push(fallbacks[validOptions.length % fallbacks.length]);
     }
+
+    // Ensure we have exactly 4 options, no more
+    validOptions = validOptions.slice(0, 4);
 
     return {
       options: validOptions,

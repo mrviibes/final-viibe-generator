@@ -80,19 +80,19 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
       textLayoutId 
     });
     
-    // Generate mode-specific style guidance
+    // Generate mode-specific style guidance with stronger effects
     const getModeGuidance = (mode: string) => {
       switch (mode) {
         case 'cinematic':
-          return 'Add dramatic lighting, movie-poster quality, intense atmosphere';
+          return 'CINEMATIC STYLE: Use dramatic shadows, movie-poster lighting, intense close-ups, epic wide shots, film grain texture, dramatic color grading, hero poses, emotional intensity';
         case 'surreal':
-          return 'Add dreamlike elements, impossible physics, unexpected details';
+          return 'SURREAL STYLE: Include impossible physics, floating objects, melting textures, dreamlike distortions, mind-bending perspectives, abstract shapes mixing with reality, unexpected scale shifts';
         case 'dynamic':
-          return 'Add high energy, movement, action, dramatic framing';
+          return 'DYNAMIC ACTION: Show explosive motion, speed lines, action poses, dramatic angles, high energy, movement blur, intense action scenes, powerful gestures';
         case 'chaos':
-          return 'Mix completely different styles, angles, and unexpected combinations';
+          return 'CHAOTIC MIX: Combine multiple art styles randomly - mix cartoon with realistic, abstract with photographic, different time periods, clashing color schemes, unexpected combinations';
         default: // balanced
-          return 'Keep it polished but natural, mix realism with creativity';
+          return 'BALANCED STYLE: Clean modern aesthetic, natural lighting, accessible composition, pleasing colors, professional quality';
       }
     };
 
@@ -143,8 +143,10 @@ CRITICAL RULES:
    - badgeSticker   → ", space in corner"
    - subtleCaption  → ", space for small text"
 
-5. **Recommendation Mode Effects**:
+5. **Recommendation Mode Effects** (CRITICAL - Apply Heavily):
    ${getModeGuidance(recommendationMode)}
+   
+   IMPORTANT: Each option MUST strongly reflect the ${recommendationMode.toUpperCase()} mode. Make the differences obvious and distinct.
 
 6. **Keep It Natural**:
    - NO technical terms (aperture, ISO, focal length, etc.)
