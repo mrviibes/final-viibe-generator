@@ -6716,14 +6716,20 @@ const Index = () => {
                         <td className="p-3 text-sm">Visual Style</td>
                         <td className="p-3 text-sm">{selectedVisualStyle || "Not selected"}</td>
                       </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Visual AI Recommendations</td>
-                        <td className="p-3 text-sm">
-                          {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? `Option ${selectedVisualIndex + 1}: ${truncateWords(visualOptions[selectedVisualIndex].subject, 5)}` : "Not selected"}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Aspect Ratio</td>
+                       <tr>
+                         <td className="p-3 text-sm">Visual AI Recommendations</td>
+                         <td className="p-3 text-sm whitespace-normal break-words">
+                           {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? `Option ${selectedVisualIndex + 1}: ${cleanVisualDescription(visualOptions[selectedVisualIndex].subject)}` : "Not selected"}
+                         </td>
+                       </tr>
+                       <tr>
+                         <td className="p-3 text-sm">Used Visual Answer</td>
+                         <td className="p-3 text-sm">
+                           {selectedSubjectOption !== "ai-assist" ? "N/A" : selectedVisualIndex !== null ? "Yes" : "No"}
+                         </td>
+                       </tr>
+                       <tr>
+                         <td className="p-3 text-sm">Aspect Ratio</td>
                         <td className="p-3 text-sm">
                           {selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Not selected"}
                         </td>
