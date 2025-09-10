@@ -1,11 +1,20 @@
 import { IdeogramHandoff } from './ideogram';
 import { normalizeTypography } from './textUtils';
 
-export function buildIdeogramPrompt(handoff: IdeogramHandoff, cleanBackground: boolean = false): string {
-  const parts: string[] = [];
+export function buildIdeogramPrompt(handoff: IdeogramHandoff, options: { 
+  cleanBackground?: boolean; 
+  injectText?: boolean; 
+  useLayoutTokens?: boolean;
+  gentleLayoutPhrasing?: boolean;
+} = {}): string {
+  const { 
+    cleanBackground = false, 
+    injectText = false, 
+    useLayoutTokens = true,
+    gentleLayoutPhrasing = false 
+  } = options;
   
-  // REMOVED: No longer inject text into image prompt to prevent baked-in text
-  // Text will be overlaid separately to ensure clean backgrounds
+  const parts: string[] = [];
   
   // Add basic visual elements if present
   if (handoff.visual_style) {
@@ -13,7 +22,24 @@ export function buildIdeogramPrompt(handoff: IdeogramHandoff, cleanBackground: b
   }
   
   if (handoff.chosen_visual) {
-    parts.push(`Visual: ${handoff.chosen_visual}`);
+    let visual = handoff.chosen_visual;
+    
+    // Replace harsh layout tokens with gentler phrasing if requested
+    if (gentleLayoutPhrasing && useLayoutTokens) {
+      visual = visual.replace(/clear empty area near largest margin/gi, 'composition with ample negative space for text overlay');
+      visual = visual.replace(/clear top band/gi, 'space at top for text');
+      visual = visual.replace(/clear bottom band/gi, 'space at bottom for text');
+      visual = visual.replace(/clear lower third/gi, 'open area in lower portion');
+      visual = visual.replace(/clear left panel/gi, 'space on left side');
+      visual = visual.replace(/badge space top-right/gi, 'corner area for badge');
+      visual = visual.replace(/clear narrow bottom strip/gi, 'subtle space at bottom');
+    } else if (!useLayoutTokens) {
+      // Remove layout tokens entirely
+      visual = visual.replace(/,?\s*(clear empty area near largest margin|clear top band|clear bottom band|clear lower third|clear left panel|badge space top-right|clear narrow bottom strip)/gi, '');
+      visual = visual.replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim();
+    }
+    
+    parts.push(`Visual: ${visual}`);
   }
   
   if (handoff.text_tags_csv && handoff.text_tags_csv !== "None") {
@@ -26,10 +52,12 @@ export function buildIdeogramPrompt(handoff: IdeogramHandoff, cleanBackground: b
   
   // Background-only instruction for clean overlay text
   const background = handoff.rec_background || handoff.chosen_visual || "appropriate background";
-  parts.push(`Background: ${background}`);
+  if (!handoff.chosen_visual) {
+    parts.push(`Background: ${background}`);
+  }
   
-  // Include the final text in the prompt if present
-  if (handoff.key_line && handoff.key_line.trim()) {
+  // Only include the final text in the prompt if explicitly requested
+  if (injectText && handoff.key_line && handoff.key_line.trim()) {
     parts.push(`Include the phrase: "${handoff.key_line}"`);
   }
   

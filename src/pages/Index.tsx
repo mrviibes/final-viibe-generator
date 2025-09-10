@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X, Download } from "lucide-react";
+import { Search, Loader2, AlertCircle, ArrowLeft, ArrowRight, X, Download, ChevronDown } from "lucide-react";
 import { openAIService, OpenAISearchResult } from "@/lib/openai";
 import { ApiKeyDialog } from "@/components/ApiKeyDialog";
 import { IdeogramKeyDialog } from "@/components/IdeogramKeyDialog";
@@ -4197,6 +4197,12 @@ const Index = () => {
   const [directPrompt, setDirectPrompt] = useState<string>("");
   const [negativePrompt, setNegativePrompt] = useState<string>("");
   
+  // New prompt control options
+  const [exactPromptMode, setExactPromptMode] = useState<boolean>(false);
+  const [enableMagicPrompt, setEnableMagicPrompt] = useState<boolean>(false);
+  const [customSeed, setCustomSeed] = useState<string>("");
+  const [defaultStyleType, setDefaultStyleType] = useState<'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME'>('GENERAL');
+  
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [autoStartImageGen, setAutoStartImageGen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -5010,50 +5016,72 @@ const Index = () => {
       // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
       let prompt = directPrompt.trim();
       
-      // Add final text to prompt if present
-      if (prompt && finalText && finalText.trim()) {
-        prompt += `, Include the phrase: "${finalText}"`;
+      // In exact prompt mode, use direct prompt only
+      if (exactPromptMode && directPrompt.trim()) {
+        prompt = directPrompt.trim();
+      } else {
+        // Add final text to prompt only if not in exact mode
+        if (prompt && finalText && finalText.trim() && !exactPromptMode) {
+          prompt += `, Include the phrase: "${finalText}"`;
+        }
+        
+        if (!prompt && selectedRecommendation !== null && visualRecommendations) {
+          prompt = visualRecommendations.options[selectedRecommendation].prompt;
+        }
+        if (!prompt && !barebonesMode && !exactPromptMode) {
+          prompt = buildIdeogramPrompt(ideogramPayload, {
+            injectText: false, // Stop text injection by default
+            useLayoutTokens: !exactPromptMode,
+            gentleLayoutPhrasing: true
+          });
+        }
       }
       
-      if (!prompt && selectedRecommendation !== null && visualRecommendations) {
-        prompt = visualRecommendations.options[selectedRecommendation].prompt;
-      }
-      if (!prompt && !barebonesMode) {
-        prompt = buildIdeogramPrompt(ideogramPayload);
-      }
-      
-      // In barebones mode, require direct prompt
-      if (barebonesMode && !prompt) {
-        sonnerToast.error("Please provide a direct prompt in barebones mode.");
+      // In barebones mode or exact mode, require direct prompt
+      if ((barebonesMode || exactPromptMode) && !prompt) {
+        sonnerToast.error(`Please provide a direct prompt in ${exactPromptMode ? 'exact prompt' : 'barebones'} mode.`);
         return;
       }
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
-      // Always respect the selected visual style
-      const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
+      // Always respect the selected visual style, but use default if exact mode
+      const styleForIdeogram = exactPromptMode ? defaultStyleType : 
+        (visualStyle ? getStyleTypeForIdeogram(visualStyle) : defaultStyleType);
+      
+      // Use custom seed if provided
+      const seedValue = customSeed.trim() ? parseInt(customSeed.trim()) : undefined;
+      const magicPromptOption = enableMagicPrompt ? 'AUTO' : 'OFF';
+      
       console.log('=== Ideogram Generation Debug ===');
+      console.log('Exact prompt mode:', exactPromptMode);
       console.log('Direct prompt provided:', !!directPrompt.trim());
       console.log('Final prompt:', prompt);
       console.log('Aspect ratio:', aspectForIdeogram);
       console.log('Style type:', styleForIdeogram);
+      console.log('Magic prompt:', magicPromptOption);
+      console.log('Seed:', seedValue || 'random');
       console.log('Final payload:', {
         prompt,
         aspect_ratio: aspectForIdeogram,
         model: 'V_3',
-        magic_prompt_option: 'AUTO',
-        style_type: styleForIdeogram
+        magic_prompt_option: magicPromptOption,
+        style_type: styleForIdeogram,
+        seed: seedValue,
+        negative_prompt: negativePrompt || undefined
       });
       const modelForIdeogram = 'V_3'; // V_3 model for better quality
       
       // Store the final prompt for display
       setLastIdeogramPrompt(prompt);
-      setLastIdeogramNegativePrompt("None (disabled)");
+      setLastIdeogramNegativePrompt(negativePrompt || "None");
       
       const response = await generateIdeogramImage({
         prompt,
         aspect_ratio: aspectForIdeogram,
         model: modelForIdeogram,
-        magic_prompt_option: 'AUTO',
-        style_type: styleForIdeogram
+        magic_prompt_option: magicPromptOption,
+        style_type: styleForIdeogram,
+        seed: seedValue,
+        negative_prompt: negativePrompt || undefined
       });
       if (response.data && response.data.length > 0) {
         setGeneratedImageUrl(response.data[0].url);
@@ -5167,6 +5195,118 @@ const Index = () => {
         
         {/* Step Progress Header */}
         <StepProgress currentStep={currentStep} />
+        
+        {/* Advanced Generation Controls */}
+        <div className="mb-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-foreground">Generation Settings</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {showAdvanced ? 'Hide Advanced' : 'Show Advanced'}
+                <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+              </Button>
+            </div>
+            
+            {showAdvanced && (
+              <div className="bg-muted/50 rounded-lg p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Exact Prompt Mode */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-foreground">Exact Prompt Mode</label>
+                      <Switch
+                        checked={exactPromptMode}
+                        onCheckedChange={setExactPromptMode}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Use your direct prompt exactly as written, without AI modification or layout tokens
+                    </p>
+                    {exactPromptMode && (
+                      <div className="space-y-2">
+                        <Input
+                          placeholder="Enter your exact prompt..."
+                          value={directPrompt}
+                          onChange={(e) => setDirectPrompt(e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Magic Prompt Enhancement */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-foreground">Magic Prompt Enhancement</label>
+                      <Switch
+                        checked={enableMagicPrompt}
+                        onCheckedChange={setEnableMagicPrompt}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Let Ideogram AI enhance your prompt for better results (may differ from website behavior)
+                    </p>
+                  </div>
+
+                  {/* Default Style Type */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-foreground">Default Style Type</label>
+                    <Select value={defaultStyleType} onValueChange={(value) => setDefaultStyleType(value as typeof defaultStyleType)}>
+                      <SelectTrigger className="text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AUTO">Auto</SelectItem>
+                        <SelectItem value="GENERAL">General</SelectItem>
+                        <SelectItem value="REALISTIC">Realistic</SelectItem>
+                        <SelectItem value="DESIGN">Design</SelectItem>
+                        <SelectItem value="RENDER_3D">3D Render</SelectItem>
+                        <SelectItem value="ANIME">Anime</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Style type to use when exact prompt mode is enabled
+                    </p>
+                  </div>
+
+                  {/* Custom Seed */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-foreground">Custom Seed (Optional)</label>
+                    <Input
+                      type="number"
+                      placeholder="Enter seed number for reproducible results..."
+                      value={customSeed}
+                      onChange={(e) => setCustomSeed(e.target.value)}
+                      className="text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Use the same seed to get consistent results across generations
+                    </p>
+                  </div>
+                </div>
+
+                {/* Negative Prompt */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-foreground">Negative Prompt (Optional)</label>
+                  <textarea
+                    placeholder="Describe what you don't want in the image..."
+                    value={negativePrompt}
+                    onChange={(e) => setNegativePrompt(e.target.value)}
+                    className="w-full min-h-[80px] px-3 py-2 text-sm border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Specify elements to avoid in the generated image
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
         
         {currentStep === 1 && <>
             <div className="text-center mb-12">
