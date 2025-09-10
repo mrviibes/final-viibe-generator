@@ -27,6 +27,18 @@ import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
 
+// Helper function to clean layout tokens from visual descriptions for display
+const cleanVisualDescription = (text: string): string => {
+  if (!text) return text;
+  
+  // Remove layout-specific tokens that users don't need to see
+  return text
+    .replace(/,?\s*(clear empty area near largest margin|clear top band|clear bottom band|clear lower third|clear left panel|badge space top-right|clear narrow bottom strip)/gi, '')
+    .replace(/,\s*,/g, ',')
+    .replace(/^,\s*|,\s*$/g, '')
+    .trim();
+};
+
 // Layout mappings for display
 const layoutMappings = {
   negativeSpace: { label: "Negative Space", token: "clear empty area near largest margin" },
@@ -4495,7 +4507,7 @@ const Index = () => {
         // Show selected option
         const option = visualOptions[selectedVisualIndex];
         const optionTitle = `Selected: Option ${selectedVisualIndex + 1} (${option.slot?.replace('-', ' ') || 'Visual'})`;
-        const compactDescription = `${option.subject} - ${option.background}`;
+        const compactDescription = `${cleanVisualDescription(option.subject)} - ${option.background}`;
         selections.push({
           title: optionTitle,
           subtitle: compactDescription,
@@ -6259,7 +6271,7 @@ const Index = () => {
                               </CardHeader>
                               <CardContent className="pt-0">
                                 <p className="text-sm text-muted-foreground line-clamp-2">
-                                  {option.subject} - {option.background}
+                                  {cleanVisualDescription(option.subject)} - {option.background}
                                 </p>
                               </CardContent>
                             </Card>)}
