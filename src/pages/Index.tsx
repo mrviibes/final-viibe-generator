@@ -6386,7 +6386,7 @@ const Index = () => {
                 const tagDisplay = tags.length > 0 ? `, tags: ${tags.join(", ")}` : " (no tags added)";
                 selections.push({
                   title: "Text options generated",
-                  subtitle: `90 characters max${tagDisplay}`,
+                  subtitle: `100 characters max${tagDisplay}`,
                   onChangeSelection: () => {
                     setGeneratedOptions([]);
                     setSelectedGeneratedOption(null);

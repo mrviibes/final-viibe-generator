@@ -357,7 +357,9 @@ HUMAN-LIKE RULES:
 - Use contractions: "can't," "won't," "it's," "we're"
 - Vary sentence structures (some short, some flowing)
 - Natural pauses and rhythms
-- Each line: 15–90 characters with clear length variety
+- Each line: 15–100 characters with clear length variety
+- Max one punctuation mark total per line (one of .,;:!?). Apostrophes in contractions are allowed.
+- No ellipses, em/en dashes, or quotes
 
 LENGTH VARIETY (MANDATORY):
 - At least one SHORT line (15-35 chars): punchy, snappy
@@ -472,13 +474,20 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, category:
   const warnings: string[] = [];
   let repairedLines = [...lines];
   
-  // Character limits (critical)
+  // Character limits and punctuation (critical)
   for (const line of lines) {
-    if (line.text.length > 90) {
-      errors.push(`Line too long: "${line.text}" (${line.text.length} chars, max 90)`);
+    // Length check
+    if (line.text.length > 100) {
+      errors.push(`Line too long: "${line.text}" (${line.text.length} chars, max 100)`);
     }
     if (line.text.length < 15) {
       errors.push(`Line too short: "${line.text}" (${line.text.length} chars, min 15)`);
+    }
+    
+    // Punctuation check (max one of .,;:!?)
+    const punctuationMarks = line.text.match(/[.,;:!?]/g) || [];
+    if (punctuationMarks.length > 1) {
+      errors.push(`Too much punctuation: "${line.text}" has ${punctuationMarks.length} marks, max 1`);
     }
   }
   
@@ -562,14 +571,37 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, category:
 
 // Normalize text to remove em dashes and other unwanted characters
 function normalizeText(lines: Array<{lane: string, text: string}>): Array<{lane: string, text: string}> {
-  return lines.map(line => ({
-    ...line,
-    text: line.text
-      .replace(/—/g, ' - ')  // Replace em dash with spaced hyphen
-      .replace(/–/g, ' - ')  // Replace en dash with spaced hyphen
-      .replace(/\s+/g, ' ')  // Clean up multiple spaces
-      .trim()
-  }));
+  return lines.map(line => {
+    let text = line.text
+      .replace(/[""'']/g, '')  // Remove curly quotes
+      .replace(/—/g, ' ')      // Remove em dash
+      .replace(/–/g, ' ')      // Remove en dash
+      .replace(/\.\.\./g, ' ') // Remove ellipses
+      .replace(/\s+/g, ' ')    // Clean up multiple spaces
+      .trim();
+    
+    // Enforce max one punctuation mark from [.,;:!?]
+    const punctuationMarks = text.match(/[.,;:!?]/g) || [];
+    if (punctuationMarks.length > 1) {
+      // Keep only the first occurrence
+      let foundFirst = false;
+      text = text.replace(/[.,;:!?]/g, (match) => {
+        if (!foundFirst) {
+          foundFirst = true;
+          return match;
+        }
+        return '';
+      });
+    }
+    
+    // Ensure length constraint with simple trimming if needed
+    if (text.length > 100) {
+      const lastSpace = text.lastIndexOf(' ', 100);
+      text = lastSpace > 80 ? text.substring(0, lastSpace) : text.substring(0, 100);
+    }
+    
+    return { ...line, text };
+  });
 }
 
 function ensureTagCoverage(lines: Array<{lane: string, text: string}>, tags: string[]): Array<{lane: string, text: string}> {
@@ -654,7 +686,7 @@ function ensureTagCoverage(lines: Array<{lane: string, text: string}>, tags: str
             newText = style();
             
             // Check length and quality
-            if (newText.length <= 90 && newText.length >= 15 && 
+            if (newText.length <= 100 && newText.length >= 15 && 
                 !newText.includes(": ") && // Avoid robotic colons
                 !newText.startsWith("Achievement") &&
                 !newText.startsWith("Plot twist")) {
@@ -669,7 +701,7 @@ function ensureTagCoverage(lines: Array<{lane: string, text: string}>, tags: str
         }
         
         // Fallback: simple natural addition
-        if (!newText || newText.length > 90) {
+        if (!newText || newText.length > 100) {
           if (tags.length === 1) {
             newText = `${originalText.replace(/[.!]$/, '')}, thanks to ${tags[0]}`;
           } else {
@@ -678,7 +710,7 @@ function ensureTagCoverage(lines: Array<{lane: string, text: string}>, tags: str
         }
         
         // Final safety check
-        if (newText.length <= 90 && newText.length >= 15) {
+        if (newText.length <= 100 && newText.length >= 15) {
           result[i].text = newText;
           modifications++;
           console.log(`Modified line ${i + 1}: "${originalText}" → "${newText}"`);
@@ -814,7 +846,7 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     if (attemptNumber > 1 && previousErrors.length > 0) {
       userMessage += `\n\nPREVIOUS ATTEMPT ISSUES: ${previousErrors.join("; ")}
       
-Please fix these issues while maintaining the ${inputs.tone} tone and natural flow.`;
+Please fix these issues while maintaining the ${inputs.tone} tone and natural flow. Remember: Max 100 chars per line, max one punctuation mark total per line.`;
     }
     
     console.log(`LLM attempt ${attemptNumber}/2`);
