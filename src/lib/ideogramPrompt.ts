@@ -110,7 +110,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
     const styles = ['subtle shadow', 'soft glow', 'clean stroke', 'elegant gradient'];
     const textStyle = getRandomElement(styles);
     
-    textParts.push(`Render the following text directly in the image: "${handoff.key_line}". Use ${layout.textPlacement} with ${selectedFont}, ${alignment} aligned, ${textStyle} for maximum contrast and readability.`);
+    textParts.push(`Render the following text directly in the image: "${handoff.key_line}". Style according to ${layout.textPlacement}. Use ${selectedFont} with clear, accurate spelling, ${alignment} aligned, ${textStyle}. Ensure text is large, legible, and fully readable.`);
   }
   
   // 2. SCENE DESCRIPTION: Core subject with tone
@@ -127,10 +127,10 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
   // 4. Cinematic lighting and atmosphere (randomized)
   const lighting = getRandomElement(lightingVariations);
   const angle = getRandomElement(angleVariations);
-  sceneParts.push(`${lighting}, ${angle} with cinematic atmosphere.`);
+  sceneParts.push(`Cinematic lighting and atmosphere with ${lighting}, ${angle}.`);
   
   // 5. Layout instruction for composition
-  sceneParts.push(`${layout.composition}.`);
+  sceneParts.push(`Composition ensures ${layout.composition}.`);
   
   // 6. Tone-driven feeling (randomized)
   const moodOptions = moodEnhancers[handoff.tone.toLowerCase()] || moodEnhancers.default;
@@ -145,8 +145,8 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
   // CRITICAL: Text instructions FIRST, then scene description
   const allParts = [...textParts, ...sceneParts];
   
-  // Static negative prompt for consistent quality
-  const negative_prompt = `no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe`;
+  // Spec v2 negative prompt with misspelling guards
+  const negative_prompt = `no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no misspelled text, no broken letters, no warped words, no random characters`;
   
   return {
     positive_prompt: allParts.join(' '),

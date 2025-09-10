@@ -4313,6 +4313,7 @@ const Index = () => {
 
   // Visual creativity control
   const [visualSpice, setVisualSpice] = useState<'balanced' | 'spicy' | 'wild'>('spicy');
+  const [spellingGuarantee, setSpellingGuarantee] = useState<boolean>(false);
 
   // Visual AI recommendations state
   const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
@@ -5126,9 +5127,18 @@ const Index = () => {
           prompt = visualRecommendations.options[selectedRecommendation].prompt;
         }
         if (!prompt && !barebonesMode && !exactPromptMode) {
-          const prompts = buildIdeogramPrompts(ideogramPayload);
-          prompt = prompts.positive_prompt;
-          setDebugPrompts(prompts);
+          if (spellingGuarantee) {
+            // Image-only mode with text overlay
+            const modifiedPayload = { ...ideogramPayload, key_line: "" };
+            const prompts = buildIdeogramPrompts(modifiedPayload);
+            prompt = prompts.positive_prompt;
+            setDebugPrompts(prompts);
+            console.log('🔤 Spelling Guarantee: Using image-only generation');
+          } else {
+            const prompts = buildIdeogramPrompts(ideogramPayload);
+            prompt = prompts.positive_prompt;
+            setDebugPrompts(prompts);
+          }
         }
       }
 
@@ -5167,8 +5177,9 @@ const Index = () => {
       setLastIdeogramPrompt(prompt);
       setLastIdeogramNegativePrompt(negativePrompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe");
 
-      // Use structured prompts if available, fallback to manual prompts
-      const finalNegativePrompt = negativePrompt.trim() || debugPrompts.negative_prompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe";
+      // Use structured prompts if available, fallback to Spec v2 defaults
+      const specV2NegativePrompt = "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no misspelled text, no broken letters, no warped words, no random characters";
+      const finalNegativePrompt = negativePrompt.trim() || debugPrompts.negative_prompt || specV2NegativePrompt;
       const response = await generateIdeogramImage({
         prompt,
         negative_prompt: finalNegativePrompt,
@@ -6266,6 +6277,18 @@ const Index = () => {
                                       <SelectItem value="wild">Wild</SelectItem>
                                     </SelectContent>
                                   </Select>
+                                  
+                                  <div className="flex items-center gap-2 ml-4">
+                                    <Switch 
+                                      id="spelling-guarantee" 
+                                      checked={spellingGuarantee} 
+                                      onCheckedChange={setSpellingGuarantee}
+                                      className="scale-75"
+                                    />
+                                    <label htmlFor="spelling-guarantee" className="text-xs text-muted-foreground">
+                                      Spelling Guarantee
+                                    </label>
+                                  </div>
                                   <Button variant="outline" size="sm" onClick={handleGenerateSubject} disabled={isGeneratingSubject} className="text-xs">
                                     {isGeneratingSubject ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
                                   </Button>
