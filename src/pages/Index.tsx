@@ -4253,6 +4253,7 @@ const Index = () => {
   const [spellingGuaranteeMode, setSpellingGuaranteeMode] = useState<boolean>(false);
   const [showTextOverlay, setShowTextOverlay] = useState<boolean>(false);
   const [backgroundOnlyImageUrl, setBackgroundOnlyImageUrl] = useState<string | null>(null);
+  const [lastIdeogramPrompt, setLastIdeogramPrompt] = useState<string>("");
   const [finalImageWithText, setFinalImageWithText] = useState<string | null>(null);
   const [textMisspellingDetected, setTextMisspellingDetected] = useState<boolean>(false);
   const [cleanBackgroundMode, setCleanBackgroundMode] = useState<boolean>(true);
@@ -5026,6 +5027,10 @@ const Index = () => {
         style_type: styleForIdeogram
       });
       const modelForIdeogram = 'V_3'; // V_3 model for better quality
+      
+      // Store the final prompt for display
+      setLastIdeogramPrompt(prompt);
+      
       const response = await generateIdeogramImage({
         prompt,
         aspect_ratio: aspectForIdeogram,
@@ -6650,6 +6655,36 @@ const Index = () => {
                   </table>
                 </div>
               </div>
+
+              {/* Ideogram Prompt Display */}
+              {lastIdeogramPrompt && (
+                <div className="mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Ideogram API Prompt</CardTitle>
+                      <CardDescription>The exact prompt string sent to the Ideogram API</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="relative">
+                        <pre className="bg-muted p-4 rounded-lg text-sm font-mono text-wrap whitespace-pre-wrap break-words overflow-x-auto">
+                          {lastIdeogramPrompt}
+                        </pre>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="absolute top-2 right-2"
+                          onClick={() => {
+                            navigator.clipboard.writeText(lastIdeogramPrompt);
+                            sonnerToast.success("Prompt copied to clipboard!");
+                          }}
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
             </div>
           </>}
