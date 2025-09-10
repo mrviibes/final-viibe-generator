@@ -5274,16 +5274,16 @@ const Index = () => {
         {/* Advanced Generation Controls */}
         <div className="mb-8">
           <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-foreground">Generation Settings</h3>
+            <div className="flex items-center justify-between py-4 px-6 bg-background border border-border rounded-lg">
+              <h3 className="text-lg font-semibold text-foreground">Generation Settings</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground flex items-center gap-2"
               >
                 {showAdvanced ? 'Hide Advanced' : 'Show Advanced'}
-                <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-4 w-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
               </Button>
             </div>
             
