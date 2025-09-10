@@ -80,7 +80,7 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
       textLayoutId 
     });
     
-    const systemPrompt = `Generate 4 DISTINCT visual prompts for image generation. Return ONLY valid JSON:
+    const systemPrompt = `Generate 4 COMPLETELY different visual concepts for image generation. Return ONLY valid JSON:
 
 {
   "visualOptions":[
@@ -94,64 +94,61 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
 
 CRITICAL RULES:
 
-1. **Strong Variance Required**
-   - Each option must be a COMPLETELY different visual concept
-   - NO similar subjects (if one uses "cake", others cannot use "cake", "dessert", or "food")
-   - NO rephrasing same idea ("birthday party" vs "celebration" = FORBIDDEN)
-   - Force cognitive diversity across all 4 options
+1. **Maximum Diversity Required**:
+   - Each option must be a TOTALLY different visual concept
+   - NO similar subjects, angles, or styles between options
+   - Think: person vs object vs scene vs abstract concept
+   - Force creative variety - if one is close-up, another is far away
+   - Different moods, different energy levels, different visual approaches
 
-2. **Dynamic Compact Clause Format (6-16 words)**:
-   Each prompt must include ALL of these elements in a compact clause:
-   - ONE dynamic action verb (bursting, shattering, sprinting, lunging, whipping, colliding, floating, spinning, cascading, erupting)
-   - ONE camera/perspective cue (low-angle shot, overhead view, dutch angle, extreme close-up, tracking shot, wide-angle, macro view)
-   - ONE lighting/mood/color accent (rim light, backlit glow, neon cyan, moody teal, golden hour, dramatic shadows, vibrant magenta)
-   - The layout token at the end
-   
-   **Spice Level Behavior**:
-   - balanced → tasteful motion/lighting cues, mild color accents, natural dynamics
-   - spicy → pronounced motion, bold camera angles, strong color accents, energetic action
-   - wild → maximal motion/energy, surreal or symbolic twists (SFW), striking color palettes, dramatic dynamics
+2. **Simple, Clear Descriptions (8-15 words)**:
+   - Write like you're describing it to a friend
+   - Use everyday language, not technical photography terms
+   - Focus on what people will see, not camera settings
+   - Natural descriptions: "person looking surprised" not "low-angle shot of startled subject"
+   - Keep it simple: "bright sunny day" not "golden hour rim lighting"
 
-3. **Layout Tokens** (append exactly one based on textLayoutId):
-   - negativeSpace  → ", clear empty area near largest margin"
-   - memeTopBottom  → ", clear top band, clear bottom band" 
-   - lowerThird     → ", clear lower third"
-   - sideBarLeft    → ", clear left panel"
-   - badgeSticker   → ", badge space top-right"
-   - subtleCaption  → ", clear narrow bottom strip"
+3. **Concept Variety by Option**:
+   - **Option1**: Focus on a person or character (different expression/pose each time)
+   - **Option2**: Focus on objects or things (completely different from Option1)
+   - **Option3**: Focus on a scene or environment (wide view, setting)
+   - **Option4**: Focus on an abstract or creative concept (artistic, unexpected)
 
-4. **Visual Concept Enforcement**:
-   - **Option1**: Direct literal interpretation with dynamic action
-   - **Option2**: Environment/audience/setting perspective with different camera angle
-   - **Option3**: Related but different object/angle with unique lighting  
-   - **Option4**: Abstract/symbolic representation with dramatic visual elements
+4. **Layout Space** (add one based on textLayoutId):
+   - negativeSpace  → ", space for text"
+   - memeTopBottom  → ", space at top and bottom" 
+   - lowerThird     → ", space at bottom"
+   - sideBarLeft    → ", space on left side"
+   - badgeSticker   → ", space in corner"
+   - subtleCaption  → ", space for small text"
 
-5. **Format Requirements**:
-   - NO engine style words (realistic/anime/3D/cinematic/etc)
-   - NO text-related terms (signage/watermark/logo/typography)
-   - Each camera cue and main noun must be different across all 4 options
+5. **Keep It Natural**:
+   - NO technical terms (aperture, ISO, focal length, etc.)
+   - NO confusing photography jargon
+   - Write how humans naturally describe images
+   - Make it easy to understand what the image will look like
 
-6. **Negative Prompt**: Always include "no background text, no signage, no watermarks, no logos, no typography"
+6. **Negative Prompt**: "no text, no words, no letters, no watermarks"
 
-EXAMPLE for birthday + spicy + lowerThird:
+EXAMPLE for birthday + spicy:
 {
   "visualOptions":[
-    {"lane":"option1","prompt":"cake bursting with candles, low-angle shot, golden hour glow, clear lower third"},
-    {"lane":"option2","prompt":"crowd cheering wildly, overhead view, neon party lights, clear lower third"},  
-    {"lane":"option3","prompt":"confetti cascading down, macro close-up, vibrant magenta accent, clear lower third"},
-    {"lane":"option4","prompt":"balloon floating upward, dutch angle, dramatic backlight, clear lower third"}
+    {"lane":"option1","prompt":"person blowing out birthday candles with big smile, space at bottom"},
+    {"lane":"option2","prompt":"colorful balloons floating in bright room, space at bottom"},  
+    {"lane":"option3","prompt":"party decorations scattered on table, space at bottom"},
+    {"lane":"option4","prompt":"abstract celebration with confetti explosion, space at bottom"}
   ],
-  "negativePrompt":"no background text, no signage, no watermarks, no logos, no typography"
+  "negativePrompt":"no text, no words, no letters, no watermarks"
 }`;
 
     const userPrompt = `Category: ${session.category}
 Subcategory: ${session.subcategory}
 Tone: ${tone}
-SpiceLevel: ${spiceLevel}  # one of: balanced|spicy|wild
-TextContent: "${textContent}"
-TextLayoutId: ${textLayoutId}  # one of: negativeSpace|memeTopBottom|lowerThird|sideBarLeft|badgeSticker|subtleCaption
-Tags: ${tags.join(', ')}
-${session.entity ? `Entity: ${session.entity}` : ''}`;
+Energy Level: ${spiceLevel}
+Text Content: "${textContent}"
+Layout: ${textLayoutId}
+Tags: ${tags.join(', ') || 'none'}
+${session.entity ? `Specific Topic: ${session.entity}` : ''}`;
 
     console.log('🎯 Calling GPT directly for visual generation...');
     const result = await openAIService.chatJSON([
