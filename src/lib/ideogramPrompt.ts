@@ -189,7 +189,7 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
   };
 }
 
-export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts {
+export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { injectText?: boolean } = {}): IdeogramPrompts {
   const textParts: string[] = [];
   const sceneParts: string[] = [];
   
@@ -197,7 +197,10 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
   const layout = getLayoutInstruction(handoff);
   
   // 1. TEXT-FIRST: EXPLICIT TEXT RENDERING INSTRUCTION (highest priority)
-  if (handoff.key_line && handoff.key_line.trim()) {
+  // Only inject text instructions if injectText is true (textInsideImage mode)
+  const shouldInjectText = options.injectText !== false; // Default to true for backward compatibility
+  
+  if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
     const alignments = ['left', 'center', 'right'];
@@ -205,7 +208,8 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
     const styles = ['subtle shadow', 'soft glow', 'clean stroke', 'elegant gradient'];
     const textStyle = getRandomElement(styles);
     
-    textParts.push(`Render the following text directly in the image: "${handoff.key_line}". Use ${layout.textPlacement} with ${selectedFont}, ${alignment} aligned, ${textStyle} for maximum contrast and readability.`);
+    // Stronger text directive as discussed
+    textParts.push(`Render the following text clearly in the image: "${handoff.key_line}". The text must be large, ${selectedFont}, ${alignment} aligned, with ${textStyle} for readability. This text is required and cannot be omitted. Use ${layout.textPlacement}.`);
   }
   
   // 2. SCENE DESCRIPTION: Core subject with tone + SUBCATEGORY LOCK
@@ -267,8 +271,10 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
   const promptSanitization = sanitizePrompt(positivePrompt);
   positivePrompt = promptSanitization.cleaned;
   
-  // Enhanced negative prompt with universal safeguards
-  const negativePrompt = "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no misspelled text, no garbled letters, no incorrect spelling, no text artifacts, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects";
+  // Choose negative prompt based on text injection mode
+  const negativePrompt = shouldInjectText 
+    ? "no misspelled text, no garbled letters, no text artifacts, no stray random words, no duplicated captions" // Simplified for text mode
+    : "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe"; // Standard for overlay mode
 
   return {
     positive_prompt: positivePrompt,

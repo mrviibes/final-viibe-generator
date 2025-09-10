@@ -4548,7 +4548,7 @@ const Index = () => {
         ai_text_assist_used: selectedCompletionOption === "ai-assist",
         ai_visual_assist_used: selectedSubjectOption === "ai-assist"
       });
-      const prompts = buildIdeogramPrompts(handoff);
+      const prompts = buildIdeogramPrompts(handoff, { injectText: textInsideImage });
       setDebugPrompts(prompts);
     }
   }, [currentStep, selectedStyle, selectedSubOption, selectedTextStyle, selectedGeneratedOption, stepTwoText, selectedVisualStyle, selectedDimension, customWidth, customHeight, tags, subjectTags, selectedVisualIndex, visualOptions, selectedSubjectOption, subjectDescription, selectedPick, selectedCompletionOption]);
@@ -5326,7 +5326,7 @@ const Index = () => {
           prompt = visualRecommendations.options[selectedRecommendation].prompt;
         }
         if (!prompt && !barebonesMode && !exactPromptMode) {
-          const prompts = buildIdeogramPrompts(ideogramPayload);
+          const prompts = buildIdeogramPrompts(ideogramPayload, { injectText: textInsideImage });
           prompt = prompts.positive_prompt;
           setDebugPrompts(prompts);
         }
