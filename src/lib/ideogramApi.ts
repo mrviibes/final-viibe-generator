@@ -144,7 +144,9 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
   
   const sanitizedRequest = {
     ...request,
-    prompt: promptValidation.cleaned
+    prompt: promptValidation.cleaned,
+    // Use DESIGN style for better text rendering when prompt contains text instructions
+    style_type: request.prompt.includes('render text') || request.prompt.includes('text clearly') ? 'DESIGN' : request.style_type
   };
   
   try {
@@ -240,12 +242,41 @@ export async function generateWithStricterLayout(
   console.log('🎯 Generating with stricter layout token:', stricterLayoutToken);
   
   // Modify the prompt to include stricter layout instructions
-  const modifiedPrompt = `IMPORTANT: Render text prominently with ${stricterLayoutToken} layout. ${request.prompt}`;
+  const modifiedPrompt = `CRITICAL: Large readable text must be rendered clearly in the image with ${stricterLayoutToken} layout. High contrast text required. ${request.prompt}`;
   
   return generateIdeogramImage({
     ...request,
-    prompt: modifiedPrompt
+    prompt: modifiedPrompt,
+    style_type: 'DESIGN' // Force DESIGN style for better text rendering
   });
+}
+
+// Instant retry for failed text rendering
+export async function retryWithTextFallback(
+  request: IdeogramGenerateRequest,
+  originalResult: IdeogramGenerateResponse
+): Promise<{ success: boolean; result?: IdeogramGenerateResponse; shouldFallbackToOverlay: boolean }> {
+  console.log('🔄 Attempting text rendering retry...');
+  
+  try {
+    // First attempt: Stricter text instructions
+    const stricterPrompt = request.prompt.replace(
+      /render text clearly/gi, 
+      'RENDER LARGE BOLD TEXT PROMINENTLY'
+    );
+    
+    const retryResult = await generateIdeogramImage({
+      ...request,
+      prompt: stricterPrompt,
+      style_type: 'DESIGN'
+    });
+    
+    return { success: true, result: retryResult, shouldFallbackToOverlay: false };
+    
+  } catch (error) {
+    console.log('Text retry failed, recommending overlay fallback');
+    return { success: false, shouldFallbackToOverlay: true };
+  }
 }
 
 // Enhanced sanitization for retry attempts

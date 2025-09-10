@@ -152,28 +152,28 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
   // Map layout tokens to specific text rendering instructions
   const layoutMappings = {
     'clear top band': {
-      composition: 'composition ensures clear top band for text overlay',
-      textPlacement: 'meme top style: bold centered text at top with strong outline'
+      composition: 'composition with clear top space for integrated text',
+      textPlacement: 'render text clearly at top of image with bold readable font'
     },
     'clear bottom band': {
-      composition: 'composition ensures clear bottom band for text overlay', 
-      textPlacement: 'meme bottom style: bold centered text at bottom with strong outline'
+      composition: 'composition with clear bottom space for integrated text', 
+      textPlacement: 'render text clearly at bottom of image with bold readable font'
     },
     'clear lower third': {
-      composition: 'composition ensures clear lower third for text overlay',
-      textPlacement: 'lower third banner: elegant overlay text in bottom third'
+      composition: 'composition with clear lower area for integrated text',
+      textPlacement: 'render text clearly in lower third with elegant typography'
     },
     'clear left panel': {
-      composition: 'composition ensures clear left panel for text overlay',
-      textPlacement: 'left panel caption: vertical text placement on left side'
+      composition: 'composition with clear left space for integrated text',
+      textPlacement: 'render text clearly on left side with vertical layout'
     },
     'badge space top-right': {
-      composition: 'composition ensures badge space top-right for text overlay',
-      textPlacement: 'top-right badge: compact text in corner badge style'
+      composition: 'composition with clear top-right space for integrated text',
+      textPlacement: 'render text clearly as badge in top-right corner'
     },
     'clear narrow bottom strip': {
-      composition: 'composition ensures clear narrow bottom strip for text overlay',
-      textPlacement: 'narrow bottom banner: condensed text strip at bottom'
+      composition: 'composition with clear narrow bottom space for integrated text',
+      textPlacement: 'render text clearly in narrow strip at bottom'
     }
   };
   
@@ -184,8 +184,8 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
   }
   
   return {
-    composition: 'composition with ample negative space for text overlay',
-    textPlacement: 'negative space caption'
+    composition: 'composition with clear space for integrated text',
+    textPlacement: 'render text clearly with readable typography'
   };
 }
 
@@ -197,8 +197,8 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const layout = getLayoutInstruction(handoff);
   
   // 1. TEXT-FIRST: EXPLICIT TEXT RENDERING INSTRUCTION (highest priority)
-  // Only inject text instructions if injectText is true (textInsideImage mode)
-  const shouldInjectText = options.injectText !== false; // Default to true for backward compatibility
+  // Only inject text instructions if explicitly requested (textInsideImage mode)
+  const shouldInjectText = options.injectText === true;
   
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
     const fonts = getToneFonts(handoff.tone);
@@ -273,7 +273,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   
   // Choose negative prompt based on text injection mode
   const negativePrompt = shouldInjectText 
-    ? "no misspelled text, no garbled letters, no text artifacts, no stray random words, no duplicated captions" // Simplified for text mode
+    ? "no misspelled text, no garbled letters, no text artifacts, no stray random words, no duplicated captions, no blurry text, no overlapping text" // Enhanced for text mode
     : "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe"; // Standard for overlay mode
 
   return {

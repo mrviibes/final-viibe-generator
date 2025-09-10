@@ -1,19 +1,26 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, AlertCircle, RefreshCw, Layers } from "lucide-react";
 
 interface TextRenderIndicatorProps {
   textInsideImage: boolean;
   hasTextInPrompt: boolean;
   imageUrl?: string;
   className?: string;
+  onRetryAsOverlay?: () => void;
+  onRetryTextRendering?: () => void;
+  isRetrying?: boolean;
 }
 
 export const TextRenderIndicator = ({ 
   textInsideImage, 
   hasTextInPrompt, 
   imageUrl, 
-  className 
+  className,
+  onRetryAsOverlay,
+  onRetryTextRendering,
+  isRetrying = false
 }: TextRenderIndicatorProps) => {
   if (!imageUrl) return null;
 
@@ -30,9 +37,41 @@ export const TextRenderIndicator = ({
               <Badge variant="outline" className="text-amber-600 border-amber-200">
                 AI Attempted
               </Badge>
-              <span className="text-xs text-muted-foreground">
-                (If text is missing, try regenerating or use overlay mode)
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  (If text is missing or unclear)
+                </span>
+                {onRetryTextRendering && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onRetryTextRendering}
+                    disabled={isRetrying}
+                    className="h-6 px-2 text-xs"
+                  >
+                    {isRetrying ? (
+                      <RefreshCw className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        Retry
+                      </>
+                    )}
+                  </Button>
+                )}
+                {onRetryAsOverlay && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={onRetryAsOverlay}
+                    disabled={isRetrying}
+                    className="h-6 px-2 text-xs"
+                  >
+                    <Layers className="h-3 w-3 mr-1" />
+                    Use Overlay
+                  </Button>
+                )}
+              </div>
             </>
           ) : (
             <>

@@ -20,7 +20,7 @@ import { TextLayoutSelector } from "@/components/TextLayoutSelector";
 import { useNavigate } from "react-router-dom";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
 import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
-import { generateIdeogramImage, generateWithStricterLayout, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
+import { generateIdeogramImage, generateWithStricterLayout, retryWithTextFallback, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { buildIdeogramPrompts, buildStricterLayoutPrompts, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { TextRenderIndicator } from "@/components/TextRenderIndicator";
 import { RetryWithLayoutDialog } from "@/components/RetryWithLayoutDialog";
@@ -4472,6 +4472,7 @@ const Index = () => {
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageGenerationError, setImageGenerationError] = useState<string>("");
+  const [isRetryingText, setIsRetryingText] = useState<boolean>(false);
   const [showProxySettings, setShowProxySettings] = useState(false);
   const [proxySettings, setLocalProxySettings] = useState(() => getProxySettings());
   const [proxyApiKey, setProxyApiKey] = useState('');
@@ -5263,6 +5264,80 @@ const Index = () => {
       description: "Your Ideogram API key has been saved securely."
     });
   };
+  // Text retry functions for improved text rendering
+  const handleRetryTextRendering = async () => {
+    if (!generatedImageUrl) return;
+    
+    setIsRetryingText(true);
+    try {
+      // Get the current generation parameters
+      const finalText = selectedGeneratedOption || stepTwoText || "";
+      const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+      const subcategory = (() => {
+        if (selectedStyle === 'celebrations' && selectedSubOption) {
+          const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+          return celebOption?.name || selectedSubOption;
+        } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+          const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+          return popOption?.name || selectedSubOption;
+        }
+        return selectedSubOption || 'general';
+      })();
+      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+      const tone = selectedTextStyleObj?.name || 'Humorous';
+      const visualStyle = selectedVisualStyle || "realistic";
+      const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Landscape";
+      
+      const ideogramPayload = buildIdeogramHandoff({
+        visual_style: visualStyle,
+        subcategory: subcategory,
+        tone: tone.toLowerCase(),
+        final_line: finalText,
+        tags_csv: tags.join(', ') || "None",
+        chosen_visual: selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : subjectDescription,
+        category: categoryName,
+        aspect_ratio: aspectRatio,
+        text_tags_csv: tags.join(', ') || "None",
+        visual_tags_csv: subjectTags.join(', ') || "None",
+        ai_text_assist_used: selectedCompletionOption === "ai-assist",
+        ai_visual_assist_used: selectedSubjectOption === "ai-assist"
+      });
+      
+      const prompts = buildIdeogramPrompts(ideogramPayload, { injectText: true });
+      const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
+      const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
+      
+      const retryResult = await retryWithTextFallback({
+        prompt: prompts.positive_prompt,
+        negative_prompt: prompts.negative_prompt,
+        aspect_ratio: aspectForIdeogram,
+        model: 'V_3',
+        magic_prompt_option: enableMagicPrompt ? 'AUTO' : 'OFF',
+        style_type: styleForIdeogram
+      }, { data: [{ url: generatedImageUrl, prompt: '', resolution: '', is_image_safe: true }], created: '' });
+      
+      if (retryResult.success && retryResult.result) {
+        setGeneratedImageUrl(retryResult.result.data[0].url);
+        sonnerToast.success("Text rendering improved!");
+      } else if (retryResult.shouldFallbackToOverlay) {
+        sonnerToast.info("Switching to overlay mode for better text");
+        handleRetryAsOverlay();
+      }
+      
+    } catch (error) {
+      console.error('Text retry failed:', error);
+      sonnerToast.error('Text retry failed. Try overlay mode instead.');
+    } finally {
+      setIsRetryingText(false);
+    }
+  };
+
+  const handleRetryAsOverlay = () => {
+    setTextInsideImage(false);
+    sonnerToast.info("Switched to overlay mode. Regenerating...");
+    setTimeout(() => handleGenerateImage(), 100);
+  };
+
   const handleGenerateImage = async () => {
     const apiKey = getIdeogramApiKey();
     if (!apiKey) {
@@ -6872,6 +6947,17 @@ const Index = () => {
                  </div>
 
                   {/* Text Render Indicator */}
+                  {generatedImageUrl && (
+                    <TextRenderIndicator
+                      textInsideImage={textInsideImage}
+                      hasTextInPrompt={!!(selectedGeneratedOption || stepTwoText)}
+                      imageUrl={generatedImageUrl}
+                      className="mb-4"
+                      onRetryTextRendering={textInsideImage ? handleRetryTextRendering : undefined}
+                      onRetryAsOverlay={textInsideImage ? handleRetryAsOverlay : undefined}
+                      isRetrying={isRetryingText}
+                    />
+                  )}
                 
                  {/* Text Misspelling Detection */}
                  {generatedImageUrl && textMisspellingDetected && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
