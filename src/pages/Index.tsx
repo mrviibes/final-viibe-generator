@@ -20,8 +20,12 @@ import { TextLayoutSelector } from "@/components/TextLayoutSelector";
 import { useNavigate } from "react-router-dom";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
 import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
-import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
-import { buildIdeogramPrompts, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
+import { generateIdeogramImage, generateWithStricterLayout, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
+import { buildIdeogramPrompts, buildStricterLayoutPrompts, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
+import { TextRenderModeToggle } from "@/components/TextRenderModeToggle";
+import { TextRenderIndicator } from "@/components/TextRenderIndicator";
+import { RetryWithLayoutDialog } from "@/components/RetryWithLayoutDialog";
+import { SafetyValidationDialog } from "@/components/SafetyValidationDialog";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
@@ -4295,6 +4299,15 @@ const Index = () => {
   const [proxySettings, setLocalProxySettings] = useState(() => getProxySettings());
   const [proxyApiKey, setProxyApiKey] = useState('');
 
+  // Text rendering mode states
+  const [textInsideImage, setTextInsideImage] = useState<boolean>(true);
+  const [showRetryLayoutDialog, setShowRetryLayoutDialog] = useState<boolean>(false);
+  const [showSafetyValidationDialog, setShowSafetyValidationDialog] = useState<boolean>(false);
+  const [safetyModifications, setSafetyModifications] = useState<{
+    prompt_modified: boolean;
+    tags_modified: string[];
+  } | null>(null);
+  
   // Spelling guarantee mode states - default to ON when text is present
   const [spellingGuaranteeMode, setSpellingGuaranteeMode] = useState<boolean>(false);
   const [showTextOverlay, setShowTextOverlay] = useState<boolean>(false);
@@ -5301,7 +5314,7 @@ const Index = () => {
             <div className="max-w-md mx-auto mb-12">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search styles..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                <Input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Search categories..." className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
               </div>
             </div>
 
@@ -6071,11 +6084,6 @@ const Index = () => {
                           {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
                         </Button>
                       </div>
-                      {textGenerationModel && <div className="mb-3">
-                          <Badge variant={textGenerationModel === 'fallback' ? 'secondary' : 'default'} className="text-xs">
-                            {textGenerationModel === 'fallback' ? 'Fallback' : textGenerationModel}
-                          </Badge>
-                        </div>}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
@@ -6187,9 +6195,6 @@ const Index = () => {
 
                 {/* Subject options selection */}
                 {!selectedSubjectOption ? <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="text-center mb-8">
-                      <p className="text-xl text-muted-foreground">Choose your option for your subject (what's the focus of image)</p>
-                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
                       {subjectOptions.map(option => <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => {
                 setSelectedSubjectOption(option.id);
@@ -6218,34 +6223,34 @@ const Index = () => {
                           <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for visual generation</h2>
                         </div>
 
-                        <div className="max-w-lg mx-auto space-y-6">
-                          {/* Tag Input */}
-                          <div className="space-y-4">
-                             <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
-                             
-                             {/* Magic Prompt Enhancement Toggle */}
-                             <div className="flex items-center justify-center gap-3 py-4">
-                               <label className="text-sm font-medium text-foreground">Visually Enhance Your Viibe</label>
-                               <Switch checked={enableMagicPrompt} onCheckedChange={setEnableMagicPrompt} />
+                         <div className="max-w-lg mx-auto space-y-6">
+                           {/* Tag Input */}
+                           <div className="space-y-4">
+                              <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                              
+                              {/* Display tags - moved above toggle */}
+                              {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
+                                 {subjectTags.map((tag, index) => <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
+                                     {tag}
+                                     <X className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeSubjectTag(tag)} />
+                                   </Badge>)}
+                               </div>}
+                              
+                              {/* Magic Prompt Enhancement Toggle */}
+                              <div className="flex items-center justify-center gap-3 py-4">
+                                <label className="text-sm font-medium text-foreground">Visually Enhance Your Viibe</label>
+                                <Switch checked={enableMagicPrompt} onCheckedChange={setEnableMagicPrompt} />
+                              </div>
+                              
+                              {/* Generate Button - Below the toggle */}
+                              <div className="flex justify-center">
+                               <Button variant="brand" size="lg" className="px-8 py-3 text-base font-medium rounded-lg" onClick={handleGenerateSubject} disabled={isGeneratingSubject}>
+                                 {isGeneratingSubject ? <>
+                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                     Generating...
+                                   </> : "Generate Visual Now"}
+                               </Button>
                              </div>
-                             
-                             {/* Generate Button - Below the input */}
-                             <div className="flex justify-center">
-                              <Button variant="brand" size="lg" className="px-8 py-3 text-base font-medium rounded-lg" onClick={handleGenerateSubject} disabled={isGeneratingSubject}>
-                                {isGeneratingSubject ? <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Generating...
-                                  </> : "Generate Visual Now"}
-                              </Button>
-                            </div>
-                            
-                            {/* Display tags */}
-                            {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
-                                {subjectTags.map((tag, index) => <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
-                                    {tag}
-                                    <X className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeSubjectTag(tag)} />
-                                  </Badge>)}
-                              </div>}
                           </div>
                         </div>
                       </div>}
@@ -6533,7 +6538,26 @@ const Index = () => {
                           </Button>}
                       </div>
                     </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
-                </div>
+                 </div>
+
+                 {/* Text Rendering Mode Toggle */}
+                 {(selectedGeneratedOption || stepTwoText) && !generatedImageUrl && (
+                   <TextRenderModeToggle 
+                     textInsideImage={textInsideImage}
+                     onToggleChange={setTextInsideImage}
+                     className="mb-4"
+                   />
+                 )}
+
+                 {/* Text Render Indicator */}
+                 {generatedImageUrl && (selectedGeneratedOption || stepTwoText) && (
+                   <TextRenderIndicator 
+                     textInsideImage={textInsideImage}
+                     hasTextInPrompt={!!(selectedGeneratedOption || stepTwoText)}
+                     imageUrl={generatedImageUrl}
+                     className="mb-4"
+                   />
+                 )}
                 
                  {/* Text Misspelling Detection */}
                  {generatedImageUrl && textMisspellingDetected && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
@@ -6822,6 +6846,38 @@ const Index = () => {
 
         {/* CORS Retry Dialog */}
         <CorsRetryDialog open={showCorsRetryDialog} onOpenChange={setShowCorsRetryDialog} onRetry={handleGenerateImage} />
+
+        {/* Retry with Layout Dialog */}
+        <RetryWithLayoutDialog 
+          open={showRetryLayoutDialog}
+          onOpenChange={setShowRetryLayoutDialog}
+          onRetryWithStricterLayout={() => {
+            const stricterLayout = "clear top band";
+            // Regenerate with stricter layout
+            handleGenerateImage();
+          }}
+          onSwitchToOverlay={() => {
+            setTextInsideImage(false);
+            handleGenerateImage();
+          }}
+          currentLayout={selectedTextLayout || "negativeSpace"}
+        />
+
+        {/* Safety Validation Dialog */}
+        <SafetyValidationDialog 
+          open={showSafetyValidationDialog}
+          onOpenChange={setShowSafetyValidationDialog}
+          onProceed={() => {
+            setShowSafetyValidationDialog(false);
+            handleGenerateImage();
+          }}
+          modifications={{
+            prompt_modified: true,
+            tags_modified: []
+          }}
+          originalPrompt=""
+          sanitizedPrompt=""
+        />
 
       </div>
     </div>;
