@@ -292,10 +292,11 @@ function validateLayoutAwareVisuals(options: Array<{
     }
   });
 
+  const tokenSuffix = requiredTokens.join(', ');
+
   // If no valid options, generate smarter context-aware fallbacks
   if (validOptions.length === 0) {
     console.log('🔄 Generating context-aware fallback prompts...');
-    const tokenSuffix = requiredTokens.join(', ');
     
     // Generate contextual fallbacks based on current session if available
     const contextualFallbacks = (() => {
@@ -352,6 +353,89 @@ function validateLayoutAwareVisuals(options: Array<{
     validOptions.push(...contextualFallbacks);
     reasons.push('Auto-generated context-aware fallback prompts due to validation failures');
   }
+
+  // Top-up to 4 options if we have 1-3 valid options
+  if (validOptions.length > 0 && validOptions.length < 4) {
+    console.log(`🔧 Topping up from ${validOptions.length} to 4 options with smart fallbacks...`);
+    
+    // Determine which lanes are missing
+    const existingLanes = new Set(validOptions.map(opt => opt.lane));
+    const allLanes = ["option1", "option2", "option3", "option4"];
+    const missingLanes = allLanes.filter(lane => !existingLanes.has(lane));
+    
+    // Normalize existing prompts for deduplication
+    function normalizeForDedup(prompt: string): string {
+      return prompt.toLowerCase()
+        .replace(/clear [^,]+/g, '')
+        .replace(/space [^,]+/g, '')
+        .replace(/badge [^,]+/g, '')
+        .replace(/[,.\-_]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+    
+    const existingNormalized = validOptions.map(opt => normalizeForDedup(opt.prompt));
+    
+    // Lane-specific fallback templates
+    const laneTemplates = {
+      option1: [
+        "person looking surprised and confused",
+        "individual making exaggerated facial expression", 
+        "someone pointing at something off-camera",
+        "person holding hands up in disbelief"
+      ],
+      option2: [
+        "group of people laughing together",
+        "friends high-fiving each other",
+        "audience clapping enthusiastically", 
+        "family members smiling at camera"
+      ],
+      option3: [
+        "everyday object placed on wooden table",
+        "related items scattered on surface",
+        "empty room with single piece of furniture",
+        "worn equipment sitting in corner"
+      ],
+      option4: [
+        "abstract geometric shapes in bright colors",
+        "symbolic metaphor representing achievement",
+        "artistic representation with flowing lines",
+        "conceptual imagery suggesting progress"
+      ]
+    };
+    
+    // Generate fallbacks for missing lanes
+    missingLanes.forEach(lane => {
+      const templates = laneTemplates[lane as keyof typeof laneTemplates] || laneTemplates.option4;
+      
+      // Try each template until we find one that doesn't duplicate existing content
+      for (const template of templates) {
+        const candidatePrompt = `${template}, ${tokenSuffix}`;
+        const normalizedCandidate = normalizeForDedup(candidatePrompt);
+        
+        // Check if this candidate is too similar to existing prompts
+        const isSimilar = existingNormalized.some(existing => {
+          const commonWords = existing.split(' ').filter(word => 
+            normalizedCandidate.includes(word) && word.length > 2
+          );
+          return commonWords.length >= 2; // Similar if 2+ common meaningful words
+        });
+        
+        if (!isSimilar) {
+          validOptions.push({
+            lane,
+            prompt: candidatePrompt
+          });
+          existingNormalized.push(normalizedCandidate);
+          console.log(`✅ Added ${lane} fallback: ${template}`);
+          break;
+        }
+      }
+    });
+    
+    reasons.push(`Topped up to 4 options by generating ${missingLanes.length} smart fallbacks for lanes: ${missingLanes.join(', ')}`);
+  }
+
   return {
     validOptions,
     reasons
