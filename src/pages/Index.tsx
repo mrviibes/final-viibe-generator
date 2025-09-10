@@ -4137,29 +4137,29 @@ const completionOptions = [{
   description: "Skip text content for now"
 }];
 const visualStyleOptions = [{
+  id: "auto",
+  name: "Auto",
+  description: "Smart default style"
+}, {
+  id: "general",
+  name: "General",
+  description: "Standard clean look"
+}, {
   id: "realistic",
   name: "Realistic",
-  description: "True-to-life photo style"
+  description: "True-to-life photo"
 }, {
-  id: "caricature",
-  name: "Caricature",
-  description: "Exaggerated comedic features"
+  id: "design",
+  name: "Design",
+  description: "Flat graphic style"
+}, {
+  id: "3d",
+  name: "3D Render",
+  description: "CGI Pixar-like model"
 }, {
   id: "anime",
   name: "Anime",
-  description: "Japanese cartoon aesthetic"
-}, {
-  id: "3d-animated",
-  name: "3D Animated",
-  description: "Pixar-style CGI look"
-}, {
-  id: "illustrated",
-  name: "Illustrated",
-  description: "Hand-drawn artistic design"
-}, {
-  id: "pop-art",
-  name: "Pop Art",
-  description: "Bold retro comic style"
+  description: "Japanese cartoon style"
 }];
 const subjectOptions = [{
   id: "ai-assist",
@@ -4438,7 +4438,18 @@ const Index = () => {
 
     // Visual Style selection
     if (selectedVisualStyle) {
-      const visualStyle = visualStyleOptions.find(s => s.id === selectedVisualStyle);
+      // Normalize old style IDs to new ones for backward compatibility
+      const normalizedVisualStyle = (() => {
+        const styleMap: Record<string, string> = {
+          'caricature': 'anime',
+          '3d-animated': '3d',
+          'illustrated': 'design',
+          'pop-art': 'design'
+        };
+        return styleMap[selectedVisualStyle] || selectedVisualStyle;
+      })();
+      
+      const visualStyle = visualStyleOptions.find(s => s.id === normalizedVisualStyle);
       selections.push({
         title: `Visual Style: ${visualStyle?.name}`,
         subtitle: visualStyle?.description,

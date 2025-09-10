@@ -16,8 +16,8 @@ export function buildIdeogramPrompt(handoff: IdeogramHandoff, options: {
   
   const parts: string[] = [];
   
-  // Add basic visual elements if present
-  if (handoff.visual_style) {
+  // Add basic visual elements if present (but skip "auto" style)
+  if (handoff.visual_style && handoff.visual_style.toLowerCase() !== 'auto') {
     parts.push(`Style: ${handoff.visual_style}`);
   }
   
@@ -78,11 +78,18 @@ export function getAspectRatioForIdeogram(aspectRatio: string): 'ASPECT_10_16' |
 
 export function getStyleTypeForIdeogram(visualStyle: string): 'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME' {
   const styleMap: Record<string, 'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME'> = {
+    'auto': 'AUTO',
+    'general': 'GENERAL', 
     'realistic': 'REALISTIC',
-    'cartoon': 'ANIME',
     'design': 'DESIGN',
     '3d': 'RENDER_3D',
-    'general': 'GENERAL'
+    'anime': 'ANIME',
+    // Legacy mappings for backward compatibility
+    'cartoon': 'ANIME',
+    '3d-animated': 'RENDER_3D',
+    'illustrated': 'DESIGN',
+    'pop-art': 'DESIGN',
+    'caricature': 'ANIME'
   };
   
   return styleMap[visualStyle?.toLowerCase()] || 'AUTO';

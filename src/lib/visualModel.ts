@@ -239,12 +239,20 @@ IMPORTANT: Your response must be valid JSON that begins with { and ends with }. 
 
 function getStyleKeywords(visualStyle?: string): string {
   const styles: Record<string, string> = {
+    'auto': 'optimal style selection',
+    'general': 'clean, standard appearance',
     'realistic': 'photographic, detailed, natural lighting',
+    'design': 'flat graphics, clean illustration, modern design',
+    '3d': 'clean 3D rendering, smooth surfaces, CGI quality',
+    'anime': 'Japanese animation style, cartoon aesthetic',
+    // Legacy mappings
     'illustrated': 'clean illustration, vibrant colors', 
     '3d-animated': 'clean 3D animation, smooth surfaces',
-    'minimalist': 'simple, clean, minimal design'
+    'minimalist': 'simple, clean, minimal design',
+    'caricature': 'exaggerated cartoon style',
+    'pop-art': 'bold graphic design, vibrant colors'
   };
-  return styles[visualStyle || '3d-animated'] || 'modern visual style';
+  return styles[visualStyle || 'general'] || 'modern visual style';
 }
 
   const userPrompt = `Context: ${category} > ${subcategory}, ${tone} tone, ${visualStyle || '3d-animated'} style
