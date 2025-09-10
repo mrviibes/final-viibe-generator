@@ -5029,20 +5029,16 @@ const Index = () => {
       });
       const modelForIdeogram = 'V_3'; // V_3 model for better quality
       
-      // Create negative prompt
-      const negativePrompt = "no background text, no signage, no watermarks, no logos, no typography, no words, no letters, no readable text";
-      
-      // Store the final prompt and negative prompt for display
+      // Store the final prompt for display
       setLastIdeogramPrompt(prompt);
-      setLastIdeogramNegativePrompt(negativePrompt);
+      setLastIdeogramNegativePrompt("None (disabled)");
       
       const response = await generateIdeogramImage({
         prompt,
         aspect_ratio: aspectForIdeogram,
         model: modelForIdeogram,
         magic_prompt_option: 'AUTO',
-        style_type: styleForIdeogram,
-        negative_prompt: negativePrompt
+        style_type: styleForIdeogram
       });
       if (response.data && response.data.length > 0) {
         setGeneratedImageUrl(response.data[0].url);
