@@ -4,6 +4,10 @@ import { normalizeTypography } from './textUtils';
 export interface IdeogramPrompts {
   positive_prompt: string;
   negative_prompt: string;
+  safety_modifications?: {
+    prompt_modified: boolean;
+    tags_modified: string[];
+  };
 }
 
 // Font mappings for each tone
@@ -42,30 +46,95 @@ function getRandomElement<T>(array: T[]): T {
   return array[Math.floor(Math.random() * array.length)];
 }
 
-// Sanitize visual tags for safety compliance
-function sanitizeVisualTag(tag: string): string | null {
+// Enhanced content sanitization for safety compliance
+export function sanitizeVisualTag(tag: string): { cleaned: string | null; wasModified: boolean } {
   const safetyReplacements: Record<string, string> = {
+    // Explicit terms
     'fake tits': 'elegant figure',
     'big tits': 'confident person',
     'hot busty woman': 'confident woman',
+    'busty woman': 'confident woman',
     'cumshot': 'artistic splash',
     'busty': 'confident',
     'tits': 'figure',
+    'boobs': 'figure',
     'sexy': 'elegant',
-    'nude': 'artistic figure'
+    'nude': 'artistic figure',
+    'naked': 'artistic figure',
+    'porn': 'artistic content',
+    'xxx': 'artistic',
+    'erotic': 'romantic',
+    'sexual': 'intimate',
+    'nsfw': 'artistic',
+    'adult': 'mature',
+    // Violence/inappropriate
+    'kill': 'dramatic',
+    'death': 'dramatic scene',
+    'blood': 'red elements',
+    'violence': 'action',
+    'gun': 'prop',
+    'weapon': 'prop',
+    // Drugs/substances
+    'drug': 'substance',
+    'cocaine': 'powder',
+    'weed': 'plant',
+    'alcohol': 'beverage'
   };
 
-  const lowerTag = tag.toLowerCase();
+  const lowerTag = tag.toLowerCase().trim();
+  let wasModified = false;
   
   // Check if tag contains inappropriate content
   for (const [inappropriate, replacement] of Object.entries(safetyReplacements)) {
     if (lowerTag.includes(inappropriate)) {
-      return replacement;
+      console.log(`Content safety: Replaced "${inappropriate}" with "${replacement}" in visual tag`);
+      return { cleaned: replacement, wasModified: true };
+    }
+  }
+  
+  // Filter out completely inappropriate tags
+  const blockedPatterns = [
+    /\b(fuck|shit|damn|hell|ass|bitch)\b/i,
+    /\b(hitler|nazi|terrorist)\b/i,
+    /\b(suicide|murder|rape)\b/i
+  ];
+  
+  for (const pattern of blockedPatterns) {
+    if (pattern.test(lowerTag)) {
+      console.log(`Content safety: Filtered out blocked tag: "${tag}"`);
+      return { cleaned: null, wasModified: true };
     }
   }
   
   // Return original tag if it's safe
-  return tag;
+  return { cleaned: tag, wasModified: false };
+}
+
+// Sanitize entire prompt for safety
+export function sanitizePrompt(prompt: string): { cleaned: string; wasModified: boolean } {
+  let cleaned = prompt;
+  let wasModified = false;
+  
+  // Replace problematic phrases in the full prompt
+  const promptReplacements: Record<string, string> = {
+    'fake tits': 'elegant figure',
+    'big tits': 'confident appearance',
+    'hot busty': 'confident',
+    'cumshot on': 'artistic splash on',
+    'nude woman': 'artistic figure',
+    'sexy woman': 'elegant woman'
+  };
+  
+  for (const [inappropriate, replacement] of Object.entries(promptReplacements)) {
+    const regex = new RegExp(inappropriate, 'gi');
+    if (regex.test(cleaned)) {
+      cleaned = cleaned.replace(regex, replacement);
+      wasModified = true;
+      console.log(`Content safety: Replaced "${inappropriate}" with "${replacement}" in prompt`);
+    }
+  }
+  
+  return { cleaned, wasModified };
 }
 
 function getToneFonts(tone: string): string[] {
@@ -164,12 +233,21 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
   sceneParts.push(`Emphasize ${mood}.`);
   
   // 7. Visual tags if provided (filtered for safety)
+  let modifiedTags: string[] = [];
   if (handoff.visual_tags_csv && handoff.visual_tags_csv !== "None") {
-    const safeVisualElements = handoff.visual_tags_csv
+    const tagResults = handoff.visual_tags_csv
       .split(',')
       .map(tag => sanitizeVisualTag(tag.trim()))
-      .filter(tag => tag !== null)
+      .filter(result => result.cleaned !== null);
+      
+    const safeVisualElements = tagResults
+      .map(result => result.cleaned)
       .join(', ');
+    
+    // Track modifications for user feedback
+    modifiedTags = tagResults
+      .filter(result => result.wasModified)
+      .map(result => result.cleaned || '');
     
     if (safeVisualElements) {
       sceneParts.push(`Visual elements: ${safeVisualElements}.`);
@@ -178,13 +256,22 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
   
   // CRITICAL: Text instructions FIRST, then scene description
   const allParts = [...textParts, ...sceneParts];
+  let positivePrompt = allParts.join(' ');
   
-  // Static negative prompt for consistent quality
-  const negative_prompt = `no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe`;
+  // Sanitize the final prompt
+  const promptSanitization = sanitizePrompt(positivePrompt);
+  positivePrompt = promptSanitization.cleaned;
   
+  // Enhanced negative prompt with misspelling guards
+  const negativePrompt = "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no misspelled text, no garbled letters, no incorrect spelling, no text artifacts";
+
   return {
-    positive_prompt: allParts.join(' '),
-    negative_prompt
+    positive_prompt: positivePrompt,
+    negative_prompt: negativePrompt,
+    safety_modifications: {
+      prompt_modified: promptSanitization.wasModified,
+      tags_modified: modifiedTags
+    }
   };
 }
 

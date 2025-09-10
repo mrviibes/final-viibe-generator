@@ -150,6 +150,17 @@ serve(async (req) => {
         console.error('Response status:', ideogramResponse.status);
         console.error('Response headers:', Object.fromEntries(ideogramResponse.headers.entries()));
         
+        // Log moderation events for analysis
+        if (ideogramResponse.status === 422) {
+          console.log('MODERATION_EVENT:', {
+            timestamp: new Date().toISOString(),
+            prompt: finalPrompt,
+            user_id: userId,
+            guest_id: guestId,
+            error: errorText
+          });
+        }
+        
         // Try fallback to square format if it's a resolution issue
         if (ideogramResponse.status === 400 && resolution !== '1024x1024') {
           console.log('Retrying with square format due to resolution error...');
