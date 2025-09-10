@@ -103,20 +103,26 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
   const vibes = getVibeKeywords(category, subcategory);
   
   const banPhrase = banList.length > 0 ? `\n\nSTRICTLY AVOID these overused props: ${banList.join(", ")}. Find unexpected angles instead.` : "";
-  const anchorPhrase = anchors.length > 0 ? `\n\nTOPICALITY REQUIREMENT: At least 3 of 4 lines must include one of these fresh angles: ${anchors.join(", ")}. Avoid banned props but ground lines in the actual situation.` : "";
-  const vibePhrase = vibes.length > 0 ? `\n\nVIBE GROUNDING: At least 2 of 4 lines should reference "${subcategory}" context using: ${vibes.join(", ")} (or similar natural phrasing).` : "";
+  const anchorPhrase = anchors.length > 0 ? `\n\nTOPICALITY REQUIREMENT: At least 2 of 4 lines must include one of these fresh angles: ${anchors.join(", ")}. Ground lines in the actual situation.` : "";
+  const vibePhrase = vibes.length > 0 ? `\n\nVIBE GROUNDING: At least 2 of 4 lines should reference "${subcategory}" context naturally.` : "";
   
   const comedyInstructions = tone === "Savage" || tone === "Humorous" || tone === "Playful" ? 
-    `\n\nCOMEDY VOICE: Write like a tight stand-up comedian crafting one-liners. Use at least 3 different comedy devices:
-- Observational humor ("when you realize...")  
+    `\n\nCOMEDY VOICE: Write like you're texting a friend who gets your humor. Use different comedy styles:
+- Observational ("when you realize...")  
 - Contrast/irony ("supposed to be X but...")
-- Exaggeration ("47 notifications for...")
-- Timing/punchlines ("...and that's when I knew...")
-- Unexpected comparisons ("like a budget meeting with...")
-- Specific details that hit universal truths
-Make each line feel like it could get a laugh from a comedy club audience.` : "";
+- Exaggeration ("47 notifications...")
+- Timing/punchlines ("...and then I knew...")
+- Unexpected comparisons ("like trying to...")
+- Specific relatable details` : "";
   
-  return `You are a professional comedy writer generating tight one-liners for memes and image overlays. Generate exactly 4 killer lines.
+  const tagGuidance = tags.length > 0 ? `\n\nTAG INTEGRATION (HUMAN-LIKE):
+- Tags: [${tags.join(", ")}] must appear in at least 3 lines
+- NEVER use "Hero Jesse:" or "Jesse, hero" formats - too robotic!
+- Natural placements: "Jesse, our group's hero" / "when Jesse saves the day" / "hero vibes from Jesse"
+- Mix tag positions: beginning, middle, end of sentences
+- Make tags feel like they belong in the conversation` : "";
+  
+  return `You are writing casual, conversational one-liners that sound like real people talking. Generate exactly 4 lines that feel human, not AI-generated.
 
 Output ONLY valid JSON in this exact format:
 {
@@ -128,55 +134,61 @@ Output ONLY valid JSON in this exact format:
   ]
 }
 
-CONTENT RULES:
-- Each line: 15–90 characters
-- LENGTH RULES: Aim for obvious variety; include at least one short (≤40) and one long (≥75) line per batch
-- All 4 lines completely different
-- Simple punctuation: commas, periods, colons only
-- NO em-dashes (—) or double dashes (--)
+HUMAN-LIKE RULES:
+- Write like texting a friend, not writing marketing copy
+- Use contractions: "can't," "won't," "it's," "we're"
+- Vary sentence structures (some short, some flowing)
+- Natural pauses and rhythms
+- Each line: 15–90 characters with clear length variety
+
+LENGTH VARIETY (MANDATORY):
+- At least one SHORT line (15-35 chars): punchy, snappy
+- At least one LONG line (70-90 chars): flowing, detailed
+- Mix it up so every batch feels different
 
 TONE: ${tone}
-- ${tone === "Savage" || tone === "Humorous" || tone === "Playful" ? "Sharp, witty, roast-style comedy that hits hard" : "Sincere, heartfelt, uplifting"}${comedyInstructions}
+- ${tone === "Savage" || tone === "Humorous" || tone === "Playful" ? "Witty and sharp but conversational, like roasting a friend" : "Warm and genuine, like talking to someone you care about"}${comedyInstructions}
 
-CATEGORY FOCUS:
-- Context: ${category} > ${subcategory}
-- Subcategory drives the situation${banPhrase}${anchorPhrase}${vibePhrase}
+CATEGORY: ${category} > ${subcategory}${banPhrase}${anchorPhrase}${vibePhrase}${tagGuidance}
 
-${tags.length > 0 ? `\nTAG ENFORCEMENT (CRITICAL):
-- Tags provided: [${tags.join(", ")}]
-- AT LEAST 3 of 4 lines MUST include ALL tags literally (not synonyms)
-- Weave tags naturally into different positions in each line` : ""}
-
-QUALITY STANDARDS:
-- Ban tired phrases: ${AVOID_WORDS.slice(0, 10).join(", ")}, etc.
-- Conversational, punchy, quotable
-- 4 distinct comedic approaches with different setups and punchlines`;
+AVOID ROBOTIC PATTERNS:
+- No "Achievement unlocked:" style formats
+- No "Plot twist:" beginnings (overused)
+- No lists or bullet points in text
+- No formal announcements or declarations
+- Write how people actually talk, not how bots write`;
 }
 
 function buildUserMessage(inputs: any): string {
   const { category, subcategory, tone, tags = [] } = inputs;
-  const randomToken = `RND-${Math.floor(Math.random() * 10000)}`;
   
-  // Generate randomized length targets for variety
-  const lengthTargets = Array.from({length: 4}, () => 
-    Math.floor(Math.random() * 76) + 15 // 15-90 range
-  ).sort((a, b) => a - b); // Show spread clearly
+  // Enhanced randomization for novelty
+  const randomToken = `RND-${Math.floor(Math.random() * 10000)}`;
+  const deviceRoulette = Math.floor(Math.random() * 8) + 1; // 1-8 for variety
+  
+  // Enforce real length variety with guaranteed short and long
+  const shortTarget = Math.floor(Math.random() * 21) + 15; // 15-35 (guaranteed short)
+  const longTarget = Math.floor(Math.random() * 21) + 70;  // 70-90 (guaranteed long)
+  const midTarget1 = Math.floor(Math.random() * 35) + 35;  // 35-69 (middle range)
+  const midTarget2 = Math.floor(Math.random() * 35) + 35;  // 35-69 (middle range)
+  
+  const lengthTargets = [shortTarget, midTarget1, midTarget2, longTarget].sort((a, b) => a - b);
   
   let message = `Category: ${category}
 Subcategory: ${subcategory}
 Tone: ${tone}
-Randomness Token: ${randomToken}
-LENGTH TARGETS (approx): [${lengthTargets.join(', ')}]`;
+Novelty Token: ${randomToken}
+Device Setting: ${deviceRoulette}
+LENGTH TARGETS (enforce variety): [${lengthTargets.join(', ')}]`;
 
-  // Include tags if provided with stronger enforcement
+  // Include tags with natural integration guidance
   if (tags.length > 0) {
     message += `\nTAGS: ${tags.join(", ")}`;
-  } else {
-    message += `\nTAGS: (none)`;
+    message += `\n\nTAG INTEGRATION: Make tags feel natural - use them like you would in actual conversation. Avoid robotic formats like "Tag: text" or "Tag, text description."`;
   }
   
-  // Add anti-cliché instruction and JSON reminder
-  message += `\n\nAVOID PREDICTABLE REFERENCES: Don't default to obvious props or decorations. Find unexpected angles and surprising observations instead.`;
+  // Add conversation-style reminder
+  message += `\n\nWRITE CONVERSATIONALLY: Sound like a real person texting, not an AI generating content. Use contractions, natural flow, and varied sentence lengths.`;
   message += `\n\nRespond with JSON only.`;
   
   return message;
@@ -210,8 +222,9 @@ function checkTopicalAnchors(lines: Array<{lane: string, text: string}>, categor
     return anchors.some(anchor => lowerText.includes(anchor.toLowerCase()));
   });
   
-  if (anchoredLines.length < 3) {
-    return `Topical grounding insufficient: ${anchoredLines.length}/4 lines include topical anchors. Need at least 3 from: ${anchors.join(", ")}`;
+  // Relaxed requirement: need at least 2 lines (was 3)
+  if (anchoredLines.length < 2) {
+    return `Topical grounding insufficient: ${anchoredLines.length}/4 lines include topical anchors. Need at least 2 from: ${anchors.join(", ")}`;
   }
   
   return null;
@@ -254,13 +267,13 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, category:
     }
   }
   
-  // Length spread check (warning, not critical)
+  // Length variety check (enforce real variety)
   const lengths = lines.map(line => line.text.length);
-  const hasShort = lengths.some(len => len <= 40);
-  const hasLong = lengths.some(len => len >= 75);
+  const hasShort = lengths.some(len => len <= 35); // Stricter short requirement
+  const hasLong = lengths.some(len => len >= 70);  // Stricter long requirement
   
   if (!hasShort || !hasLong) {
-    warnings.push("Missing length variety - prefer at least one line ≤40 and one ≥75 characters");
+    errors.push("Missing required length variety - MUST have at least one line ≤35 and one ≥70 characters");
   }
   
   // Banned words check (critical)
@@ -287,15 +300,15 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, category:
     errors.push(`Banned phrases found: ${bannedFound.join("; ")}`);
   }
   
-  // Tag coverage (critical if tags provided)
+  // Tag coverage (critical if tags provided) - but allow more flexibility
   if (tags.length > 0) {
     const taggedLines = lines.filter(line => {
       const lowerText = line.text.toLowerCase();
       return tags.every(tag => lowerText.includes(tag.toLowerCase()));
     });
     
-    if (taggedLines.length < 3) {
-      errors.push(`Tag coverage insufficient: ${taggedLines.length}/4 lines include all tags [${tags.join(", ")}]. Need at least 3.`);
+    if (taggedLines.length < 2) { // Relaxed from 3 to 2 for more natural results
+      errors.push(`Tag coverage insufficient: ${taggedLines.length}/4 lines include all tags [${tags.join(", ")}]. Need at least 2.`);
     }
   }
   
@@ -341,9 +354,8 @@ function ensureTagCoverage(lines: Array<{lane: string, text: string}>, tags: str
   
   console.log(`Tag coverage before adjustment: ${taggedCount}/4 lines include all tags [${tags.join(", ")}]`);
   
-  // If we need more tagged lines, modify lines to include tags
+  // If we need more tagged lines, modify lines naturally
   if (taggedCount < 3) {
-    const tagStr = tags.join(" ");
     let modifications = 0;
     
     for (let i = 0; i < result.length && taggedCount + modifications < 3; i++) {
@@ -354,27 +366,86 @@ function ensureTagCoverage(lines: Array<{lane: string, text: string}>, tags: str
         const originalText = result[i].text;
         let newText = "";
         
-        // Try different insertion strategies
-        if (originalText.length + tagStr.length + 2 <= 90) {
-          // Prefix style
-          newText = `${tagStr}: ${originalText.toLowerCase()}`;
-        } else if (originalText.length + tagStr.length + 7 <= 90) {
-          // Middle insertion
-          const words = originalText.split(' ');
-          const midPoint = Math.floor(words.length / 2);
-          words.splice(midPoint, 0, `with ${tagStr}`);
-          newText = words.join(' ');
-        } else {
-          // Suffix style - truncate if needed
-          const maxOriginalLength = 90 - tagStr.length - 3;
-          const truncated = originalText.length > maxOriginalLength 
-            ? originalText.slice(0, maxOriginalLength).trim() 
-            : originalText;
-          newText = `${truncated} — ${tagStr}`;
+        // Natural integration strategies - make it conversational
+        const insertionStyles = [
+          // Beginning conversational
+          () => {
+            if (tags.length === 1) {
+              return `${tags[0]}, ${originalText.toLowerCase()}`;
+            } else if (tags.length === 2) {
+              return `${tags[0]} and ${tags[1]} ${originalText.toLowerCase()}`;
+            }
+            return `${tags.join(" and ")} ${originalText.toLowerCase()}`;
+          },
+          
+          // Middle natural insertion
+          () => {
+            const words = originalText.split(' ');
+            const midPoint = Math.floor(words.length / 2);
+            if (tags.length === 1) {
+              words.splice(midPoint, 0, tags[0]);
+            } else if (tags.length === 2) {
+              words.splice(midPoint, 0, `${tags[0]} and ${tags[1]}`);
+            } else {
+              words.splice(midPoint, 0, tags.join(" "));
+            }
+            return words.join(' ');
+          },
+          
+          // End conversational
+          () => {
+            if (tags.length === 1) {
+              return `${originalText.replace(/[.!]$/, '')} with ${tags[0]}`;
+            } else if (tags.length === 2) {
+              return `${originalText.replace(/[.!]$/, '')}, ${tags[0]} and ${tags[1]}`;
+            }
+            return `${originalText.replace(/[.!]$/, '')} (${tags.join(" ")})`;
+          },
+          
+          // Possessive/relationship style
+          () => {
+            if (tags.length === 2) {
+              return originalText.replace(/\b(the|our|my)\b/i, `${tags[0]} and ${tags[1]}'s`);
+            } else if (tags.length === 1) {
+              return originalText.replace(/\b(the|our|my)\b/i, `${tags[0]}'s`);
+            }
+            return originalText;
+          }
+        ];
+        
+        // Try insertion styles in random order
+        const shuffledStyles = insertionStyles.sort(() => Math.random() - 0.5);
+        
+        for (const style of shuffledStyles) {
+          try {
+            newText = style();
+            
+            // Check length and quality
+            if (newText.length <= 90 && newText.length >= 15 && 
+                !newText.includes(": ") && // Avoid robotic colons
+                !newText.startsWith("Achievement") &&
+                !newText.startsWith("Plot twist")) {
+              
+              // Capitalize properly
+              newText = newText.charAt(0).toUpperCase() + newText.slice(1);
+              break;
+            }
+          } catch (e) {
+            continue;
+          }
         }
         
-        // Ensure we don't exceed character limit
-        if (newText.length <= 90) {
+        // Fallback: simple natural addition
+        if (!newText || newText.length > 90) {
+          if (tags.length === 1) {
+            newText = `${originalText.replace(/[.!]$/, '')}, thanks to ${tags[0]}`;
+          } else {
+            newText = `${originalText.replace(/[.!]$/, '')} ft. ${tags.join(" & ")}`;
+          }
+        }
+        
+        // Final safety check
+        if (newText.length <= 90 && newText.length >= 15) {
           result[i].text = newText;
           modifications++;
           console.log(`Modified line ${i + 1}: "${originalText}" → "${newText}"`);
