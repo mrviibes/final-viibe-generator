@@ -4991,13 +4991,9 @@ const Index = () => {
       // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
       let prompt = directPrompt.trim();
       
-      // Sanitize direct prompt to remove text-generating terms
-      if (prompt) {
-        prompt = prompt.replace(/(text|caption|words|letters|typography|signage|watermark|logo)/gi, 'design');
-        // If we have finalText to overlay, ensure background-only generation
-        if (finalText && finalText.trim()) {
-          prompt += ", no text, no words, no letters, background only";
-        }
+      // Add final text to prompt if present
+      if (prompt && finalText && finalText.trim()) {
+        prompt += `, Include the phrase: "${finalText}"`;
       }
       
       if (!prompt && selectedRecommendation !== null && visualRecommendations) {

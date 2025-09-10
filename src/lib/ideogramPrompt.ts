@@ -28,9 +28,9 @@ export function buildIdeogramPrompt(handoff: IdeogramHandoff, cleanBackground: b
   const background = handoff.rec_background || handoff.chosen_visual || "appropriate background";
   parts.push(`Background: ${background}`);
   
-  // Always append "no text" when finalText is present to ensure background-only
+  // Include the final text in the prompt if present
   if (handoff.key_line && handoff.key_line.trim()) {
-    parts.push("no text, no words, no letters");
+    parts.push(`Include the phrase: "${handoff.key_line}"`);
   }
   
   return parts.join('. ');
