@@ -7184,29 +7184,6 @@ const Index = () => {
                 </div>
               </div>
 
-              {/* Debug Prompts Preview */}
-              {(debugPrompts.positive_prompt || lastIdeogramPrompt) && <div className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Generated Prompts</CardTitle>
-                      <CardDescription>Preview of positive and negative prompts for Ideogram generation</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Positive Prompt:</label>
-                        <pre className="bg-muted p-4 rounded-lg text-sm font-mono text-wrap whitespace-pre-wrap break-words overflow-x-auto mt-1">
-                          {debugPrompts.positive_prompt || lastIdeogramPrompt || "Complete setup to see prompt..."}
-                        </pre>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Negative Prompt:</label>
-                        <pre className="bg-muted p-4 rounded-lg text-sm font-mono text-wrap whitespace-pre-wrap break-words overflow-x-auto mt-1">
-                          {debugPrompts.negative_prompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe"}
-                        </pre>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>}
 
             </div>
           </>}

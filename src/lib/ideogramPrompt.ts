@@ -267,6 +267,15 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const allParts = [...textParts, ...sceneParts];
   let positivePrompt = allParts.join(' ');
   
+  // Add overlay-mode text avoidance directive when not injecting text
+  if (!shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
+    const layoutArea = layout.textPlacement.includes('bottom') ? 'bottom area' : 
+                      layout.textPlacement.includes('top') ? 'top area' :
+                      layout.textPlacement.includes('left') ? 'left area' : 
+                      'designated text area';
+    positivePrompt += ` Do not render any text, letters, numbers, or captions in the image. Reserve the ${layoutArea} as clear space for an overlay caption added later.`;
+  }
+  
   // Sanitize the final prompt
   const promptSanitization = sanitizePrompt(positivePrompt);
   positivePrompt = promptSanitization.cleaned;
@@ -274,7 +283,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   // Choose negative prompt based on text injection mode  
   const negativePrompt = shouldInjectText 
     ? "no duplicated words, no repeated phrases, no second caption, no alternate caption, no overlapping text, no misspelled text, no garbled letters, no mirrored or warped characters" // Enhanced for text mode
-    : "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe"; // Standard for overlay mode
+    : "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no embedded text, no letters, no words, no signage, no watermarks"; // Enhanced for overlay mode
 
   return {
     positive_prompt: positivePrompt,
