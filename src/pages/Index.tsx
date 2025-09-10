@@ -5985,7 +5985,7 @@ const Index = () => {
                 const tagDisplay = tags.length > 0 ? `, tags: ${tags.join(", ")}` : " (no tags added)";
                 selections.push({
                   title: "Text options generated",
-                  subtitle: `70 characters max${tagDisplay}`,
+                  subtitle: `90 characters max${tagDisplay}`,
                   onChangeSelection: () => {
                     setGeneratedOptions([]);
                     setSelectedGeneratedOption(null);
@@ -6116,15 +6116,15 @@ const Index = () => {
                       {/* Custom Text Input */}
                       <div className="space-y-3">
                         <Textarea value={stepTwoText} onChange={e => {
-                  if (e.target.value.length <= 70) {
+                  if (e.target.value.length <= 90) {
                     setStepTwoText(e.target.value);
                   }
-                }} placeholder="Enter your custom text (70 characters max)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 min-h-[120px] text-base font-medium rounded-lg resize-none" />
+                }} placeholder="Enter your custom text (90 characters max)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 min-h-[120px] text-base font-medium rounded-lg resize-none" />
                         
                         {/* Character Counter */}
                         <div className="text-center">
-                          <span className={`text-sm ${stepTwoText.length >= 60 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                            {stepTwoText.length}/70 characters
+                          <span className={`text-sm ${stepTwoText.length >= 85 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                            {stepTwoText.length}/90 characters
                           </span>
                         </div>
                       </div>

@@ -14,7 +14,7 @@ STRICT RULES:
 }
 
 2. CONTENT RULES:
-- Each line must be ≤ 70 characters
+- Each line must be ≤ 90 characters
 - All 4 lines must be completely different
 - Use simple punctuation: commas, periods, colons
 - NO em-dashes (—) or double dashes (--)
@@ -22,7 +22,7 @@ STRICT RULES:
 
 3. CATEGORY/SUBCATEGORY:
 - Subcategory drives context (Birthday > Celebration)
-- Each line must include relevant anchors (cake, candles, balloons for birthday)
+- Focus on unexpected angles instead of obvious props
 
 4. TONE HANDLING:
 - Savage/Humorous/Playful → funny, roast-style, witty
@@ -74,8 +74,8 @@ function sanitizeAndValidate(text: string): TextGenOutput | null {
         return null;
       }
       
-      // Hard character limit of 70
-      if (line.text.length > 70) {
+      // Hard character limit of 90
+      if (line.text.length > 90) {
         return null;
       }
     }

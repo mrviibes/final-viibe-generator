@@ -37,6 +37,11 @@ ${getClicheBanList(category, subcategory)}
 • Find unexpected angles instead of surface-level observations
 • Make people think "I never thought of it that way"
 
+LENGTH RULES:
+• Each line: 15-90 characters (strict maximum 90)
+• Aim for obvious length variety in each batch
+• Include at least one short line (≤40 chars) and one long line (≥75 chars)
+
 CORE WRITING RULES:
 • Write like a real person talking - natural, conversational, human
 • Each line gets ONE comma OR colon maximum - never both, never multiple commas
@@ -292,14 +297,20 @@ function buildUserMessage(inputs: any): string {
   const { category, subcategory, tone, tags = [] } = inputs;
   const randomToken = `RND-${Math.floor(Math.random() * 10000)}`;
   
+  // Generate randomized length targets for variety
+  const lengthTargets = Array.from({length: 4}, () => 
+    Math.floor(Math.random() * 76) + 15 // 15-90 range
+  ).sort((a, b) => a - b); // Show spread clearly
+  
   let message = `Category: ${category}
 Subcategory: ${subcategory}
 Tone: ${tone}
-Randomness Token: ${randomToken}`;
+Randomness Token: ${randomToken}
+LENGTH TARGETS (approx): [${lengthTargets.join(', ')}]`;
 
-  // Include tags if provided
+  // Include tags if provided with stronger enforcement
   if (tags.length > 0) {
-    message += `\nTAGS: ${tags.join(", ")} (include naturally in at least 3 of 4 lines)`;
+    message += `\nTAGS: ${tags.join(", ")} (include naturally in at least 3 of 4 lines - STRICTLY ENFORCED)`;
   } else {
     message += `\nTAGS: (none)`;
   }
@@ -370,16 +381,28 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       };
     });
     
-    // Enhanced length validation
+    // Enhanced length validation with 90-char max and spread requirements
+    const lineLengths = processedLines.map(line => line.text.length);
+    const shortLines = lineLengths.filter(len => len <= 40);
+    const longLines = lineLengths.filter(len => len >= 75);
+    
     processedLines.forEach((line, index) => {
       const lineLength = line.text.length;
       
-      if (lineLength < 10) {
-        errors.push(`Option ${index + 1}: Too short (${lineLength} chars) - minimum 10 characters`);
-      } else if (lineLength > 75) {
-        errors.push(`Option ${index + 1}: Too long (${lineLength} chars) - maximum 75 characters`);
+      if (lineLength < 15) {
+        errors.push(`Option ${index + 1}: Too short (${lineLength} chars) - minimum 15 characters`);
+      } else if (lineLength > 90) {
+        errors.push(`Option ${index + 1}: Too long (${lineLength} chars) - maximum 90 characters`);
       }
     });
+    
+    // Check for length spread requirement
+    if (shortLines.length === 0) {
+      errors.push("Missing short line - need at least one line ≤40 characters for variety");
+    }
+    if (longLines.length === 0) {
+      errors.push("Missing long line - need at least one line ≥75 characters for variety");
+    }
     
     // Check for completely empty or placeholder text
     processedLines.forEach((line, index) => {
@@ -430,15 +453,15 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       }
     }
     
-    // Tag handling - try to have tags in most lines if provided
+    // Stronger tag coverage enforcement - require 3/4 lines with all tags
     if (tags.length > 0) { 
-      const hasAnyTag = (text: string, tags: string[]) =>
-        tags.some(tag => text.toLowerCase().includes(tag.toLowerCase()));
+      const hasAllTags = (text: string, tags: string[]) =>
+        tags.every(tag => text.toLowerCase().includes(tag.toLowerCase()));
       
-      const linesWithTags = processedLines.filter(line => hasAnyTag(line.text, tags));
+      const linesWithAllTags = processedLines.filter(line => hasAllTags(line.text, tags));
       
-      if (linesWithTags.length < 2) {
-        errors.push(`Tag suggestion: Consider including tags [${tags.join(', ')}] in more lines`);
+      if (linesWithAllTags.length < 3) {
+        errors.push(`CRITICAL: Tag coverage insufficient - only ${linesWithAllTags.length}/4 lines include all tags [${tags.join(', ')}]. Need at least 3/4 lines with ALL tags.`);
       }
     }
     
@@ -447,7 +470,11 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       err.includes("Empty or placeholder") || 
       err.includes("Invalid JSON") ||
       err.includes("Duplicate content") ||
-      err.includes("Contains cliché phrase")
+      err.includes("Contains cliché phrase") ||
+      err.includes("CRITICAL: Tag coverage") ||
+      err.includes("Too long") ||
+      err.includes("Missing short line") ||
+      err.includes("Missing long line")
     );
     
     if (criticalErrors.length === 0) {
