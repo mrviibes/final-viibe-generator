@@ -256,6 +256,14 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       }
     });
     
+    // Strict punctuation rule: max one pause per line (comma OR colon)
+    processedLines.forEach((line, index) => {
+      const pauseCount = (line.text.match(/[,:]/g) || []).length;
+      if (pauseCount > 1) {
+        errors.push(`Option ${index + 1}: Too many pauses (${pauseCount}) - max 1 comma OR colon per line`);
+      }
+    });
+    
     // Avoid worst offender words
     processedLines.forEach((line, index) => {
       const lowerText = line.text.toLowerCase();
