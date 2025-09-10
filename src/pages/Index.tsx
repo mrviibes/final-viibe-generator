@@ -6442,7 +6442,7 @@ const Index = () => {
                 {/* Show AI Assist form when selected and no options generated yet */}
                 {selectedCompletionOption === "ai-assist" && generatedOptions.length === 0 && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
-                      <p className="text-xl text-muted-foreground">Add relevant tags for text generation</p>
+                      <p className="text-xl text-muted-foreground">Add tags</p>
                     </div>
 
                     <div className="max-w-md mx-auto space-y-6">
@@ -6450,7 +6450,7 @@ const Index = () => {
                       <div className="space-y-3">
                         <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                         <p className="text-xs text-muted-foreground text-center">
-                          Add steer tags (e.g., 'group chat', 'thermostat war', 'travel delay') for sharper jokes
+                          Tags you add will appear in your text.
                         </p>
                         
                         {/* Display Tags */}
