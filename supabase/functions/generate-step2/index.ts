@@ -447,6 +447,7 @@ function enforceOccasionThrottle(rawLines: any[], inputs: any): any[] | null {
     }
     
     return line;
+  });
 }
 
 // Enhanced generation with feedback-driven retries and raw output preservation
