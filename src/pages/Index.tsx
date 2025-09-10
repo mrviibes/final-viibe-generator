@@ -6199,15 +6199,12 @@ const Index = () => {
                              
                              {/* Magic Prompt Enhancement Toggle */}
                              <div className="flex items-center justify-center gap-3 py-4">
-                               <label className="text-sm font-medium text-foreground">Magic Prompt Enhancement</label>
+                               <label className="text-sm font-medium text-foreground">Visually Enhance Your Viibe</label>
                                <Switch
                                  checked={enableMagicPrompt}
                                  onCheckedChange={setEnableMagicPrompt}
                                />
                              </div>
-                             <p className="text-xs text-muted-foreground text-center -mt-2 mb-4">
-                               Let Ideogram AI enhance your prompt for better results (may differ from website behavior)
-                             </p>
                              
                              {/* Generate Button - Below the input */}
                              <div className="flex justify-center">
