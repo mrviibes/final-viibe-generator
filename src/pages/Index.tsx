@@ -23,6 +23,7 @@ import { createSession, generateTextOptions, generateVisualOptions, type Session
 import { generateIdeogramImage, generateWithStricterLayout, retryWithTextFallback, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { buildIdeogramPrompts, buildStricterLayoutPrompts, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { TextRenderIndicator } from "@/components/TextRenderIndicator";
+import { TextRenderModeToggle } from "@/components/TextRenderModeToggle";
 import { RetryWithLayoutDialog } from "@/components/RetryWithLayoutDialog";
 import { SafetyValidationDialog } from "@/components/SafetyValidationDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -4658,6 +4659,16 @@ const Index = () => {
     }
   }, [currentStep, autoStartImageGen, isGeneratingImage, generatedImageUrl, barebonesMode, directPrompt]);
 
+  // Set textInsideImage to true by default when there's text and we reach step 4
+  useEffect(() => {
+    if (currentStep === 4 && !textInsideImage) {
+      const finalText = selectedGeneratedOption || stepTwoText || "";
+      if (finalText.trim()) {
+        setTextInsideImage(true);
+      }
+    }
+  }, [currentStep, selectedGeneratedOption, stepTwoText]);
+
   // Visual AI recommendations state
   const [isTestingProxy, setIsTestingProxy] = useState(false);
   const navigate = useNavigate();
@@ -6945,6 +6956,57 @@ const Index = () => {
                       </div>
                     </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
                  </div>
+
+                 {/* Text Rendering Mode Toggle */}
+                 <TextRenderModeToggle 
+                   textInsideImage={textInsideImage}
+                   onToggleChange={(enabled) => {
+                     setTextInsideImage(enabled);
+                     // Regenerate prompts when toggle changes
+                     const finalText = selectedGeneratedOption || stepTwoText || "";
+                     if (finalText.trim() && selectedStyle && selectedSubOption && selectedTextStyle) {
+                       setTimeout(() => {
+                         const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+                         const subcategory = (() => {
+                           if (selectedStyle === 'celebrations' && selectedSubOption) {
+                             const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                             return celebOption?.name || selectedSubOption;
+                           } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                             const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                             return popOption?.name || selectedSubOption;
+                           }
+                           return selectedSubOption || "";
+                         })();
+                         
+                         const visualStyle = selectedVisualStyle || "realistic";
+                         const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Landscape";
+                         const textTagsStr = tags.join(', ') || "None";
+                         const visualTagsStr = subjectTags.join(', ') || "None";
+                         const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : selectedSubjectOption === "design-myself" && subjectDescription ? subjectDescription : "";
+                         const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
+                         
+                         const handoff = buildIdeogramHandoff({
+                           category: categoryName,
+                           subcategory: subcategory,
+                           subcategory_secondary: subcategorySecondary,
+                           tone: selectedTextStyle,
+                           final_line: finalText,
+                           tags_csv: [textTagsStr, visualTagsStr].filter(tag => tag !== "None").join(', '),
+                           chosen_visual: chosenVisual,
+                           visual_style: visualStyle,
+                           aspect_ratio: aspectRatio,
+                           text_tags_csv: textTagsStr,
+                           visual_tags_csv: visualTagsStr,
+                           ai_text_assist_used: selectedCompletionOption === "ai-assist",
+                           ai_visual_assist_used: selectedSubjectOption === "ai-assist"
+                         });
+                         const prompts = buildIdeogramPrompts(handoff, { injectText: enabled });
+                         setDebugPrompts(prompts);
+                       }, 50);
+                     }
+                   }}
+                   className="mb-4"
+                 />
                 
                  {/* Text Misspelling Detection */}
                  {generatedImageUrl && textMisspellingDetected && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
@@ -7165,6 +7227,12 @@ const Index = () => {
                        <tr>
                          <td className="p-3 text-sm">AI Visual Assist</td>
                          <td className="p-3 text-sm">{selectedSubjectOption === "ai-assist" ? "Yes" : "No"}</td>
+                       </tr>
+                       <tr>
+                         <td className="p-3 text-sm">Positive Prompt</td>
+                         <td className="p-3 text-sm font-mono text-xs whitespace-normal break-words">
+                           {debugPrompts.positive_prompt || "No prompt generated yet"}
+                         </td>
                        </tr>
                        <tr>
                          <td className="p-3 text-sm">Negative Prompt</td>
