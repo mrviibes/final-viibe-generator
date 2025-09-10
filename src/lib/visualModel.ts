@@ -31,10 +31,20 @@ const VISUAL_OPTIONS_COUNT = 4;
 function autoEnrichInputs(inputs: VisualInputs): VisualInputs {
   const enriched = { ...inputs };
   
+  // Detect group chat context
+  const hasGroupChatContext = inputs.finalLine?.toLowerCase().includes('group chat') || 
+                            inputs.tags.some(tag => tag.toLowerCase().includes('group')) ||
+                            inputs.tags.some(tag => tag.toLowerCase().includes('chat'));
+  
   // Auto-extract nouns from finalLine if provided
   if (inputs.finalLine && inputs.tags.length < 5) {
     const extractedNouns = extractNounsFromText(inputs.finalLine);
     enriched.tags = [...inputs.tags, ...extractedNouns].slice(0, 8); // Max 8 tags
+  }
+  
+  // Add group chat enrichment
+  if (hasGroupChatContext && !enriched.tags.some(tag => tag.toLowerCase().includes('group chat'))) {
+    enriched.tags = ['group chat', 'chat bubbles', 'phone screen', ...enriched.tags].slice(0, 8);
   }
   
   // Auto-seed category-specific tags if not provided
@@ -62,7 +72,7 @@ function extractNounsFromText(text: string): string[] {
 
 function getCategorySpecificTags(category: string, subcategory: string): string[] {
   const celebrationMap: Record<string, string[]> = {
-    'birthday': ['cake', 'candles', 'balloons'],
+    'birthday': ['cake', 'candles', 'balloons', 'group chat', 'friends'],
     'christmas-day': ['tree', 'gifts', 'ornaments'],
     'halloween': ['pumpkin', 'costume', 'spooky'],
     'wedding': ['rings', 'flowers', 'celebration'],
@@ -260,6 +270,9 @@ function getStyleKeywords(visualStyle?: string): string {
 Tags: ${tags.join(', ')}
 ${finalLine ? `Text: "${finalLine}"` : ''}
 
+${tags.some(tag => tag.toLowerCase().includes('group chat')) || finalLine?.toLowerCase().includes('group chat') ? 
+  'IMPORTANT: Include at least one option showing a group chat/messaging interface with birthday celebration theme.' : ''}
+
 Generate 4 compact visual concepts. Each prompt: 60-80 words with [TAGS: ${tags.join(', ')}] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: busy center] [ASPECTS: ${dimensions || 'flexible'}] [TEXT_HINT: dark text]
 
 Return pure JSON only.`;
@@ -371,6 +384,37 @@ Return pure JSON only.`;
 
     // Ensure we have exactly 4 options, no more
     validOptions = validOptions.slice(0, 4);
+
+    // Check if we need a group chat + birthday option
+    const hasGroupChatContext = enrichedInputs.finalLine?.toLowerCase().includes('group chat') || 
+                              enrichedInputs.tags.some(tag => tag.toLowerCase().includes('group')) ||
+                              enrichedInputs.tags.some(tag => tag.toLowerCase().includes('chat'));
+    const isBirthday = enrichedInputs.subcategory === 'birthday';
+    
+    if (hasGroupChatContext && isBirthday) {
+      const hasGroupChatOption = validOptions.some(opt => 
+        opt.prompt.toLowerCase().includes('group chat') || 
+        opt.prompt.toLowerCase().includes('chat bubble') ||
+        opt.subject.toLowerCase().includes('group chat')
+      );
+      
+      if (!hasGroupChatOption) {
+        // Replace the 'object' or 'tone-twist' slot with group chat + birthday option
+        const replaceIndex = validOptions.findIndex(opt => opt.slot === 'object') !== -1 ? 
+          validOptions.findIndex(opt => opt.slot === 'object') : 
+          validOptions.findIndex(opt => opt.slot === 'tone-twist');
+        
+        if (replaceIndex !== -1) {
+          validOptions[replaceIndex] = {
+            slot: "group-chat-birthday",
+            subject: "Friends celebrating in group chat conversation",
+            background: "Phone screen interface with birthday chat bubbles and party emojis",
+            prompt: `Birthday celebration happening in group chat conversation, phone screen showing multiple chat bubbles with party emojis, cake icons, and birthday wishes, friends celebrating together digitally, ${tone} mood with vibrant colors [TAGS: ${tags.join(', ')}, group chat, birthday, chat bubbles] [TEXT_SAFE_ZONE: center 60x35] [CONTRAST_PLAN: auto] [NEGATIVE_PROMPT: busy patterns in center, harsh shadows] [ASPECTS: ${dimensions || '1:1'}] [TEXT_HINT: dark text]`
+          };
+          console.log('🎉 Injected group chat + birthday option');
+        }
+      }
+    }
 
     return {
       options: validOptions,
