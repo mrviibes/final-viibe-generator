@@ -22,7 +22,6 @@ import { buildIdeogramHandoff } from "@/lib/ideogram";
 import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
 import { generateIdeogramImage, generateWithStricterLayout, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { buildIdeogramPrompts, buildStricterLayoutPrompts, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
-import { TextRenderModeToggle } from "@/components/TextRenderModeToggle";
 import { TextRenderIndicator } from "@/components/TextRenderIndicator";
 import { RetryWithLayoutDialog } from "@/components/RetryWithLayoutDialog";
 import { SafetyValidationDialog } from "@/components/SafetyValidationDialog";
@@ -6732,16 +6731,7 @@ const Index = () => {
                     </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
                  </div>
 
-                 {/* Text Rendering Mode Toggle */}
-                 {(selectedGeneratedOption || stepTwoText) && !generatedImageUrl && (
-                   <TextRenderModeToggle 
-                     textInsideImage={textInsideImage}
-                     onToggleChange={setTextInsideImage}
-                     className="mb-4"
-                   />
-                 )}
-
-                  {/* Text Render Indicator - REMOVED */}
+                  {/* Text Render Indicator */}
                 
                  {/* Text Misspelling Detection */}
                  {generatedImageUrl && textMisspellingDetected && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
