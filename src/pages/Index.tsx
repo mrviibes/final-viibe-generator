@@ -6945,19 +6945,6 @@ const Index = () => {
                       </div>
                     </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
                  </div>
-
-                  {/* Text Render Indicator */}
-                  {generatedImageUrl && (
-                    <TextRenderIndicator
-                      textInsideImage={textInsideImage}
-                      hasTextInPrompt={!!(selectedGeneratedOption || stepTwoText)}
-                      imageUrl={generatedImageUrl}
-                      className="mb-4"
-                      onRetryTextRendering={textInsideImage ? handleRetryTextRendering : undefined}
-                      onRetryAsOverlay={textInsideImage ? handleRetryAsOverlay : undefined}
-                      isRetrying={isRetryingText}
-                    />
-                  )}
                 
                  {/* Text Misspelling Detection */}
                  {generatedImageUrl && textMisspellingDetected && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
@@ -7175,10 +7162,16 @@ const Index = () => {
                         <td className="p-3 text-sm">AI Text Assist</td>
                         <td className="p-3 text-sm">{selectedCompletionOption === "ai-assist" ? "Yes" : "No"}</td>
                       </tr>
-                      <tr>
-                        <td className="p-3 text-sm">AI Visual Assist</td>
-                        <td className="p-3 text-sm">{selectedSubjectOption === "ai-assist" ? "Yes" : "No"}</td>
-                      </tr>
+                       <tr>
+                         <td className="p-3 text-sm">AI Visual Assist</td>
+                         <td className="p-3 text-sm">{selectedSubjectOption === "ai-assist" ? "Yes" : "No"}</td>
+                       </tr>
+                       <tr>
+                         <td className="p-3 text-sm">Negative Prompt</td>
+                         <td className="p-3 text-sm font-mono text-xs whitespace-normal break-words">
+                           {debugPrompts.negative_prompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe"}
+                         </td>
+                       </tr>
                     </tbody>
                   </table>
                 </div>
