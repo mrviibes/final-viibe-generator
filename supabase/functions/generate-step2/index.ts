@@ -138,8 +138,8 @@ function generateSavageFallback(inputs: any): any {
     styleTemplates = [
       tagString ? `${tagString} expired.` : "That expired.", // Deadpan (20-35)
       tagString ? `Why does ${tagString} feel like a job interview?` : "Why does this feel like a job interview?", // Observational (36-50)
-      tagString ? `${tagString} costs more than your last three relationships.` : "This costs more than your last three relationships.", // Extended roast (51-65)
-      tagString ? `${tagString} applied for witness protection after seeing you.` : "Everything here applied for witness protection after seeing you." // Absurdist (66-70)
+      tagString ? `${tagString} has the energy of a broken elevator.` : "This has the energy of a broken elevator.", // Extended roast (51-65)
+      tagString ? `${tagString} violated several laws of social physics.` : "This situation violated several laws of social physics." // Absurdist (66-70)
     ];
   } else if (tone.toLowerCase().includes("sentimental") || tone.toLowerCase().includes("romantic")) {
     styleTemplates = [
@@ -397,18 +397,21 @@ function enforceOccasionThrottle(rawLines: any[], inputs: any): any[] | null {
     'celebrate', 'wish', 'special day', 'big day'
   ];
   
-  // Style-aware replacement templates that avoid occasion words
+  // Style-aware replacement templates - COMPLETELY OCCASION-AGNOSTIC
   const replacementsByStyle = [
-    // Deadpan (20-35 chars)
-    ["That expired.", "You peaked early.", "This feels familiar.", "Not impressed."],
-    // Observational (36-50 chars) 
-    ["Why does this feel like a job interview?", "Have you noticed how awkward this gets?", "Does anyone else see the irony here?", "When did this become so complicated?"],
-    // Extended (51-65 chars)
+    // Deadpan (20-35 chars) - Pure wit, zero occasion references
+    ["That expired.", "You peaked early.", "This feels familiar.", "Not impressed.", "Standards? What standards.", "Been there, done worse."],
+    
+    // Observational (36-50 chars) - Professional comedian observations
+    ["Why does this feel like a job interview?", "Have you noticed how awkward this gets?", "Does anyone else see the irony here?", "When did this become so complicated?", "Is it me or does this feel scripted?", "Why do we pretend this matters?"],
+    
+    // Extended (51-65 chars) - Depends on tone
     tone.toLowerCase().includes('savage') || tone.toLowerCase().includes('humorous') ?
-      ["This costs more than your last three relationships.", "You put more effort into ordering takeout than this.", "Your standards have officially hit rock bottom here."] :
-      ["This moment reminds us that beauty exists in simple things.", "Sometimes the quietest gestures carry the deepest meaning.", "These small details create the memories we treasure most."],
-    // Absurdist (66-70 chars)
-    ["Everything here applied for witness protection after seeing you.", "This confetti filed a restraining order against your vibes today.", "Even gravity seems disappointed by your presence right now."]
+      ["This costs more than your last three relationships.", "You put more effort into ordering takeout than this.", "Your standards have officially hit rock bottom here.", "I've seen more enthusiasm at a tax audit meeting.", "This has the energy of a broken elevator."] :
+      ["This moment reminds us that beauty exists in simple things.", "Sometimes the quietest gestures carry the deepest meaning.", "These small details create the memories we treasure most.", "Life's richest moments often come in humble packages.", "True connection happens in the spaces between words."],
+    
+    // Absurdist (66-70 chars) - Surreal comedy, no occasions
+    ["Everything here applied for witness protection after seeing you.", "This filed a restraining order against your vibes today.", "Even gravity seems disappointed by your presence right now.", "Your energy just made my confidence file for bankruptcy.", "This situation violated several laws of social physics."]
   ];
   
   const lengthBands = [[20, 35], [36, 50], [51, 65], [66, 70]];
@@ -444,8 +447,9 @@ function enforceOccasionThrottle(rawLines: any[], inputs: any): any[] | null {
     }
     
     return line;
-  });
 }
+
+// Enhanced generation with feedback-driven retries and raw output preservation
 }
 
 // Enhanced generation with feedback-driven retries and raw output preservation
@@ -698,13 +702,13 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-step2 function:', error);
     
-    // Emergency fallback for any catastrophic errors
+    // Emergency fallback - pure comedian style, zero occasion content
     const emergencyFallback = {
       lines: [
-        { lane: "option1", text: "Your cake looks sadder than your life choices." },
-        { lane: "option2", text: "Even the balloons are trying to escape this disaster." },
-        { lane: "option3", text: "Those candles have more personality than you ever will." },
-        { lane: "option4", text: "Your party hats and confetti are filing for divorce from you." }
+        { lane: "option1", text: "That expired." },
+        { lane: "option2", text: "Why does this feel like a job interview?" },
+        { lane: "option3", text: "This has the energy of a broken elevator." },
+        { lane: "option4", text: "Your vibes just violated several laws of social physics." }
       ],
       model: "emergency-fallback",
       validated: true,
