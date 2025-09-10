@@ -6369,7 +6369,7 @@ const Index = () => {
                       </Button>
                     </div>}
                 </div>
-              </div> : selectedStyle === "vibes-punchlines" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              </div> : selectedStyle === "random" && !selectedSubOption ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center mb-6">
                   <p className="text-xl text-muted-foreground">Ready to create your text</p>
                 </div>
