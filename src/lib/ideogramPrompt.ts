@@ -275,6 +275,33 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
   };
 }
 
+// Create stricter layout versions for retry attempts
+export function buildStricterLayoutPrompts(handoff: IdeogramHandoff, stricterLayoutToken: string): IdeogramPrompts {
+  console.log('🎯 Building stricter layout prompts with token:', stricterLayoutToken);
+  
+  // Create a modified handoff with stricter layout token
+  const modifiedHandoff = {
+    ...handoff,
+    design_notes: handoff.design_notes ? 
+      `${handoff.design_notes}, ${stricterLayoutToken}` : 
+      stricterLayoutToken
+  };
+  
+  const basePrompts = buildIdeogramPrompts(modifiedHandoff);
+  
+  // Add even more explicit text rendering instructions for stricter layout
+  if (handoff.key_line && handoff.key_line.trim()) {
+    const fonts = getToneFonts(handoff.tone);
+    const selectedFont = getRandomElement(fonts);
+    
+    const stricterTextInstructions = `IMPORTANT: Render the text "${handoff.key_line}" prominently in the image with ${stricterLayoutToken} layout. Use ${selectedFont} typography with high contrast. Text must be clearly visible and readable.`;
+    
+    basePrompts.positive_prompt = `${stricterTextInstructions} ${basePrompts.positive_prompt}`;
+  }
+  
+  return basePrompts;
+}
+
 // Legacy function for backward compatibility
 export function buildIdeogramPrompt(handoff: IdeogramHandoff, options: { 
   cleanBackground?: boolean; 

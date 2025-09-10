@@ -20,8 +20,12 @@ import { TextLayoutSelector } from "@/components/TextLayoutSelector";
 import { useNavigate } from "react-router-dom";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
 import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
-import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
-import { buildIdeogramPrompts, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
+import { generateIdeogramImage, generateWithStricterLayout, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
+import { buildIdeogramPrompts, buildStricterLayoutPrompts, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
+import { TextRenderModeToggle } from "@/components/TextRenderModeToggle";
+import { TextRenderIndicator } from "@/components/TextRenderIndicator";
+import { RetryWithLayoutDialog } from "@/components/RetryWithLayoutDialog";
+import { SafetyValidationDialog } from "@/components/SafetyValidationDialog";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
@@ -4295,6 +4299,15 @@ const Index = () => {
   const [proxySettings, setLocalProxySettings] = useState(() => getProxySettings());
   const [proxyApiKey, setProxyApiKey] = useState('');
 
+  // Text rendering mode states
+  const [textInsideImage, setTextInsideImage] = useState<boolean>(true);
+  const [showRetryLayoutDialog, setShowRetryLayoutDialog] = useState<boolean>(false);
+  const [showSafetyValidationDialog, setShowSafetyValidationDialog] = useState<boolean>(false);
+  const [safetyModifications, setSafetyModifications] = useState<{
+    prompt_modified: boolean;
+    tags_modified: string[];
+  } | null>(null);
+  
   // Spelling guarantee mode states - default to ON when text is present
   const [spellingGuaranteeMode, setSpellingGuaranteeMode] = useState<boolean>(false);
   const [showTextOverlay, setShowTextOverlay] = useState<boolean>(false);
@@ -6525,7 +6538,26 @@ const Index = () => {
                           </Button>}
                       </div>
                     </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
-                </div>
+                 </div>
+
+                 {/* Text Rendering Mode Toggle */}
+                 {(selectedGeneratedOption || stepTwoText) && !generatedImageUrl && (
+                   <TextRenderModeToggle 
+                     textInsideImage={textInsideImage}
+                     onToggleChange={setTextInsideImage}
+                     className="mb-4"
+                   />
+                 )}
+
+                 {/* Text Render Indicator */}
+                 {generatedImageUrl && (selectedGeneratedOption || stepTwoText) && (
+                   <TextRenderIndicator 
+                     textInsideImage={textInsideImage}
+                     hasTextInPrompt={!!(selectedGeneratedOption || stepTwoText)}
+                     imageUrl={generatedImageUrl}
+                     className="mb-4"
+                   />
+                 )}
                 
                  {/* Text Misspelling Detection */}
                  {generatedImageUrl && textMisspellingDetected && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
@@ -6814,6 +6846,39 @@ const Index = () => {
 
         {/* CORS Retry Dialog */}
         <CorsRetryDialog open={showCorsRetryDialog} onOpenChange={setShowCorsRetryDialog} onRetry={handleGenerateImage} />
+
+        {/* Retry with Layout Dialog */}
+        <RetryWithLayoutDialog 
+          open={showRetryLayoutDialog}
+          onOpenChange={setShowRetryLayoutDialog}
+          onRetryWithStricterLayout={() => {
+            const stricterLayout = "clear top band";
+            // Regenerate with stricter layout
+            handleGenerateImage();
+          }}
+          onSwitchToOverlay={() => {
+            setTextInsideImage(false);
+            handleGenerateImage();
+          }}
+          currentLayout={selectedTextLayout || "negativeSpace"}
+        />
+
+        {/* Safety Validation Dialog */}
+        <SafetyValidationDialog 
+          open={showSafetyValidationDialog}
+          onOpenChange={setShowSafetyValidationDialog}
+          onProceed={() => {
+            setShowSafetyValidationDialog(false);
+            handleGenerateImage();
+          }}
+          modifications={{
+            hasModifications: true,
+            tagModifications: [],
+            promptModifications: "Prompt sanitized"
+          }}
+          originalPrompt=""
+          sanitizedPrompt=""
+        />
 
       </div>
     </div>;

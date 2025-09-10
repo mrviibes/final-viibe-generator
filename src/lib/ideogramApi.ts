@@ -232,6 +232,22 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
   }
 }
 
+// Generate with stricter layout for text rendering retry
+export async function generateWithStricterLayout(
+  request: IdeogramGenerateRequest, 
+  stricterLayoutToken: string
+): Promise<IdeogramGenerateResponse> {
+  console.log('🎯 Generating with stricter layout token:', stricterLayoutToken);
+  
+  // Modify the prompt to include stricter layout instructions
+  const modifiedPrompt = `IMPORTANT: Render text prominently with ${stricterLayoutToken} layout. ${request.prompt}`;
+  
+  return generateIdeogramImage({
+    ...request,
+    prompt: modifiedPrompt
+  });
+}
+
 // Enhanced sanitization for retry attempts
 function applyEnhancedSanitization(prompt: string): string {
   let cleaned = prompt;
