@@ -339,6 +339,18 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, category:
   };
 }
 
+// Normalize text to remove em dashes and other unwanted characters
+function normalizeText(lines: Array<{lane: string, text: string}>): Array<{lane: string, text: string}> {
+  return lines.map(line => ({
+    ...line,
+    text: line.text
+      .replace(/—/g, ' - ')  // Replace em dash with spaced hyphen
+      .replace(/–/g, ' - ')  // Replace en dash with spaced hyphen
+      .replace(/\s+/g, ' ')  // Clean up multiple spaces
+      .trim()
+  }));
+}
+
 function ensureTagCoverage(lines: Array<{lane: string, text: string}>, tags: string[]): Array<{lane: string, text: string}> {
   if (tags.length === 0) return lines;
   
@@ -690,8 +702,9 @@ serve(async (req) => {
     if (finalResult) {
       console.log(`Success: Returning valid result from LLM attempts`);
       const tagEnforcedResult = ensureTagCoverage(finalResult, inputs.tags || []);
+      const normalizedResult = normalizeText(tagEnforcedResult);
       return new Response(JSON.stringify({
-        lines: tagEnforcedResult,
+        lines: normalizedResult,
         model: modelUsed
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -702,8 +715,9 @@ serve(async (req) => {
     if (rawCandidate) {
       console.log(`Using preserved raw candidate from earlier attempt instead of fallback`);
       const tagEnforcedCandidate = ensureTagCoverage(rawCandidate, inputs.tags || []);
+      const normalizedCandidate = normalizeText(tagEnforcedCandidate);
       return new Response(JSON.stringify({
-        lines: tagEnforcedCandidate,
+        lines: normalizedCandidate,
         model: `${modelUsed} (unvalidated)`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -713,9 +727,10 @@ serve(async (req) => {
     // Final fallback
     console.log(`API completely failed, using tone-aware fallback:`, allErrors);
     const fallbackLines = getToneAwareFallback(inputs.category || '', inputs.subcategory || '', inputs.tone || 'Balanced', inputs.tags || []);
+    const normalizedFallback = normalizeText(fallbackLines);
     
     return new Response(JSON.stringify({
-      lines: fallbackLines,
+      lines: normalizedFallback,
       model: "fallback"
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -726,9 +741,10 @@ serve(async (req) => {
     
     // Emergency fallback
     const fallbackLines = getToneAwareFallback("", "", "Balanced", []);
+    const normalizedEmergency = normalizeText(fallbackLines);
     
     return new Response(JSON.stringify({
-      lines: fallbackLines,
+      lines: normalizedEmergency,
       model: "emergency-fallback",
       error: error.message
     }), {
