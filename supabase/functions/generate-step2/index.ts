@@ -81,7 +81,7 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
   
   return `You are a text line generator for memes and image overlays. Generate exactly 4 one-liners.
 
-STRICT OUTPUT FORMAT:
+Output ONLY valid JSON in this exact format:
 {
   "lines": [
     {"lane":"option1","text":"..."},
@@ -138,8 +138,9 @@ LENGTH TARGETS (approx): [${lengthTargets.join(', ')}]`;
     message += `\nTAGS: (none)`;
   }
   
-  // Add anti-cliché instruction
+  // Add anti-cliché instruction and JSON reminder
   message += `\n\nAVOID PREDICTABLE REFERENCES: Don't default to obvious props or decorations. Find unexpected angles and surprising observations instead.`;
+  message += `\n\nRespond with JSON only.`;
   
   return message;
 }
@@ -266,58 +267,115 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, category:
   };
 }
 
+function ensureTagCoverage(lines: Array<{lane: string, text: string}>, tags: string[]): Array<{lane: string, text: string}> {
+  if (tags.length === 0) return lines;
+  
+  const result = [...lines];
+  let taggedCount = 0;
+  
+  // Count lines that already include all tags
+  for (let i = 0; i < result.length; i++) {
+    const lowerText = result[i].text.toLowerCase();
+    const hasAllTags = tags.every(tag => lowerText.includes(tag.toLowerCase()));
+    if (hasAllTags) taggedCount++;
+  }
+  
+  console.log(`Tag coverage before adjustment: ${taggedCount}/4 lines include all tags [${tags.join(", ")}]`);
+  
+  // If we need more tagged lines, modify lines to include tags
+  if (taggedCount < 3) {
+    const tagStr = tags.join(" ");
+    let modifications = 0;
+    
+    for (let i = 0; i < result.length && taggedCount + modifications < 3; i++) {
+      const lowerText = result[i].text.toLowerCase();
+      const hasAllTags = tags.every(tag => lowerText.includes(tag.toLowerCase()));
+      
+      if (!hasAllTags) {
+        const originalText = result[i].text;
+        let newText = "";
+        
+        // Try different insertion strategies
+        if (originalText.length + tagStr.length + 2 <= 90) {
+          // Prefix style
+          newText = `${tagStr}: ${originalText.toLowerCase()}`;
+        } else if (originalText.length + tagStr.length + 7 <= 90) {
+          // Middle insertion
+          const words = originalText.split(' ');
+          const midPoint = Math.floor(words.length / 2);
+          words.splice(midPoint, 0, `with ${tagStr}`);
+          newText = words.join(' ');
+        } else {
+          // Suffix style - truncate if needed
+          const maxOriginalLength = 90 - tagStr.length - 3;
+          const truncated = originalText.length > maxOriginalLength 
+            ? originalText.slice(0, maxOriginalLength).trim() 
+            : originalText;
+          newText = `${truncated} — ${tagStr}`;
+        }
+        
+        // Ensure we don't exceed character limit
+        if (newText.length <= 90) {
+          result[i].text = newText;
+          modifications++;
+          console.log(`Modified line ${i + 1}: "${originalText}" → "${newText}"`);
+        }
+      }
+    }
+    
+    console.log(`Tag coverage after adjustment: ${taggedCount + modifications}/4 lines include all tags`);
+  }
+  
+  return result;
+}
+
 function getToneAwareFallback(category: string, subcategory: string, tone: string, tags: string[]): Array<{lane: string, text: string}> {
   // Try to create category-specific fallback that follows our rules
   if (category === "Celebrations" && subcategory === "Christmas Day") {
     const anchors = getTopicalAnchors(category, subcategory);
     if (tone === "Savage" || tone === "Humorous") {
-      const fallbackLines = [
+      let fallbackLines = [
         { lane: "option1", text: "Family group chat says peace. The thermostat disagrees." },
         { lane: "option2", text: "Travel delays and dietary drama: the holiday special." },
         { lane: "option3", text: "Assembly instructions, three missing screws, 2 a.m. deadline." },
         { lane: "option4", text: "Budget panic meets shipping delays. Checkmate, December." }
       ];
       
-      // If tags provided, try to weave them into 3 lines
-      if (tags.length > 0) {
-        const tagStr = tags.join(" ");
-        return [
-          { lane: "option1", text: `${tagStr}: the family group chat energy is unmatched.` },
-          { lane: "option2", text: `Travel delays and ${tagStr} drama: peak holiday chaos.` },
-          { lane: "option3", text: `${tagStr} assembly instructions, missing screws included.` },
-          { lane: "option4", text: "Budget meets reality. Spoiler: budget loses every time." }
-        ].map(line => ({...line, text: line.text.length > 90 ? line.text.slice(0, 87) + "..." : line.text}));
-      }
-      
-      return fallbackLines;
+      return ensureTagCoverage(fallbackLines, tags);
     } else {
-      return [
+      let fallbackLines = [
         { lane: "option1", text: "Home: where the heart learns patience." },
         { lane: "option2", text: "Tradition means organized chaos with matching pajamas." },
         { lane: "option3", text: "Some moments require assembly, batteries not included." },
         { lane: "option4", text: "Love comes with shipping delays and missing receipts." }
       ];
+      
+      return ensureTagCoverage(fallbackLines, tags);
     }
   }
   
   if (category === "Celebrations" && subcategory === "Birthday") {
     if (tone === "Savage" || tone === "Humorous") {
-      return [
+      let fallbackLines = [
         { lane: "option1", text: "Another year older, group chat notifications unchanged." },
         { lane: "option2", text: "Age is just a number. Mine's in witness protection." },
         { lane: "option3", text: "Birthday planning: where optimism goes to die slowly." },
         { lane: "option4", text: "Growing up is optional, phone storage is not." }
       ];
+      
+      return ensureTagCoverage(fallbackLines, tags);
     }
   }
   
   // Generic fallback that avoids banned phrases
-  return [
+  let fallbackLines = [
     { lane: "option1", text: "When moments get memorable, documentation required." },
     { lane: "option2", text: "This situation brought to you by poor planning." },
     { lane: "option3", text: "Life's like a group chat: everyone's got opinions." },
     { lane: "option4", text: "Some days require assembly, instructions sold separately." }
   ];
+  
+  return ensureTagCoverage(fallbackLines, tags);
 }
 
 async function attemptGeneration(inputs: any, attemptNumber: number, previousErrors: string[] = []): Promise<any> {
@@ -502,8 +560,9 @@ serve(async (req) => {
     // If we have a valid result, return it
     if (finalResult) {
       console.log(`Success: Returning valid result from LLM attempts`);
+      const tagEnforcedResult = ensureTagCoverage(finalResult, inputs.tags || []);
       return new Response(JSON.stringify({
-        lines: finalResult,
+        lines: tagEnforcedResult,
         model: modelUsed
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -513,8 +572,9 @@ serve(async (req) => {
     // If we have raw candidate from earlier attempts that parsed but failed validation, use those
     if (rawCandidate) {
       console.log(`Using preserved raw candidate from earlier attempt instead of fallback`);
+      const tagEnforcedCandidate = ensureTagCoverage(rawCandidate, inputs.tags || []);
       return new Response(JSON.stringify({
-        lines: rawCandidate,
+        lines: tagEnforcedCandidate,
         model: `${modelUsed} (unvalidated)`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
