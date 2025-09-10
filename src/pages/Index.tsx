@@ -21,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { buildIdeogramHandoff } from "@/lib/ideogram";
 import { createSession, generateTextOptions, generateVisualOptions, type Session, dedupe } from "@/lib/viibe_core";
 import { generateIdeogramImage, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
-import { buildIdeogramPrompt, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
+import { buildIdeogramPrompts, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
@@ -4277,11 +4277,61 @@ const Index = () => {
   const [textMisspellingDetected, setTextMisspellingDetected] = useState<boolean>(false);
   const [cleanBackgroundMode, setCleanBackgroundMode] = useState<boolean>(true);
 
+  // State for debug prompts
+  const [debugPrompts, setDebugPrompts] = useState<{
+    positive_prompt?: string;
+    negative_prompt?: string;
+  }>({});
+
   // Visual AI recommendations state
   const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
   const [selectedRecommendation, setSelectedRecommendation] = useState<number | null>(null);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   
+  // Update debug prompts when form changes
+  useEffect(() => {
+    if (currentStep === 4 && selectedStyle && selectedSubOption && selectedTextStyle && (selectedGeneratedOption || stepTwoText)) {
+      const finalText = selectedGeneratedOption || stepTwoText || "";
+      const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+      const subcategory = (() => {
+        if (selectedStyle === 'celebrations' && selectedSubOption) {
+          const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+          return celebOption?.name || selectedSubOption;
+        } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+          const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+          return popOption?.name || selectedSubOption;
+        }
+        return selectedSubOption || 'general';
+      })();
+      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+      const tone = selectedTextStyleObj?.name || 'Humorous';
+      const visualStyle = selectedVisualStyle || "realistic";
+      const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Landscape";
+      const textTagsStr = tags.join(', ') || "None";
+      const visualTagsStr = subjectTags.join(', ') || "None";
+      const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : selectedSubjectOption === "design-myself" && subjectDescription ? subjectDescription : "";
+      const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
+      
+      const handoff = buildIdeogramHandoff({
+        visual_style: visualStyle,
+        subcategory: subcategory,
+        tone: tone.toLowerCase(),
+        final_line: finalText,
+        tags_csv: [textTagsStr, visualTagsStr].filter(tag => tag !== "None").join(', '),
+        chosen_visual: chosenVisual,
+        category: categoryName,
+        subcategory_secondary: subcategorySecondary,
+        aspect_ratio: aspectRatio,
+        text_tags_csv: textTagsStr,
+        visual_tags_csv: visualTagsStr,
+        ai_text_assist_used: selectedCompletionOption === "ai-assist",
+        ai_visual_assist_used: selectedSubjectOption === "ai-assist"
+      });
+      
+      const prompts = buildIdeogramPrompts(handoff);
+      setDebugPrompts(prompts);
+    }
+  }, [currentStep, selectedStyle, selectedSubOption, selectedTextStyle, selectedGeneratedOption, stepTwoText, selectedVisualStyle, selectedDimension, customWidth, customHeight, tags, subjectTags, selectedVisualIndex, visualOptions, selectedSubjectOption, subjectDescription, selectedPick, selectedCompletionOption]);
 
   // Generate visual recommendations when reaching step 4
   useEffect(() => {
@@ -5052,11 +5102,9 @@ const Index = () => {
           prompt = visualRecommendations.options[selectedRecommendation].prompt;
         }
         if (!prompt && !barebonesMode && !exactPromptMode) {
-          prompt = buildIdeogramPrompt(ideogramPayload, {
-            injectText: false, // Stop text injection by default
-            useLayoutTokens: !exactPromptMode,
-            gentleLayoutPhrasing: true
-          });
+          const prompts = buildIdeogramPrompts(ideogramPayload);
+          prompt = prompts.positive_prompt;
+          setDebugPrompts(prompts);
         }
       }
       
@@ -5095,16 +5143,20 @@ const Index = () => {
       
       // Store the final prompt for display
       setLastIdeogramPrompt(prompt);
-      setLastIdeogramNegativePrompt(negativePrompt || "None");
+      setLastIdeogramNegativePrompt(negativePrompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe");
       
+      // Use structured prompts if available, fallback to manual prompts
+      const finalNegativePrompt = negativePrompt.trim() || 
+        (debugPrompts.negative_prompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe");
+
       const response = await generateIdeogramImage({
         prompt,
+        negative_prompt: finalNegativePrompt,
         aspect_ratio: aspectForIdeogram,
         model: modelForIdeogram,
         magic_prompt_option: magicPromptOption,
         style_type: styleForIdeogram,
-        seed: seedValue,
-        negative_prompt: negativePrompt || undefined
+        seed: seedValue
       });
       if (response.data && response.data.length > 0) {
         setGeneratedImageUrl(response.data[0].url);
@@ -6735,29 +6787,27 @@ const Index = () => {
                 </div>
               </div>
 
-              {/* Ideogram Prompt Display */}
-              {lastIdeogramPrompt && (
+              {/* Debug Prompts Preview */}
+              {(debugPrompts.positive_prompt || lastIdeogramPrompt) && (
                 <div className="mt-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Ideogram API Prompts</CardTitle>
-                      <CardDescription>The exact prompt strings sent to the Ideogram API</CardDescription>
+                      <CardTitle className="text-lg">Generated Prompts</CardTitle>
+                      <CardDescription>Preview of positive and negative prompts for Ideogram generation</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div>
                         <label className="text-sm font-medium text-muted-foreground">Positive Prompt:</label>
                         <pre className="bg-muted p-4 rounded-lg text-sm font-mono text-wrap whitespace-pre-wrap break-words overflow-x-auto mt-1">
-                          {lastIdeogramPrompt}
+                          {debugPrompts.positive_prompt || lastIdeogramPrompt || "Complete setup to see prompt..."}
                         </pre>
                       </div>
-                      {lastIdeogramNegativePrompt && (
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground">Negative Prompt:</label>
-                          <pre className="bg-muted p-4 rounded-lg text-sm font-mono text-wrap whitespace-pre-wrap break-words overflow-x-auto mt-1">
-                            {lastIdeogramNegativePrompt}
-                          </pre>
-                        </div>
-                      )}
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Negative Prompt:</label>
+                        <pre className="bg-muted p-4 rounded-lg text-sm font-mono text-wrap whitespace-pre-wrap break-words overflow-x-auto mt-1">
+                          {debugPrompts.negative_prompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe"}
+                        </pre>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>

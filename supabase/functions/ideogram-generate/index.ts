@@ -120,7 +120,7 @@ serve(async (req) => {
       // V3 API expects JSON with image_request wrapper
       const requestPayload = {
         image_request: {
-          prompt: prompt,
+          prompt: negative_prompt ? `${prompt}. ${negative_prompt}` : prompt,
           resolution: resolution,
           seed: seed
         }
@@ -151,7 +151,7 @@ serve(async (req) => {
           
           const fallbackPayload = {
             image_request: {
-              prompt: prompt,
+              prompt: negative_prompt ? `${prompt}. ${negative_prompt}` : prompt,
               resolution: 'RESOLUTION_1024_1024',
               seed: seed
             }
