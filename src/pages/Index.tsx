@@ -4478,6 +4478,10 @@ const Index = () => {
   const [proxySettings, setLocalProxySettings] = useState(() => getProxySettings());
   const [proxyApiKey, setProxyApiKey] = useState('');
 
+  // Career search states
+  const [careerSearchTerm, setCareerSearchTerm] = useState<string>("");
+  const [showCareerSearch, setShowCareerSearch] = useState<boolean>(false);
+
   // Text rendering mode states
   const [textInsideImage, setTextInsideImage] = useState<boolean>(true);
   const [showRetryLayoutDialog, setShowRetryLayoutDialog] = useState<boolean>(false);
@@ -4902,7 +4906,12 @@ const Index = () => {
       case "celebrations":
       case "sports":
       case "daily-life":
+        return !!selectedSubOption;
       case "vibes-punchlines":
+        // Career Jokes requires a selectedPick (career selection)
+        if (selectedSubOption === "Career Jokes") {
+          return !!(selectedSubOption && selectedPick);
+        }
         return !!selectedSubOption;
       default:
         return false;
@@ -5886,6 +5895,32 @@ const Index = () => {
                 }
               });
             }
+
+            // Add career pick selection for Career Jokes
+            if (selectedStyle === 'vibes-punchlines' && selectedSubOption === 'Career Jokes' && selectedPick) {
+              selections.push({
+                title: selectedPick,
+                subtitle: 'Selected career to roast',
+                onChangeSelection: () => {
+                  setSelectedPick(null);
+                  setCareerSearchTerm("");
+                  setShowCareerSearch(false);
+                }
+              });
+            }
+
+            // Add pop culture pick selection
+            if (selectedStyle === 'pop-culture' && selectedPick) {
+              selections.push({
+                title: selectedPick,
+                subtitle: 'Selected pop culture topic',
+                onChangeSelection: () => {
+                  setSelectedPick(null);
+                  setSearchTerm("");
+                  setSearchResults([]);
+                }
+              });
+            }
             return <StackedSelectionCard selections={selections} />;
           })()}
 
@@ -6252,6 +6287,85 @@ const Index = () => {
                   setSearchTerm("");
                 }} variant="outline" size="lg" className="px-6 py-3">
                         Use "{searchTerm.trim()}" as custom {selectedSubOption.toLowerCase()}
+                      </Button>
+                    </div>}
+                </div>
+              </div> : selectedStyle === "vibes-punchlines" && selectedSubOption === "Career Jokes" && !selectedPick ? <div className="selected-card mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-6">
+                  <p className="text-xl text-muted-foreground">Search for a specific career to roast</p>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Career Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input value={careerSearchTerm} onChange={e => {
+                  setCareerSearchTerm(e.target.value);
+                  setShowCareerSearch(true);
+                }} onFocus={() => setShowCareerSearch(true)} onBlur={() => {
+                  // Delay hiding the list to allow clicks to complete
+                  setTimeout(() => setShowCareerSearch(false), 150);
+                }} placeholder="Search careers... (type to search automatically)" className="pl-10 text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                  </div>
+
+                  {/* Career Search Results */}
+                  {(showCareerSearch || careerSearchTerm.length > 0) && <>
+                      {careerSearchTerm.length >= 1 && <>
+                          {(() => {
+                      const filteredCareers = careersList.filter(career => career.toLowerCase().includes(careerSearchTerm.toLowerCase()));
+                      return filteredCareers.length > 0 ? <>
+                              <div className="text-center mb-4">
+                                <p className="text-sm text-muted-foreground">
+                                  Found {filteredCareers.length} careers
+                                </p>
+                              </div>
+                              <Card className="max-h-96 overflow-hidden">
+                                <ScrollArea className="h-96">
+                                  <div className="p-4 space-y-2">
+                                    {filteredCareers.slice(0, 50).map((career, index) => <div key={index} onClick={() => {
+                          setSelectedPick(career);
+                          setCareerSearchTerm("");
+                          setShowCareerSearch(false);
+                        }} className="p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors">
+                                        <p className="text-sm font-medium text-card-foreground">
+                                          {career}
+                                        </p>
+                                      </div>)}
+                                    {filteredCareers.length > 50 && <div className="text-center p-3 text-sm text-muted-foreground">
+                                        Showing first 50 results. Type more to narrow down.
+                                      </div>}
+                                  </div>
+                                </ScrollArea>
+                              </Card>
+                            </> : <div className="text-center p-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/50">
+                              <p className="text-sm text-muted-foreground mb-2">
+                                No careers found matching "{careerSearchTerm}"
+                              </p>
+                              <Button onClick={() => {
+                      setSelectedPick(careerSearchTerm.trim());
+                      setCareerSearchTerm("");
+                      setShowCareerSearch(false);
+                    }} variant="outline" size="sm" className="px-4 py-2">
+                                Use "{careerSearchTerm.trim()}" anyway
+                              </Button>
+                            </div>;
+                    })()}
+                        </>}
+
+                      {careerSearchTerm.length === 0 && <div className="text-center p-4 bg-muted/20 rounded-lg border border-dashed border-muted-foreground/30">
+                          <p className="text-sm text-muted-foreground">
+                            Start typing to search careers
+                          </p>
+                        </div>}
+                    </>}
+
+                  {/* Custom Entry Option - shown when there's a search term but user clicked away */}
+                  {careerSearchTerm.trim() && !showCareerSearch && <div className="text-center">
+                      <Button onClick={() => {
+                  setSelectedPick(careerSearchTerm.trim());
+                  setCareerSearchTerm("");
+                }} variant="outline" size="lg" className="px-6 py-3">
+                        Use "{careerSearchTerm.trim()}" as custom career
                       </Button>
                     </div>}
                 </div>
