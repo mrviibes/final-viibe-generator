@@ -58,7 +58,8 @@ function getClicheBanList(category: string, subcategory: string): string[] {
     if (subcategory === "Birthday") {
       bans.push("cake", "candles", "balloons", "party hat", "gift", "present", "wish", "blow out");
     } else if (subcategory === "Christmas Day") {
-      bans.push("santa", "ho ho ho", "presents", "gifts", "tree", "ornaments", "snow", "sleigh", "reindeer", "chimney", "cookies", "milk", "stockings", "wrapping", "north pole", "elves", "workshop", "jingle", "bells");
+      // RELAXED: Allow "tree", "ornaments" if used wittily. Hard ban only mega-clichés
+      bans.push("santa", "ho ho ho", "sleigh", "reindeer", "chimney", "cookies", "milk", "stockings", "north pole", "elves", "workshop", "jingle bells", "deck the halls", "silent night");
     } else if (subcategory === "New Year's Eve") {
       bans.push("midnight", "countdown", "champagne", "resolution", "fireworks", "ball drop", "auld lang syne", "kiss at midnight");
     }
@@ -73,13 +74,49 @@ function getClicheBanList(category: string, subcategory: string): string[] {
   return bans;
 }
 
+// Add vibe keywords that should appear in lines to ground them in the subcategory
+function getVibeKeywords(category: string, subcategory: string): string[] {
+  const vibes: string[] = [];
+  
+  if (category === "Celebrations") {
+    if (subcategory === "Birthday") {
+      vibes.push("birthday", "born", "age", "year older", "celebration");
+    } else if (subcategory === "Christmas Day") {
+      vibes.push("christmas", "holiday", "december", "festive", "family gathering", "winter break");
+    } else if (subcategory === "New Year's Eve") {
+      vibes.push("new year", "resolution", "january", "fresh start", "year end");
+    }
+  } else if (category === "Life Events") {
+    if (subcategory === "Wedding") {
+      vibes.push("wedding", "marriage", "married", "spouse", "honeymoon");
+    } else if (subcategory === "Graduation") {
+      vibes.push("graduation", "graduate", "degree", "school", "student");
+    }
+  }
+  
+  return vibes;
+}
+
 function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[]): string {
   const banList = getClicheBanList(category, subcategory);
   const anchors = getTopicalAnchors(category, subcategory);
+  const vibes = getVibeKeywords(category, subcategory);
+  
   const banPhrase = banList.length > 0 ? `\n\nSTRICTLY AVOID these overused props: ${banList.join(", ")}. Find unexpected angles instead.` : "";
   const anchorPhrase = anchors.length > 0 ? `\n\nTOPICALITY REQUIREMENT: At least 3 of 4 lines must include one of these fresh angles: ${anchors.join(", ")}. Avoid banned props but ground lines in the actual situation.` : "";
+  const vibePhrase = vibes.length > 0 ? `\n\nVIBE GROUNDING: At least 2 of 4 lines should reference "${subcategory}" context using: ${vibes.join(", ")} (or similar natural phrasing).` : "";
   
-  return `You are a text line generator for memes and image overlays. Generate exactly 4 one-liners.
+  const comedyInstructions = tone === "Savage" || tone === "Humorous" || tone === "Playful" ? 
+    `\n\nCOMEDY VOICE: Write like a tight stand-up comedian crafting one-liners. Use at least 3 different comedy devices:
+- Observational humor ("when you realize...")  
+- Contrast/irony ("supposed to be X but...")
+- Exaggeration ("47 notifications for...")
+- Timing/punchlines ("...and that's when I knew...")
+- Unexpected comparisons ("like a budget meeting with...")
+- Specific details that hit universal truths
+Make each line feel like it could get a laugh from a comedy club audience.` : "";
+  
+  return `You are a professional comedy writer generating tight one-liners for memes and image overlays. Generate exactly 4 killer lines.
 
 Output ONLY valid JSON in this exact format:
 {
@@ -99,11 +136,11 @@ CONTENT RULES:
 - NO em-dashes (—) or double dashes (--)
 
 TONE: ${tone}
-- ${tone === "Savage" || tone === "Humorous" || tone === "Playful" ? "Funny, roast-style, witty" : "Sincere, heartfelt, uplifting"}
+- ${tone === "Savage" || tone === "Humorous" || tone === "Playful" ? "Sharp, witty, roast-style comedy that hits hard" : "Sincere, heartfelt, uplifting"}${comedyInstructions}
 
 CATEGORY FOCUS:
 - Context: ${category} > ${subcategory}
-- Subcategory drives the situation${banPhrase}${anchorPhrase}
+- Subcategory drives the situation${banPhrase}${anchorPhrase}${vibePhrase}
 
 ${tags.length > 0 ? `\nTAG ENFORCEMENT (CRITICAL):
 - Tags provided: [${tags.join(", ")}]
@@ -111,9 +148,9 @@ ${tags.length > 0 ? `\nTAG ENFORCEMENT (CRITICAL):
 - Weave tags naturally into different positions in each line` : ""}
 
 QUALITY STANDARDS:
-- Ban clichés: ${AVOID_WORDS.slice(0, 10).join(", ")}, etc.
-- Conversational, natural, human-sounding
-- 4 distinct approaches with varied comedy styles`;
+- Ban tired phrases: ${AVOID_WORDS.slice(0, 10).join(", ")}, etc.
+- Conversational, punchy, quotable
+- 4 distinct comedic approaches with different setups and punchlines`;
 }
 
 function buildUserMessage(inputs: any): string {
@@ -175,6 +212,22 @@ function checkTopicalAnchors(lines: Array<{lane: string, text: string}>, categor
   
   if (anchoredLines.length < 3) {
     return `Topical grounding insufficient: ${anchoredLines.length}/4 lines include topical anchors. Need at least 3 from: ${anchors.join(", ")}`;
+  }
+  
+  return null;
+}
+
+function checkVibeGrounding(lines: Array<{lane: string, text: string}>, category: string, subcategory: string): string | null {
+  const vibes = getVibeKeywords(category, subcategory);
+  if (vibes.length === 0) return null;
+  
+  const vibeGroundedLines = lines.filter(line => {
+    const lowerText = line.text.toLowerCase();
+    return vibes.some(vibe => lowerText.includes(vibe.toLowerCase()));
+  });
+  
+  if (vibeGroundedLines.length < 2) {
+    return `Vibe grounding insufficient: ${vibeGroundedLines.length}/4 lines reference ${subcategory}. Need at least 2 using: ${vibes.join(", ")}`;
   }
   
   return null;
@@ -250,6 +303,12 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, category:
   const anchorError = checkTopicalAnchors(lines, category, subcategory);
   if (anchorError) {
     errors.push(anchorError);
+  }
+  
+  // Vibe grounding check (warning)
+  const vibeError = checkVibeGrounding(lines, category, subcategory);
+  if (vibeError) {
+    warnings.push(vibeError);
   }
   
   // Comedy variety (warning)
@@ -332,22 +391,21 @@ function ensureTagCoverage(lines: Array<{lane: string, text: string}>, tags: str
 function getToneAwareFallback(category: string, subcategory: string, tone: string, tags: string[]): Array<{lane: string, text: string}> {
   // Try to create category-specific fallback that follows our rules
   if (category === "Celebrations" && subcategory === "Christmas Day") {
-    const anchors = getTopicalAnchors(category, subcategory);
     if (tone === "Savage" || tone === "Humorous") {
       let fallbackLines = [
-        { lane: "option1", text: "Family group chat says peace. The thermostat disagrees." },
-        { lane: "option2", text: "Travel delays and dietary drama: the holiday special." },
-        { lane: "option3", text: "Assembly instructions, three missing screws, 2 a.m. deadline." },
-        { lane: "option4", text: "Budget panic meets shipping delays. Checkmate, December." }
+        { lane: "option1", text: "Christmas morning: when adult assembly skills meet childhood expectations" },
+        { lane: "option2", text: "Holiday budget vs. December reality, a tragic love story in 37 receipts" },
+        { lane: "option3", text: "Family group chat peace treaty negotiations failed, thermostat warfare continues" },
+        { lane: "option4", text: "Christmas dinner: dietary restrictions meet traditional guilt, nobody wins" }
       ];
       
       return ensureTagCoverage(fallbackLines, tags);
     } else {
       let fallbackLines = [
-        { lane: "option1", text: "Home: where the heart learns patience." },
-        { lane: "option2", text: "Tradition means organized chaos with matching pajamas." },
-        { lane: "option3", text: "Some moments require assembly, batteries not included." },
-        { lane: "option4", text: "Love comes with shipping delays and missing receipts." }
+        { lane: "option1", text: "Christmas brings us together, assembly instructions and all" },
+        { lane: "option2", text: "Holiday traditions: where organized chaos meets matching pajama diplomacy" },
+        { lane: "option3", text: "December teaches patience, one missing screw at a time" },
+        { lane: "option4", text: "Christmas love comes with shipping delays and family group chat drama" }
       ];
       
       return ensureTagCoverage(fallbackLines, tags);
