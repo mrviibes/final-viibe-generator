@@ -7235,6 +7235,17 @@ const Index = () => {
             </div>
           </div>}
 
+        {/* Step 4 Bottom Navigation */}
+        {currentStep === 4 && <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border p-4">
+            <div className="max-w-6xl mx-auto flex justify-between items-center">
+              <Button variant="outline" onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <div></div>
+            </div>
+          </div>}
+
         {/* API Key Dialog */}
         <ApiKeyDialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog} onApiKeySet={handleApiKeySet} />
 
