@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
+import { careersList } from "@/lib/careers";
 
 // Helper function to clean layout tokens from visual descriptions for display
 const cleanVisualDescription = (text: string): string => {
@@ -3791,7 +3792,7 @@ const vibesPunchlinesOptions = [{
 }, {
   id: "career-jokes",
   name: "Career Jokes",
-  subtitle: "Work & office humor"
+  subtitle: "Roast any profession"
 }, {
   id: "knock-knock-jokes",
   name: "Knock-Knock Jokes",
@@ -5066,6 +5067,12 @@ const Index = () => {
         if (selectedPick) {
           finalTags.push(selectedPick);
         }
+      } else if (selectedStyle === 'vibes-punchlines' && selectedSubOption) {
+        subcategory = selectedSubOption;
+        // For Career Jokes, add the selected career to tags
+        if (selectedSubOption === "Career Jokes" && selectedPick) {
+          finalTags.push(selectedPick);
+        }
       } else if (selectedSubOption) {
         subcategory = selectedSubOption;
       } else {
@@ -5224,8 +5231,8 @@ const Index = () => {
       // Prepare tags for generation
       let finalTagsForGeneration = [...tags];
 
-      // For pop culture entities, add the entity name as a tag if not already present
-      if (selectedStyle === 'pop-culture' && selectedPick) {
+      // For pop culture entities and career jokes, add the selected entity as a tag if not already present
+      if ((selectedStyle === 'pop-culture' || (selectedStyle === 'vibes-punchlines' && selectedSubOption === 'Career Jokes')) && selectedPick) {
         const entityTag = selectedPick.toLowerCase();
         if (!finalTagsForGeneration.some(tag => tag.toLowerCase() === entityTag)) {
           finalTagsForGeneration.push(selectedPick);
@@ -5378,7 +5385,7 @@ const Index = () => {
       const textTagsStr = tags.join(', ') || "None";
       const visualTagsStr = subjectTags.join(', ') || "None";
       const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : selectedSubjectOption === "design-myself" && subjectDescription ? subjectDescription : "";
-      const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
+      const subcategorySecondary = (selectedStyle === 'pop-culture' || (selectedStyle === 'vibes-punchlines' && selectedSubOption === 'Career Jokes')) && selectedPick ? selectedPick : undefined;
       const ideogramPayload = buildIdeogramHandoff({
         visual_style: visualStyle,
         subcategory: subcategory,
@@ -6293,8 +6300,8 @@ const Index = () => {
                 }
               }
 
-              // Add specific pick for pop culture
-              if (selectedPick && selectedStyle === 'pop-culture') {
+              // Add specific pick for pop culture and career jokes
+              if (selectedPick && (selectedStyle === 'pop-culture' || (selectedStyle === 'vibes-punchlines' && selectedSubOption === 'Career Jokes'))) {
                 breadcrumb.push(selectedPick);
               }
 
@@ -7119,6 +7126,10 @@ const Index = () => {
                       </tr>
                       {selectedStyle === 'pop-culture' && selectedPick && <tr>
                           <td className="p-3 text-sm">Pop Culture Pick</td>
+                          <td className="p-3 text-sm">{selectedPick}</td>
+                        </tr>}
+                      {selectedStyle === 'vibes-punchlines' && selectedSubOption === 'Career Jokes' && selectedPick && <tr>
+                          <td className="p-3 text-sm">Career Pick</td>
                           <td className="p-3 text-sm">{selectedPick}</td>
                         </tr>}
                       <tr>
