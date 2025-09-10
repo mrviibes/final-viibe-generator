@@ -6551,15 +6551,7 @@ const Index = () => {
                    />
                  )}
 
-                 {/* Text Render Indicator */}
-                 {generatedImageUrl && (selectedGeneratedOption || stepTwoText) && (
-                   <TextRenderIndicator 
-                     textInsideImage={textInsideImage}
-                     hasTextInPrompt={!!(selectedGeneratedOption || stepTwoText)}
-                     imageUrl={generatedImageUrl}
-                     className="mb-4"
-                   />
-                 )}
+                  {/* Text Render Indicator - REMOVED */}
                 
                  {/* Text Misspelling Detection */}
                  {generatedImageUrl && textMisspellingDetected && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
