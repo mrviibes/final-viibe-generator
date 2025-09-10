@@ -208,7 +208,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
     textParts.push(`Render the following text directly in the image: "${handoff.key_line}". Use ${layout.textPlacement} with ${selectedFont}, ${alignment} aligned, ${textStyle} for maximum contrast and readability.`);
   }
   
-  // 2. SCENE DESCRIPTION: Core subject with tone
+  // 2. SCENE DESCRIPTION: Core subject with tone + SUBCATEGORY LOCK
   const subject = handoff.chosen_visual || handoff.rec_subject || `${handoff.tone} ${handoff.category} scene`;
   const cleanSubject = subject.replace(/,?\s*(clear empty area near largest margin|clear top band|clear bottom band|clear lower third|clear left panel|badge space top-right|clear narrow bottom strip)/gi, '').trim();
   
@@ -218,6 +218,11 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
     : 'in realistic photo style';
   
   sceneParts.push(`${handoff.tone} ${cleanSubject} ${styleSpec}.`);
+  
+  // 4. SUBCATEGORY LOCK: Enforce the chosen subcategory
+  if (handoff.subcategory_primary) {
+    sceneParts.push(`Subject must be ${handoff.subcategory_primary}. Do not generate any other sport or activity.`);
+  }
   
   // 4. Cinematic lighting and atmosphere (randomized)
   const lighting = getRandomElement(lightingVariations);
@@ -262,8 +267,8 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
   const promptSanitization = sanitizePrompt(positivePrompt);
   positivePrompt = promptSanitization.cleaned;
   
-  // Enhanced negative prompt with misspelling guards
-  const negativePrompt = "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no misspelled text, no garbled letters, no incorrect spelling, no text artifacts";
+  // Enhanced negative prompt with universal safeguards
+  const negativePrompt = "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no misspelled text, no garbled letters, no incorrect spelling, no text artifacts, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects";
 
   return {
     positive_prompt: positivePrompt,

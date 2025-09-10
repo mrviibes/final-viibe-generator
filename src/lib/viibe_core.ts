@@ -110,14 +110,19 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
 
 CRITICAL RULES:
 
-1. **Maximum Diversity Required**:
-   - Each option must be a TOTALLY different visual concept
+1. **Subcategory Lock**:
+   - All visual concepts MUST focus on the specified subcategory only
+   - Do NOT generate any other sport, activity, or unrelated subject
+   - Ensure all prompts align strictly with the selected subcategory
+
+2. **Maximum Diversity Required**:
+   - Each option must be a TOTALLY different visual concept within the subcategory
    - NO similar subjects, angles, or styles between options
    - Think: person vs object vs scene vs abstract concept
    - Force creative variety - if one is close-up, another is far away
    - Different moods, different energy levels, different visual approaches
 
-2. **Simple, Clear Descriptions (8-15 words)**:
+3. **Simple, Clear Descriptions (8-15 words)**:
    - Write like you're describing it to a friend
    - Use everyday language, not technical photography terms
    - Focus on what people will see, not camera settings
@@ -147,7 +152,7 @@ CRITICAL RULES:
    - Write how humans naturally describe images
    - Make it easy to understand what the image will look like
 
-7. **Negative Prompt**: "no text, no words, no letters, no watermarks"
+7. **Negative Prompt**: "no text, no words, no letters, no watermarks, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects"
 
 EXAMPLE for birthday + balanced:
 {
@@ -157,7 +162,7 @@ EXAMPLE for birthday + balanced:
     {"lane":"option3","prompt":"party decorations scattered on table, space at bottom"},
     {"lane":"option4","prompt":"abstract celebration with confetti explosion, space at bottom"}
   ],
-  "negativePrompt":"no text, no words, no letters, no watermarks"
+  "negativePrompt":"no text, no words, no letters, no watermarks, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects"
 }`;
 
     const userPrompt = `Category: ${session.category}
@@ -181,7 +186,7 @@ ${session.entity ? `Specific Topic: ${session.entity}` : ''}`;
 
     const finalResult = {
       visualOptions: result.visualOptions || [],
-      negativePrompt: result.negativePrompt || "no background text, no watermarks, no signage, no logos",
+      negativePrompt: result.negativePrompt || "no background text, no watermarks, no signage, no logos, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects",
       model: 'gpt-4.1-2025-04-14'
     };
 
@@ -192,7 +197,7 @@ ${session.entity ? `Specific Topic: ${session.entity}` : ''}`;
     // Fallback to empty options on error
     const errorResult = {
       visualOptions: [],
-      negativePrompt: "no background text, no watermarks, no signage, no logos",
+      negativePrompt: "no background text, no watermarks, no signage, no logos, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects",
       model: "error"
     };
     (errorResult as any).errorCode = "GENERATION_FAILED";
@@ -221,7 +226,7 @@ export function composeFinalPayload({
     textLayoutSpec: LAYOUTS[textLayoutId as keyof typeof LAYOUTS] || LAYOUTS.negativeSpace,
     visualStyle,
     visualPrompt: chosenVisual?.prompt || "",
-    negativePrompt: negativePrompt || "no background text, no watermarks, no signage, no logos",
+    negativePrompt: negativePrompt || "no background text, no watermarks, no signage, no logos, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects",
     dimensions,
     contextId: session.contextId,
     tone: session.tone || "",
