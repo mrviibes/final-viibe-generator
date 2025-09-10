@@ -8,8 +8,10 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Tone-first system prompt
-function getSystemPrompt(tone: string, hasAnchors: boolean): string {
+// Enhanced system prompt with anti-cliché guardrails and comedic variety
+function getSystemPrompt(tone: string, category: string, subcategory: string): string {
+  const randomSeed = Math.floor(Math.random() * 10000);
+  
   const basePrompt = `Return ONLY valid JSON in this exact format:
 {
   "lines": [
@@ -22,11 +24,18 @@ function getSystemPrompt(tone: string, hasAnchors: boolean): string {
 
 Generate 4 distinct text lines that match the ${tone} tone perfectly.
 
-LINE CHARACTERISTICS:
-• Option 1: Short & punchy (15-35 chars) - Direct impact
-• Option 2: Mid-length observation (25-50 chars) - Relatable insight  
-• Option 3: Extended thought (40-70 chars) - ${getToneGuidance(tone)}
-• Option 4: Creative twist (45-70 chars) - Unexpected angle
+COMEDIC VARIETY MANDATE (Each option MUST use a different device):
+• Option 1: ROAST/PUNCHLINE - Sharp, direct hit with unexpected twist
+• Option 2: MISDIRECTION/TWIST - Setup expectation, then subvert it  
+• Option 3: HYPERBOLE/EXAGGERATION - Over-the-top absurd take
+• Option 4: ABSURD/LEFT-FIELD - Completely unexpected observation
+
+ANTI-CLICHÉ GUARDRAILS:
+${getClicheBanList(category, subcategory)}
+• Avoid predictable references unless tagged by user
+• Skip obvious props, decorations, or expected elements
+• Find unexpected angles instead of surface-level observations
+• Make people think "I never thought of it that way"
 
 CORE WRITING RULES:
 • Write like a real person talking - natural, conversational, human
@@ -45,9 +54,39 @@ HUMAN WRITING GUIDELINES:
 
 ${getToneSpecificGuidance(tone)}
 
+RANDOMNESS SEED: RND-${randomSeed} (use this for diverse sampling)
+
 Write like a human having a real conversation - authentic ${tone.toLowerCase()} voice that flows naturally.`;
 
   return basePrompt;
+}
+
+// Category-specific cliché ban lists
+function getClicheBanList(category: string, subcategory: string): string {
+  const lower = `${category}.${subcategory}`.toLowerCase();
+  
+  if (lower.includes('birthday')) {
+    return `• BANNED for Birthday (unless tagged): cake, candles, balloons, confetti, party hats, gifts, wishes, years older, getting old, aging, wrinkles
+• Focus on: life choices, personality quirks, habits, relationships, unexpected observations`;
+  }
+  
+  if (lower.includes('wedding')) {
+    return `• BANNED for Wedding (unless tagged): rings, vows, champagne, roses, dress, groom, bride, altar, "I do"
+• Focus on: relationship dynamics, commitment fears, family drama, life changes`;
+  }
+  
+  if (lower.includes('halloween')) {
+    return `• BANNED for Halloween (unless tagged): costumes, candy, trick-or-treat, ghosts, pumpkins, scary
+• Focus on: adult behavior, social awkwardness, sugar crashes, identity exploration`;
+  }
+  
+  if (lower.includes('christmas')) {
+    return `• BANNED for Christmas (unless tagged): Santa, presents, tree, snow, cookies, reindeer, stockings
+• Focus on: family dynamics, spending habits, winter depression, expectations vs reality`;
+  }
+  
+  return `• Avoid obvious props and decorations for ${subcategory}
+• Find unexpected angles instead of surface-level observations`;
 }
 
 function getToneGuidance(tone: string): string {
@@ -96,61 +135,135 @@ function getToneSpecificGuidance(tone: string): string {
 • Focus on the emotional impact you want to create`;
 }
 
-// Category-specific anchor dictionaries for optional context
-const ANCHORS = {
-  "celebrations.birthday": ["cake", "candles", "balloons", "confetti", "party hats", "gifts"],
-  "celebrations.wedding": ["ring", "vows", "champagne", "roses", "bride", "groom"],
-  "sports.hockey": ["ice rink", "stick", "puck", "goal net", "helmets", "locker room"],
-  "sports.basketball": ["court", "hoop", "net", "sneakers", "scoreboard", "bench"],
-  "vibes & punchlines.dad jokes": [],
-  "vibes & punchlines.puns": [],
-  "pop culture.celebrities": []
-};
-
-// Tone-aware fallback generation with curated content banks
+// Varied tone-aware fallback generation without clichés
 function generateToneAwareFallback(inputs: any): any {
   console.log("Using tone-aware fallback generation");
   
   const { tags = [], tone = "Savage", category = "", subcategory = "" } = inputs;
   const lowerTone = tone.toLowerCase();
+  const randomSeed = Math.floor(Math.random() * 4);
   
-  let fallbackLines: string[] = [];
+  let fallbackSets: string[][] = [];
   
   if (lowerTone.includes('savage') || lowerTone.includes('roast')) {
-    fallbackLines = [
-      "That's expired.",
-      "Why does this feel like a job interview?", 
-      "This costs more than your last relationship.",
-      "Everything here applied for witness protection after you showed up."
+    fallbackSets = [
+      [
+        "That expired last Tuesday.",
+        "Your energy screams 'return policy needed.'",
+        "This situation applied for witness protection after you arrived.",  
+        "Everything here suddenly developed trust issues."
+      ],
+      [
+        "Peak chaos energy detected.",
+        "Why does this feel like a job interview nobody wanted?",
+        "This costs more than your last three relationships combined.",
+        "Plot twist: the real entertainment was the friends we lost along the way."
+      ],
+      [
+        "Mission failed successfully.",
+        "Your vibes called in sick today, apparently.",
+        "This scenario definitely wasn't in the instruction manual.",
+        "Results may vary, warranty clearly voided."
+      ],
+      [
+        "That's some premium nonsense right there.",
+        "Someone definitely skipped the tutorial level.",
+        "This energy could power a small anxiety disorder.",
+        "Achievement unlocked: made things weird without trying."
+      ]
     ];
   } else if (lowerTone.includes('romantic') || lowerTone.includes('sentimental')) {
-    fallbackLines = [
-      "This moment sparkles.",
-      "You notice how time stops here?",
-      "Every detail whispers stories of love and connection.",
-      "This feeling dances through memories hearts treasure forever."
+    fallbackSets = [
+      [
+        "This moment holds magic.",
+        "You notice how time slows in perfect moments?",
+        "Every heartbeat writes poetry only two people understand.",
+        "This feeling creates memories that dance through decades."
+      ],
+      [
+        "Hearts recognize home here.",
+        "Love whispers secrets only souls can hear clearly.",
+        "This connection sparkles brighter than any photograph could capture.",
+        "Time stops when two hearts finally find their rhythm together."
+      ],
+      [
+        "Pure magic lives here.",
+        "Your eyes hold stories worth reading forever and always.",
+        "This tenderness transforms ordinary seconds into precious treasures.",
+        "Every touch writes love letters across grateful skin."
+      ],
+      [  
+        "This warmth feels infinite.",
+        "Love creates its own gravity, pulling hearts closer naturally.",
+        "These moments become the songs hearts hum during lonely nights.",
+        "Connection this deep makes the universe feel perfectly aligned."
+      ]
     ];
   } else if (lowerTone.includes('inspirational') || lowerTone.includes('motivational')) {
-    fallbackLines = [
-      "Dreams start here.",
-      "Notice how possibilities multiply in moments like this?",
-      "Every step forward creates new paths to amazing places.", 
-      "This energy transforms ordinary moments into extraordinary adventures."
+    fallbackSets = [
+      [
+        "Dreams start right here.",
+        "Notice how possibilities multiply when you show up?",
+        "Every bold step forward creates new paths to extraordinary places.",
+        "This energy transforms ordinary moments into launching pads for greatness."
+      ],
+      [
+        "Your potential just woke up.",
+        "Courage compounds when you choose growth over comfort repeatedly.",
+        "This decision echoes through every future version of yourself.",
+        "Amazing happens when preparation meets the moment you stop waiting."
+      ],
+      [
+        "Breakthrough territory ahead.",
+        "Your next level self is applauding this exact moment.",
+        "Growth lives in the space between comfortable and impossible.",
+        "This is how legends begin: one authentic choice at a time."
+      ],
+      [
+        "Victory starts with showing up.",
+        "Excellence whispers before it roars, and you're listening perfectly.",
+        "This moment proves you're stronger than every excuse that once held you back.",
+        "Champions aren't born ready; they're forged in moments exactly like this one."
+      ]
     ];
   } else {
-    // Default balanced tone
-    fallbackLines = [
-      "This moment matters.",
-      "You notice how special this feels?",
-      "Everything here tells a story worth remembering.",
-      "This experience creates connections that time can't diminish."
+    // Default balanced tone with more variety
+    fallbackSets = [
+      [
+        "This moment tells stories.",
+        "You notice how experiences layer meaning over time?",
+        "Everything here creates connections that ripple through memory.",
+        "This feeling writes itself into the collection of moments that matter."
+      ],
+      [
+        "Reality shifts here slightly.",
+        "Some moments insist on being remembered differently than others.",
+        "This experience adds weight to the archive of significant encounters.",
+        "Life deposits these scenes in the vault reserved for replay value."
+      ],
+      [
+        "Context changes everything here.",
+        "Certain moments demand their own category in the mental filing system.",
+        "This encounter earns permanent residence in the highlight reel.",
+        "Memory will polish this experience until it gleams with significance."
+      ],
+      [
+        "Time bends around this.",
+        "Some experiences refuse to fit into standard measurement categories.",
+        "This moment graduates from event to story worth telling repeatedly.",
+        "The universe occasionally provides moments that explain everything else."
+      ]
     ];
   }
   
+  // Select a random set to avoid repetition
+  const selectedSet = fallbackSets[randomSeed % fallbackSets.length];
+  
   // Add tags naturally if provided
+  let finalLines = selectedSet;
   if (tags.length > 0) {
     const tagString = tags.join(" ");
-    fallbackLines = fallbackLines.map((line, index) => {
+    finalLines = selectedSet.map((line, index) => {
       // Add tags to first 3 lines to meet tag requirement
       if (index < 3) {
         return `${tagString} ${line.toLowerCase()}`;
@@ -160,26 +273,29 @@ function generateToneAwareFallback(inputs: any): any {
   }
   
   return {
-    lines: fallbackLines.map((text, index) => ({
+    lines: finalLines.map((text, index) => ({
       lane: `option${index + 1}`,
       text: text
     })),
-    model: "tone-aware-fallback",
+    model: "varied-fallback",
     validated: true,
     reason: "fallback_generation",
     tone: tone,
     tags_used: tags.length > 0,
-    lengths: fallbackLines.map(t => t.length)
+    lengths: finalLines.map(t => t.length),
+    set_used: randomSeed % fallbackSets.length
   };
 }
 
-// Enhanced user message building
+// Enhanced user message building without anchor hints
 function buildUserMessage(inputs: any): string {
   const { category, subcategory, tone, tags = [] } = inputs;
+  const randomToken = `RND-${Math.floor(Math.random() * 10000)}`;
   
   let message = `Category: ${category}
 Subcategory: ${subcategory}
-Tone: ${tone}`;
+Tone: ${tone}
+Randomness Token: ${randomToken}`;
 
   // Include tags if provided
   if (tags.length > 0) {
@@ -188,24 +304,32 @@ Tone: ${tone}`;
     message += `\nTAGS: (none)`;
   }
   
-  // Get category-specific context hints
-  const ctxKey = `${category.toLowerCase()}.${subcategory.toLowerCase()}`;
-  const anchors = ANCHORS[ctxKey] || [];
-  
-  if (anchors.length > 0) {
-    message += `\nCONTEXT HINTS: ${anchors.join(", ")} (optional background context)`;
-  }
+  // Add anti-cliché instruction
+  message += `\n\nAVOID PREDICTABLE REFERENCES: Don't default to obvious props or decorations. Find unexpected angles and surprising observations instead.`;
   
   return message;
 }
 
-// Relaxed validation with focus on core quality
+// Enhanced validation with cliché detection and uniqueness checking
 function validateAndRepair(rawText: string, inputs: any): { result: any | null; errors: string[]; repairs: string[] } {
   const errors: string[] = [];
   const repairs: string[] = [];
   
-  // Relaxed banned words (only the worst offenders)
+  // Enhanced banned words including clichés
   const AVOID_WORDS = ['utilize', 'moreover', 'additionally', 'furthermore', 'ultimately'];
+  
+  // Category-specific cliché detection
+  const getClichePhrases = (category: string, subcategory: string): string[] => {
+    const lower = `${category}.${subcategory}`.toLowerCase();
+    
+    if (lower.includes('birthday')) {
+      return ['another year', 'getting old', 'blow out', 'make a wish', 'over the hill', 'age is just'];
+    }
+    if (lower.includes('wedding')) {
+      return ['til death do us part', 'happily ever after', 'big day', 'tie the knot', 'better half'];
+    }
+    return ['once in a lifetime', 'special day', 'memorable moment'];
+  };
   
   try {
     const parsed = JSON.parse(rawText);
@@ -215,7 +339,8 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       return { result: null, errors, repairs };
     }
     
-    const { tags = [], tone = "" } = inputs;
+    const { tags = [], tone = "", category = "", subcategory = "" } = inputs;
+    const clichePhrases = getClichePhrases(category, subcategory);
     
     // Process lines with basic cleanup
     const processedLines = parsed.lines.map((line: any, index: number) => {
@@ -245,11 +370,10 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       };
     });
     
-    // Relaxed length validation (more flexible ranges)
+    // Enhanced length validation
     processedLines.forEach((line, index) => {
       const lineLength = line.text.length;
       
-      // More generous length limits
       if (lineLength < 10) {
         errors.push(`Option ${index + 1}: Too short (${lineLength} chars) - minimum 10 characters`);
       } else if (lineLength > 75) {
@@ -272,15 +396,39 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       }
     });
     
-    // Avoid worst offender words
+    // Enhanced cliché detection
     processedLines.forEach((line, index) => {
       const lowerText = line.text.toLowerCase();
+      
+      // Check for overused words
       AVOID_WORDS.forEach(word => {
         if (lowerText.includes(word)) {
           errors.push(`Option ${index + 1}: Contains overused word "${word}"`);
         }
       });
+      
+      // Check for category-specific clichés
+      clichePhrases.forEach(phrase => {
+        if (lowerText.includes(phrase.toLowerCase())) {
+          errors.push(`Option ${index + 1}: Contains cliché phrase "${phrase}"`);
+        }
+      });
     });
+    
+    // Enhanced uniqueness check
+    const texts = processedLines.map(line => line.text.toLowerCase().trim());
+    const uniqueTexts = new Set(texts);
+    if (uniqueTexts.size < 4) {
+      errors.push("Duplicate content detected - all 4 lines should be unique");
+    }
+    
+    // Check for comedic variety (savage tone specific)
+    if (tone.toLowerCase().includes('savage')) {
+      const hasVariety = checkComedyVariety(processedLines.map(l => l.text));
+      if (!hasVariety) {
+        errors.push("Insufficient comedic variety - need different devices (roast, twist, hyperbole, absurd)");
+      }
+    }
     
     // Tag handling - try to have tags in most lines if provided
     if (tags.length > 0) { 
@@ -290,23 +438,16 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
       const linesWithTags = processedLines.filter(line => hasAnyTag(line.text, tags));
       
       if (linesWithTags.length < 2) {
-        // Only flag if really no tags used
         errors.push(`Tag suggestion: Consider including tags [${tags.join(', ')}] in more lines`);
       }
-    }
-    
-    // Deduplication check
-    const texts = processedLines.map(line => line.text.toLowerCase().trim());
-    const uniqueTexts = new Set(texts);
-    if (uniqueTexts.size < 4) {
-      errors.push("Duplicate content detected - all 4 lines should be unique");
     }
     
     // Only fail on critical errors, treat others as warnings
     const criticalErrors = errors.filter(err => 
       err.includes("Empty or placeholder") || 
       err.includes("Invalid JSON") ||
-      err.includes("Duplicate content")
+      err.includes("Duplicate content") ||
+      err.includes("Contains cliché phrase")
     );
     
     if (criticalErrors.length === 0) {
@@ -323,6 +464,28 @@ function validateAndRepair(rawText: string, inputs: any): { result: any | null; 
     errors.push(`JSON parse error: ${e.message}`);
     return { result: null, errors, repairs };
   }
+}
+
+// Helper function to check comedy variety
+function checkComedyVariety(lines: string[]): boolean {
+  // Simple heuristic - look for different patterns
+  const patterns = {
+    roast: /\b(expired|failed|worst|disaster|applied for|protection)\b/i,
+    twist: /\b(plot twist|turns out|actually|surprise|meanwhile)\b/i,
+    hyperbole: /\b(literally|absolutely|completely|totally|entirely|all)\b/i,
+    absurd: /\b(universe|quantum|physics|dimension|aliens|witness protection)\b/i
+  };
+  
+  const usedPatterns = new Set();
+  lines.forEach(line => {
+    Object.entries(patterns).forEach(([type, regex]) => {
+      if (regex.test(line)) {
+        usedPatterns.add(type);
+      }
+    });
+  });
+  
+  return usedPatterns.size >= 2; // At least 2 different patterns
 }
 
 // Updated generation with improved model cascade and tone-first approach
@@ -346,8 +509,8 @@ Please fix these issues while maintaining the ${inputs.tone} tone and natural fl
     
     console.log(`Using model: ${model}`);
     
-    // Use the new tone-first system prompt
-    const systemPrompt = getSystemPrompt(inputs.tone || 'Balanced', true);
+    // Use the enhanced system prompt with category/subcategory for anti-cliché guardrails
+    const systemPrompt = getSystemPrompt(inputs.tone || 'Balanced', inputs.category || '', inputs.subcategory || '');
     
     const requestBody: any = {
       model,
