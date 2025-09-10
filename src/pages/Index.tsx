@@ -4283,6 +4283,9 @@ const Index = () => {
     negative_prompt?: string;
   }>({});
 
+  // Visual creativity control
+  const [visualSpice, setVisualSpice] = useState<'balanced' | 'spicy' | 'wild'>('spicy');
+
   // Visual AI recommendations state
   const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
   const [selectedRecommendation, setSelectedRecommendation] = useState<number | null>(null);
@@ -4347,7 +4350,8 @@ const Index = () => {
             tone: selectedTextStyle || 'humorous',
             tags: tags,
             textContent: selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ""),
-            textLayoutId: selectedTextLayout || "negativeSpace"
+            textLayoutId: selectedTextLayout || "negativeSpace",
+            spiceLevel: visualSpice
           });
           
           // Ensure visual variance (disabled)
@@ -4843,7 +4847,8 @@ const Index = () => {
         tone: tone.toLowerCase(),
         tags: finalTags,
         textContent: finalLine || "",
-        textLayoutId: selectedTextLayout || "negativeSpace"
+        textLayoutId: selectedTextLayout || "negativeSpace",
+        spiceLevel: visualSpice
       });
       
       // Ensure visual variance (disabled)
@@ -6256,11 +6261,23 @@ const Index = () => {
                      {/* Visual AI recommendations - always show if available */}
                      {selectedSubjectOption === "ai-assist" && visualOptions.length > 0 && selectedVisualIndex === null && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                          <div className="text-center mb-6">
-                             <div className="flex items-center justify-center gap-3 mb-2">
-                               <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
-                               <Button variant="outline" size="sm" onClick={handleGenerateSubject} disabled={isGeneratingSubject} className="text-xs">
-                                 {isGeneratingSubject ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
-                               </Button>
+                              <div className="flex items-center justify-center gap-3 mb-2">
+                                <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
+                                <div className="flex items-center gap-2">
+                                  <Select value={visualSpice} onValueChange={(value: 'balanced' | 'spicy' | 'wild') => setVisualSpice(value)}>
+                                    <SelectTrigger className="w-28 h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="balanced">Balanced</SelectItem>
+                                      <SelectItem value="spicy">Spicy</SelectItem>
+                                      <SelectItem value="wild">Wild</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <Button variant="outline" size="sm" onClick={handleGenerateSubject} disabled={isGeneratingSubject} className="text-xs">
+                                    {isGeneratingSubject ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Regenerate"}
+                                  </Button>
+                                </div>
                                {visualModel === 'fallback' && <Button variant="outline" size="sm" onClick={testAIConnection} disabled={isTestingProxy} className="text-xs">
                                    {isTestingProxy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : "Test Connection"}
                                  </Button>}
@@ -6284,7 +6301,7 @@ const Index = () => {
                                 </CardTitle>
                               </CardHeader>
                               <CardContent className="pt-0">
-                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                <p className="text-sm text-muted-foreground line-clamp-3">
                                   {cleanVisualDescription(option.subject)} - {option.background}
                                 </p>
                               </CardContent>

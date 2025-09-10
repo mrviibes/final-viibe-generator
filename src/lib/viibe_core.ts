@@ -64,7 +64,7 @@ export async function generateTextOptions(session: Session, { tone, tags = [] }:
 ========================================================= */
 import { openAIService } from './openai';
 
-export async function generateVisualOptions(session: Session, { tone, tags = [], textContent = "", textLayoutId = "negativeSpace" }: { tone: string; tags?: string[]; textContent?: string; textLayoutId?: string }): Promise<{
+export async function generateVisualOptions(session: Session, { tone, tags = [], textContent = "", textLayoutId = "negativeSpace", spiceLevel = "spicy" }: { tone: string; tags?: string[]; textContent?: string; textLayoutId?: string; spiceLevel?: "balanced" | "spicy" | "wild" }): Promise<{
   visualOptions: Array<{ lane: string; prompt: string }>;
   negativePrompt: string;
   model: string;
@@ -100,7 +100,19 @@ CRITICAL RULES:
    - NO rephrasing same idea ("birthday party" vs "celebration" = FORBIDDEN)
    - Force cognitive diversity across all 4 options
 
-2. **Layout Tokens** (append exactly one based on textLayoutId):
+2. **Dynamic Compact Clause Format (6-16 words)**:
+   Each prompt must include ALL of these elements in a compact clause:
+   - ONE dynamic action verb (bursting, shattering, sprinting, lunging, whipping, colliding, floating, spinning, cascading, erupting)
+   - ONE camera/perspective cue (low-angle shot, overhead view, dutch angle, extreme close-up, tracking shot, wide-angle, macro view)
+   - ONE lighting/mood/color accent (rim light, backlit glow, neon cyan, moody teal, golden hour, dramatic shadows, vibrant magenta)
+   - The layout token at the end
+   
+   **Spice Level Behavior**:
+   - balanced → tasteful motion/lighting cues, mild color accents, natural dynamics
+   - spicy → pronounced motion, bold camera angles, strong color accents, energetic action
+   - wild → maximal motion/energy, surreal or symbolic twists (SFW), striking color palettes, dramatic dynamics
+
+3. **Layout Tokens** (append exactly one based on textLayoutId):
    - negativeSpace  → ", clear empty area near largest margin"
    - memeTopBottom  → ", clear top band, clear bottom band" 
    - lowerThird     → ", clear lower third"
@@ -108,27 +120,26 @@ CRITICAL RULES:
    - badgeSticker   → ", badge space top-right"
    - subtleCaption  → ", clear narrow bottom strip"
 
-3. **Visual Concept Enforcement**:
-   - **Option1**: Direct literal interpretation of text/context
-   - **Option2**: Environment/audience/setting perspective (avoid Option1's subject)
-   - **Option3**: Related but different angle/object from same context  
-   - **Option4**: Abstract/symbolic representation of the concept
+4. **Visual Concept Enforcement**:
+   - **Option1**: Direct literal interpretation with dynamic action
+   - **Option2**: Environment/audience/setting perspective with different camera angle
+   - **Option3**: Related but different object/angle with unique lighting  
+   - **Option4**: Abstract/symbolic representation with dramatic visual elements
 
-4. **Format Requirements**:
-   - Short subject description (2-6 words maximum)
-   - NO style words (realistic/anime/3D/cinematic/etc)
+5. **Format Requirements**:
+   - NO engine style words (realistic/anime/3D/cinematic/etc)
    - NO text-related terms (signage/watermark/logo/typography)
-   - End with comma + layout token
+   - Each camera cue and main noun must be different across all 4 options
 
-5. **Negative Prompt**: Always include "no background text, no signage, no watermarks, no logos, no typography"
+6. **Negative Prompt**: Always include "no background text, no signage, no watermarks, no logos, no typography"
 
-EXAMPLE for birthday + lowerThird:
+EXAMPLE for birthday + spicy + lowerThird:
 {
   "visualOptions":[
-    {"lane":"option1","prompt":"birthday cake with candles, clear lower third"},
-    {"lane":"option2","prompt":"party guests clapping, clear lower third"},  
-    {"lane":"option3","prompt":"wrapped gift boxes, clear lower third"},
-    {"lane":"option4","prompt":"floating balloons, clear lower third"}
+    {"lane":"option1","prompt":"cake bursting with candles, low-angle shot, golden hour glow, clear lower third"},
+    {"lane":"option2","prompt":"crowd cheering wildly, overhead view, neon party lights, clear lower third"},  
+    {"lane":"option3","prompt":"confetti cascading down, macro close-up, vibrant magenta accent, clear lower third"},
+    {"lane":"option4","prompt":"balloon floating upward, dutch angle, dramatic backlight, clear lower third"}
   ],
   "negativePrompt":"no background text, no signage, no watermarks, no logos, no typography"
 }`;
@@ -136,6 +147,7 @@ EXAMPLE for birthday + lowerThird:
     const userPrompt = `Category: ${session.category}
 Subcategory: ${session.subcategory}
 Tone: ${tone}
+SpiceLevel: ${spiceLevel}  # one of: balanced|spicy|wild
 TextContent: "${textContent}"
 TextLayoutId: ${textLayoutId}  # one of: negativeSpace|memeTopBottom|lowerThird|sideBarLeft|badgeSticker|subtleCaption
 Tags: ${tags.join(', ')}
