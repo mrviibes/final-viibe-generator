@@ -4254,6 +4254,7 @@ const Index = () => {
   const [showTextOverlay, setShowTextOverlay] = useState<boolean>(false);
   const [backgroundOnlyImageUrl, setBackgroundOnlyImageUrl] = useState<string | null>(null);
   const [lastIdeogramPrompt, setLastIdeogramPrompt] = useState<string>("");
+  const [lastIdeogramNegativePrompt, setLastIdeogramNegativePrompt] = useState<string>("");
   const [finalImageWithText, setFinalImageWithText] = useState<string | null>(null);
   const [textMisspellingDetected, setTextMisspellingDetected] = useState<boolean>(false);
   const [cleanBackgroundMode, setCleanBackgroundMode] = useState<boolean>(true);
@@ -5028,15 +5029,20 @@ const Index = () => {
       });
       const modelForIdeogram = 'V_3'; // V_3 model for better quality
       
-      // Store the final prompt for display
+      // Create negative prompt
+      const negativePrompt = "no background text, no signage, no watermarks, no logos, no typography, no words, no letters, no readable text";
+      
+      // Store the final prompt and negative prompt for display
       setLastIdeogramPrompt(prompt);
+      setLastIdeogramNegativePrompt(negativePrompt);
       
       const response = await generateIdeogramImage({
         prompt,
         aspect_ratio: aspectForIdeogram,
         model: modelForIdeogram,
         magic_prompt_option: 'AUTO',
-        style_type: styleForIdeogram
+        style_type: styleForIdeogram,
+        negative_prompt: negativePrompt
       });
       if (response.data && response.data.length > 0) {
         setGeneratedImageUrl(response.data[0].url);
@@ -6661,26 +6667,24 @@ const Index = () => {
                 <div className="mt-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Ideogram API Prompt</CardTitle>
-                      <CardDescription>The exact prompt string sent to the Ideogram API</CardDescription>
+                      <CardTitle className="text-lg">Ideogram API Prompts</CardTitle>
+                      <CardDescription>The exact prompt strings sent to the Ideogram API</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <div className="relative">
-                        <pre className="bg-muted p-4 rounded-lg text-sm font-mono text-wrap whitespace-pre-wrap break-words overflow-x-auto">
+                    <CardContent className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Positive Prompt:</label>
+                        <pre className="bg-muted p-4 rounded-lg text-sm font-mono text-wrap whitespace-pre-wrap break-words overflow-x-auto mt-1">
                           {lastIdeogramPrompt}
                         </pre>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="absolute top-2 right-2"
-                          onClick={() => {
-                            navigator.clipboard.writeText(lastIdeogramPrompt);
-                            sonnerToast.success("Prompt copied to clipboard!");
-                          }}
-                        >
-                          Copy
-                        </Button>
                       </div>
+                      {lastIdeogramNegativePrompt && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">Negative Prompt:</label>
+                          <pre className="bg-muted p-4 rounded-lg text-sm font-mono text-wrap whitespace-pre-wrap break-words overflow-x-auto mt-1">
+                            {lastIdeogramNegativePrompt}
+                          </pre>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
