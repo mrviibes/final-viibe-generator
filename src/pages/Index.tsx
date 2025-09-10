@@ -6254,7 +6254,7 @@ const Index = () => {
                 }}>
                               <CardHeader className="pb-2">
                                 <CardTitle className="text-base font-semibold text-card-foreground">
-                                  Option {index + 1} ({option.slot?.replace('-', ' ') || 'Visual'})
+                                  Option {index + 1}
                                 </CardTitle>
                               </CardHeader>
                               <CardContent className="pt-0">
