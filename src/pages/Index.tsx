@@ -5226,19 +5226,6 @@ const Index = () => {
             {showAdvanced && (
               <div className="bg-muted/50 rounded-lg p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Magic Prompt Enhancement */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-foreground">Magic Prompt Enhancement</label>
-                      <Switch
-                        checked={enableMagicPrompt}
-                        onCheckedChange={setEnableMagicPrompt}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Let Ideogram AI enhance your prompt for better results (may differ from website behavior)
-                    </p>
-                  </div>
                 </div>
 
                 {/* Negative Prompt */}
@@ -6208,10 +6195,22 @@ const Index = () => {
                         <div className="max-w-lg mx-auto space-y-6">
                           {/* Tag Input */}
                           <div className="space-y-4">
-                            <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
-                            
-                            {/* Generate Button - Below the input */}
-                            <div className="flex justify-center">
+                             <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                             
+                             {/* Magic Prompt Enhancement Toggle */}
+                             <div className="flex items-center justify-center gap-3 py-4">
+                               <label className="text-sm font-medium text-foreground">Magic Prompt Enhancement</label>
+                               <Switch
+                                 checked={enableMagicPrompt}
+                                 onCheckedChange={setEnableMagicPrompt}
+                               />
+                             </div>
+                             <p className="text-xs text-muted-foreground text-center -mt-2 mb-4">
+                               Let Ideogram AI enhance your prompt for better results (may differ from website behavior)
+                             </p>
+                             
+                             {/* Generate Button - Below the input */}
+                             <div className="flex justify-center">
                               <Button variant="brand" size="lg" className="px-8 py-3 text-base font-medium rounded-lg" onClick={handleGenerateSubject} disabled={isGeneratingSubject}>
                                 {isGeneratingSubject ? <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
