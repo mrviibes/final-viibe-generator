@@ -122,6 +122,39 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
       };
     }
 
+    // If we got a fallback model response, try client-side OpenAI as backup
+    if (data.model === "fallback") {
+      console.log("Server returned fallback, attempting client-side generation");
+      
+      try {
+        const { openAIService } = await import("@/lib/openai");
+        
+        if (openAIService.hasApiKey()) {
+          console.log("Using client-side OpenAI as backup");
+          
+          const clientLines = await openAIService.generateShortTexts({
+            category: inputs.category,
+            subtopic: inputs.subcategory,
+            tone: inputs.tone,
+            tags: inputs.tags,
+            characterLimit: 90
+          });
+          
+          if (clientLines && clientLines.length >= 4) {
+            return {
+              lines: clientLines.slice(0, 4).map((text, index) => ({
+                lane: `option${index + 1}`,
+                text
+              })),
+              model: "client-openai"
+            };
+          }
+        }
+      } catch (clientError) {
+        console.error("Client-side OpenAI error:", clientError);
+      }
+    }
+
     return {
       lines: data.lines,
       model: data.model

@@ -46,6 +46,16 @@ function getTopicalAnchors(category: string, subcategory: string): string[] {
     } else if (subcategory === "Graduation") {
       anchors.push("job search", "student loan", "resume", "linkedin", "interview", "networking", "apartment hunt", "moving", "family photo");
     }
+  } else if (category === "Sports") {
+    if (subcategory === "Basketball") {
+      anchors.push("pickup game", "rec league", "shooting percentage", "bench", "timeout", "draft", "trade deadline", "roster", "injury report", "practice");
+    } else if (subcategory === "American Football") {
+      anchors.push("fantasy league", "draft day", "waiver wire", "injury report", "playoff bracket", "superbowl party", "tailgate", "season ticket", "trade deadline");
+    } else if (subcategory === "Baseball") {
+      anchors.push("batting average", "spring training", "trade deadline", "farm system", "season ticket", "rain delay", "seventh inning", "playoff race");
+    } else if (subcategory === "Soccer") {
+      anchors.push("transfer window", "penalty kick", "injury time", "yellow card", "world cup", "championship", "league table", "group stage");
+    }
   }
   
   return anchors;
@@ -69,6 +79,16 @@ function getClicheBanList(category: string, subcategory: string): string[] {
     } else if (subcategory === "Graduation") {
       bans.push("cap and gown", "diploma", "tassel", "ceremony", "valedictorian", "commencement");
     }
+  } else if (category === "Sports") {
+    if (subcategory === "Basketball") {
+      bans.push("swish", "slam dunk", "three pointer", "buzzer beater", "full court press", "fast break", "alley oop");
+    } else if (subcategory === "American Football") {
+      bans.push("touchdown", "field goal", "quarterback", "end zone", "hail mary", "first down", "super bowl");
+    } else if (subcategory === "Baseball") {
+      bans.push("home run", "grand slam", "world series", "strike out", "double play", "bottom of the ninth");
+    } else if (subcategory === "Soccer") {
+      bans.push("goal", "penalty kick", "hat trick", "offside", "world cup", "free kick", "corner kick");
+    }
   }
   
   return bans;
@@ -91,6 +111,16 @@ function getVibeKeywords(category: string, subcategory: string): string[] {
       vibes.push("wedding", "marriage", "married", "spouse", "honeymoon");
     } else if (subcategory === "Graduation") {
       vibes.push("graduation", "graduate", "degree", "school", "student");
+    }
+  } else if (category === "Sports") {
+    if (subcategory === "Basketball") {
+      vibes.push("basketball", "court", "season", "game", "team", "player", "coach", "league");
+    } else if (subcategory === "American Football") {
+      vibes.push("football", "field", "season", "game", "team", "player", "coach", "league");
+    } else if (subcategory === "Baseball") {
+      vibes.push("baseball", "diamond", "season", "game", "team", "player", "coach", "league");
+    } else if (subcategory === "Soccer") {
+      vibes.push("soccer", "football", "pitch", "season", "game", "team", "player", "coach", "league");
     }
   }
   
@@ -765,6 +795,48 @@ function getToneAwareFallback(category: string, subcategory: string, tone: strin
           `You're${tagIntegration ? ' ' + tagIntegration + ' is' : ''} building something worth celebrating`,
           `This is${tagIntegration ? ' ' + tagIntegration + ' showing' : ''} what progress looks like`,
           `Your journey${tagIntegration ? ' with ' + tagIntegration : ''} inspires everyone around you`
+        ]
+      }
+    },
+    "Sports": {
+      "Basketball": {
+        "Savage": [
+          `${tagIntegration ? tagIntegration + ' shooting' : 'Shooting'} bricks like it's a construction project`,
+          `Your basketball skills${tagIntegration ? ' ' + tagIntegration : ''} peaked in middle school`,
+          `${tagIntegration ? tagIntegration + ' benched' : 'Benched'} yourself before the coach could`,
+          `This defense${tagIntegration ? ' from ' + tagIntegration : ''} wouldn't stop a wheelchair team`
+        ],
+        "Humorous": [
+          `${tagIntegration ? tagIntegration + ' pretending' : 'Pretending'} that was totally intentional`,
+          `Basketball strategy${tagIntegration ? ' with ' + tagIntegration : ''}: hope for the best`,
+          `${tagIntegration ? tagIntegration + ' living' : 'Living'} that pickup game main character energy`,
+          `Court vision${tagIntegration ? ' for ' + tagIntegration : ''}: exclusively tunnel vision`
+        ],
+        "Playful": [
+          `${tagIntegration ? tagIntegration + ' channeling' : 'Channeling'} those legendary bench warming skills`,
+          `Someone${tagIntegration ? ' ' + tagIntegration : ''} watched one NBA game and thinks they're ready`,
+          `Basketball IQ${tagIntegration ? ' of ' + tagIntegration : ''}: still loading`,
+          `${tagIntegration ? tagIntegration + ' making' : 'Making'} recreational league look competitive`
+        ]
+      },
+      "American Football": {
+        "Savage": [
+          `${tagIntegration ? tagIntegration + ' throwing' : 'Throwing'} interceptions like it's the plan`,
+          `Your fantasy team${tagIntegration ? ' ' + tagIntegration : ''} is more fantasy than reality`,
+          `${tagIntegration ? tagIntegration + ' fumbled' : 'Fumbled'} before the play even started`,
+          `This game plan${tagIntegration ? ' from ' + tagIntegration : ''} was written in crayon`
+        ],
+        "Humorous": [
+          `${tagIntegration ? tagIntegration + ' treating' : 'Treating'} the playbook like a suggestion`,
+          `Football wisdom${tagIntegration ? ' with ' + tagIntegration : ''}: just run faster`,
+          `${tagIntegration ? tagIntegration + ' perfecting' : 'Perfecting'} the art of creative penalties`,
+          `Game strategy${tagIntegration ? ' for ' + tagIntegration : ''}: chaos with a side of hope`
+        ],
+        "Playful": [
+          `${tagIntegration ? tagIntegration + ' bringing' : 'Bringing'} that backyard football energy`,
+          `Someone${tagIntegration ? ' ' + tagIntegration : ''} thinks they're the next franchise player`,
+          `Football IQ${tagIntegration ? ' of ' + tagIntegration : ''}: still buffering`,
+          `${tagIntegration ? tagIntegration + ' making' : 'Making'} tackle football look like a contact sport`
         ]
       }
     }
