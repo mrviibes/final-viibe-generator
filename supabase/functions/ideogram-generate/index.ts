@@ -118,9 +118,14 @@ serve(async (req) => {
       const seed = Math.floor(Math.random() * 1000000);
       
       // V3 API expects JSON with image_request wrapper
+      // Handle negative prompt separately if provided, otherwise combine with positive prompt
+      const finalPrompt = negative_prompt && negative_prompt.trim() 
+        ? `${prompt}. Avoid: ${negative_prompt}` 
+        : prompt;
+      
       const requestPayload = {
         image_request: {
-          prompt: negative_prompt ? `${prompt}. ${negative_prompt}` : prompt,
+          prompt: finalPrompt,
           resolution: resolution,
           seed: seed
         }
@@ -151,7 +156,7 @@ serve(async (req) => {
           
           const fallbackPayload = {
             image_request: {
-              prompt: negative_prompt ? `${prompt}. ${negative_prompt}` : prompt,
+              prompt: finalPrompt,
               resolution: 'RESOLUTION_1024_1024',
               seed: seed
             }

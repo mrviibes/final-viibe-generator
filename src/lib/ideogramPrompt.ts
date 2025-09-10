@@ -95,39 +95,13 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
 }
 
 export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts {
-  const parts: string[] = [];
+  const textParts: string[] = [];
+  const sceneParts: string[] = [];
   
-  // 1. Core subject with tone
-  const subject = handoff.chosen_visual || handoff.rec_subject || `${handoff.tone} ${handoff.category} scene`;
-  const cleanSubject = subject.replace(/,?\s*(clear empty area near largest margin|clear top band|clear bottom band|clear lower third|clear left panel|badge space top-right|clear narrow bottom strip)/gi, '').trim();
-  
-  // 2. Style specification
-  const styleSpec = handoff.visual_style && handoff.visual_style.toLowerCase() !== 'auto' 
-    ? `in ${handoff.visual_style} style` 
-    : 'in realistic photo style';
-  
-  parts.push(`${handoff.tone} ${cleanSubject} ${styleSpec}.`);
-  
-  // 3. Cinematic lighting and atmosphere (randomized)
-  const lighting = getRandomElement(lightingVariations);
-  const angle = getRandomElement(angleVariations);
-  parts.push(`${lighting}, ${angle} with cinematic atmosphere.`);
-  
-  // 4. Layout instruction for text space
+  // Get layout configuration first
   const layout = getLayoutInstruction(handoff);
-  parts.push(`${layout.composition}.`);
   
-  // 5. Tone-driven feeling (randomized)
-  const moodOptions = moodEnhancers[handoff.tone.toLowerCase()] || moodEnhancers.default;
-  const mood = getRandomElement(moodOptions);
-  parts.push(`Emphasize ${mood}.`);
-  
-  // 6. Visual tags if provided
-  if (handoff.visual_tags_csv && handoff.visual_tags_csv !== "None") {
-    parts.push(`Visual elements: ${handoff.visual_tags_csv}.`);
-  }
-  
-  // 7. EXPLICIT TEXT RENDERING INSTRUCTION
+  // 1. TEXT-FIRST: EXPLICIT TEXT RENDERING INSTRUCTION (highest priority)
   if (handoff.key_line && handoff.key_line.trim()) {
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
@@ -136,14 +110,46 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff): IdeogramPrompts 
     const styles = ['subtle shadow', 'soft glow', 'clean stroke', 'elegant gradient'];
     const textStyle = getRandomElement(styles);
     
-    parts.push(`Render the following text directly in the image: "${handoff.key_line}". Use ${layout.textPlacement} with ${selectedFont}, ${alignment} aligned, ${textStyle} for maximum contrast and readability.`);
+    textParts.push(`Render the following text directly in the image: "${handoff.key_line}". Use ${layout.textPlacement} with ${selectedFont}, ${alignment} aligned, ${textStyle} for maximum contrast and readability.`);
   }
+  
+  // 2. SCENE DESCRIPTION: Core subject with tone
+  const subject = handoff.chosen_visual || handoff.rec_subject || `${handoff.tone} ${handoff.category} scene`;
+  const cleanSubject = subject.replace(/,?\s*(clear empty area near largest margin|clear top band|clear bottom band|clear lower third|clear left panel|badge space top-right|clear narrow bottom strip)/gi, '').trim();
+  
+  // 3. Style specification
+  const styleSpec = handoff.visual_style && handoff.visual_style.toLowerCase() !== 'auto' 
+    ? `in ${handoff.visual_style} style` 
+    : 'in realistic photo style';
+  
+  sceneParts.push(`${handoff.tone} ${cleanSubject} ${styleSpec}.`);
+  
+  // 4. Cinematic lighting and atmosphere (randomized)
+  const lighting = getRandomElement(lightingVariations);
+  const angle = getRandomElement(angleVariations);
+  sceneParts.push(`${lighting}, ${angle} with cinematic atmosphere.`);
+  
+  // 5. Layout instruction for composition
+  sceneParts.push(`${layout.composition}.`);
+  
+  // 6. Tone-driven feeling (randomized)
+  const moodOptions = moodEnhancers[handoff.tone.toLowerCase()] || moodEnhancers.default;
+  const mood = getRandomElement(moodOptions);
+  sceneParts.push(`Emphasize ${mood}.`);
+  
+  // 7. Visual tags if provided
+  if (handoff.visual_tags_csv && handoff.visual_tags_csv !== "None") {
+    sceneParts.push(`Visual elements: ${handoff.visual_tags_csv}.`);
+  }
+  
+  // CRITICAL: Text instructions FIRST, then scene description
+  const allParts = [...textParts, ...sceneParts];
   
   // Static negative prompt for consistent quality
   const negative_prompt = `no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe`;
   
   return {
-    positive_prompt: parts.join(' '),
+    positive_prompt: allParts.join(' '),
     negative_prompt
   };
 }
