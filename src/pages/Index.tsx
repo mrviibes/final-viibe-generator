@@ -6022,7 +6022,7 @@ const Index = () => {
 
                 {/* Show selected layout confirmation */}
                 {selectedTextLayout && selectedCompletionOption !== "no-text" && (
-                  <div className="mt-8">
+                  <div className="mt-2">
                     <StackedSelectionCard 
                       selections={[{
                         title: (() => {
