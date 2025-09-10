@@ -717,6 +717,5 @@ serve(async (req) => {
       status: 200, // Still return 200 so frontend gets usable content
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-    });
   }
 });
