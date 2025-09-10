@@ -5271,44 +5271,6 @@ const Index = () => {
         {/* Step Progress Header */}
         <StepProgress currentStep={currentStep} />
         
-        {/* Advanced Generation Controls */}
-        <div className="mb-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between py-4 px-6 bg-background border border-border rounded-lg">
-              <h3 className="text-lg font-semibold text-foreground">Generation Settings</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-muted-foreground hover:text-foreground flex items-center gap-2"
-              >
-                {showAdvanced ? 'Hide Advanced' : 'Show Advanced'}
-                <ChevronDown className={`h-4 w-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-              </Button>
-            </div>
-            
-            {showAdvanced && (
-              <div className="bg-muted/50 rounded-lg p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                </div>
-
-                {/* Negative Prompt */}
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-foreground">Negative Prompt (Optional)</label>
-                  <textarea
-                    placeholder="Describe what you don't want in the image..."
-                    value={negativePrompt}
-                    onChange={(e) => setNegativePrompt(e.target.value)}
-                    className="w-full min-h-[80px] px-3 py-2 text-sm border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Specify elements to avoid in the generated image
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
         
         {currentStep === 1 && <>
             <div className="text-center mb-12">
