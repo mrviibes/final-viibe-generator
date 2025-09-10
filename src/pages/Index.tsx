@@ -4478,7 +4478,7 @@ const Index = () => {
   const [proxyApiKey, setProxyApiKey] = useState('');
 
   // Text rendering mode states
-  const [textInsideImage, setTextInsideImage] = useState<boolean>(true);
+  const [textInsideImage, setTextInsideImage] = useState<boolean>(false);
   const [showRetryLayoutDialog, setShowRetryLayoutDialog] = useState<boolean>(false);
   const [showSafetyValidationDialog, setShowSafetyValidationDialog] = useState<boolean>(false);
   const [safetyModifications, setSafetyModifications] = useState<{
@@ -5601,7 +5601,7 @@ const Index = () => {
     setVisualSpice('balanced');
     
     // Clear overlay/text modes
-    setTextInsideImage(true);
+    setTextInsideImage(false);
     setSpellingGuaranteeMode(false);
     setShowTextOverlay(false);
     setBackgroundOnlyImageUrl(null);

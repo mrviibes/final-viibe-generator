@@ -208,8 +208,8 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
     const styles = ['subtle shadow', 'soft glow', 'clean stroke', 'elegant gradient'];
     const textStyle = getRandomElement(styles);
     
-    // Stronger text directive as discussed
-    textParts.push(`Render the following text clearly in the image: "${handoff.key_line}". The text must be large, ${selectedFont}, ${alignment} aligned, with ${textStyle} for readability. This text is required and cannot be omitted. Use ${layout.textPlacement}.`);
+    // Stronger text directive to prevent duplication
+    textParts.push(`Render the following text exactly once: "${handoff.key_line}". Do not repeat words or phrases. Do not paraphrase. No alternate captions. Place it as ${layout.textPlacement} with large high-contrast, clean ${selectedFont} typography.`);
   }
   
   // 2. SCENE DESCRIPTION: Core subject with tone + SUBCATEGORY LOCK
@@ -271,9 +271,9 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const promptSanitization = sanitizePrompt(positivePrompt);
   positivePrompt = promptSanitization.cleaned;
   
-  // Choose negative prompt based on text injection mode
+  // Choose negative prompt based on text injection mode  
   const negativePrompt = shouldInjectText 
-    ? "no misspelled text, no garbled letters, no text artifacts, no stray random words, no duplicated captions, no blurry text, no overlapping text" // Enhanced for text mode
+    ? "no duplicated words, no repeated phrases, no second caption, no alternate caption, no overlapping text, no misspelled text, no garbled letters, no mirrored or warped characters" // Enhanced for text mode
     : "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe"; // Standard for overlay mode
 
   return {
@@ -305,7 +305,7 @@ export function buildStricterLayoutPrompts(handoff: IdeogramHandoff, stricterLay
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
     
-    const stricterTextInstructions = `IMPORTANT: Render the text "${handoff.key_line}" prominently in the image with ${stricterLayoutToken} layout. Use ${selectedFont} typography with high contrast. Text must be clearly visible and readable.`;
+    const stricterTextInstructions = `CRITICAL: Render the text exactly once, no duplicates, no second caption. Single caption block only. "${handoff.key_line}" with ${stricterLayoutToken} layout. Use ${selectedFont} typography with high contrast.`;
     
     basePrompts.positive_prompt = `${stricterTextInstructions} ${basePrompts.positive_prompt}`;
   }

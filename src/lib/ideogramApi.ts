@@ -142,11 +142,18 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
     console.log('Content safety: Prompt was sanitized before generation');
   }
   
+  // Force DESIGN style and disable magic prompt when baking text
+  const containsTextDirective = request.prompt.toLowerCase().includes('render the following text') || 
+                               request.prompt.toLowerCase().includes('render text') || 
+                               request.prompt.toLowerCase().includes('text exactly once');
+  
   const sanitizedRequest = {
     ...request,
     prompt: promptValidation.cleaned,
-    // Use DESIGN style for better text rendering when prompt contains text instructions
-    style_type: request.prompt.includes('render text') || request.prompt.includes('text clearly') ? 'DESIGN' : request.style_type
+    // Force DESIGN style for better text rendering when prompt contains text instructions
+    style_type: containsTextDirective ? 'DESIGN' : request.style_type,
+    // Disable magic prompt when baking text to prevent Ideogram from adding extra wording
+    magic_prompt_option: containsTextDirective ? 'OFF' : request.magic_prompt_option
   };
   
   try {
@@ -242,12 +249,13 @@ export async function generateWithStricterLayout(
   console.log('🎯 Generating with stricter layout token:', stricterLayoutToken);
   
   // Modify the prompt to include stricter layout instructions
-  const modifiedPrompt = `CRITICAL: Large readable text must be rendered clearly in the image with ${stricterLayoutToken} layout. High contrast text required. ${request.prompt}`;
+  const modifiedPrompt = `CRITICAL: Render the text exactly once, no duplicates. ${stricterLayoutToken} layout. High contrast text required. ${request.prompt}`;
   
   return generateIdeogramImage({
     ...request,
     prompt: modifiedPrompt,
-    style_type: 'DESIGN' // Force DESIGN style for better text rendering
+    style_type: 'DESIGN', // Force DESIGN style for better text rendering
+    magic_prompt_option: 'OFF' // Disable magic prompt to prevent extra wording
   });
 }
 
@@ -259,16 +267,17 @@ export async function retryWithTextFallback(
   console.log('🔄 Attempting text rendering retry...');
   
   try {
-    // First attempt: Stricter text instructions
-    const stricterPrompt = request.prompt.replace(
+    // First attempt: Add "exactly once, no duplicates" to retry prompt
+    const stricterPrompt = `Render the text exactly once, no duplicates. ${request.prompt.replace(
       /render text clearly/gi, 
       'RENDER LARGE BOLD TEXT PROMINENTLY'
-    );
+    )}`;
     
     const retryResult = await generateIdeogramImage({
       ...request,
       prompt: stricterPrompt,
-      style_type: 'DESIGN'
+      style_type: 'DESIGN',
+      magic_prompt_option: 'OFF'
     });
     
     return { success: true, result: retryResult, shouldFallbackToOverlay: false };
