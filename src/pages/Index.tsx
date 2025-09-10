@@ -5893,7 +5893,7 @@ const Index = () => {
                 {/* Show AI Assist form when selected and no options generated yet */}
                 {selectedCompletionOption === "ai-assist" && generatedOptions.length === 0 && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
-                      <p className="text-xl text-muted-foreground">Add relevant tags for content generation</p>
+                      <p className="text-xl text-muted-foreground">Add relevant tags for visual generation</p>
                     </div>
 
                     <div className="max-w-md mx-auto space-y-6">
@@ -6114,8 +6114,7 @@ const Index = () => {
                     {/* Subject generation form for AI Assist - show only if no visual is selected yet */}
                     {selectedSubjectOption === "ai-assist" && selectedVisualIndex === null && showSubjectTagEditor && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-8">
-                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for content generation</h2>
-                          <p className="text-sm text-muted-foreground/70">(female endorser, tight blue jeans, sneakers, busy park)</p>
+                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for visual generation</h2>
                         </div>
 
                         <div className="max-w-lg mx-auto space-y-6">
