@@ -4543,6 +4543,25 @@ const Index = () => {
         }
       });
     }
+
+    // Text Layout selection
+    if (selectedTextLayout && selectedCompletionOption !== "no-text") {
+      const layoutOptions = [
+        { id: "negativeSpace", name: "Negative Space" },
+        { id: "memeTopBottom", name: "Meme Top/Bottom" },
+        { id: "lowerThird", name: "Lower Third Banner" },
+        { id: "sideBarLeft", name: "Side Bar (Left)" },
+        { id: "badgeSticker", name: "Badge/Sticker Callout" },
+        { id: "subtleCaption", name: "Subtle Caption" }
+      ];
+      const layout = layoutOptions.find(l => l.id === selectedTextLayout);
+      selections.push({
+        title: layout?.name || selectedTextLayout,
+        subtitle: "Text layout style",
+        onChangeSelection: () => setSelectedTextLayout(null)
+      });
+    }
+
     return selections;
   };
 
@@ -6020,28 +6039,6 @@ const Index = () => {
                     </div>
                 )}
 
-                {/* Show selected layout confirmation */}
-                {selectedTextLayout && selectedCompletionOption !== "no-text" && (
-                  <div>
-                    <StackedSelectionCard 
-                      selections={[{
-                        title: (() => {
-                          const layoutOptions = [
-                            { id: "negativeSpace", name: "Negative Space" },
-                            { id: "memeTopBottom", name: "Meme Top/Bottom" },
-                            { id: "lowerThird", name: "Lower Third Banner" },
-                            { id: "sideBarLeft", name: "Side Bar (Left)" },
-                            { id: "badgeSticker", name: "Badge/Sticker Callout" },
-                            { id: "subtleCaption", name: "Subtle Caption" }
-                          ];
-                          return layoutOptions.find(l => l.id === selectedTextLayout)?.name || selectedTextLayout;
-                        })(),
-                        subtitle: "Text layout style",
-                        onChangeSelection: () => setSelectedTextLayout(null)
-                      }]}
-                    />
-                  </div>
-                )}
 
                 {/* TODO: Add additional sub-options here after text style is selected */}
               </div>)}
