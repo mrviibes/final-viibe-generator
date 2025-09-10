@@ -145,7 +145,7 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
   if (!handoff.chosen_visual) {
     return {
       composition: 'composition with ample negative space for text overlay',
-      textPlacement: 'LARGE bold readable text at bottom, high contrast sans-serif, center aligned, prominent display'
+      textPlacement: 'subtle caption overlay at bottom, small clean sans-serif, center aligned, high contrast'
     };
   }
   
@@ -173,7 +173,7 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
     },
     'clear narrow bottom strip': {
       composition: 'composition with clear narrow horizontal strip at bottom',
-      textPlacement: 'LARGE readable text in bottom strip, bold sans-serif, center aligned, high contrast'
+      textPlacement: 'subtle caption overlay at narrow bottom strip, small clean sans-serif, center aligned, high contrast'
     }
   };
   
@@ -185,7 +185,7 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
   
   return {
     composition: 'composition with clear space for integrated text',
-    textPlacement: 'LARGE bold readable text, high contrast sans-serif, center aligned, prominent display'
+    textPlacement: 'subtle caption overlay at bottom, small clean sans-serif, center aligned, high contrast'
   };
 }
 
@@ -203,20 +203,20 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
-    const textStyle = getRandomElement(['strong shadow', 'bold glow', 'high contrast stroke']);
+    const textStyle = getRandomElement(['subtle shadow', 'soft glow', 'clean stroke']);
     
     // Put text instruction at the very beginning with explicit styling
-    textParts.push(`Render the following text directly in the image: "${handoff.key_line}". Style: ${layout.textPlacement}, ${selectedFont}, ${textStyle}, CRITICAL: text must be LARGE, clearly visible and spelled correctly.`);
+    textParts.push(`Render the following text directly in the image: "${handoff.key_line}". Style: ${layout.textPlacement}, ${selectedFont}, ${textStyle}, minimal styling. The text must be clearly visible and spelled correctly.`);
   }
   
   // 2. SCENE DESCRIPTION: Core subject with tone + SUBCATEGORY LOCK
   const subject = handoff.chosen_visual || handoff.rec_subject || `${handoff.tone} ${handoff.category} scene`;
   const cleanSubject = subject.replace(/,?\s*(clear empty area near largest margin|clear top band|clear bottom band|clear lower third|clear left panel|badge space top-right|clear narrow bottom strip)/gi, '').trim();
   
-  // 3. Style specification - enhance realistic photos with graphic text capability
+  // 3. Style specification
   const styleSpec = handoff.visual_style && handoff.visual_style.toLowerCase() !== 'auto' 
     ? `in ${handoff.visual_style} style` 
-    : 'in realistic photo style with integrated graphic text elements';
+    : 'in realistic photo style';
   
   sceneParts.push(`${handoff.tone} ${cleanSubject} ${styleSpec}.`);
   
@@ -293,7 +293,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
 }
 
 // Create stricter layout versions for retry attempts
-export function buildStricterLayoutPrompts(handoff: IdeogramHandoff, stricterLayoutToken: string = "clear top band"): IdeogramPrompts {
+export function buildStricterLayoutPrompts(handoff: IdeogramHandoff, stricterLayoutToken: string): IdeogramPrompts {
   console.log('🎯 Building stricter layout prompts with token:', stricterLayoutToken);
   
   // Create a modified handoff with stricter layout token
@@ -301,50 +301,19 @@ export function buildStricterLayoutPrompts(handoff: IdeogramHandoff, stricterLay
     ...handoff,
     design_notes: handoff.design_notes ? 
       `${handoff.design_notes}, ${stricterLayoutToken}` : 
-      stricterLayoutToken,
-    visual_style: 'DESIGN' // Force DESIGN style for better text rendering
+      stricterLayoutToken
   };
   
-  const basePrompts = buildIdeogramPrompts(modifiedHandoff, { injectText: true });
+  const basePrompts = buildIdeogramPrompts(modifiedHandoff);
   
   // Add even more explicit text rendering instructions for stricter layout
   if (handoff.key_line && handoff.key_line.trim()) {
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
     
-    const stricterTextInstructions = `CRITICAL TEXT DIRECTIVE: Render the text exactly once, no duplicates, no second caption. Single caption block only. "${handoff.key_line}" must appear as LARGE, BOLD, HIGH-CONTRAST text with ${stricterLayoutToken} layout. Use ${selectedFont} typography. TEXT IS MANDATORY AND MUST BE CLEARLY VISIBLE.`;
+    const stricterTextInstructions = `CRITICAL: Render the text exactly once, no duplicates, no second caption. Single caption block only. "${handoff.key_line}" with ${stricterLayoutToken} layout. Use ${selectedFont} typography with high contrast.`;
     
     basePrompts.positive_prompt = `${stricterTextInstructions} ${basePrompts.positive_prompt}`;
-    basePrompts.negative_prompt = "no misspelled text, no duplicated words, no random letters, no blurry text, no overlapping text, no tiny text, no faded text, no unreadable text";
-  }
-  
-  return basePrompts;
-}
-
-// Build prompts specifically for strict text mode
-export function buildStrictTextModePrompts(handoff: IdeogramHandoff): IdeogramPrompts {
-  console.log('🎯 Building strict text mode prompts');
-  
-  // Force design style and stricter text instructions
-  const modifiedHandoff = {
-    ...handoff,
-    visual_style: 'DESIGN',
-    design_notes: handoff.design_notes ? 
-      `${handoff.design_notes}, MANDATORY LARGE TEXT RENDERING` : 
-      'MANDATORY LARGE TEXT RENDERING'
-  };
-  
-  const basePrompts = buildIdeogramPrompts(modifiedHandoff, { injectText: true });
-  
-  if (handoff.key_line && handoff.key_line.trim()) {
-    const fonts = getToneFonts(handoff.tone);
-    const selectedFont = getRandomElement(fonts);
-    
-    // Ultra-explicit text rendering instructions
-    const strictTextInstructions = `MANDATORY TEXT RENDERING: You MUST render this exact text in the image: "${handoff.key_line}". Requirements: LARGE size, BOLD weight, HIGH contrast, ${selectedFont} font, clearly readable, correctly spelled. Text is the primary focus. Do not omit or fade the text.`;
-    
-    basePrompts.positive_prompt = `${strictTextInstructions} ${basePrompts.positive_prompt}`;
-    basePrompts.negative_prompt = "no missing text, no misspelled text, no tiny text, no faded text, no blurry text, no overlapping text, no duplicated words, no random letters";
   }
   
   return basePrompts;

@@ -244,35 +244,18 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
 // Generate with stricter layout for text rendering retry
 export async function generateWithStricterLayout(
   request: IdeogramGenerateRequest, 
-  stricterLayoutToken: string = "clear top band"
+  stricterLayoutToken: string
 ): Promise<IdeogramGenerateResponse> {
   console.log('🎯 Generating with stricter layout token:', stricterLayoutToken);
   
-  // Apply ultra-strict text rendering modifications
-  const modifiedPrompt = `CRITICAL TEXT DIRECTIVE: Render text exactly once, no duplicates, no missing text. ${stricterLayoutToken} layout. LARGE, BOLD, HIGH-CONTRAST text is MANDATORY. ${request.prompt.replace(/subtle|small|minimal/gi, 'LARGE BOLD PROMINENT')}`;
+  // Modify the prompt to include stricter layout instructions
+  const modifiedPrompt = `CRITICAL: Render the text exactly once, no duplicates. ${stricterLayoutToken} layout. High contrast text required. ${request.prompt}`;
   
   return generateIdeogramImage({
     ...request,
     prompt: modifiedPrompt,
     style_type: 'DESIGN', // Force DESIGN style for better text rendering
     magic_prompt_option: 'OFF' // Disable magic prompt to prevent extra wording
-  });
-}
-
-// Generate with strict text mode - ultra-aggressive text enforcement
-export async function generateWithStrictTextMode(
-  request: IdeogramGenerateRequest
-): Promise<IdeogramGenerateResponse> {
-  console.log('🎯 Generating with strict text mode');
-  
-  // Apply the most aggressive text rendering modifications
-  const modifiedPrompt = `MANDATORY TEXT RENDERING: You MUST render text in this image. TEXT IS THE PRIMARY REQUIREMENT. ${request.prompt.replace(/subtle|small|minimal|soft/gi, 'LARGE BOLD PROMINENT HIGH-CONTRAST')}. Text rendering failure is not acceptable.`;
-  
-  return generateIdeogramImage({
-    ...request,
-    prompt: modifiedPrompt,
-    style_type: 'DESIGN', // Force DESIGN style
-    magic_prompt_option: 'OFF' // Disable magic prompt
   });
 }
 

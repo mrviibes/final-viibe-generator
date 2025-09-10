@@ -1,7 +1,7 @@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
-import { Info, Zap, Layers } from "lucide-react";
+import { Info } from "lucide-react";
 
 interface TextRenderModeToggleProps {
   textInsideImage: boolean;
@@ -16,20 +16,15 @@ export const TextRenderModeToggle = ({ textInsideImage, onToggleChange, classNam
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              {textInsideImage ? (
-                <Zap className="h-4 w-4 text-amber-500" />
-              ) : (
-                <Layers className="h-4 w-4 text-green-500" />
-              )}
               <Label htmlFor="text-inside-toggle" className="font-medium">
-                {textInsideImage ? "AI Text Rendering" : "Text Overlay Mode"}
+                Text inside image
               </Label>
               <Info className="h-4 w-4 text-muted-foreground" />
             </div>
             <CardDescription className="text-sm">
               {textInsideImage 
-                ? "AI will attempt to render text directly into the image (may sometimes fail)" 
-                : "Text will be added as an overlay on top of the image (guaranteed to work)"
+                ? "Text will be rendered directly into the image by AI (may not always work)" 
+                : "Text will be added as an overlay on top of the image (always works)"
               }
             </CardDescription>
           </div>
