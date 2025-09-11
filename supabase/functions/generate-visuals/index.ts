@@ -8,11 +8,11 @@ const corsHeaders = {
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
-// Multi-model fallback strategy
+// Multi-model fallback strategy (matching Step 2 configuration)
 const MODELS = [
-  { name: 'gpt-5-2025-08-07', tokens: 400, useMaxCompletionTokens: true },
-  { name: 'gpt-4.1-2025-04-14', tokens: 400, useMaxCompletionTokens: true },
-  { name: 'gpt-5-mini-2025-08-07', tokens: 300, useMaxCompletionTokens: true }
+  { name: 'gpt-5-2025-08-07', tokens: 800, useMaxCompletionTokens: true },
+  { name: 'gpt-4.1-2025-04-14', tokens: 800, useMaxCompletionTokens: true },
+  { name: 'gpt-5-mini-2025-08-07', tokens: 800, useMaxCompletionTokens: true }
 ];
 
 interface VisualInput {
@@ -23,27 +23,14 @@ interface VisualInput {
   layout_token: string;
 }
 
-// Strengthened system prompt for reliable JSON output
+// Streamlined system prompt for reliable JSON output
 const SYSTEM_PROMPT_UNIVERSAL = (
   { mode, layout }: { mode: string; layout: string }
-) => `Generate 4 visual concepts as valid JSON. Response must be parseable JSON with NO extra text.
+) => `Generate 4 visual concepts as JSON only. NO extra text.
 
-{
-  "concepts":[
-    {"lane":"option1","text":"vivid scene description"},
-    {"lane":"option2","text":"vivid scene description"},
-    {"lane":"option3","text":"vivid scene description"},
-    {"lane":"option4","text":"vivid scene description"}
-  ]
-}
+{"concepts":[{"lane":"option1","text":"..."},{"lane":"option2","text":"..."},{"lane":"option3","text":"..."},{"lane":"option4","text":"..."}]}
 
-RULES:
-- Each concept: 15-25 words describing a specific, cinematic scene
-- Must connect to the provided joke/text directly
-- Leave [${layout}] area clear for text overlay
-- Mode: ${mode} - apply appropriate visual style
-- NO generic stock photos, random objects, or filler content
-- Be specific and imaginative
+Rules: Each concept 15-25 words. Connect to joke directly. Leave [${layout}] clear. Mode: ${mode}. NO generic content.`;
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -122,9 +109,16 @@ serve(async (req) => {
         const data = await r.json();
         console.log(`${modelConfig.name} response:`, data);
 
+        // Check for token limit issues
+        const finishReason = data?.choices?.[0]?.finish_reason;
+        if (finishReason === 'length') {
+          console.log(`${modelConfig.name} hit token limit (finish_reason: length), trying next model`);
+          continue;
+        }
+
         const content = data?.choices?.[0]?.message?.content;
         if (!content || content.trim() === '') {
-          console.log(`${modelConfig.name} returned empty content, trying next model`);
+          console.log(`${modelConfig.name} returned empty content (finish_reason: ${finishReason}), trying next model`);
           continue;
         }
 
