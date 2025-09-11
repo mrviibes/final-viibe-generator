@@ -331,27 +331,17 @@ Return as a JSON object with this exact format:
         return cleaned.length > characterLimit ? cleaned.slice(0, characterLimit) : cleaned;
       }).slice(0, 4);
 
-      // If we don't have 4 options, pad with generic ones
-      while (processedOptions.length < 4) {
-        processedOptions.push(`${tone} text option ${processedOptions.length + 1}`);
+      // Ensure we have exactly 4 valid options or throw
+      if (processedOptions.length < 4 || processedOptions.some(opt => !opt || opt.trim() === '')) {
+        throw new Error('Insufficient valid options generated');
       }
 
       return processedOptions;
       
     } catch (error) {
       console.error('OpenAI text generation error:', error);
-      
-      // Return fallback options
-      const fallbackOptions = [
-        `${tone} text for ${category || 'your content'}`,
-        `Creative ${tone.toLowerCase()} option`,
-        `Engaging ${tone.toLowerCase()} text`,
-        `${tone} content idea`
-      ];
-      
-      return fallbackOptions.map(option => 
-        option.length > characterLimit ? option.slice(0, characterLimit) : option
-      );
+      // Throw instead of returning fallbacks - let textGen.ts handle this
+      throw error;
     }
   }
 }

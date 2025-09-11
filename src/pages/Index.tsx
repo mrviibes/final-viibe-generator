@@ -5279,16 +5279,36 @@ const Index = () => {
       });
       console.log('✅ Generated text options:', result);
 
+      // Set the context for the indicator
+      setLastGenerationContext({
+        category,
+        subcategory,
+        tone,
+        tags: finalTagsForGeneration,
+        model: result.model
+      });
+
       // Clear previous selection when generating/regenerating
       setSelectedGeneratedOption(null);
       setSelectedGeneratedIndex(null);
       setGeneratedOptions(result.lines.map(line => line.text));
       setTextGenerationModel(result.model);
 
-      // Show success toast
-      sonnerToast.success("Generated new text options", {
-        description: "4 new AI-generated options are ready for your review."
-      });
+      // Show warning toast if fallback model was used
+      if (result.model === 'fallback') {
+        sonnerToast.warning("Using fallback text generation", {
+          description: "AI generation failed. Add an OpenAI API key for better results.",
+          action: {
+            label: "Add API Key",
+            onClick: () => setShowApiKeyDialog(true)
+          }
+        });
+      } else {
+        // Show success toast
+        sonnerToast.success("Generated new text options", {
+          description: "4 new AI-generated options are ready for your review."
+        });
+      }
     } catch (error) {
       console.error('❌ Error generating text:', error);
       sonnerToast.error('Failed to generate text options. Please try again.');
