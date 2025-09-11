@@ -419,9 +419,9 @@ ${softTags.length > 0 ? `- Soft tags [${softTags.join(", ")}] must NOT appear li
 function getStyleDefinition(style: string): string {
   const definitions = {
     'standard': 'MANDATORY: Balanced observational one-liners with varied structure and natural flow',
-    'story': 'MANDATORY: Must use slight setup with quick narrative payoff - brief mini-stories that land the joke',
+    'story': 'MANDATORY: ALL 4 lines must be mini-narratives with setup → payoff structure. Format: "Character/situation setup, then comedic twist/outcome." Think brief mini-stories that unfold, not just observations.',
     'punchline-first': 'MANDATORY: Must hit the joke early, then brief tag-back or twist for extra impact',
-    'pop-culture': 'MANDATORY: Every line must include at least one celebrity, movie, TV show, music artist, trending topic, or meme reference. Examples: Marvel movies, Netflix shows, TikTok trends, current celebrities, viral memes, popular apps, streaming services, social media platforms. No generic references.',
+    'pop-culture': 'MANDATORY: ALL 4 lines must include specific celebrities, movies, TV shows, music artists, apps, memes, or trending topics. No generic references.',
     'wildcard': 'MANDATORY: Randomized structure and experimental humor - be creative and unexpected'
   };
   
@@ -433,7 +433,7 @@ function getRatingDefinition(rating: string): string {
     'G': 'MANDATORY G-RATED: Family-friendly humor only. No swearing, innuendo, roasting, or targeting individuals. Keep jokes wholesome and innocent.',
     'PG': 'MANDATORY PG-RATED: Light sarcasm and playful roasting allowed. Mild teasing but keep it gentle and fun. No profanity or innuendo.',
     'PG-13': 'MANDATORY PG-13-RATED: Sharper roasts, mild innuendo, cultural references, and light profanity (damn, hell, ass). More aggressive humor but never hateful or sexually explicit.',
-    'R': 'MANDATORY R-RATED: Boundary-pushing roasts, edgy humor, stronger profanity, savage insults, and risqué content. Be brutal and unfiltered but maintain safety filters (no hate speech/harassment/graphic sexual content).'
+    'R': 'MANDATORY R-RATED: Must include profanity (shit, fuck, ass), sexual references, brutal personal roasts, dark humor, and boundary-pushing content. Be savage and explicit.'
   };
   
   return definitions[rating] || definitions['PG-13'];
@@ -651,14 +651,18 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, params: {
   let repairedLines = [...lines];
   const { category, subcategory, tone, tags, style, rating, hardTags, softTags } = params;
   
-  // Character limits and punctuation (critical)
-  for (const line of lines) {
-    // Length check
-    if (line.text.length > 100) {
-      errors.push(`Line too long: "${line.text}" (${line.text.length} chars, max 100)`);
+  // Enforce 40-80 character length buckets (CRITICAL)
+  const lengths = lines.map(line => line.text.length);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const length = line.text.length;
+    
+    // Hard enforce 40-80 character range
+    if (length < 40) {
+      errors.push(`Line ${i+1} too short: "${line.text}" (${length} chars, minimum 40)`);
     }
-    if (line.text.length < 15) {
-      errors.push(`Line too short: "${line.text}" (${line.text.length} chars, min 15)`);
+    if (length > 80) {
+      errors.push(`Line ${i+1} too long: "${line.text}" (${length} chars, maximum 80)`);
     }
     
     // Punctuation check (max one of .,;:!?)
@@ -668,13 +672,10 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, params: {
     }
   }
   
-  // Length variety check (enforce real variety)
-  const lengths = lines.map(line => line.text.length);
-  const hasShort = lengths.some(len => len <= 35); // Stricter short requirement
-  const hasLong = lengths.some(len => len >= 70);  // Stricter long requirement
-  
-  if (!hasShort || !hasLong) {
-    errors.push("Missing required length variety - MUST have at least one line ≤35 and one ≥70 characters");
+  // Enforce length variety within 40-80 range
+  const minRange = Math.max(...lengths) - Math.min(...lengths);
+  if (minRange < 15) {
+    warnings.push(`Length variety too narrow (range: ${minRange} chars). Need more variety within 40-80 char range.`);
   }
   
   // Banned words check (critical)
@@ -737,8 +738,24 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, params: {
     errors.push(`Tone alignment issues: ${toneError}`);
   }
   
-  // Style validation (critical)
-  if (style === 'pop-culture') {
+  // HARD ENFORCE Style validation (critical)
+  if (style === 'story') {
+    // ALL 4 lines must have narrative structure: setup → payoff
+    let storyCount = 0;
+    for (const line of lines) {
+      const text = line.text.toLowerCase();
+      // Look for narrative indicators: past tense verbs, sequence words, character actions
+      const hasNarrative = /\b(walked|went|tried|started|decided|thought|wanted|came|left|found|saw|met|told|said|did|was|were|had|got|made)\b/.test(text) ||
+                          /\b(then|next|after|when|while|until|before|suddenly|finally|now|so)\b/.test(text) ||
+                          /\b(into|through|over|under|around|toward)\b/.test(text);
+      
+      if (hasNarrative) storyCount++;
+    }
+    
+    if (storyCount < 4) {
+      errors.push(`CRITICAL STYLE FAILURE: Only ${storyCount}/4 lines have story structure. ALL lines must be mini-narratives with setup and payoff.`);
+    }
+  } else if (style === 'pop-culture') {
     const popCultureTerms = [
       // Celebrities & public figures
       'taylor swift', 'kanye', 'kardashian', 'elon musk', 'bezos', 'biden', 'trump', 'oprah', 'the rock', 'ryan reynolds',
@@ -764,33 +781,63 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, params: {
     }
     
     if (popCultureCount < 4) {
-      errors.push(`Pop Culture style violation: Only ${popCultureCount}/4 lines contain pop culture references. ALL lines must include celebrities, movies, shows, apps, or trends.`);
+      errors.push(`CRITICAL STYLE FAILURE: Only ${popCultureCount}/4 lines contain pop culture references. ALL lines must include celebrities, movies, shows, apps, or trends.`);
     }
   }
   
-  // Rating validation (critical)
+  // HARD ENFORCE Rating validation (critical)
   if (rating === 'R') {
-    const edgyTerms = ['damn', 'hell', 'ass', 'shit', 'fucking', 'bitch', 'savage', 'brutal', 'roast', 'destroy', 'annihilate', 'obliterate'];
-    let edgyCount = 0;
+    // MANDATORY: Must include explicit profanity and savage content
+    let profanityCount = 0;
+    let savageCount = 0;
+    
+    const profanityWords = ['shit', 'fuck', 'ass', 'damn', 'hell', 'bitch', 'bastard'];
+    const savageWords = ['brutal', 'savage', 'roast', 'destroy', 'murder', 'kill', 'dead', 'pathetic', 'loser', 'failure'];
+    const sexualWords = ['sex', 'sexual', 'horny', 'sexy', 'orgasm', 'climax', 'erection', 'wet', 'hard', 'come', 'cum'];
+    
     for (const line of lines) {
-      const lowerText = line.text.toLowerCase();
-      if (edgyTerms.some(term => lowerText.includes(term)) || 
-          lowerText.includes('flop') || lowerText.includes('fail') || 
-          lowerText.includes('trash') || lowerText.includes('worst')) {
-        edgyCount++;
+      const text = line.text.toLowerCase();
+      
+      if (profanityWords.some(word => text.includes(word))) profanityCount++;
+      if (savageWords.some(word => text.includes(word)) || sexualWords.some(word => text.includes(word))) savageCount++;
+    }
+    
+    if (profanityCount < 2) {
+      errors.push(`CRITICAL RATING FAILURE: Only ${profanityCount}/4 lines contain required profanity. R-rating MUST include explicit language (shit, fuck, ass, etc.).`);
+    }
+    if (savageCount < 2) {
+      errors.push(`CRITICAL RATING FAILURE: Only ${savageCount}/4 lines are savage enough. R-rating MUST be brutal, edgy, and boundary-pushing.`);
+    }
+  } else if (rating === 'PG-13') {
+    // Should have some edge but not excessive profanity
+    const mildProfanity = ['damn', 'hell', 'ass', 'crap'];
+    const hardProfanity = ['shit', 'fuck', 'bitch'];
+    
+    let hasEdge = false;
+    for (const line of lines) {
+      const text = line.text.toLowerCase();
+      if (mildProfanity.some(word => text.includes(word)) || 
+          /\b(innuendo|sexual|roast|savage|brutal)\b/.test(text)) {
+        hasEdge = true;
+        break;
+      }
+      // Flag if using hard profanity in PG-13
+      if (hardProfanity.some(word => text.includes(word))) {
+        errors.push(`PG-13 content contains excessive profanity: "${line.text}"`);
       }
     }
     
-    if (edgyCount < 2) {
-      errors.push(`R-rating violation: Only ${edgyCount}/4 lines are edgy enough. Need more savage/brutal language for R-rated content.`);
+    if (!hasEdge) {
+      errors.push(`PG-13 content too tame. Should include mild profanity, innuendo, or edgy humor.`);
     }
   } else if (rating === 'G') {
-    const profanityTerms = ['damn', 'hell', 'ass', 'shit', 'fuck', 'bitch', 'crap', 'suck', 'stupid', 'idiot', 'loser'];
+    // Must be completely family-friendly
+    const inappropriateWords = ['damn', 'hell', 'ass', 'shit', 'fuck', 'sex', 'drunk', 'stupid', 'idiot', 'suck', 'sucks'];
     for (const line of lines) {
-      const lowerText = line.text.toLowerCase();
-      if (profanityTerms.some(term => lowerText.includes(term))) {
-        errors.push(`G-rating violation: Line "${line.text}" contains inappropriate language for family-friendly content.`);
-        break;
+      const text = line.text.toLowerCase();
+      const inappropriate = inappropriateWords.find(word => text.includes(word));
+      if (inappropriate) {
+        errors.push(`G-rated content contains inappropriate word "${inappropriate}": "${line.text}"`);
       }
     }
   }
@@ -1248,6 +1295,9 @@ Please fix these issues while maintaining the ${inputs.tone} tone and natural fl
       console.log("Failed to parse JSON from model:", e.message);
       throw new Error(`JSON parse error: ${e.message}`);
     }
+    
+    // Parse tags for validation
+    const { hardTags, softTags } = parseTags(inputs.tags || []);
     
     // Validate with our rules
     const validation = validateAndRepair(parsedLines, {
