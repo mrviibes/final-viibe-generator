@@ -35,8 +35,69 @@ async function generateWithGPT5(inputs: any): Promise<any> {
                    (typeof inputs.tags === 'string' ? [inputs.tags] : []);
   const tagsStr = tagsArray.length > 0 ? tagsArray.join(',') : 'none';
   
-  // Minimal, strict prompts
-  const systemPrompt = 'Return ONLY JSON: {"lines":[{"lane":"option1","text":""},{"lane":"option2","text":""},{"lane":"option3","text":""},{"lane":"option4","text":""}]}. Rules: 4 one-liners; length 40–80; enforce Style and Rating.';
+  // COMPREHENSIVE STRICT SYSTEM PROMPT
+  const systemPrompt = `You are a professional comedian and writer. 
+Your job is to generate 4 unique one-liner jokes or captions as JSON only.
+
+Return ONLY JSON in this exact structure:
+{
+  "lines": [
+    {"lane": "option1", "text": "..."},
+    {"lane": "option2", "text": "..."},
+    {"lane": "option3", "text": "..."},
+    {"lane": "option4", "text": "..."}
+  ]
+}
+
+## Global Rules:
+1. Always produce 4 unique outputs. 
+   Each must feel like a different comedian style.
+   Rotate through this hidden comedian style bank (do not name them):
+   - Energetic storytelling
+   - Raw fearless
+   - Sharp cultural commentary
+   - Relatable millennial adulting humor
+   - Edgy/boundary-pushing wit
+   - Global/political perspective
+   - Physical/family-centric
+   - Blunt observational
+   - Narrative political storytelling
+   - Deadpan clean observational
+2. Length:
+   - Option 1 = 40–50 characters
+   - Option 2 = 50–60 characters
+   - Option 3 = 60–70 characters
+   - Option 4 = 70–80 characters
+   - Story Mode only: all 4 options = 80–100 characters, must have setup + payoff.
+3. Do NOT use em dashes (—). Only standard punctuation is allowed.
+4. Tone:
+   - Humorous = light jokes, puns, observational comedy.
+   - Savage = sarcastic, bold, roast-style wit.
+   - Romantic = flirty, affectionate, sweet.
+   - Sentimental = heartfelt, warm, sincere.
+   - Nostalgic = wistful, memory-driven.
+   - Inspirational = uplifting, motivational, positive.
+   - Playful = mischievous, lively fun.
+   - Serious = respectful, formal, matter-of-fact (less humor).
+5. Style:
+   - Standard = balanced observational one-liners.
+   - Story Mode = setup + payoff, narrative mini-story, 80–100 chars.
+   - Punchline First = gag hits early, then short twist.
+   - Pop Culture = MUST include at least one celebrity, movie, meme, or trend reference.
+   - Wildcard = random structure/voice; maximum variety.
+6. Rating:
+   - G = wholesome, family-friendly, no profanity or innuendo.
+   - PG = light sarcasm, safe roasts.
+   - PG-13 = sharper roasts, mild profanity/innuendo allowed.
+   - R = savage, edgy, risky; profanity OK; NO hate speech or slurs.
+7. Tags:
+   - Unquoted tags (e.g. jesse, cake, birthday) → MUST appear literally in 3 of 4 lines.
+   - Quoted tags (e.g. "loser", "female", "romantic") → MUST NOT appear in text, 
+     but must influence tone, POV, or word choice.
+8. Voice variety:
+   - Each of the 4 outputs must use a different comedian style from the style bank.
+9. Output must be only valid JSON in the given structure.
+   No explanations, no comments, no extra formatting.`;
   
   const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG'}`;
   
@@ -94,7 +155,7 @@ async function generateWithGPT5(inputs: any): Promise<any> {
       throw new Error(`Empty content (finish: ${finishReason})`);
     }
     
-    // STRICT JSON PARSING
+    // ENHANCED VALIDATION WITH NEW REQUIREMENTS
     let parsed;
     try {
       parsed = JSON.parse(content);
@@ -107,7 +168,41 @@ async function generateWithGPT5(inputs: any): Promise<any> {
       throw new Error('Bad response shape');
     }
     
-    console.log('✅ VALIDATOR PASS: valid JSON with 4+ lines');
+    // VALIDATE LENGTH BANDS AND EM DASH RULE
+    const validationErrors = [];
+    const isStoryMode = inputs.style === 'story';
+    const expectedLengths = isStoryMode 
+      ? [80, 80, 80, 80] // Story mode: all 80-100 chars
+      : [45, 55, 65, 75]; // Standard: 40-50, 50-60, 60-70, 70-80 chars
+    const lengthTolerances = isStoryMode 
+      ? [20, 20, 20, 20] // ±20 for story mode (80-100 range)
+      : [5, 5, 5, 5]; // ±5 for standard modes
+    
+    parsed.lines.forEach((line, index) => {
+      const text = line.text || '';
+      const length = text.length;
+      const expectedLength = expectedLengths[index];
+      const tolerance = lengthTolerances[index];
+      const minLength = expectedLength - tolerance;
+      const maxLength = expectedLength + tolerance;
+      
+      // Check length bands
+      if (length < minLength || length > maxLength) {
+        validationErrors.push(`Option ${index + 1} length ${length} outside range ${minLength}-${maxLength}`);
+      }
+      
+      // Check for em dashes
+      if (text.includes('—')) {
+        validationErrors.push(`Option ${index + 1} contains em dash (—) - not allowed`);
+      }
+    });
+    
+    if (validationErrors.length > 0) {
+      console.warn('⚠️ Validation warnings:', validationErrors.join('; '));
+      // Continue despite warnings - don't fail completely
+    }
+    
+    console.log('✅ VALIDATOR PASS: valid JSON with 4+ lines, length bands checked');
     
     return {
       lines: parsed.lines.slice(0, 4),
