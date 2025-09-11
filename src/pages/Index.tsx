@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "@/components/ui/sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
+import { testNetworkConnectivity } from "@/lib/networkTest";
 import { careersList } from "@/lib/careers";
 
 // Helper function to clean layout tokens from visual descriptions for display
@@ -5328,23 +5329,41 @@ const Index = () => {
       console.error('❌ Error generating text:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       
-      // Enhanced error handling with specific suggestions
+      // Enhanced error handling with specific network error guidance
       let actionLabel = "Retry";
       let actionCallback = () => handleGenerateText();
+      let description = `${errorMessage}. Try again or check your settings.`;
       
-      if (errorMessage.includes('timeout') || errorMessage.includes('network')) {
-        actionLabel = "Check Connection";
+      if (errorMessage.includes('Network connection failed') || 
+          errorMessage.includes('Failed to fetch') ||
+          errorMessage.includes('Failed to send a request')) {
+        actionLabel = "Retry Connection";
+        description = "Network connection failed. Check your internet and try again.";
         actionCallback = async () => {
-          sonnerToast.info("Check your internet connection and try again");
+          sonnerToast.info("Testing network connectivity...");
+          const networkTest = await testNetworkConnectivity();
+          
+          if (!networkTest.supabaseReachable) {
+            sonnerToast.error("Cannot reach Supabase servers. Check your internet connection.");
+          } else if (!networkTest.edgeFunctionReachable) {
+            sonnerToast.error("Edge Functions are not accessible. This might be a temporary issue.");
+          } else {
+            sonnerToast.success("Network looks good. Retrying text generation...");
+            handleGenerateText();
+          }
         };
+      } else if (errorMessage.includes('timeout')) {
+        actionLabel = "Try Again";
+        description = "Request timed out. The server might be busy.";
       } else if (errorMessage.includes('API key')) {
         actionLabel = "Check API Key";
         actionCallback = async () => setShowApiKeyDialog(true);
+        description = "API key issue. Please check your OpenAI API key.";
       }
       
       sonnerToast.error('Text generation failed', {
-        description: `${errorMessage}. Try again or check your settings.`,
-        duration: 8000,
+        description,
+        duration: 10000,
         action: {
           label: actionLabel,
           onClick: actionCallback

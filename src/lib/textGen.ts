@@ -239,6 +239,41 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
   };
 }
 
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  baseDelay = 1000
+): Promise<T> {
+  let lastError;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      
+      if (attempt === maxRetries) {
+        break;
+      }
+      
+      // Check if it's a network error that's worth retrying
+      const errorMessage = error instanceof Error ? error.message.toLowerCase() : '';
+      if (!errorMessage.includes('failed to fetch') && 
+          !errorMessage.includes('network') && 
+          !errorMessage.includes('timeout')) {
+        // Not a network error, don't retry
+        break;
+      }
+      
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.log(`🔄 Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+}
+
 export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenOutput> {
   console.log('🚀 Generating step2 lines with inputs:', inputs);
   
@@ -252,37 +287,50 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
   };
   
   try {
-    const { data, error } = await supabase.functions.invoke('generate-step2-clean', {
-      body: coercedInputs
-    });
+    const result = await retryWithBackoff(async () => {
+      console.log('📡 Attempting Edge Function call...');
+      
+      const { data, error } = await supabase.functions.invoke('generate-step2-clean', {
+        body: coercedInputs
+      });
 
-    if (error) {
-      console.error('❌ Supabase function error:', error);
-      throw new Error(`Step2 invoke error: ${error.message}`);
-    }
+      if (error) {
+        console.error('❌ Supabase function error:', error);
+        
+        // Enhanced error message for network issues
+        if (error.message?.includes('Failed to send a request') || 
+            error.message?.includes('Failed to fetch')) {
+          throw new Error(`Network connection failed. Please check your internet connection and try again. (${error.message})`);
+        }
+        
+        throw new Error(`Step2 invoke error: ${error.message}`);
+      }
 
-    console.log('✅ Generation response received:', data?.success ? 'SUCCESS' : 'FAILED');
+      return data;
+    }, 3, 1000);
+
+    console.log('✅ Generation response received:', result?.success ? 'SUCCESS' : 'FAILED');
 
     // STRICT SUCCESS CHECK - FAIL FAST
-    if (data?.success === false) {
-      const errorMsg = data.error || 'Generation failed without specific error';
+    if (result?.success === false) {
+      const errorMsg = result.error || 'Generation failed without specific error';
       console.error('❌ Generation failed:', errorMsg);
       throw new Error(`Generation failed: ${errorMsg}`);
     }
 
-    if (!data?.lines || !Array.isArray(data.lines)) {
-      console.error('❌ Invalid response structure:', data);
+    if (!result?.lines || !Array.isArray(result.lines)) {
+      console.error('❌ Invalid response structure:', result);
       throw new Error('Invalid response: missing or invalid lines array');
     }
 
-    if (data.lines.length < 4) {
-      console.error('❌ Insufficient lines returned:', data.lines.length);
-      throw new Error(`Only ${data.lines.length} lines returned, need 4`);
+    if (result.lines.length < 4) {
+      console.error('❌ Insufficient lines returned:', result.lines.length);
+      throw new Error(`Only ${result.lines.length} lines returned, need 4`);
     }
 
     console.log('✅ Validation passed, returning lines');
     return {
-      lines: data.lines.map((line: any) => ({
+      lines: result.lines.map((line: any) => ({
         lane: line.lane || 'default',
         text: line.text || ''
       }))
