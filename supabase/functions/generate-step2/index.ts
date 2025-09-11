@@ -316,9 +316,13 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
   const clicheBans = getClicheBanList(category, subcategory);
   const vibeKeywords = getVibeKeywords(subcategory);
   
-  // Voice variety assignment (hidden from user but affects generation)
-  const voices = ['energetic', 'blunt', 'absurd', 'deadpan', 'sarcastic', 'playful'];
-  const assignedVoice = voices[Math.floor(Math.random() * voices.length)];
+  // Voice variety assignment (4 specific voices per batch)
+  const voiceMappings = {
+    'option1': 'deadpan',
+    'option2': 'blunt', 
+    'option3': 'absurdist',
+    'option4': 'narrative'
+  };
   
   // Dynamic length requirements based on style
   let lengthRequirement = "40-80 characters";
@@ -326,38 +330,49 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
     lengthRequirement = "60-100 characters for narrative flow";
   }
   
+  const { hardTags, softTags } = parseTags(tags);
+  
   return `You are a professional comedy writer creating humorous text lines for memes and image overlays.
 
 CRITICAL REQUIREMENTS:
 1. Generate exactly 4 lines in valid JSON format: {"lines": [{"lane": "option1", "text": "..."}, ...]}
-2. Length requirement: ${lengthRequirement} (strictly enforced)
+2. Length requirement: ${lengthRequirement} (STRICTLY ENFORCED)
 3. Max one punctuation mark per line (period, comma, dash, etc.)
-4. Write conversationally - sound like a real person texting
-5. Hidden voice style: ${assignedVoice} (incorporate this subtly into your writing voice)
+4. Write conversationally - sound like a real person texting, not AI-generated content
+5. INTRA-BATCH VARIETY REQUIRED:
+   - option1: deadpan delivery (flat, matter-of-fact tone)
+   - option2: blunt approach (direct, no-nonsense)
+   - option3: absurdist twist (weird, unexpected)
+   - option4: narrative style (mini story arc)
 
 STYLE ENFORCEMENT: ${styleDefinition}
+${style === 'pop-culture' ? 'POP CULTURE MANDATORY: ALL 4 lines MUST reference specific celebrities, movies, TV shows, music artists, apps, or current trends. No generic references.' : ''}
+${style === 'story' ? 'STORY MODE MANDATORY: ALL 4 lines MUST follow setup → payoff narrative structure with 60-100 characters.' : ''}
+${style === 'punchline-first' ? 'PUNCHLINE FIRST MANDATORY: Lead with the gag, then add a brief tag or twist.' : ''}
+
 RATING ENFORCEMENT: ${ratingDefinition}
+${rating === 'R' ? 'R-RATING MANDATORY: Include explicit profanity (shit, fuck, ass, damn, hell) or savage roasts in AT LEAST 2/4 lines. Be brutal and edgy.' : ''}
+${rating === 'PG-13' ? 'PG-13 MANDATORY: Include sharper edge, mild profanity (damn, hell), or cultural digs in AT LEAST 1/4 lines.' : ''}
 
-VALIDATION RULES:
-- Pop Culture: ALL 4 lines must include specific celebrities, movies, TV shows, music artists, apps, or trends
-- Story Mode: ALL 4 lines must have narrative setup → payoff structure
-- R Rating: MUST include explicit profanity or savage content in at least 2/4 lines
-- PG-13 Rating: MUST include some edge/sass in at least 1/4 lines
+TONE GUIDANCE: ${toneDetails.definition}
+DO: ${toneDetails.dos.join(", ")}
+DON'T: ${toneDetails.donts.join(", ")}
 
-TONE GUIDANCE:
-${toneDetails.definition}
-Dos: ${toneDetails.dos}
-Don'ts: ${toneDetails.donts}
-Examples: ${toneDetails.examples}
+CONTENT REQUIREMENTS:
+- TOPICAL ANCHORS (use at least 2): ${anchors.join(", ")}
+- VIBE KEYWORDS: ${vibeKeywords.join(", ")}
+- HARD TAGS TO INCLUDE: ${hardTags.join(", ") || "none"}
+- EXACT PHRASES TO INCLUDE: ${softTags.join(", ") || "none"}
 
-TOPICAL ANCHORS (use at least 2): ${anchors.join(", ")}
-VIBE KEYWORDS: ${vibeKeywords.join(", ")}
-AVOID THESE CLICHÉS: ${clicheBans.join(", ")}
+CLICHÉ BAN LIST (NEVER use these): ${clicheBans.join(", ")}
+AVOID WORDS: ${AVOID_WORDS.slice(0, 10).join(", ")}
+
+Remember: Each line must feel distinctly different in voice and approach while maintaining cohesive tone and style.
 
 Respond with JSON only.`;
 }
 
-function buildUserMessage(inputs: any): string {
+function buildUserMessage(inputs: any, previousErrors: string[] = []): string {
   const noveltyToken = `RND-${Math.floor(Math.random() * 10000)}`;
   const deviceSetting = Math.floor(Math.random() * 7) + 1;
   
@@ -372,7 +387,7 @@ function buildUserMessage(inputs: any): string {
     Math.floor(Math.random() * (lengthMax - lengthMin + 1)) + lengthMin
   ].sort((a, b) => a - b);
   
-  return `Category: ${inputs.category}
+  let message = `Category: ${inputs.category}
 Subcategory: ${inputs.subcategory}
 Tone: ${inputs.tone}
 Novelty Token: ${noveltyToken}
@@ -382,10 +397,42 @@ LENGTH TARGETS (enforce variety): [${lengthTargets.join(", ")}]
 WRITE CONVERSATIONALLY: Sound like a real person texting, not an AI generating content. Use contractions, natural flow, and varied sentence lengths.
 
 Respond with JSON only.`;
+
+  if (previousErrors.length > 0) {
+    message += `
+
+PREVIOUS ATTEMPT ISSUES: ${previousErrors.join("; ")}
+      
+Please fix these issues while maintaining the ${inputs.tone} tone and natural flow. Remember: Max 100 chars per line, max one punctuation mark total per line.`;
+  }
+
+  return message;
 }
 
 function checkComedyVariety(lines: Array<{lane: string, text: string}>): { hasVariety: boolean; issues: string[] } {
   const issues: string[] = [];
+  
+  // Check voice variety using expected patterns
+  const voicePatterns = {
+    deadpan: /\b(just|literally|apparently|basically|somehow)\b/i,
+    blunt: /\b(look|listen|honestly|real talk|straight up)\b/i,
+    absurdist: /\b(suddenly|randomly|somehow|mysteriously|inexplicably)\b/i,
+    narrative: /\b(then|when|after|before|until|so)\b/i
+  };
+  
+  const detectedVoices = new Set();
+  lines.forEach(line => {
+    const text = line.text;
+    Object.entries(voicePatterns).forEach(([voice, pattern]) => {
+      if (pattern.test(text)) {
+        detectedVoices.add(voice);
+      }
+    });
+  });
+  
+  if (detectedVoices.size < 3) {
+    issues.push(`Insufficient voice variety. Need more distinct comedic approaches (deadpan, blunt, absurdist, narrative).`);
+  }
   
   // Check for repeated sentence structures
   const structures = lines.map(line => {
@@ -468,6 +515,125 @@ function checkVibeGrounding(lines: Array<{lane: string, text: string}>, subcateg
   };
 }
 
+function checkStyleCompliance(lines: Array<{lane: string, text: string}>, style: string): { compliant: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  switch (style) {
+    case 'pop-culture':
+      // Check for celebrity, movie, TV, music, app, or trend references
+      const popCulturePatterns = [
+        /\b(netflix|spotify|instagram|tiktok|youtube|twitter|facebook|snapchat|discord|zoom|apple|google|amazon|uber|tesla)\b/i,
+        /\b(taylor swift|beyonce|drake|kanye|kim kardashian|elon musk|jeff bezos|mark zuckerberg|trump|biden)\b/i,
+        /\b(marvel|disney|netflix|hbo|game of thrones|stranger things|wednesday|squid game|euphoria|succession)\b/i,
+        /\b(iphone|android|alexa|siri|chatgpt|ai|crypto|bitcoin|metaverse|nft|tinder|bumble|venmo|cashapp)\b/i
+      ];
+      
+      let popCultureCount = 0;
+      lines.forEach(line => {
+        const text = line.text.toLowerCase();
+        const hasReference = popCulturePatterns.some(pattern => pattern.test(text));
+        if (hasReference) popCultureCount++;
+      });
+      
+      if (popCultureCount < 4) {
+        issues.push(`CRITICAL STYLE FAILURE: Only ${popCultureCount}/4 lines contain pop culture references. ALL lines must include celebrities, movies, shows, apps, or trends.`);
+      }
+      break;
+      
+    case 'story':
+      // Check for narrative structure signals
+      const narrativePatterns = /\b(then|when|after|before|until|so|suddenly|finally|meanwhile|next|first|last)\b/i;
+      const setupPayoffPatterns = /\b(but|except|turns out|actually|however|unfortunately|surprisingly|plot twist)\b/i;
+      
+      let narrativeCount = 0;
+      lines.forEach(line => {
+        const text = line.text;
+        const hasNarrative = narrativePatterns.test(text) || setupPayoffPatterns.test(text);
+        if (hasNarrative) narrativeCount++;
+      });
+      
+      if (narrativeCount < 3) {
+        issues.push(`CRITICAL STYLE FAILURE: Only ${narrativeCount}/4 lines have story structure. ALL lines must have setup → payoff narrative flow.`);
+      }
+      break;
+      
+    case 'punchline-first':
+      // Check that jokes lead with the gag
+      let punchlineFirstCount = 0;
+      lines.forEach(line => {
+        const text = line.text;
+        const words = text.split(' ');
+        const firstHalf = words.slice(0, Math.ceil(words.length / 2)).join(' ');
+        
+        // Look for humor indicators in first half
+        const humorPatterns = /\b(worst|best|only|never|always|can't|won't|shouldn't|definitely|basically|literally|apparently)\b/i;
+        if (humorPatterns.test(firstHalf)) {
+          punchlineFirstCount++;
+        }
+      });
+      
+      if (punchlineFirstCount < 3) {
+        issues.push(`CRITICAL STYLE FAILURE: Only ${punchlineFirstCount}/4 lines lead with punchlines. Front-load the humor.`);
+      }
+      break;
+  }
+  
+  return {
+    compliant: issues.length === 0,
+    issues
+  };
+}
+
+function checkRatingCompliance(lines: Array<{lane: string, text: string}>, rating: string): { compliant: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  switch (rating) {
+    case 'R':
+      // Check for explicit content
+      const explicitPatterns = [
+        /\b(fuck|shit|ass|damn|hell|bitch|bastard|crap)\b/i,
+        /\b(suck|blow|screw|piss|tits|dick|cock)\b/i
+      ];
+      
+      let explicitCount = 0;
+      lines.forEach(line => {
+        const text = line.text.toLowerCase();
+        const hasExplicit = explicitPatterns.some(pattern => pattern.test(text));
+        if (hasExplicit) explicitCount++;
+      });
+      
+      if (explicitCount < 2) {
+        issues.push(`CRITICAL RATING FAILURE: Only ${explicitCount}/4 lines are R-rated. MUST include explicit profanity, savage roasts, or boundary-pushing content in at least 2 lines.`);
+      }
+      break;
+      
+    case 'PG-13':
+      // Check for edge/sass
+      const edgePatterns = [
+        /\b(damn|hell|crap|suck|stupid|idiot|moron|dumb|pathetic|loser)\b/i,
+        /\b(savage|brutal|harsh|roast|burn|destroyed|wrecked|owned)\b/i,
+        /\b(awkward|cringe|embarrassing|tragic|disaster|mess|fail)\b/i
+      ];
+      
+      let edgeCount = 0;
+      lines.forEach(line => {
+        const text = line.text.toLowerCase();
+        const hasEdge = edgePatterns.some(pattern => pattern.test(text));
+        if (hasEdge) edgeCount++;
+      });
+      
+      if (edgeCount < 1) {
+        issues.push(`CRITICAL RATING FAILURE: Only ${edgeCount}/4 lines are PG-13. MUST include some edge, sass, or mild profanity in at least 1 line.`);
+      }
+      break;
+  }
+  
+  return {
+    compliant: issues.length === 0,
+    issues
+  };
+}
+
 function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: any): { 
   isValid: boolean; 
   errors: string[]; 
@@ -539,6 +705,22 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: a
     warnings.push(...toneCheck.issues);
   }
   
+  // Style compliance check
+  if (inputs.style) {
+    const styleCheck = checkStyleCompliance(lines, inputs.style);
+    if (!styleCheck.compliant) {
+      errors.push(...styleCheck.issues);
+    }
+  }
+  
+  // Rating compliance check
+  if (inputs.rating) {
+    const ratingCheck = checkRatingCompliance(lines, inputs.rating);
+    if (!ratingCheck.compliant) {
+      errors.push(...ratingCheck.issues);
+    }
+  }
+  
   // Tag coverage check  
   if (inputs.hardTags && inputs.hardTags.length > 0) {
     const tagCoverage = inputs.hardTags.filter((tag: string) => {
@@ -560,84 +742,6 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: a
     }
   }
   
-  // Style validation
-  if (inputs.style === 'pop-culture') {
-    const popCultureCount = lines.filter(line => {
-      const text = line.text.toLowerCase();
-      // Expanded pop culture detection
-      return text.includes('netflix') || text.includes('spotify') || text.includes('tiktok') || 
-             text.includes('instagram') || text.includes('twitter') || text.includes('facebook') ||
-             text.includes('youtube') || text.includes('snapchat') || text.includes('zoom') ||
-             /\b(taylor swift|kanye|drake|rihanna|beyonce|kim kardashian|elon musk|zuckerberg)\b/.test(text) ||
-             /\b(marvel|disney|netflix|hbo|amazon|apple|google|microsoft)\b/.test(text) ||
-             /\b(iphone|android|tesla|uber|airbnb|tinder|bumble)\b/.test(text) ||
-             /\b(covid|pandemic|zoom|tiktok|meme|viral|trending)\b/.test(text) ||
-             /\b(avengers|batman|superman|star wars|game of thrones)\b/.test(text);
-    }).length;
-    
-    if (popCultureCount < 4) {
-      errors.push(`CRITICAL STYLE FAILURE: Only ${popCultureCount}/4 lines contain pop culture references. ALL lines must include celebrities, movies, shows, apps, or trends.`);
-    }
-  }
-  
-  if (inputs.style === 'story') {
-    const storyCount = lines.filter(line => {
-      const text = line.text;
-      // Look for narrative indicators: setup phrases, temporal words, character actions
-      return /\b(when|then|once|after|before|suddenly|meanwhile|later|first|next|finally)\b/i.test(text) ||
-             /\b(walked|went|tried|decided|thought|realized|discovered|found)\b/i.test(text) ||
-             /\b(turned out|ended up|it was|became|happened|occurred)\b/i.test(text);
-    }).length;
-    
-    if (storyCount < 3) {
-      errors.push(`CRITICAL STYLE FAILURE: Only ${storyCount}/4 lines have narrative structure. Story mode requires setup → payoff in most lines.`);
-    }
-  }
-  
-  if (inputs.style === 'punchline-first') {
-    const punchlineFirstCount = lines.filter(line => {
-      const text = line.text;
-      const midpoint = Math.floor(text.length / 2);
-      const firstHalf = text.substring(0, midpoint);
-      // Check if punchline/joke is in first half
-      return /\b(not|never|always|worst|best|only|just|already|still|even)\b/i.test(firstHalf) ||
-             /[.!?]/.test(firstHalf);
-    }).length;
-    
-    if (punchlineFirstCount < 2) {
-      errors.push(`CRITICAL STYLE FAILURE: Only ${punchlineFirstCount}/4 lines lead with the punchline. Structure: joke first, then setup/tag.`);
-    }
-  }
-  
-  // Rating validation
-  if (inputs.rating === 'R') {
-    const savageCount = lines.filter(line => {
-      const text = line.text.toLowerCase();
-      const hasProfanity = /\b(fuck|shit|ass|damn|hell|bitch|bastard|piss|crap)\b/.test(text);
-      const hasSavageContent = /\b(brutal|savage|roast|destroy|wreck|murder|kill|dead|death)\b/.test(text) ||
-                              /\b(ugly|fat|old|stupid|dumb|pathetic|loser|failure)\b/.test(text) ||
-                              /\b(sex|sexual|porn|horny|naked|strip|bang|screw)\b/.test(text);
-      return hasProfanity || hasSavageContent;
-    }).length;
-    
-    if (savageCount < 2) {
-      errors.push(`CRITICAL RATING FAILURE: Only ${savageCount}/4 lines are R-rated. MUST include explicit profanity, savage roasts, or boundary-pushing content in at least 2 lines.`);
-    }
-  }
-  
-  if (inputs.rating === 'PG-13') {
-    const edgyCount = lines.filter(line => {
-      const text = line.text.toLowerCase();
-      const hasMildProfanity = /\b(damn|hell|crap|suck)\b/.test(text);
-      const hasEdgyContent = /\b(roast|burn|savage|awkward|cringe|fail|disaster)\b/.test(text) ||
-                             /\b(weird|strange|odd|crazy|insane|wild)\b/.test(text);
-      return hasMildProfanity || hasEdgyContent;
-    }).length;
-    
-    if (edgyCount < 1) {
-      errors.push(`RATING WARNING: PG-13 content should have some edge or sass. Consider adding mild attitude or cultural digs.`);
-    }
-  }
   
   return {
     isValid: errors.length === 0,
@@ -744,14 +848,7 @@ function getEmergencyFallback(): Array<{lane: string, text: string}> {
 
 async function attemptGeneration(inputs: any, attemptNumber: number, previousErrors: string[] = []): Promise<any> {
   try {
-    let userMessage = buildUserMessage(inputs);
-    
-    // Add feedback for retry attempts
-    if (attemptNumber > 1 && previousErrors.length > 0) {
-      userMessage += `\n\nPREVIOUS ATTEMPT ISSUES: ${previousErrors.join("; ")}
-      
-Please fix these issues while maintaining the ${inputs.tone} tone and natural flow. Remember: Max 100 chars per line, max one punctuation mark total per line.`;
-    }
+    const userMessage = buildUserMessage(inputs, previousErrors);
     
     console.log(`LLM attempt ${attemptNumber}/3`);
     console.log("User message:", userMessage);
