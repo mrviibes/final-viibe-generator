@@ -8,34 +8,44 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
+// Lock model constant - no fallbacks
+const MODEL = 'gpt-5-2025-08-07';
+
+async function retryWithBackoff(fn: () => Promise<any>, maxRetries = 2): Promise<any> {
+  for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt === maxRetries + 1) throw error;
+      
+      const delay = attempt === 1 ? 250 : 750;
+      console.log(`🔄 Retry ${attempt}/${maxRetries} after ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
 async function generateWithGPT5(inputs: any): Promise<any> {
-  console.log('🎯 Starting GPT-5 generation with inputs:', inputs);
+  console.log('🎯 Starting strict GPT-5 generation');
   
-  // Force GPT-5 full model
-  const model = 'gpt-5-2025-08-07';
-  console.log('🤖 Using model:', model);
+  // Minimal prompts to avoid token limits
+  const systemPrompt = `Generate 4 jokes. JSON: {"lines":[{"lane":"option1","text":"..."},{"lane":"option2","text":"..."},{"lane":"option3","text":"..."},{"lane":"option4","text":"..."}]}`;
+  const userPrompt = `${inputs.subcategory || 'general'} ${inputs.tone || 'funny'}`;
   
-  // Ultra-simple prompt for GPT-5
-  const systemPrompt = `Generate 4 ${inputs.tone || 'humorous'} one-liners for ${inputs.subcategory || 'general'}. Return JSON: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}, {"lane": "option3", "text": "..."}, {"lane": "option4", "text": "..."}]}`;
-  
-  const userPrompt = `Topic: ${inputs.subcategory || 'general'}, Tone: ${inputs.tone || 'humorous'}`;
-  
-  console.log('📝 System prompt length:', systemPrompt.length);
-  console.log('📝 User prompt:', userPrompt);
+  console.log('📝 Prompts - System:', systemPrompt.length, 'User:', userPrompt.length);
   
   const requestBody = {
-    model,
+    model: MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
     ],
     response_format: { type: "json_object" },
-    max_completion_tokens: 1500
+    max_completion_tokens: 220,
+    temperature: 0.9
   };
   
-  console.log('📋 Request keys:', Object.keys(requestBody).join(', '));
-  
-  try {
+  return retryWithBackoff(async () => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
     
@@ -53,36 +63,30 @@ async function generateWithGPT5(inputs: any): Promise<any> {
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ OpenAI API error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+      console.error('❌ API Error:', response.status, errorText);
+      throw new Error(`API ${response.status}: ${errorText}`);
     }
     
     const data = await response.json();
+    console.log('📊 Model returned:', data.model, 'Finish:', data.choices?.[0]?.finish_reason);
     
-    console.log('✅ API Success!');
-    console.log('📊 Model used:', data.model);
-    console.log('📊 Finish reason:', data.choices?.[0]?.finish_reason);
-    console.log('📊 Content length:', data.choices?.[0]?.message?.content?.length || 0);
-    
-    // Verify we got the right model
-    if (data.model !== model) {
-      console.warn('⚠️ Model mismatch! Requested:', model, 'Got:', data.model);
+    // STRICT MODEL VALIDATION - FAIL FAST
+    if (data.model !== MODEL) {
+      throw new Error(`Model mismatch: expected ${MODEL}, got ${data.model}`);
     }
     
     const content = data.choices?.[0]?.message?.content?.trim();
-    if (!content) {
-      throw new Error('Empty response from OpenAI');
+    if (!content || content.length === 0) {
+      throw new Error(`Empty content (finish: ${data.choices?.[0]?.finish_reason})`);
     }
     
-    console.log('📝 Raw response preview:', content.substring(0, 100));
+    console.log('📝 Content preview:', content.substring(0, 50));
     
-    // Parse JSON
     let parsed;
     try {
       parsed = JSON.parse(content);
     } catch (e) {
-      console.error('❌ JSON parse error:', e.message);
-      console.error('Raw content:', content);
+      console.error('❌ JSON parse failed:', content);
       throw new Error('Invalid JSON response');
     }
     
@@ -95,32 +99,13 @@ async function generateWithGPT5(inputs: any): Promise<any> {
       model: data.model,
       validated: true,
       success: true,
-      generatedWith: 'GPT-5 Full',
+      generatedWith: 'GPT-5 Strict',
       issues: []
     };
-    
-  } catch (error) {
-    console.error('❌ Generation failed:', error.message);
-    throw error;
-  }
+  });
 }
 
-function getFallbackLines(inputs: any) {
-  const tone = inputs.tone || 'humorous';
-  const subcategory = inputs.subcategory || 'general';
-  
-  const fallbacks = [
-    `Life keeps happening whether you're ready or not`,
-    `Adulting is basically just figuring it out as you go`,
-    `Some days you're the windshield some days you're the bug`,
-    `Reality called but I sent it straight to voicemail`
-  ];
-  
-  return fallbacks.map((text, index) => ({
-    lane: `option${index + 1}`,
-    text
-  }));
-}
+// No fallbacks in strict mode - GPT-5 succeeds or fails
 
 serve(async (req) => {
   // Handle CORS
@@ -129,63 +114,48 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Generate Step 2 function called');
+    console.log('🚀 Strict GPT-5 generation starting');
     
     const inputs = await req.json();
-    console.log('📨 Request inputs:', inputs);
+    console.log('📨 Inputs:', JSON.stringify(inputs, null, 2));
 
+    // FAIL FAST - No API key = immediate error
     if (!openAIApiKey) {
-      console.warn('⚠️ No OpenAI API key configured');
-      const fallbackLines = getFallbackLines(inputs);
+      console.error('❌ CRITICAL: No OpenAI API key');
       return new Response(JSON.stringify({
-        lines: fallbackLines,
-        model: "fallback",
-        validated: false,
-        success: true,
-        generatedWith: 'No API Key',
-        issues: ["OpenAI API key not configured"]
+        error: 'OpenAI API key not configured',
+        success: false,
+        model: 'none',
+        validated: false
       }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Try GPT-5 generation
-    try {
-      const result = await generateWithGPT5(inputs);
-      console.log('✅ GPT-5 generation successful');
-      
-      return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-      
-    } catch (error) {
-      console.error('❌ GPT-5 generation failed:', error.message);
-      
-      // Return fallback with clear indication
-      const fallbackLines = getFallbackLines(inputs);
-      return new Response(JSON.stringify({
-        lines: fallbackLines,
-        model: "fallback",
-        validated: false,
-        success: true,
-        generatedWith: 'Fallback - GPT-5 Failed',
-        issues: [`GPT-5 error: ${error.message}`]
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+    // STRICT GPT-5 GENERATION - NO FALLBACKS
+    const result = await generateWithGPT5(inputs);
+    console.log('✅ GPT-5 SUCCESS:', result.model);
+    
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
 
   } catch (error) {
-    console.error('❌ Function error:', error);
-    const fallbackLines = getFallbackLines({});
+    console.error('❌ HARD FAIL:', error.message);
+    
+    // Surface error to UI - NO SILENT FALLBACKS
     return new Response(JSON.stringify({
-      lines: fallbackLines,
-      model: "fallback",
+      error: error.message,
+      success: false,
+      model: 'error',
       validated: false,
-      success: true,
-      generatedWith: 'Emergency Fallback',
-      issues: [`Function error: ${error.message}`]
+      details: {
+        requestedModel: MODEL,
+        timestamp: new Date().toISOString()
+      }
     }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }

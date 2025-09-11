@@ -301,7 +301,7 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
       setTimeout(() => reject(new Error('Generation timeout')), 35000);
     });
     
-    const generatePromise = supabase.functions.invoke('generate-step2', {
+    const generatePromise = supabase.functions.invoke('generate-step2-clean', {
       body: requestInputs
     });
     
@@ -314,113 +314,35 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
     console.log('Server response error:', error);
 
     if (error) {
-      console.error("Edge function error:", error);
-      console.log("Using fallback due to edge function error");
-      const fallbackLines = generateFallbackLines(requestInputs);
-      return {
-        lines: fallbackLines.lines,
-        model: "fallback",
-        validated: false
-      };
+      console.error("❌ STRICT GPT-5 FAILED:", error);
+      // NO FALLBACKS - Surface the error to UI
+      throw new Error(`GPT-5 generation failed: ${error.message || 'Unknown error'}`);
     }
 
     console.log('Checking server validation status:', data?.validated);
 
-    // Check if server marked it as validated - trust server validation
-    if (data?.validated === true) {
-      console.log("✅ Server validated response - using it");
+    // STRICT VALIDATION - MUST SUCCESS OR FAIL
+    if (data?.success === false || data?.error) {
+      throw new Error(`GPT-5 failed: ${data?.error || 'Generation error'}`);
+    }
+
+    // SUCCESS - Return validated lines
+    if (data?.validated === true && data?.lines) {
+      console.log("✅ GPT-5 SUCCESS:", data.model);
       return {
-        lines: data.lines || generateFallbackLines(requestInputs).lines,
-        model: data.model || "server-validated",
+        lines: data.lines,
+        model: data.model,
         validated: true,
         issues: data.issues || []
       };
     }
-    
-    console.log('Server did not validate, attempting client-side validation');
-    
-    // If server didn't validate, do client-side validation
-    const validated = sanitizeAndValidate(JSON.stringify(data), inputs);
-    if (!validated) {
-      console.log("❌ Response failed client validation, attempting retry");
-      
-      // Try once more with strict flag
-      const { data: retryData, error: retryError } = await supabase.functions.invoke('generate-step2', {
-        body: { ...requestInputs, strict: true }
-      });
-      
-      if (!retryError && retryData) {
-        // Trust server validation on retry
-        if (retryData.validated === true) {
-          return {
-            lines: retryData.lines,
-            model: retryData.model,
-            validated: true,
-            issues: retryData.issues || []
-          };
-        }
-        
-        const retryValidated = sanitizeAndValidate(JSON.stringify(retryData), inputs);
-        if (retryValidated) {
-          return {
-            lines: retryValidated.lines,
-            model: retryData.model,
-            validated: true
-          };
-        }
-      }
-    }
 
-    // If we got a fallback model response, try client-side OpenAI as backup
-    if (data?.model === "fallback") {
-      console.log("Server returned fallback, attempting client-side generation");
-      
-      try {
-        const { openAIService } = await import("@/lib/openai");
-        
-        if (openAIService.hasApiKey()) {
-          console.log("Using client-side OpenAI as backup");
-          
-          const clientLines = await openAIService.generateShortTexts({
-            category: inputs.category,
-            subtopic: inputs.subcategory,
-            tone: inputs.tone,
-            tags: inputs.tags,
-            characterLimit: 80,
-            mode: requestInputs.mode
-          });
-          
-          if (clientLines && clientLines.length >= 4) {
-            return {
-              lines: clientLines.slice(0, 4).map((text, index) => ({
-                lane: `option${index + 1}`,
-                text
-              })),
-              model: "client-openai",
-              validated: false
-            };
-          }
-        }
-      } catch (clientError) {
-        console.error("Client-side OpenAI error:", clientError);
-      }
-    }
-
-    console.log('Final fallback - returning server data or generated fallback');
-
-    return {
-      lines: data.lines || generateFallbackLines(inputs).lines,
-      model: data.model || "fallback",
-      validated: data.validated,
-      issues: data.issues
-    };
+    // Should not reach here with strict mode
+    throw new Error('Unexpected response format from GPT-5');
   } catch (error) {
-    console.error("Text generation error:", error);
-    const fallbackLines = generateFallbackLines(inputs);
-    return {
-      lines: fallbackLines.lines,
-      model: "fallback",
-      validated: false
-    };
+    console.error("❌ STRICT MODE FAILURE:", error);
+    
+    // In strict mode, surface errors to UI instead of silent fallbacks
+    throw new Error(`Text generation failed: ${error.message || 'Unknown error'}`);
   }
 }
