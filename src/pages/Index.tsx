@@ -4459,10 +4459,8 @@ const Index = () => {
   const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
   const [textMode, setTextMode] = useState<string>("regenerate");
   
-  // Text editing state
+  // Text editing state - simplified
   const [isEditingSelectedText, setIsEditingSelectedText] = useState(false);
-  const [editedSelectedText, setEditedSelectedText] = useState('');
-  const [originalSelectedText, setOriginalSelectedText] = useState('');
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -6687,9 +6685,7 @@ const Index = () => {
                 setSelectedGeneratedOption(option);
                 setSelectedGeneratedIndex(index);
                 
-                // Initialize editing state
-                setOriginalSelectedText(option);
-                setEditedSelectedText(option);
+                // Reset editing state
                 setIsEditingSelectedText(false);
               }}>
                           <div className="space-y-3">
@@ -6752,91 +6748,23 @@ const Index = () => {
                       <TextLayoutSelector selectedLayout={selectedTextLayout} onLayoutSelect={setSelectedTextLayout} />
                     </div>}
 
-                {/* Text Editing Interface - Show after AI text is selected but before layout */}
+                {/* Simplified Text Selection Interface */}
                 {selectedCompletionOption === "ai-assist" && selectedGeneratedOption && (
                   <div className="mt-8">
                     <div className="max-w-2xl mx-auto">
-                      <div className="flex items-center gap-2 mb-4">
-                        <h3 className="text-lg font-semibold">Selected Text</h3>
-                        <Badge variant="secondary" className="flex items-center gap-1">
-                          AI Assist used
-                        </Badge>
-                      </div>
-                      
-                      <div className="p-4 bg-gray-50 rounded-lg border">
-                        <p className="text-sm font-medium mb-3">
-                          {isEditingSelectedText ? editedSelectedText : selectedGeneratedOption}
-                        </p>
-                        
-                        <div className="flex gap-2">
-                          {!isEditingSelectedText ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setIsEditingSelectedText(true)}
-                            >
-                              Edit
-                            </Button>
-                          ) : (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  if (editedSelectedText.trim()) {
-                                    setSelectedGeneratedOption(editedSelectedText);
-                                    setIsEditingSelectedText(false);
-                                  }
-                                }}
-                                disabled={!editedSelectedText.trim()}
-                              >
-                                Save
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditedSelectedText(selectedGeneratedOption);
-                                  setIsEditingSelectedText(false);
-                                }}
-                              >
-                                Cancel
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditedSelectedText(originalSelectedText);
-                                }}
-                              >
-                                Reset
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {isEditingSelectedText && (
-                        <div className="mt-4 p-4 bg-blue-50 rounded-lg border">
-                          <label className="block text-sm font-medium mb-2">
-                            Edit your text ({editedSelectedText.length}/90 characters)
-                          </label>
-                          <Textarea
-                            value={editedSelectedText}
-                            onChange={(e) => {
-                              if (e.target.value.length <= 90) {
-                                setEditedSelectedText(e.target.value);
-                              }
-                            }}
-                            placeholder="Enter your custom text..."
-                            className="min-h-[80px] resize-none"
-                            maxLength={90}
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            Keep it short and punchy for best results!
-                          </p>
-                        </div>
-                      )}
+                      <StackedSelectionCard
+                        selections={[
+                          {
+                            title: "AI Text",
+                            subtitle: selectedGeneratedOption,
+                            onChangeSelection: () => {
+                              setSelectedGeneratedOption('');
+                              setSelectedGeneratedIndex(-1);
+                              setIsEditingSelectedText(false);
+                            }
+                          }
+                        ]}
+                      />
                     </div>
                   </div>
                 )}
