@@ -28,9 +28,16 @@ async function retryWithBackoff(fn: () => Promise<any>, maxRetries = 2): Promise
 async function generateWithGPT5(inputs: any): Promise<any> {
   console.log('🎯 Starting strict GPT-5 generation');
   
-  // Minimal prompts to avoid token limits
-  const systemPrompt = `Generate 4 jokes. JSON: {"lines":[{"lane":"option1","text":"..."},{"lane":"option2","text":"..."},{"lane":"option3","text":"..."},{"lane":"option4","text":"..."}]}`;
-  const userPrompt = `${inputs.subcategory || 'general'} ${inputs.tone || 'funny'}`;
+  // Proper prompts with sufficient context but token-efficient
+  const systemPrompt = `Generate exactly 4 unique one-liners for memes/image overlays. Return ONLY valid JSON:
+{"lines":[{"lane":"option1","text":"..."},{"lane":"option2","text":"..."},{"lane":"option3","text":"..."},{"lane":"option4","text":"..."}]}
+
+Rules: 40-80 chars each, funny/engaging, different comedic styles, simple punctuation only.`;
+  
+  const userPrompt = `Category: ${inputs.category || 'general'}
+Subcategory: ${inputs.subcategory || 'general'} 
+Tone: ${inputs.tone || 'humorous'}
+${inputs.tags && inputs.tags.length > 0 ? `Tags: ${inputs.tags.join(', ')}` : ''}`;
   
   console.log('📝 Prompts - System:', systemPrompt.length, 'User:', userPrompt.length);
   
