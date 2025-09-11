@@ -36,10 +36,10 @@ async function generateWithGPT5(inputs: any): Promise<any> {
   const tagsStr = tagsArray.length > 0 ? tagsArray.join(',') : 'none';
   
   // COMPREHENSIVE STRICT SYSTEM PROMPT
-  const systemPrompt = `You are a professional comedian and writer. 
-Your job is to generate 4 unique one-liner jokes or captions as JSON only.
+  const systemPrompt = `You are a professional stand-up comedian. 
+Generate exactly 4 unique one-liner jokes or captions. 
+Return ONLY valid JSON:
 
-Return ONLY JSON in this exact structure:
 {
   "lines": [
     {"lane": "option1", "text": "..."},
@@ -49,55 +49,45 @@ Return ONLY JSON in this exact structure:
   ]
 }
 
-## Global Rules:
-1. Always produce 4 unique outputs. 
-   Each must feel like a different comedian style.
-   Rotate through this hidden comedian style bank (do not name them):
-   - Energetic storytelling
-   - Raw fearless
-   - Sharp cultural commentary
-   - Relatable millennial adulting humor
-   - Edgy/boundary-pushing wit
-   - Global/political perspective
-   - Physical/family-centric
-   - Blunt observational
-   - Narrative political storytelling
-   - Deadpan clean observational
-2. Length:
+## Rules:
+1. Lengths:
    - Option 1 = 40–50 characters
    - Option 2 = 50–60 characters
    - Option 3 = 60–70 characters
    - Option 4 = 70–80 characters
-   - Story Mode only: all 4 options = 80–100 characters, must have setup + payoff.
-3. Do NOT use em dashes (—). Only standard punctuation is allowed.
-4. Tone:
-   - Humorous = light jokes, puns, observational comedy.
-   - Savage = sarcastic, bold, roast-style wit.
-   - Romantic = flirty, affectionate, sweet.
-   - Sentimental = heartfelt, warm, sincere.
-   - Nostalgic = wistful, memory-driven.
-   - Inspirational = uplifting, motivational, positive.
-   - Playful = mischievous, lively fun.
-   - Serious = respectful, formal, matter-of-fact (less humor).
-5. Style:
-   - Standard = balanced observational one-liners.
-   - Story Mode = setup + payoff, narrative mini-story, 80–100 chars.
-   - Punchline First = gag hits early, then short twist.
-   - Pop Culture = MUST include at least one celebrity, movie, meme, or trend reference.
-   - Wildcard = random structure/voice; maximum variety.
-6. Rating:
-   - G = wholesome, family-friendly, no profanity or innuendo.
-   - PG = light sarcasm, safe roasts.
-   - PG-13 = sharper roasts, mild profanity/innuendo allowed.
-   - R = savage, edgy, risky; profanity OK; NO hate speech or slurs.
-7. Tags:
-   - Unquoted tags (e.g. jesse, cake, birthday) → MUST appear literally in 3 of 4 lines.
-   - Quoted tags (e.g. "loser", "female", "romantic") → MUST NOT appear in text, 
-     but must influence tone, POV, or word choice.
-8. Voice variety:
-   - Each of the 4 outputs must use a different comedian style from the style bank.
-9. Output must be only valid JSON in the given structure.
-   No explanations, no comments, no extra formatting.`;
+   - Story Mode only: all 4 lines = 80–100 characters (setup + payoff narrative).
+2. Punctuation:
+   - MAX 1 punctuation mark per line (comma OR period OR colon).
+   - No em dashes.
+3. Tone must match selection:
+   - Humorous = observational or pun-based.
+   - Savage = sharp roast, sarcastic.
+   - Romantic = affectionate, flirty.
+   - Sentimental = heartfelt, sincere.
+   - Nostalgic = memory-driven.
+   - Inspirational = uplifting, motivational.
+   - Playful = mischievous, fun.
+   - Serious = plain, respectful.
+4. Style must match selection:
+   - Standard = balanced observational.
+   - Story Mode = mini-story with setup → payoff.
+   - Punchline First = gag lands in first half.
+   - Pop Culture = MUST mention a celebrity, meme, or trend.
+   - Wildcard = random format/voice.
+5. Rating:
+   - G = wholesome, family-safe.
+   - PG = light sarcasm, no profanity.
+   - PG-13 = edgy, mild profanity/innuendo OK.
+   - R = savage, explicit language allowed (NO hate or slurs).
+6. Tags:
+   - Unquoted tags (e.g. jesse, cake) → appear literally in 3/4 lines.
+   - Quoted tags (e.g. "loser", "romantic") → do NOT appear, but steer tone/voice.
+7. Variety:
+   - Each line must use a different comedic voice from this hidden bank: energetic storytelling, raw fearless, cultural commentary, millennial adulting humor, edgy wit, political/global, physical/family-centric, blunt observational, narrative, deadpan.
+   - Do not repeat the same premise across all 4 (e.g. not all about cake).
+   - At least one must be observational, one cultural, one absurd, one roast.
+8. Must feel like spoken human jokes, not stiff sentences.
+9. Output ONLY valid JSON in the structure above.`;
   
   const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG'}`;
   
@@ -155,7 +145,7 @@ Return ONLY JSON in this exact structure:
       throw new Error(`Empty content (finish: ${finishReason})`);
     }
     
-    // ENHANCED VALIDATION WITH NEW REQUIREMENTS
+     // ENHANCED VALIDATION WITH NEW REQUIREMENTS
     let parsed;
     try {
       parsed = JSON.parse(content);
@@ -168,7 +158,7 @@ Return ONLY JSON in this exact structure:
       throw new Error('Bad response shape');
     }
     
-    // VALIDATE LENGTH BANDS AND EM DASH RULE
+    // COMPREHENSIVE VALIDATION - LENGTH, PUNCTUATION, VARIETY
     const validationErrors = [];
     const isStoryMode = inputs.style === 'story';
     const expectedLengths = isStoryMode 
@@ -177,6 +167,10 @@ Return ONLY JSON in this exact structure:
     const lengthTolerances = isStoryMode 
       ? [20, 20, 20, 20] // ±20 for story mode (80-100 range)
       : [5, 5, 5, 5]; // ±5 for standard modes
+    
+    const allTexts = parsed.lines.map((line: any) => line.text?.toLowerCase() || '');
+    const unquotedTags = Array.isArray(inputs.tags) ? 
+      inputs.tags.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"')) : [];
     
     parsed.lines.forEach((line, index) => {
       const text = line.text || '';
@@ -195,11 +189,47 @@ Return ONLY JSON in this exact structure:
       if (text.includes('—')) {
         validationErrors.push(`Option ${index + 1} contains em dash (—) - not allowed`);
       }
+      
+      // NEW: Check punctuation limit (max 1 per line)
+      const punctuationCount = (text.match(/[,.;:!?]/g) || []).length;
+      if (punctuationCount > 1) {
+        validationErrors.push(`Option ${index + 1} has ${punctuationCount} punctuation marks, max 1 allowed`);
+      }
     });
+    
+    // NEW: Variety validation - check for repeated premise words
+    const premiseWords = ['cake', 'candles', 'birthday', 'old', 'age', 'year', 'party', 'wish', 'blow'];
+    premiseWords.forEach(word => {
+      const count = allTexts.filter(text => text.includes(word)).length;
+      if (count >= 3) {
+        validationErrors.push(`Word "${word}" appears in ${count}/4 lines, lacks variety`);
+      }
+    });
+    
+    // NEW: Tag validation - unquoted tags should appear in 3/4 lines
+    unquotedTags.forEach(tag => {
+      const count = allTexts.filter(text => text.includes(tag.toLowerCase())).length;
+      if (count < 3) {
+        validationErrors.push(`Unquoted tag "${tag}" appears in only ${count}/4 lines, should be 3+`);
+      }
+    });
+    
+    // NEW: Pop culture validation
+    if (inputs.style === 'pop_culture') {
+      const hasPopCulture = allTexts.some(text => {
+        return text.includes('netflix') || text.includes('spotify') || text.includes('tiktok') || 
+               text.includes('instagram') || text.includes('twitter') || text.includes('uber') ||
+               text.includes('amazon') || text.includes('google') || text.includes('apple') ||
+               /\b(taylor|swift|kardashian|beyonce|musk|trump|biden|lebron|drake)\b/i.test(text);
+      });
+      if (!hasPopCulture) {
+        validationErrors.push('Pop culture style requires celebrity, meme, or trend references');
+      }
+    }
     
     if (validationErrors.length > 0) {
       console.warn('⚠️ Validation warnings:', validationErrors.join('; '));
-      // Continue despite warnings - don't fail completely
+      // Continue despite warnings - don't fail completely in production
     }
     
     console.log('✅ VALIDATOR PASS: valid JSON with 4+ lines, length bands checked');
