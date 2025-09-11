@@ -56,6 +56,10 @@ function getTopicalAnchors(category: string, subcategory: string): string[] {
     } else if (subcategory === "Soccer") {
       anchors.push("transfer window", "penalty kick", "injury time", "yellow card", "world cup", "championship", "league table", "group stage");
     }
+  } else if (category === "Vibes & Punchlines") {
+    if (subcategory === "Career Jokes") {
+      anchors.push("open house", "showing", "staging", "listing photos", "lockbox", "escrow", "pre-approval", "lowball offer", "HOA", "appraisal", "commission", "closing", "expired listing", "client", "seller", "buyer", "listing", "offer", "inspection", "MLS");
+    }
   }
   
   return anchors;
@@ -89,6 +93,10 @@ function getClicheBanList(category: string, subcategory: string): string[] {
     } else if (subcategory === "Soccer") {
       bans.push("goal", "penalty kick", "hat trick", "offside", "world cup", "free kick", "corner kick");
     }
+  } else if (category === "Vibes & Punchlines") {
+    if (subcategory === "Career Jokes") {
+      bans.push("location, location, location", "dream home", "just listed", "best investment", "forever home", "starter home");
+    }
   }
   
   return bans;
@@ -121,6 +129,10 @@ function getVibeKeywords(category: string, subcategory: string): string[] {
       vibes.push("baseball", "diamond", "season", "game", "team", "player", "coach", "league");
     } else if (subcategory === "Soccer") {
       vibes.push("soccer", "football", "pitch", "season", "game", "team", "player", "coach", "league");
+    }
+  } else if (category === "Vibes & Punchlines") {
+    if (subcategory === "Career Jokes") {
+      vibes.push("career", "job", "work", "professional", "office", "client", "business");
     }
   }
   
@@ -795,6 +807,46 @@ function getToneAwareFallback(category: string, subcategory: string, tone: strin
           `You're${tagIntegration ? ' ' + tagIntegration + ' is' : ''} building something worth celebrating`,
           `This is${tagIntegration ? ' ' + tagIntegration + ' showing' : ''} what progress looks like`,
           `Your journey${tagIntegration ? ' with ' + tagIntegration : ''} inspires everyone around you`
+        ]
+      }
+    },
+    "Vibes & Punchlines": {
+      "Career Jokes": {
+        "Savage": [
+          `${tagIntegration ? tagIntegration + ' helping' : 'Helping'} clients make terrible financial decisions`,
+          `Your commission${tagIntegration ? ' from ' + tagIntegration : ''} won't cover therapy for this stress`,
+          `${tagIntegration ? tagIntegration + ' pretending' : 'Pretending'} this house is worth the asking price`,
+          `Another${tagIntegration ? ' ' + tagIntegration : ''} open house where nobody shows up`
+        ],
+        "Humorous": [
+          `${tagIntegration ? tagIntegration + ' living on' : 'Living on'} coffee and showing optimism`,
+          `Real estate wisdom${tagIntegration ? ' from ' + tagIntegration : ''}: just smile and point at features`,
+          `${tagIntegration ? tagIntegration + ' pretending' : 'Pretending'} to know what "good bones" means`,
+          `Market strategy${tagIntegration ? ' for ' + tagIntegration : ''}: hope and prayer with staging`
+        ],
+        "Playful": [
+          `${tagIntegration ? tagIntegration + ' channeling' : 'Channeling'} that HGTV energy for every showing`,
+          `Someone${tagIntegration ? ' ' + tagIntegration : ''} thinks this kitchen needs "just a little work"`,
+          `Real estate IQ${tagIntegration ? ' of ' + tagIntegration : ''}: still calculating square footage`,
+          `${tagIntegration ? tagIntegration + ' making' : 'Making'} every house sound like a steal`
+        ],
+        "Sentimental": [
+          `Grateful for${tagIntegration ? ' ' + tagIntegration + ' and' : ''} helping families find home`,
+          `Another family${tagIntegration ? ' with ' + tagIntegration : ''} gets their keys to happiness`,
+          `You${tagIntegration ? ' and ' + tagIntegration : ''} make dreams of homeownership real`,
+          `Celebrating${tagIntegration ? ' ' + tagIntegration + ' and' : ''} the joy of closing day`
+        ],
+        "Serious": [
+          `This transaction${tagIntegration ? ' with ' + tagIntegration : ''} represents months of preparation`,
+          `Taking time${tagIntegration ? ' with ' + tagIntegration : ''} to ensure every detail is covered`,
+          `Professional service${tagIntegration ? ' from ' + tagIntegration : ''} makes all the difference`,
+          `The responsibility${tagIntegration ? ' of ' + tagIntegration : ''} guiding major life decisions`
+        ],
+        "Inspirational": [
+          `Every challenge${tagIntegration ? ' ' + tagIntegration + ' faces' : ''} builds stronger expertise`,
+          `You're${tagIntegration ? ' ' + tagIntegration + ' is' : ''} building lasting relationships through service`,
+          `This market${tagIntegration ? ' with ' + tagIntegration : ''} shows what persistence creates`,
+          `Your dedication${tagIntegration ? ' ' + tagIntegration : ''} turns house hunting into homecoming`
         ]
       }
     },

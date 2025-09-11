@@ -25,6 +25,7 @@ import { buildIdeogramPrompts, buildStricterLayoutPrompts, getAspectRatioForIdeo
 import { TextRenderIndicator } from "@/components/TextRenderIndicator";
 import { RetryWithLayoutDialog } from "@/components/RetryWithLayoutDialog";
 import { SafetyValidationDialog } from "@/components/SafetyValidationDialog";
+import { ContextUsedIndicator } from "@/components/ContextUsedIndicator";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
@@ -4456,6 +4457,13 @@ const Index = () => {
   const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
+  const [lastGenerationContext, setLastGenerationContext] = useState<{
+    category: string;
+    subcategory: string; 
+    tone: string;
+    tags: string[];
+    model: string;
+  } | null>(null);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -5187,6 +5195,14 @@ const Index = () => {
     // Skip AI generation in barebones mode
     if (barebonesMode) {
       sonnerToast.error("AI text generation is disabled in barebones mode. Please use 'Write my own line' option.");
+      return;
+    }
+
+    // Validate Career Jokes selection
+    if (selectedStyle === 'vibes-punchlines' && selectedSubOption === 'Career Jokes' && !selectedPick) {
+      sonnerToast.error("Please pick a career before generating jokes", {
+        description: "Career Jokes requires selecting a specific career to roast"
+      });
       return;
     }
     setIsGenerating(true);
@@ -6612,6 +6628,20 @@ const Index = () => {
 
                 {/* Generated Text Options Grid - Show when options exist but no selection made */}
                 {generatedOptions.length > 0 && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {/* Context Used Indicator */}
+                    {lastGenerationContext && (
+                      <div className="mb-6">
+                        <ContextUsedIndicator
+                          category={lastGenerationContext.category}
+                          subcategory={lastGenerationContext.subcategory}
+                          tone={lastGenerationContext.tone}
+                          tags={lastGenerationContext.tags}
+                          model={lastGenerationContext.model}
+                          onAddApiKey={() => setShowApiKeyDialog(true)}
+                        />
+                      </div>
+                    )}
+                    
                     <div className="text-center mb-6">
                       <div className="flex items-center justify-center gap-3 mb-2">
                         <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
