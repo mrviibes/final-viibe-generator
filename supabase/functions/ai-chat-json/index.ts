@@ -38,6 +38,18 @@ serve(async (req) => {
       );
     }
 
+    // Ensure "json" appears in messages for OpenAI requirement
+    const enhancedMessages = [...messages];
+    if (enhancedMessages.length > 0) {
+      const lastMessage = enhancedMessages[enhancedMessages.length - 1];
+      if (!lastMessage.content.toLowerCase().includes('json')) {
+        enhancedMessages[enhancedMessages.length - 1] = {
+          ...lastMessage,
+          content: lastMessage.content + ' Return response in JSON format.'
+        };
+      }
+    }
+
     const {
       temperature = 0.8,
       max_tokens = 650,
@@ -59,7 +71,7 @@ serve(async (req) => {
     // Build request body with proper parameters
     const requestBody: any = {
       model,
-      messages,
+      messages: enhancedMessages,
       [tokenParameter]: tokenLimit,
       response_format: { type: "json_object" }
     };

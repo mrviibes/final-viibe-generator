@@ -4689,9 +4689,9 @@ const Index = () => {
         // Light ping with smaller model
         openAIService.chatJSON([{
           role: 'user',
-          content: 'Ready?'
+          content: 'Test json response ready?'
         }], {
-          model: 'gpt-4.1-mini-2025-04-14',
+          model: 'gpt-5-mini-2025-08-07',
           max_completion_tokens: 50
         }).catch(() => {}); // Silent fail
       } catch {
