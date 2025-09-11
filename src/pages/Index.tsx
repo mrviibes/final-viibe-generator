@@ -6524,8 +6524,8 @@ const Index = () => {
                 });
               }
 
-              // Add generated option selection (for AI assist) - only show on step 3+
-              if (selectedGeneratedOption && selectedCompletionOption === "ai-assist" && currentStep >= 3) {
+              // Add generated option selection (for AI assist)
+              if (selectedGeneratedOption && selectedCompletionOption === "ai-assist") {
                 selections.push({
                   title: `Option ${selectedGeneratedIndex !== null ? selectedGeneratedIndex + 1 : 1}`,
                   subtitle: selectedGeneratedOption,
@@ -6539,8 +6539,8 @@ const Index = () => {
                 });
               }
 
-              // Add custom text selection (for write myself) - only show on step 3+
-              if (isCustomTextConfirmed && selectedCompletionOption === "write-myself" && currentStep >= 3) {
+              // Add custom text selection (for write myself)
+              if (isCustomTextConfirmed && selectedCompletionOption === "write-myself") {
                 selections.push({
                   title: "Custom Text", 
                   subtitle: `"${stepTwoText}"`,
