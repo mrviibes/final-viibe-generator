@@ -6772,6 +6772,8 @@ const Index = () => {
                           {
                             title: "AI Text",
                             subtitle: selectedGeneratedOption,
+                            canEdit: true,
+                            onEdit: handleTextEdit,
                             onChangeSelection: () => {
                               setSelectedGeneratedOption('');
                               setSelectedGeneratedIndex(-1);
