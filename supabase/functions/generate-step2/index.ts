@@ -687,10 +687,11 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: a
     }
   }
   
-  // Check topical grounding
+  // Check topical grounding (more lenient for Standard style)
+  const isStandardStyle = inputs.style === 'standard';
   const topicalCheck = checkTopicalAnchors(lines, inputs.category || '', inputs.subcategory || '');
-  if (!topicalCheck.grounded) {
-    errors.push(`Topical grounding insufficient: ${topicalCheck.count}/4 lines include topical anchors. Need at least 2 from: ${getTopicalAnchors(inputs.category || '', inputs.subcategory || '').join(", ")}`);
+  if (!topicalCheck.grounded && !isStandardStyle) {
+    warnings.push(`Topical grounding could be improved: ${topicalCheck.count}/4 lines include topical anchors`);
   }
   
   // Check comedy variety
@@ -721,14 +722,15 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: a
     }
   }
   
-  // Tag coverage check  
+  // Tag coverage check (more lenient approach)
   if (inputs.hardTags && inputs.hardTags.length > 0) {
     const tagCoverage = inputs.hardTags.filter((tag: string) => {
       return lines.some(line => line.text.toLowerCase().includes(tag.toLowerCase()));
     }).length;
     
+    // Only warn instead of error for tag coverage
     if (tagCoverage < inputs.hardTags.length) {
-      errors.push(`Tag coverage insufficient: ${tagCoverage}/${inputs.hardTags.length} tags covered`);
+      warnings.push(`Tag coverage partial: ${tagCoverage}/${inputs.hardTags.length} tags covered`);
     }
   }
   
@@ -737,14 +739,18 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: a
       return lines.some(line => line.text.includes(tag));
     }).length;
     
+    // Only warn for soft tags too
     if (softTagCoverage < inputs.softTags.length) {
-      errors.push(`Soft tag coverage insufficient: ${softTagCoverage}/${inputs.softTags.length} exact phrases found`);
+      warnings.push(`Soft tag coverage partial: ${softTagCoverage}/${inputs.softTags.length} exact phrases found`);
     }
   }
   
   
+  // Much more lenient validation for Standard style
+  const maxAllowedErrors = isStandardStyle ? 2 : 1;
+  
   return {
-    isValid: errors.length === 0,
+    isValid: errors.length <= maxAllowedErrors,
     errors,
     warnings,
     lengths

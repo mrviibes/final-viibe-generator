@@ -23,6 +23,7 @@ import { createSession, generateTextOptions, generateVisualOptions, type Session
 import { generateIdeogramImage, generateWithStricterLayout, retryWithTextFallback, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { buildIdeogramPrompts, buildStricterLayoutPrompts, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { TextRenderIndicator } from "@/components/TextRenderIndicator";
+import { TextGenerationIndicator } from "@/components/TextGenerationIndicator";
 import { RetryWithLayoutDialog } from "@/components/RetryWithLayoutDialog";
 import { SafetyValidationDialog } from "@/components/SafetyValidationDialog";
 
@@ -4457,6 +4458,7 @@ const Index = () => {
   const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
+  const [textGenerationMetadata, setTextGenerationMetadata] = useState<{ validated?: boolean; issues?: string[] } | null>(null);
   const [textMode, setTextMode] = useState<string>("standard");
   const [textStyle, setTextStyle] = useState<'standard' | 'story' | 'punchline-first' | 'pop-culture' | 'wildcard'>("standard");
   const [textRating, setTextRating] = useState<'G' | 'PG' | 'PG-13' | 'R'>("PG-13");
@@ -5317,6 +5319,10 @@ const Index = () => {
       setSelectedGeneratedIndex(null);
       setGeneratedOptions(result.lines.map(line => line.text));
       setTextGenerationModel(result.model);
+      setTextGenerationMetadata({ 
+        validated: result.validated, 
+        issues: result.issues 
+      });
 
       // Show warning toast if fallback model was used
       if (result.model === 'fallback') {
@@ -6748,12 +6754,19 @@ const Index = () => {
                 // Reset editing state
                 setIsEditingSelectedText(false);
               }}>
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-muted-foreground">
-                                Option {index + 1}
-                              </span>
-                            </div>
+                           <div className="space-y-3">
+                             <div className="flex items-center justify-between">
+                               <span className="text-sm font-medium text-muted-foreground">
+                                 Option {index + 1}
+                               </span>
+                               {index === 0 && (
+                                 <TextGenerationIndicator 
+                                   model={textGenerationModel || undefined}
+                                   validated={textGenerationMetadata?.validated}
+                                   issues={textGenerationMetadata?.issues}
+                                 />
+                               )}
+                             </div>
                             <p className="text-sm text-card-foreground leading-relaxed">
                               {option}
                             </p>

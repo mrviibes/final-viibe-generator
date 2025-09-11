@@ -236,34 +236,59 @@ Tone: ${inputs.tone}${tagsStr}${modeInstruction}`;
 }
 
 function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
-  if (inputs.style === 'pop-culture') {
+  const { category, subcategory, tone, style, rating } = inputs;
+  
+  // Create tone/style-aware fallback instead of generic ones
+  const toneAdjectives = {
+    'Savage': ['brutal', 'ruthless', 'savage', 'merciless'],
+    'Humorous': ['ridiculous', 'hilarious', 'absurd', 'comical'],
+    'Playful': ['silly', 'quirky', 'adorable', 'fun'],
+    'Sentimental': ['heartwarming', 'nostalgic', 'touching', 'meaningful'],
+    'Serious': ['profound', 'thoughtful', 'significant', 'deep'],
+    'Inspirational': ['empowering', 'uplifting', 'motivating', 'transformative']
+  };
+  
+  const contextWords = {
+    'Birthday': ['celebration', 'milestone', 'aging', 'party'],
+    'Wedding': ['commitment', 'love', 'ceremony', 'union'],
+    'Holiday': ['tradition', 'family', 'gathering', 'celebration'],
+    'Friend': ['friendship', 'loyalty', 'bond', 'connection'],
+    'Self': ['growth', 'journey', 'reflection', 'experience'],
+    'Work': ['career', 'productivity', 'hustle', 'grind'],
+    'Dating': ['romance', 'connection', 'chemistry', 'spark']
+  };
+  
+  const adj = toneAdjectives[tone] || toneAdjectives['Humorous'];
+  const ctx = contextWords[subcategory] || ['life', 'reality', 'experience', 'moment'];
+  
+  if (style === 'pop-culture') {
     return {
       lines: [
-        { lane: "option1", text: "Netflix just canceled my attention span." }, // 42 chars (40-50 bucket)
-        { lane: "option2", text: "This situation needs its own TikTok trend honestly." }, // 53 chars (50-60 bucket)  
-        { lane: "option3", text: "Marvel could never write a plot twist this unexpected for sure." }, // 68 chars (60-70 bucket)
-        { lane: "option4", text: "Even Taylor Swift wouldn't write a song about this level of chaos happening." } // 78 chars (70-80 bucket)
+        { lane: "option1", text: "Netflix couldn't script this level of chaos." },
+        { lane: "option2", text: "This moment deserves its own TikTok trend honestly." },
+        { lane: "option3", text: "Marvel writers could never create a plot twist this unexpected." },
+        { lane: "option4", text: "Even Taylor Swift wouldn't write a song about this level of drama happening." }
       ]
     };
   }
   
-  if (inputs.rating === 'R') {
+  if (rating === 'R') {
     return {
       lines: [
-        { lane: "option1", text: "This situation is absolutely fucking wild." }, // 43 chars (40-50 bucket)
-        { lane: "option2", text: "Reality just roasted me harder than I deserved." }, // 50 chars (50-60 bucket)  
-        { lane: "option3", text: "Plot twist: life decided to be a savage ass comedian today." }, // 63 chars (60-70 bucket)
-        { lane: "option4", text: "Based on a true story that nobody asked for but damn here we are anyway." } // 75 chars (70-80 bucket)
+        { lane: "option1", text: `This ${ctx[0]} is absolutely fucking ${adj[0]}.` },
+        { lane: "option2", text: `Reality just ${adj[1]} me harder than I deserved honestly.` },
+        { lane: "option3", text: `Plot twist: ${ctx[1]} decided to be a ${adj[2]} ass situation today.` },
+        { lane: "option4", text: `Based on a true ${ctx[2]} that nobody asked for but damn here we are anyway.` }
       ]
     };
   }
   
   return {
     lines: [
-      { lane: "option1", text: "When life gives you moments, make memes." }, // 42 chars (40-50 bucket)
-      { lane: "option2", text: "Plot twist: this actually happened to me today." }, // 52 chars (50-60 bucket)  
-      { lane: "option3", text: "Based on a true story that nobody asked for but here we are." }, // 68 chars (60-70 bucket)
-      { lane: "option4", text: "Reality called and left a voicemail but honestly I'm too busy to listen." } // 77 chars (70-80 bucket)
+      { lane: "option1", text: `When ${ctx[0]} gives you ${adj[0]} moments, make memes.` },
+      { lane: "option2", text: `Plot twist: this ${adj[1]} ${ctx[1]} actually happened to me.` },
+      { lane: "option3", text: `Based on a ${adj[2]} ${ctx[2]} story that nobody asked for but here we are.` },
+      { lane: "option4", text: `${ctx[3]} called and left a ${adj[3]} voicemail but I'm too busy to listen.` }
     ]
   };
 }
@@ -271,6 +296,8 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
 export async function generateStep2Lines(inputs: TextGenInput): Promise<{
   lines: Array<{ lane: string; text: string }>;
   model: string;
+  validated?: boolean;
+  issues?: string[];
 }> {
   const startTime = Date.now();
   console.log("Starting parallel text generation (server + client)");
@@ -333,11 +360,23 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
       const fallbackLines = generateFallbackLines(requestInputs);
       return {
         lines: fallbackLines.lines,
-        model: "fallback"
+        model: "fallback",
+        validated: false
       };
     }
 
-    // Validate the response
+    // Check if server marked it as validated - trust server validation
+    if (data.validated === true) {
+      console.log("Server validated response - using it");
+      return {
+        lines: data.lines || generateFallbackLines(requestInputs).lines,
+        model: data.model || "server-validated",
+        validated: true,
+        issues: data.issues || []
+      };
+    }
+    
+    // If server didn't validate, do client-side validation
     const validated = sanitizeAndValidate(JSON.stringify(data), inputs);
     if (!validated) {
       console.log("Response failed validation, attempting retry");
@@ -348,11 +387,22 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
       });
       
       if (!retryError && retryData) {
+        // Trust server validation on retry
+        if (retryData.validated === true) {
+          return {
+            lines: retryData.lines,
+            model: retryData.model,
+            validated: true,
+            issues: retryData.issues || []
+          };
+        }
+        
         const retryValidated = sanitizeAndValidate(JSON.stringify(retryData), inputs);
         if (retryValidated) {
           return {
             lines: retryValidated.lines,
-            model: retryData.model
+            model: retryData.model,
+            validated: true
           };
         }
       }
@@ -383,7 +433,8 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
                 lane: `option${index + 1}`,
                 text
               })),
-              model: "client-openai"
+              model: "client-openai",
+              validated: false
             };
           }
         }
@@ -394,14 +445,17 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
 
     return {
       lines: data.lines || generateFallbackLines(inputs).lines,
-      model: data.model || "fallback"
+      model: data.model || "fallback",
+      validated: data.validated,
+      issues: data.issues
     };
   } catch (error) {
     console.error("Text generation error:", error);
     const fallbackLines = generateFallbackLines(inputs);
     return {
       lines: fallbackLines.lines,
-      model: "fallback"
+      model: "fallback",
+      validated: false
     };
   }
 }
