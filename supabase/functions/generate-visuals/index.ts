@@ -23,6 +23,34 @@ interface VisualInput {
   layout_token: string;
 }
 
+// Layout-specific text placement rules
+const LAYOUT_RULES = {
+  "negativeSpace": {
+    placement: "integrated into natural empty/negative space near largest margin",
+    style: "clean modern sans-serif, elegant alignment, subtle glow for readability"
+  },
+  "memeTopBottom": {
+    placement: "bold caption at top and/or bottom in clear bands",
+    style: "large modern sans-serif, centered, high contrast, clean stroke"
+  },
+  "lowerThird": {
+    placement: "clean banner across bottom third",
+    style: "modern sans-serif, centered, semi-transparent band ok"
+  },
+  "sideBarLeft": {
+    placement: "vertical side caption panel on left side",
+    style: "modern sans-serif, stacked/vertical layout, subtle strip"
+  },
+  "badgeSticker": {
+    placement: "inside a minimal badge/sticker overlay",
+    style: "modern sans-serif, simple shape (circle/ribbon/starburst)"
+  },
+  "subtleCaption": {
+    placement: "small caption near bottom or corner",
+    style: "elegant modern sans-serif, high contrast, subtle glow"
+  }
+};
+
 // Visual vocabulary for category-specific props
 const VISUAL_VOCABULARY = {
   "Celebrations": {
@@ -79,20 +107,26 @@ const SYSTEM_PROMPT_UNIVERSAL = (
 ) => {
   // Get category-specific visual vocabulary
   const vocab = VISUAL_VOCABULARY[category]?.[subcategory] || { props: "", atmosphere: "" };
+  const layoutRule = LAYOUT_RULES[layout] || LAYOUT_RULES["negativeSpace"];
   
   return `Generate 4 visual concepts as JSON only. NO extra text.
 
 {"concepts":[{"lane":"option1","text":"..."},{"lane":"option2","text":"..."},{"lane":"option3","text":"..."},{"lane":"option4","text":"..."}]}
 
 UNIVERSAL TEMPLATE FOR EACH CONCEPT:
-TEXT INSTRUCTION (MANDATORY): Render the provided text clearly integrated into [${layout}] negative space.
-Style: large clean sans-serif, cinematic contrast, subtle glow for readability.
+
+TEXT INSTRUCTION (MANDATORY): Render the provided text clearly integrated into the scene.
+Placement: ${layoutRule.placement}
+Style: ${layoutRule.style}
+The text must appear clearly and be legible, never omitted.
+
+---
 
 Scene: ${mode} ${category} → ${subcategory} setup.
 ${vocab.props ? `Must include props: ${vocab.props}` : ""}
 ${vocab.atmosphere ? `Atmosphere: ${vocab.atmosphere}` : ""}
 Cinematic style: dynamic lighting, vivid atmosphere, memorable props.
-Composition preserves [${layout}] as negative space for text overlay.
+Composition must preserve space for text overlay as specified above.
 
 Rules: 15-25 words per concept. Connect to joke directly. NO generic placeholders.`;
 };
@@ -133,7 +167,7 @@ serve(async (req) => {
     const system = SYSTEM_PROMPT_UNIVERSAL({ mode, layout: layout_token, category, subcategory });
     const user = `Text to overlay: "${final_text}"\nCategory: ${category} (${subcategory})\nMode: ${mode}
     
-NEGATIVE PROMPT GUIDANCE: no plain candles, no bland props, no generic placeholders, no random empty rooms, no abstract filler shapes, no clipart, no watermarks, no logos, no on-image text.`;
+NEGATIVE PROMPT GUIDANCE: no bland filler props, no empty rooms, no abstract shapes, no watermarks, no logos, no on-image text besides caption.`;
 
     // Try models in sequence until one succeeds
     for (const modelConfig of MODELS) {
