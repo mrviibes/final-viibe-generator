@@ -425,6 +425,48 @@ function buildUserMessage(inputs: any): string {
   const randomToken = `RND-${Math.floor(Math.random() * 10000)}`;
   const deviceRoulette = Math.floor(Math.random() * 8) + 1; // 1-8 for variety
   
+  // Handle comedian-mix mode with different length targets
+  if (mode === "comedian-mix") {
+    // Enforce 40-80 character targets for comedian mode
+    const lengthTargets = [
+      40 + Math.floor(Math.random() * 11), // 40-50 chars
+      45 + Math.floor(Math.random() * 16), // 45-60 chars  
+      55 + Math.floor(Math.random() * 16), // 55-70 chars
+      65 + Math.floor(Math.random() * 16)  // 65-80 chars
+    ];
+    
+    // Generate comedian personas for this request
+    const comedianPersonas = ["observational", "deadpan", "absurdist", "roast-but-safe", "self-deprecating", "one-liner", "sarcastic-witty", "wordplay"];
+    const shuffledPersonas = comedianPersonas.sort(() => Math.random() - 0.5).slice(0, 4);
+    
+    let message = `Category: ${category}
+Subcategory: ${subcategory}
+Tone: Humorous (COMEDIAN-MIX MODE)
+Novelty Token: ${randomToken}
+Device Setting: ${deviceRoulette}
+LENGTH TARGETS (enforce variety): [${lengthTargets.join(', ')}]
+TAGS: ${tags.join(', ') || 'none'}
+COMEDIAN PERSONAS: [${shuffledPersonas.join(', ')}]
+
+COMEDIAN-MIX MODE RULES:
+- ALL lines must be 40-80 characters (strictly enforced)
+- Each line uses a DIFFERENT comedian persona from the list above
+- HILARIOUS content only - everything must be genuinely funny
+- Natural tag integration - make tags feel conversational
+- PG-13 safe roasting only - no slurs, hate, sexual content, or targeted harassment
+- Avoid clichés and overused comedy formats
+- Sound like real comedians texting, not AI generating content
+
+TAG INTEGRATION: Make tags feel natural - use them like you would in actual conversation. Avoid robotic formats like "Tag: text" or "Tag, text description."
+
+WRITE CONVERSATIONALLY: Sound like a real person texting, not an AI generating content. Use contractions, natural flow, and varied sentence lengths.
+
+Respond with JSON only.`;
+    
+    return message;
+  }
+  
+  // Regular mode handling
   // Enforce real length variety with guaranteed short and long
   const shortTarget = Math.floor(Math.random() * 21) + 15; // 15-35 (guaranteed short)
   const longTarget = Math.floor(Math.random() * 21) + 70;  // 70-90 (guaranteed long)
@@ -1078,7 +1120,7 @@ Please fix these issues while maintaining the ${inputs.tone} tone and natural fl
     }
     
     // Validate with our rules
-    const validation = validateAndRepair(parsedLines, inputs.category || '', inputs.subcategory || '', inputs.tone || 'Balanced', inputs.tags || []);
+    const validation = validateAndRepair(parsedLines, inputs.category || '', inputs.subcategory || '', inputs.tone || 'Balanced', inputs.tags || [], inputs.mode);
     
     if (validation.isValid) {
       console.log(`Attempt ${attemptNumber} succeeded`);

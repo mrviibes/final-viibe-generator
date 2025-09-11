@@ -4457,7 +4457,7 @@ const Index = () => {
   const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
-  const [textMode, setTextMode] = useState<string>("regenerate");
+  const [textMode, setTextMode] = useState<string>("comedian-mix");
   
   // Text editing state - simplified
   const [isEditingSelectedText, setIsEditingSelectedText] = useState(false);
@@ -6555,10 +6555,10 @@ const Index = () => {
 
               // Add generated options available notice (when options generated but none selected)
               if (selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption) {
-                const tagDisplay = tags.length > 0 ? `, tags: ${tags.join(", ")}` : " (no tags added)";
+                 const tagDisplay = tags.length > 0 ? `, tags: ${tags.join(", ")}` : " (no tags added)";
                 selections.push({
                   title: "Text options generated",
-                  subtitle: `100 characters max${tagDisplay}`,
+                  subtitle: `40–80 chars, randomized comedians${tagDisplay}`,
                   onChangeSelection: () => {
                     setGeneratedOptions([]);
                     setSelectedGeneratedOption(null);
@@ -6673,7 +6673,8 @@ const Index = () => {
                           <SelectTrigger className="w-48">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-background border border-border shadow-lg z-50">
+                           <SelectContent className="bg-background border border-border shadow-lg z-50">
+                            <SelectItem value="comedian-mix">Comedian Mix (40–80)</SelectItem>
                             <SelectItem value="regenerate">Standard</SelectItem>
                             <SelectItem value="story-mode">Story Mode</SelectItem>
                             <SelectItem value="punchline-first">Punchline-First</SelectItem>

@@ -14,7 +14,7 @@ STRICT RULES:
 }
 
 2. CONTENT RULES:
-- Each line must be ≤ 90 characters
+- Each line must be ≤ 80 characters
 - All 4 lines must be completely different
 - Use simple punctuation: commas, periods, colons
 - NO em-dashes (—) or double dashes (--)
@@ -75,8 +75,8 @@ function sanitizeAndValidate(text: string): TextGenOutput | null {
         return null;
       }
       
-      // Hard character limit of 90
-      if (line.text.length > 90) {
+      // Hard character limit of 80
+      if (line.text.length > 80) {
         return null;
       }
     }
@@ -133,8 +133,14 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
   try {
     console.log("Calling Supabase Edge Function for text generation");
     
+    // Default to comedian-mix mode for hilarious content
+    const requestInputs = {
+      ...inputs,
+      mode: inputs.mode || 'comedian-mix'
+    };
+    
     const { data, error } = await supabase.functions.invoke('generate-step2', {
-      body: inputs
+      body: requestInputs
     });
 
     if (error) {
@@ -160,8 +166,8 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
             subtopic: inputs.subcategory,
             tone: inputs.tone,
             tags: inputs.tags,
-            characterLimit: 90,
-            mode: inputs.mode
+            characterLimit: 80,
+            mode: requestInputs.mode
           });
           
           if (clientLines && clientLines.length >= 4) {

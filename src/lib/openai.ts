@@ -310,7 +310,12 @@ Return as a JSON object with this exact format:
     }
     
     // Add mode-specific instructions
-    if (mode && mode !== "regenerate") {
+    if (mode === "comedian-mix") {
+      prompt = `Generate exactly 4 short HILARIOUS text options using 4 different comedian personas (observational, deadpan, absurdist, roast-but-safe, self-deprecating, one-liner, sarcastic-witty). 40–80 chars each, punchy, fresh, no clichés, no profanity/hate, JSON only.`;
+      if (tags.length > 0) {
+        prompt += ` IMPORTANT: Each option MUST include ALL of these exact words/tags: ${tags.join(', ')}.`;
+      }
+    } else if (mode && mode !== "regenerate") {
       switch (mode) {
         case "story-mode":
           prompt += " MODE: Generate as short 2-3 sentence mini-stories with narrative flow.";
