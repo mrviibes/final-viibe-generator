@@ -4,12 +4,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, content-type',
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Lock model constant - no fallbacks  
+// Lock model constant - STRICT MODE
 const MODEL = 'gpt-5-mini-2025-08-07';
 
 async function retryWithBackoff(fn: () => Promise<any>, maxRetries = 2): Promise<any> {
@@ -27,18 +27,13 @@ async function retryWithBackoff(fn: () => Promise<any>, maxRetries = 2): Promise
 }
 
 async function generateWithGPT5(inputs: any): Promise<any> {
+  const startTime = Date.now();
   console.log('🎯 Starting strict GPT-5 generation');
   
-  // Proper prompts with sufficient context but token-efficient
-  const systemPrompt = `Generate exactly 4 unique one-liners for memes/image overlays. Return ONLY valid JSON:
-{"lines":[{"lane":"option1","text":"..."},{"lane":"option2","text":"..."},{"lane":"option3","text":"..."},{"lane":"option4","text":"..."}]}
-
-Rules: 40-80 chars each, funny/engaging, different comedic styles, simple punctuation only.`;
+  // Minimal, strict prompts
+  const systemPrompt = 'Return ONLY JSON: {"lines":[{"lane":"option1","text":""},{"lane":"option2","text":""},{"lane":"option3","text":""},{"lane":"option4","text":""}]}. Rules: 4 one-liners; length 40–80; enforce Style and Rating.';
   
-  const userPrompt = `Category: ${inputs.category || 'general'}
-Subcategory: ${inputs.subcategory || 'general'} 
-Tone: ${inputs.tone || 'humorous'}
-${inputs.tags && inputs.tags.length > 0 ? `Tags: ${inputs.tags.join(', ')}` : ''}`;
+  const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${inputs.tags?.join(',') || 'none'} Style:${inputs.style} Rating:${inputs.rating}`;
   
   console.log('📝 Prompts - System:', systemPrompt.length, 'User:', userPrompt.length);
   
@@ -49,13 +44,10 @@ ${inputs.tags && inputs.tags.length > 0 ? `Tags: ${inputs.tags.join(', ')}` : ''
       { role: 'user', content: userPrompt }
     ],
     response_format: { type: "json_object" },
-    max_completion_tokens: 300
+    max_completion_tokens: 350
   };
   
   return retryWithBackoff(async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
-    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -63,10 +55,8 @@ ${inputs.tags && inputs.tags.length > 0 ? `Tags: ${inputs.tags.join(', ')}` : ''
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
-      signal: controller.signal,
+      signal: AbortSignal.timeout(10000),
     });
-    
-    clearTimeout(timeoutId);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -75,20 +65,31 @@ ${inputs.tags && inputs.tags.length > 0 ? `Tags: ${inputs.tags.join(', ')}` : ''
     }
     
     const data = await response.json();
-    console.log('📊 Model returned:', data.model, 'Finish:', data.choices?.[0]?.finish_reason);
+    const latencyMs = Date.now() - startTime;
+    const finishReason = data.choices?.[0]?.finish_reason;
+    
+    // TELEMETRY
+    console.log('📊 TELEMETRY:', JSON.stringify({
+      model_used: data.model,
+      latency_ms: latencyMs,
+      tokens_in: data.usage?.prompt_tokens,
+      tokens_out: data.usage?.completion_tokens,
+      style: inputs.style,
+      rating: inputs.rating,
+      finish_reason: finishReason
+    }));
     
     // STRICT MODEL VALIDATION - FAIL FAST
     if (data.model !== MODEL) {
       throw new Error(`Model mismatch: expected ${MODEL}, got ${data.model}`);
     }
     
-    const content = data.choices?.[0]?.message?.content?.trim();
-    if (!content || content.length === 0) {
-      throw new Error(`Empty content (finish: ${data.choices?.[0]?.finish_reason})`);
+    const content = data.choices?.[0]?.message?.content?.trim() || "";
+    if (content.length === 0) {
+      throw new Error(`Empty content (finish: ${finishReason})`);
     }
     
-    console.log('📝 Content preview:', content.substring(0, 50));
-    
+    // STRICT JSON PARSING
     let parsed;
     try {
       parsed = JSON.parse(content);
@@ -97,9 +98,11 @@ ${inputs.tags && inputs.tags.length > 0 ? `Tags: ${inputs.tags.join(', ')}` : ''
       throw new Error('Invalid JSON response');
     }
     
-    if (!parsed.lines || !Array.isArray(parsed.lines) || parsed.lines.length < 4) {
-      throw new Error('Invalid response structure');
+    if (!Array.isArray(parsed.lines) || parsed.lines.length < 4) {
+      throw new Error('Bad response shape');
     }
+    
+    console.log('✅ VALIDATOR PASS: valid JSON with 4+ lines');
     
     return {
       lines: parsed.lines.slice(0, 4),
@@ -107,7 +110,7 @@ ${inputs.tags && inputs.tags.length > 0 ? `Tags: ${inputs.tags.join(', ')}` : ''
       validated: true,
       success: true,
       generatedWith: 'GPT-5 Strict',
-      issues: []
+      telemetry: { latencyMs, finishReason, tokensIn: data.usage?.prompt_tokens, tokensOut: data.usage?.completion_tokens }
     };
   });
 }
@@ -151,18 +154,16 @@ serve(async (req) => {
   } catch (error) {
     console.error('❌ HARD FAIL:', error.message);
     
-    // Surface error to UI - NO SILENT FALLBACKS
+    // FAIL FAST - NO SILENT FALLBACKS
     return new Response(JSON.stringify({
       error: error.message,
       success: false,
       model: 'error',
       validated: false,
-      details: {
-        requestedModel: MODEL,
-        timestamp: new Date().toISOString()
-      }
+      requestedModel: MODEL,
+      timestamp: new Date().toISOString()
     }), {
-      status: 500,
+      status: 200, // Return 200 so client can read the error
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }

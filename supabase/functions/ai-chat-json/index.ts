@@ -68,11 +68,11 @@ serve(async (req) => {
     const tokenLimit = max_completion_tokens || max_tokens;
     const tokenParameter = isNewerModel ? 'max_completion_tokens' : 'max_tokens';
 
-    // Build request body with proper parameters
+    // Build request body with proper parameters - HIGHER TOKEN LIMITS
     const requestBody: any = {
       model,
       messages: enhancedMessages,
-      [tokenParameter]: tokenLimit,
+      [tokenParameter]: tokenLimit || (isNewerModel ? 450 : 300),
       response_format: { type: "json_object" }
     };
 

@@ -5318,27 +5318,12 @@ const Index = () => {
       setSelectedGeneratedOption(null);
       setSelectedGeneratedIndex(null);
       setGeneratedOptions(result.lines.map(line => line.text));
-      setTextGenerationModel(result.model);
+      setTextGenerationModel('gpt-5-mini-2025-08-07');
       setTextGenerationMetadata({ 
-        validated: result.validated, 
-        issues: result.issues 
+        validated: true, 
+        issues: [] 
       });
 
-      // Show warning toast if fallback model was used
-      if (result.model === 'fallback') {
-        sonnerToast.warning("Using fallback text generation", {
-          description: "AI generation failed. Add an OpenAI API key for better results.",
-          action: {
-            label: "Add API Key",
-            onClick: () => setShowApiKeyDialog(true)
-          }
-        });
-      } else {
-        // Show success toast
-        sonnerToast.success("Generated new text options", {
-          description: "4 new AI-generated options are ready for your review."
-        });
-      }
     } catch (error) {
       console.error('❌ Error generating text:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';

@@ -239,55 +239,43 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
   };
 }
 
-export async function generateStep2Lines(inputs: TextGenInput): Promise<{
-  lines: Array<{ lane: string; text: string }>;
-  model: string;
-  validated?: boolean;
-  issues?: string[];
-}> {
-  console.log('🏷️ Text generation started with inputs:', inputs);
+export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenOutput> {
+  console.log('🚀 Generating step2 lines with inputs:', inputs);
   
   try {
-    const requestInputs = {
-      ...inputs,
-      style: inputs.style || 'standard',
-      rating: inputs.rating || 'PG-13',
-    };
-    
     const { data, error } = await supabase.functions.invoke('generate-step2-clean', {
-      body: requestInputs
+      body: inputs
     });
 
-    console.log('Server response:', { data, error });
-
-    // Check for HTTP errors first
     if (error) {
-      console.error("❌ Generation HTTP Error:", error);
-      throw new Error(`Generation failed: ${error.message || 'Unknown HTTP error'}`);
+      console.error('❌ Supabase function error:', error);
+      throw new Error(`Step2 invoke error: ${error.message}`);
     }
 
-    // Check response structure
-    if (!data) {
-      throw new Error('No data received from generation service');
+    console.log('✅ Generation response:', data);
+
+    // STRICT SUCCESS CHECK - FAIL FAST
+    if (data.success === false || !data.lines) {
+      const errorMsg = data.error || 'Generation failed';
+      console.error('❌ Generation failed:', errorMsg);
+      throw new Error(errorMsg);
     }
 
-    if (data.success === false) {
-      throw new Error(data.error || 'Generation service returned failure');
+    if (!Array.isArray(data.lines) || data.lines.length < 4) {
+      console.error('❌ Bad response shape:', data);
+      throw new Error('Bad response shape from generation service');
     }
 
-    if (!data.lines || !Array.isArray(data.lines) || data.lines.length === 0) {
-      throw new Error('Invalid response: no lines generated');
-    }
-
-    console.log("✅ Generation Success:", data.model);
     return {
-      lines: data.lines,
-      model: data.model || 'unknown',
-      validated: data.validated || false,
-      issues: data.issues || []
+      lines: data.lines.map((line: any) => ({
+        lane: line.lane || 'default',
+        text: line.text || ''
+      }))
     };
+
   } catch (error) {
-    console.error("❌ Generation Error:", error);
+    console.error('❌ Text generation error:', error);
+    // Re-throw to surface in UI - NO SILENT FALLBACKS
     throw error;
   }
 }
