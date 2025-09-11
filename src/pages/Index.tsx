@@ -6649,9 +6649,10 @@ const Index = () => {
                     <div className="max-w-md mx-auto space-y-6">
                       {/* Tags Input */}
                       <div className="space-y-3">
-                        <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                        <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder="Add tags (optional)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                          <p className="text-xs text-muted-foreground text-center">
-                           Unquoted tags are printed (3 of 4 lines). Put tags in quotes to influence tone/POV without printing them: e.g., jesse, candles, 'female', "loser"
+                           tags added will literally be in text<br />
+                           "tag" = influences style but not added
                          </p>
                         
                         {/* Display Tags */}
