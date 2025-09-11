@@ -173,7 +173,7 @@ no random objects with no context, no abstract shapes, no watermarks, no logos, 
       { role: 'user', content: userPrompt }
     ], {
       model: 'gpt-5-mini-2025-08-07',
-      max_completion_tokens: 1200,
+      max_completion_tokens: 800,
       edgeOnly: true
     });
 
