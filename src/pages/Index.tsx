@@ -23,7 +23,7 @@ import { createSession, generateTextOptions, generateVisualOptions, type Session
 import { generateIdeogramImage, generateWithStricterLayout, retryWithTextFallback, setIdeogramApiKey, getIdeogramApiKey, IdeogramAPIError, getProxySettings, setProxySettings, testProxyConnection, ProxySettings } from "@/lib/ideogramApi";
 import { buildIdeogramPrompts, buildStricterLayoutPrompts, getAspectRatioForIdeogram, getStyleTypeForIdeogram } from "@/lib/ideogramPrompt";
 import { TextRenderIndicator } from "@/components/TextRenderIndicator";
-import { TextGenerationIndicator } from "@/components/TextGenerationIndicator";
+
 import { RetryWithLayoutDialog } from "@/components/RetryWithLayoutDialog";
 import { SafetyValidationDialog } from "@/components/SafetyValidationDialog";
 
@@ -6790,13 +6790,6 @@ const Index = () => {
                                <span className="text-sm font-medium text-muted-foreground">
                                  Option {index + 1}
                                </span>
-                               {index === 0 && (
-                                 <TextGenerationIndicator 
-                                   model={textGenerationModel || undefined}
-                                   validated={textGenerationMetadata?.validated}
-                                   issues={textGenerationMetadata?.issues}
-                                 />
-                               )}
                              </div>
                             <p className="text-sm text-card-foreground leading-relaxed">
                               {option}
