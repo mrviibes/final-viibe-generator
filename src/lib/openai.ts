@@ -253,7 +253,7 @@ export class OpenAIService {
   async searchPopCulture(category: string, searchTerm: string): Promise<OpenAISearchResult[]> {
     const prompt = `Generate exactly 5 creative and relevant ${category.toLowerCase()} suggestions related to "${searchTerm}". Focus on popular, well-known entries that would be engaging for users. Keep descriptions concise (1-2 sentences).
 
-Return as a JSON object with this exact format:
+Return as a json object with this exact format:
 {
   "suggestions": [
     {"title": "Suggestion Title", "description": "Brief description"}
@@ -336,7 +336,7 @@ Return as a JSON object with this exact format:
     
     prompt += ` Each option must be ${characterLimit} characters or fewer. Be creative and engaging.
 
-Return as a JSON object with this exact format:
+Return as a json object with this exact format:
 {
   "options": ["text option 1", "text option 2", "text option 3", "text option 4"]
 }`;

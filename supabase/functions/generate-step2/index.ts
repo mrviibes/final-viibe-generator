@@ -369,7 +369,7 @@ AVOID WORDS: ${AVOID_WORDS.slice(0, 10).join(", ")}
 
 Remember: Each line must feel distinctly different in voice and approach while maintaining cohesive tone and style.
 
-Respond with JSON only.`;
+Respond with json only.`;
 }
 
 function buildUserMessage(inputs: any, previousErrors: string[] = []): string {
@@ -396,7 +396,7 @@ LENGTH TARGETS (enforce variety): [${lengthTargets.join(", ")}]
 
 WRITE CONVERSATIONALLY: Sound like a real person texting, not an AI generating content. Use contractions, natural flow, and varied sentence lengths.
 
-Respond with JSON only.`;
+Generate json response only.`;
 
   if (previousErrors.length > 0) {
     message += `

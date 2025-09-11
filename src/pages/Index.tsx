@@ -4689,7 +4689,7 @@ const Index = () => {
         // Ping ai-chat-json to warm it up
         openAIService.chatJSON([{
           role: 'user',
-          content: 'Warm up. Return: {"status": "ready"}'
+          content: 'Warm up. Return json response: {"status": "ready"}'
         }], {
           model: 'gpt-5-mini-2025-08-07',
           max_completion_tokens: 20
