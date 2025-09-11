@@ -40,7 +40,7 @@ serve(async (req) => {
 
     const {
       temperature = 0.8,
-      max_tokens = 500, // Increased for reasoning overhead
+      max_tokens = 500,
       max_completion_tokens,
       model = 'gpt-5-mini-2025-08-07'
     } = options;
@@ -73,7 +73,7 @@ serve(async (req) => {
 
     // Add timeout for faster failure
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

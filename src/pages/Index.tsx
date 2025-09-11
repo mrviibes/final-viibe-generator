@@ -4682,17 +4682,17 @@ const Index = () => {
     }
   }, [currentStep, selectedGeneratedOption, stepTwoText]);
 
-  // Warm up edge functions on load for faster response
+  // Light warm up on load
   useEffect(() => {
     const warmUpEdgeFunctions = async () => {
       try {
-        // Ping ai-chat-json to warm it up
+        // Light ping with smaller model
         openAIService.chatJSON([{
           role: 'user',
-          content: 'Warm up. Return json response: {"status": "ready"}'
+          content: 'Ready?'
         }], {
-          model: 'gpt-5-mini-2025-08-07',
-          max_completion_tokens: 100
+          model: 'gpt-4.1-mini-2025-04-14',
+          max_completion_tokens: 50
         }).catch(() => {}); // Silent fail
       } catch {
         // Silent fail - this is just a warm-up

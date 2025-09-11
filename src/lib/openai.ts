@@ -102,6 +102,30 @@ export class OpenAIService {
             throw new Error(error.message || 'Edge Function error');
           }
 
+          // If using GPT-5 and got empty content, try fallback models
+          if (tryModel.includes('gpt-5') && (!data || !data.content || data.content.trim() === '')) {
+            console.log("GPT-5 returned empty content, trying fallback models");
+            
+            const fallbackModels = ["o4-mini-2025-04-16", "gpt-4.1-2025-04-14"];
+            for (const fallbackModel of fallbackModels) {
+              try {
+                const fallbackResult = await supabase.functions.invoke('ai-chat-json', {
+                  body: { 
+                    messages, 
+                    options: { ...options, model: fallbackModel, max_tokens: 300, temperature: 0.8 }
+                  }
+                });
+                
+                if (fallbackResult.data && !fallbackResult.error && fallbackResult.data.content?.trim()) {
+                  console.log(`Fallback model ${fallbackModel} succeeded`);
+                  return fallbackResult.data;
+                }
+              } catch (fallbackError) {
+                console.log(`Fallback model ${fallbackModel} failed:`, fallbackError);
+              }
+            }
+          }
+
           result = data;
           console.log('Edge Function call successful');
         } catch (edgeError) {

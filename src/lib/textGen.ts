@@ -93,113 +93,59 @@ function sanitizeAndValidate(text: string, inputs?: TextGenInput): TextGenOutput
     const parsed = JSON.parse(cleaned);
     
     // Validate structure
-    if (!parsed.lines || !Array.isArray(parsed.lines) || parsed.lines.length !== 4) {
+    if (!parsed.lines || !Array.isArray(parsed.lines)) {
       return null;
     }
     
-    // Validate each line
-    const lengths: number[] = [];
+    if (parsed.lines.length === 0) {
+      return null;
+    }
+    
+    // Validate each line with relaxed rules
+    const validLines = [];
     for (const line of parsed.lines) {
       if (!line.lane || !line.text || typeof line.text !== 'string') {
-        return null;
+        continue;
       }
       
-      // Character limits: 40-80 chars
+      // Relaxed character limits: 25-120 chars
       const length = line.text.length;
-      if (length < 40 || length > 80) {
-        return null;
+      if (length < 25 || length > 120) {
+        continue;
       }
       
-      lengths.push(length);
+      validLines.push(line);
     }
     
-    // Validate length distribution: one line per bucket [40-50], [50-60], [60-70], [70-80]
-    const buckets = [
-      lengths.filter(l => l >= 40 && l <= 50).length,
-      lengths.filter(l => l >= 50 && l <= 60).length,
-      lengths.filter(l => l >= 60 && l <= 70).length,
-      lengths.filter(l => l >= 70 && l <= 80).length
-    ];
-    
-    // Each bucket should have exactly 1 line
-    if (!buckets.every(count => count === 1)) {
+    if (validLines.length === 0) {
       return null;
     }
     
-    // If we have input context, validate tag handling, style, and rating
+    // Very relaxed validation for inputs
     if (inputs) {
-      const { hardTags, softTags } = parseTags(inputs.tags);
+      const { hardTags } = parseTags(inputs.tags);
       
-      // Count how many lines contain all hard tags
-      let linesWithAllHardTags = 0;
-      for (const line of parsed.lines) {
-        const lowerText = line.text.toLowerCase();
-        const hasAllHardTags = hardTags.every(tag => 
-          lowerText.includes(tag.toLowerCase())
-        );
-        if (hasAllHardTags) {
-          linesWithAllHardTags++;
-        }
-        
-        // Check no soft tags appear literally
-        for (const softTag of softTags) {
-          if (lowerText.includes(softTag)) {
-            return null; // Soft tag appeared literally
-          }
-        }
-      }
-      
-      // Must have exactly 3 lines with all hard tags
-      if (hardTags.length > 0 && linesWithAllHardTags !== 3) {
-        return null;
-      }
-      
-      // Style validation
-      if (inputs.style === 'pop-culture') {
-        const popCultureTerms = [
-          'taylor swift', 'kanye', 'kardashian', 'elon musk', 'netflix', 'disney', 'marvel', 'tiktok', 'instagram', 
-          'spotify', 'iphone', 'android', 'fortnite', 'minecraft', 'uber', 'airbnb', 'zoom'
-        ];
-        
-        let popCultureCount = 0;
-        for (const line of parsed.lines) {
+      // Only check tag coverage if there are many hard tags
+      if (hardTags.length > 2) {
+        let linesWithSomeTags = 0;
+        for (const line of validLines) {
           const lowerText = line.text.toLowerCase();
-          if (popCultureTerms.some(term => lowerText.includes(term))) {
-            popCultureCount++;
+          const hasSomeTags = hardTags.some(tag => 
+            lowerText.includes(tag.toLowerCase())
+          );
+          if (hasSomeTags) {
+            linesWithSomeTags++;
           }
         }
         
-        if (popCultureCount < 4) {
-          return null; // Not enough pop culture references
-        }
-      }
-      
-      // Rating validation
-      if (inputs.rating === 'R') {
-        const edgyTerms = ['damn', 'hell', 'ass', 'shit', 'fuck', 'savage', 'brutal', 'roast', 'destroy', 'trash', 'worst'];
-        let edgyCount = 0;
-        for (const line of parsed.lines) {
-          const lowerText = line.text.toLowerCase();
-          if (edgyTerms.some(term => lowerText.includes(term))) {
-            edgyCount++;
-          }
-        }
-        
-        if (edgyCount < 2) {
-          return null; // Not edgy enough for R rating
-        }
-      } else if (inputs.rating === 'G') {
-        const profanityTerms = ['damn', 'hell', 'ass', 'shit', 'fuck', 'bitch', 'crap', 'suck', 'stupid', 'idiot', 'loser'];
-        for (const line of parsed.lines) {
-          const lowerText = line.text.toLowerCase();
-          if (profanityTerms.some(term => lowerText.includes(term))) {
-            return null; // Contains profanity for G rating
-          }
+        // Require at least 30% of lines to have some tags
+        if (linesWithSomeTags / validLines.length < 0.3) {
+          return null;
         }
       }
     }
     
-    return parsed as TextGenOutput;
+    return { lines: validLines };
   } catch {
     return null;
   }

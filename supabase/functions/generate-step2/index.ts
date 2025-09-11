@@ -849,19 +849,19 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
       response_format: { type: "json_object" }
     };
     
-    // Model-specific parameters - reduced tokens for speed
+    // Model-specific parameters - increased tokens for reasoning overhead
     if (model.startsWith('gpt-5') || model.startsWith('gpt-4.1')) {
-      requestBody.max_completion_tokens = 180;
+      requestBody.max_completion_tokens = 500;
     } else {
-      requestBody.max_tokens = 180;
+      requestBody.max_tokens = 300;
       requestBody.temperature = 0.7;
     }
     
     // Add timeout for faster failure
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
-    
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openAIApiKey}`,
@@ -892,12 +892,101 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     // Check for missing content
     if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
       console.error("Empty or missing content from OpenAI:", data);
+      
+      // Try fallback models for empty GPT-5 responses
+      if (model.includes("gpt-5")) {
+        console.log("Trying fallback model for empty GPT-5 response");
+        const fallbackModels = ["o4-mini-2025-04-16", "gpt-4.1-2025-04-14"];
+        
+        for (const fallbackModel of fallbackModels) {
+          try {
+            console.log(`Attempting fallback with ${fallbackModel}`);
+            const fallbackBody = { ...requestBody, model: fallbackModel };
+            if (fallbackModel.includes("o4") || fallbackModel.includes("gpt-4.1")) {
+              delete fallbackBody.max_completion_tokens;
+              fallbackBody.max_tokens = 300;
+              fallbackBody.temperature = 0.8;
+            }
+            
+            const fallbackResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${openAIApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              signal: controller.signal,
+              body: JSON.stringify(fallbackBody),
+            });
+
+            if (fallbackResponse.ok) {
+              const fallbackData = await fallbackResponse.json();
+              if (fallbackData.choices?.[0]?.message?.content?.trim()) {
+                console.log(`Fallback model ${fallbackModel} succeeded`);
+                return {
+                  model: fallbackModel,
+                  finish_reason: fallbackData.choices[0].finish_reason,
+                  content_length: fallbackData.choices[0].message.content.length,
+                  usage: fallbackData.usage,
+                  content: fallbackData.choices[0].message.content
+                };
+              }
+            }
+          } catch (fallbackError) {
+            console.log(`Fallback model ${fallbackModel} failed:`, fallbackError.message);
+          }
+        }
+      }
+      
       throw new Error("Empty response from OpenAI API");
     }
     
     const rawContent = data.choices[0].message.content.trim();
     
     if (!rawContent) {
+      // Try fallback models for empty content from GPT-5
+      if (model.includes("gpt-5")) {
+        console.log("Trying fallback model for empty content from GPT-5");
+        const fallbackModels = ["o4-mini-2025-04-16", "gpt-4.1-2025-04-14"];
+        
+        for (const fallbackModel of fallbackModels) {
+          try {
+            console.log(`Attempting fallback with ${fallbackModel}`);
+            const fallbackBody = { ...requestBody, model: fallbackModel };
+            if (fallbackModel.includes("o4") || fallbackModel.includes("gpt-4.1")) {
+              delete fallbackBody.max_completion_tokens;
+              fallbackBody.max_tokens = 300;
+              fallbackBody.temperature = 0.8;
+            }
+            
+            const fallbackResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${openAIApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              signal: controller.signal,
+              body: JSON.stringify(fallbackBody),
+            });
+
+            if (fallbackResponse.ok) {
+              const fallbackData = await fallbackResponse.json();
+              if (fallbackData.choices?.[0]?.message?.content?.trim()) {
+                console.log(`Fallback model ${fallbackModel} succeeded`);
+                return {
+                  model: fallbackModel,
+                  finish_reason: fallbackData.choices[0].finish_reason,
+                  content_length: fallbackData.choices[0].message.content.length,
+                  usage: fallbackData.usage,
+                  content: fallbackData.choices[0].message.content
+                };
+              }
+            }
+          } catch (fallbackError) {
+            console.log(`Fallback model ${fallbackModel} failed:`, fallbackError.message);
+          }
+        }
+      }
+      
       throw new Error("Empty response from OpenAI API");
     }
     
