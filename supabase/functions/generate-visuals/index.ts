@@ -7,7 +7,13 @@ const corsHeaders = {
 };
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-const MODEL = 'gpt-5-mini-2025-08-07';
+
+// Multi-model fallback strategy
+const MODELS = [
+  { name: 'gpt-5-2025-08-07', tokens: 400, useMaxCompletionTokens: true },
+  { name: 'gpt-4.1-2025-04-14', tokens: 400, useMaxCompletionTokens: true },
+  { name: 'gpt-5-mini-2025-08-07', tokens: 300, useMaxCompletionTokens: true }
+];
 
 interface VisualInput {
   final_text: string;
@@ -17,39 +23,27 @@ interface VisualInput {
   layout_token: string;
 }
 
-// Universal system prompt that forces JSON concepts and bans filler
+// Strengthened system prompt for reliable JSON output
 const SYSTEM_PROMPT_UNIVERSAL = (
   { mode, layout }: { mode: string; layout: string }
-) => `You generate 4 vivid, funny, cinematic visual scene ideas as JSON only.  
-Return EXACTLY:
+) => `Generate 4 visual concepts as valid JSON. Response must be parseable JSON with NO extra text.
 
 {
   "concepts":[
-    {"lane":"option1","text":"..."},
-    {"lane":"option2","text":"..."},
-    {"lane":"option3","text":"..."},
-    {"lane":"option4","text":"..."}
+    {"lane":"option1","text":"vivid scene description"},
+    {"lane":"option2","text":"vivid scene description"},
+    {"lane":"option3","text":"vivid scene description"},
+    {"lane":"option4","text":"vivid scene description"}
   ]
 }
 
-## Core Rules:
-- Visuals must tie directly to the provided joke/caption text.  
-- Must be cinematic, specific, and imaginative — NOT generic filler.  
-- Always leave [${layout}] clean for text placement.  
-- Concepts should feel like fun, shareable meme images that match the joke.  
-
-## Negative Rules:
-no bland stock photo, no random empty rooms, no balloons/cake placeholders unless the joke requires them,  
-no random objects with no context, no abstract shapes, no watermarks, no logos, no on-image text.  
-
-## Mode Behavior (apply one, selected: ${mode}):
-[Balanced]  polished, realistic photography; clear subject action tied to subcategory; readable negative space.
-[Cinematic Action]  movie-poster energy; dramatic light; motion blur; debris/confetti; epic atmosphere.
-[Dynamic Action]  freeze-frame peak energy; leaping, slipping, crashing; impact debris; speed trails.
-[Surreal / Dreamlike]  bend physics/scale; floating props; warped reflections; dream color fog; keep subcategory identity.
-[Randomized Chaos]  mash joke + subcategory + absurd twist; bold palettes; glitchy energy; still readable.
-[Exaggerated Proportions]  caricature; giant heads; tiny bodies; oversized props; big emotions; meme-friendly.
-`;
+RULES:
+- Each concept: 15-25 words describing a specific, cinematic scene
+- Must connect to the provided joke/text directly
+- Leave [${layout}] area clear for text overlay
+- Mode: ${mode} - apply appropriate visual style
+- NO generic stock photos, random objects, or filler content
+- Be specific and imaginative
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -83,110 +77,110 @@ serve(async (req) => {
     }
 
     console.log('inputs', { final_text, category, subcategory, mode, layout_token });
-    console.log('model', MODEL);
 
     const system = SYSTEM_PROMPT_UNIVERSAL({ mode, layout: layout_token });
-    const user = `Context:\n- final_text: "${final_text}"\n- category: ${category}\n- subcategory: ${subcategory}\n- mode: ${mode}\n- layout_token: ${layout_token}`;
+    const user = `Joke: "${final_text}"\nCategory: ${category} (${subcategory})\nMode: ${mode}`;
 
-    const body: Record<string, unknown> = {
-      model: MODEL,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      response_format: { type: 'json_object' },
-      max_completion_tokens: 600,
-    };
+    // Try models in sequence until one succeeds
+    for (const modelConfig of MODELS) {
+      console.log(`Trying model: ${modelConfig.name}`);
+      
+      const body: Record<string, unknown> = {
+        model: modelConfig.name,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ],
+        response_format: { type: 'json_object' },
+        [modelConfig.useMaxCompletionTokens ? 'max_completion_tokens' : 'max_tokens']: modelConfig.tokens,
+      };
 
-    console.log('reqBody', JSON.stringify(body));
+      console.log('reqBody', JSON.stringify(body));
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-
-    const r = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-    console.log('status', r.status);
-
-    // Try to parse JSON, but be resilient on errors
-    let data: any;
-    try {
-      data = await r.json();
-    } catch (e) {
-      data = { parse_error: String(e) };
-    }
-
-    console.log('data', data);
-
-    if (!r.ok) {
-      const message = data?.error?.message || `OpenAI error ${r.status}`;
-      return new Response(JSON.stringify({ success: false, error: message, status: r.status, details: data }), {
-        status: r.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const content: string | undefined = data?.choices?.[0]?.message?.content;
-    if (!content) {
-      return new Response(JSON.stringify({ success: false, error: 'Empty model response' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    let out: any;
-    try {
-      out = JSON.parse(content);
-    } catch (e) {
-      // Attempt to clean and parse JSON if wrapped
       try {
-        const cleaned = content.replace(/```json\s*|```/g, '').trim();
-        out = JSON.parse(cleaned);
-      } catch (_e) {
-        return new Response(JSON.stringify({ success: false, error: 'Invalid JSON from model', raw: content.slice(0, 400) }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const r = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+          signal: controller.signal,
         });
+
+        clearTimeout(timeout);
+        console.log(`${modelConfig.name} status:`, r.status);
+
+        if (!r.ok) {
+          console.log(`${modelConfig.name} failed with status ${r.status}, trying next model`);
+          continue;
+        }
+
+        const data = await r.json();
+        console.log(`${modelConfig.name} response:`, data);
+
+        const content = data?.choices?.[0]?.message?.content;
+        if (!content || content.trim() === '') {
+          console.log(`${modelConfig.name} returned empty content, trying next model`);
+          continue;
+        }
+
+        // Parse JSON response
+        let out: any;
+        try {
+          out = JSON.parse(content);
+        } catch (e) {
+          try {
+            const cleaned = content.replace(/```json\s*|```/g, '').trim();
+            out = JSON.parse(cleaned);
+          } catch (_e) {
+            console.log(`${modelConfig.name} returned invalid JSON, trying next model`);
+            continue;
+          }
+        }
+
+        // Validate structure
+        if (!Array.isArray(out?.concepts) || out.concepts.length !== 4) {
+          console.log(`${modelConfig.name} returned bad structure, trying next model`);
+          continue;
+        }
+
+        // Check for banned phrases
+        const banned = ['random object', 'empty room', 'abstract shapes', 'generic photo'];
+        const fails = out.concepts.some((c: any) =>
+          typeof c?.text === 'string' && banned.some(b => c.text.toLowerCase().includes(b))
+        );
+        
+        if (fails) {
+          console.log(`${modelConfig.name} contained banned phrases, trying next model`);
+          continue;
+        }
+
+        // Success!
+        console.log(`${modelConfig.name} succeeded`);
+        return new Response(
+          JSON.stringify({ success: true, model: modelConfig.name, concepts: out.concepts }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+
+      } catch (error) {
+        console.error(`${modelConfig.name} error:`, error);
+        continue;
       }
     }
 
-    if (!Array.isArray(out?.concepts) || out.concepts.length !== 4) {
-      return new Response(JSON.stringify({ success: false, error: 'Bad shape', got: out }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Simple banned phrase validation
-    const banned = [
-      'random object',
-      'empty room',
-      'abstract shapes',
-      'person looking dramatically disappointed',
-      'generic photo',
-    ];
-    const fails = out.concepts.some((c: any) =>
-      typeof c?.text === 'string' && banned.some(b => c.text.toLowerCase().includes(b))
-    );
-    if (fails) {
-      return new Response(JSON.stringify({ success: false, error: 'Validation failed: filler phrases detected', concepts: out.concepts }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, model: data?.model, concepts: out.concepts }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    // All models failed
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'All models failed to generate valid concepts',
+      attempted_models: MODELS.map(m => m.name)
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error: any) {
     console.error('generate-visuals error:', error);
     return new Response(JSON.stringify({ success: false, error: String(error?.message || error) }), {

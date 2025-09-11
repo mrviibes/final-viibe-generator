@@ -4533,52 +4533,74 @@ const Index = () => {
           let chosenValidOptions: Array<{ lane: string; prompt: string }> = [];
           let lastReasons: string[] = [];
 
+          let result: any = null;
+          
           for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-            const result = await generateVisualOptions(session, {
-              tone: selectedTextStyle || 'humorous',
-              tags: tags,
-              textContent: selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ''),
-              textLayoutId: selectedTextLayout || 'negativeSpace',
-              recommendationMode: visualSpice
-            });
-            if (!result?.visualOptions?.length || result.model === 'error') {
-              throw new Error('No concepts returned from server');
-            }
-
-            const varianceResult = ensureVisualVariance(
-              result.visualOptions,
-              selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ''),
-              selectedTextLayout || 'negativeSpace',
-              true,
-              visualSpice
-            );
-
-            const layoutValidation = validateLayoutAwareVisuals(
-              varianceResult.diversifiedOptions,
-              selectedTextLayout || 'negativeSpace',
-              session
-            );
-
-            const validator = validateVisualBatch(
-              {
-                final_text: selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ''),
-                category: selectedStyle || 'general',
-                subcategory: selectedSubOption || '',
-                mode: visualSpice,
-                layout_token: selectedTextLayout || 'negativeSpace'
-              },
-              layoutValidation.validOptions.map(o => ({ lane: o.lane, text: o.prompt }))
-            );
-
-            lastReasons = [...(layoutValidation.reasons || []), ...(validator.batch_reasons || [])];
-
-            if (validator.overall_pass && layoutValidation.validOptions.length === 4) {
-              chosenValidOptions = layoutValidation.validOptions;
+            try {
+              console.log('Attempting visual generation with session:', session);
+              result = await generateVisualOptions(session, {
+                tone: selectedTextStyle || 'humorous',
+                tags: tags,
+                textContent: selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ''),
+                textLayoutId: selectedTextLayout || 'negativeSpace',
+                recommendationMode: visualSpice
+              });
+              
+              console.log('Visual generation result:', result);
+              
+              if (!result?.visualOptions?.length) {
+                throw new Error('No visual concepts were generated');
+              }
+              
+              // If we get here, generation was successful, break out of retry loop
               break;
-            } else if (attempt === maxAttempts) {
-              chosenValidOptions = layoutValidation.validOptions;
+            } catch (error) {
+              console.error(`Visual generation attempt ${attempt} failed:`, error);
+              if (attempt === maxAttempts) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+                toast({
+                  title: 'Visual generation failed',
+                  description: errorMessage,
+                  variant: 'destructive'
+                });
+                throw error;
+              }
+              continue;
             }
           }
+
+          if (!result?.visualOptions?.length) {
+            throw new Error('All visual generation attempts failed');
+          }
+
+          // Process the successful result
+          const varianceResult = ensureVisualVariance(
+            result.visualOptions,
+            selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ''),
+            selectedTextLayout || 'negativeSpace',
+            true,
+            visualSpice
+          );
+
+          const layoutValidation = validateLayoutAwareVisuals(
+            varianceResult.diversifiedOptions,
+            selectedTextLayout || 'negativeSpace',
+            session
+          );
+
+          const validator = validateVisualBatch(
+            {
+              final_text: selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ''),
+              category: selectedStyle || 'general',
+              subcategory: selectedSubOption || '',
+              mode: visualSpice,
+              layout_token: selectedTextLayout || 'negativeSpace'
+            },
+            layoutValidation.validOptions.map(o => ({ lane: o.lane, text: o.prompt }))
+          );
+
+          lastReasons = [...(layoutValidation.reasons || []), ...(validator.batch_reasons || [])];
+          chosenValidOptions = layoutValidation.validOptions;
 
           if (lastReasons.length > 0 && chosenValidOptions.length < 4) {
             sonnerToast.warning('Some visual options failed validation and were retried');
@@ -5105,17 +5127,34 @@ const Index = () => {
         category,
         subcategory
       });
-      const result = await generateVisualOptions(session, {
-        tone: tone.toLowerCase(),
-        tags: finalTags,
-        textContent: finalLine || "",
-        textLayoutId: selectedTextLayout || "negativeSpace",
-        recommendationMode: visualSpice
-      });
-      if (!result?.visualOptions?.length || result.model === 'error') {
+      let result: any = null;
+      
+      try {
+        console.log('Attempting visual generation with session:', session);
+        result = await generateVisualOptions(session, {
+          tone: tone.toLowerCase(),
+          tags: finalTags,
+          textContent: finalLine || "",
+          textLayoutId: selectedTextLayout || "negativeSpace",
+          recommendationMode: visualSpice
+        });
+        
+        console.log('Visual generation result:', result);
+        
+        if (!result?.visualOptions?.length) {
+          toast({
+            title: 'No visuals generated',
+            description: 'The AI couldn\'t generate visual options. Try adjusting your text or mode.',
+            variant: 'destructive'
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Visual generation failed:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         toast({
-          title: 'Visual Generation Error',
-          description: 'No concepts returned from server',
+          title: 'Visual generation failed',
+          description: errorMessage,
           variant: 'destructive'
         });
         return;

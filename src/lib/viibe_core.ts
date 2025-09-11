@@ -66,73 +66,92 @@ import { openAIService } from './openai';
 import { parseVisualTags } from './textUtils';
 import { supabase } from '@/integrations/supabase/client';
 
-// Use direct Edge Function endpoint for visual generation
-export async function generateVisualOptions(session: Session, { tone, tags = [], textContent = "", textLayoutId = "negativeSpace", recommendationMode = "balanced" }: { tone: string; tags?: string[]; textContent?: string; textLayoutId?: string; recommendationMode?: "balanced" | "cinematic" | "surreal" | "dynamic" | "chaos" | "exaggerated" }): Promise<{
+export async function generateVisualOptions(
+  session: Session,
+  { tone, tags, textContent, textLayoutId, recommendationMode }: {
+    tone?: string;
+    tags?: string[];
+    textContent: string;
+    textLayoutId: string;
+    recommendationMode?: string;
+  }
+): Promise<{
   visualOptions: Array<{ lane: string; prompt: string }>;
   negativePrompt: string;
   model: string;
 }> {
+  console.log('generateVisualOptions called with:', {
+    session,
+    tone,
+    tags,
+    textContent,
+    textLayoutId,
+    recommendationMode
+  });
+
+  const payload = {
+    final_text: textContent,
+    category: session.category,
+    subcategory: session.subcategory,
+    mode: recommendationMode || 'balanced',
+    layout_token: textLayoutId,
+  };
+
+  console.log('Calling generate-visuals with payload:', payload);
+
   try {
-    console.log('🎨 generateVisualOptions calling new Edge Function:', { 
-      category: session.category, 
-      subcategory: session.subcategory, 
-      tone, 
-      tags, 
-      entity: session.entity,
-      textContent,
-      textLayoutId,
-      recommendationMode
+    const { data, error } = await supabase.functions.invoke('generate-visuals', {
+      body: payload
     });
 
-    // Parse visual tags into hard tags (appear literally) and soft tags (influence style)
-    const { hardTags, softTags } = parseVisualTags(tags);
-    console.log('🏷️ Parsed visual tags:', { hardTags, softTags });
-    
-    // Call the new generate-visuals Edge Function
-    const { data, error } = await supabase.functions.invoke('generate-visuals', {
-      body: {
-        final_text: textContent,
-        category: session.category,
-        subcategory: session.subcategory,
-        mode: recommendationMode,
-        layout_token: textLayoutId
-      }
-    });
+    console.log('generate-visuals response:', { data, error });
 
     if (error) {
       console.error('Edge Function error:', error);
-      throw new Error(error.message || 'Visual generation failed');
+      throw new Error(`Visual generation failed: ${error.message || 'Unknown error'}`);
     }
 
-    if (!data?.success) {
-      console.error('Visual generation failed:', data?.error);
-      throw new Error(data?.error || 'No concepts returned');
+    if (!data) {
+      throw new Error('No response from visual generation service');
     }
 
-    // Transform the response to match expected format
-    const visualOptions = data.concepts.map((concept: any) => ({
-      lane: concept.lane,
-      prompt: concept.text
-    }));
+    if (!data.success) {
+      console.error('API returned failure:', data);
+      const errorMsg = data.error || 'Failed to generate visuals';
+      const details = data.attempted_models ? ` (tried: ${data.attempted_models.join(', ')})` : '';
+      throw new Error(`${errorMsg}${details}`);
+    }
 
-    const finalResult = {
-      visualOptions,
-      negativePrompt: "no bland stock photo, no empty room, no generic object, no illegible clutter, no watermarks, no logos, no extra on-image text",
-      model: data.model || 'gpt-5-mini-2025-08-07'
+    const concepts = data.concepts || [];
+    if (!Array.isArray(concepts) || concepts.length === 0) {
+      console.error('No concepts returned:', data);
+      throw new Error('No visual concepts were generated - all models returned empty results');
+    }
+
+    // Validate concepts have required structure
+    const validConcepts = concepts.filter((concept: any) => 
+      concept && typeof concept.text === 'string' && concept.text.trim().length > 0
+    );
+
+    if (validConcepts.length === 0) {
+      throw new Error('All generated concepts were invalid or empty');
+    }
+
+    console.log(`Generated ${validConcepts.length}/${concepts.length} valid concepts`);
+
+    return {
+      visualOptions: validConcepts.map((concept: any, index: number) => ({
+        lane: concept.lane || `option${index + 1}`,
+        prompt: concept.text.trim()
+      })),
+      negativePrompt: 'blurry, low quality, text overlay, watermark, generic stock photo',
+      model: data.model || 'unknown'
     };
-
-    console.log('✅ Visual generation successful:', finalResult);
-    return finalResult;
   } catch (error) {
-    console.error('Error in generateVisualOptions:', error);
-    // Return error state instead of empty options
-    const errorResult = {
-      visualOptions: [],
-      negativePrompt: "no bland stock photo, no empty room, no generic object, no illegible clutter, no watermarks, no logos, no extra on-image text",
-      model: "error"
-    };
-    (errorResult as any).errorCode = "GENERATION_FAILED";
-    throw error; // Re-throw to trigger proper error handling in UI
+    console.error('generateVisualOptions error:', error);
+    // Re-throw with more context
+    const message = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Visual generation failed: ${message}`);
   }
 }
 
