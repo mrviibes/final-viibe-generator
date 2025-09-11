@@ -130,7 +130,7 @@ serve(async (req) => {
     const content = data.choices?.[0]?.message?.content;
     const finishReason = data.choices?.[0]?.finish_reason;
     
-    console.log(`Response - Model: ${data.model}, Finish: ${finishReason}, Content Length: ${content?.length || 0}`);
+    console.log(`✅ API Success - Model: ${data.model}, Finish: ${finishReason}, Content: ${content?.length || 0} chars`);
     
     if (!content || content.trim() === '') {
       const errorMsg = finishReason === 'length' 

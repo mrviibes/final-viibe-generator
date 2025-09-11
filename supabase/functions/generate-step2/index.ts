@@ -745,13 +745,14 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     // Use the enhanced system prompt
     const systemPrompt = getSystemPrompt(inputs.category || '', inputs.subcategory || '', inputs.tone || 'Humorous', inputs.tags || [], inputs.style || 'standard', inputs.rating || 'PG-13');
     
-    const requestBody: any = {
+    const requestBody = {
       model,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage }
+        { role: 'user', content: `${inputs.category}: ${inputs.subcategory}, ${inputs.tone} tone` }
       ],
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      max_completion_tokens: 1500
     };
     
     // GPT-5 parameters - increased tokens for better completion
@@ -778,23 +779,24 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`OpenAI API error ${response.status}:`, errorText);
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      console.error(`❌ OpenAI API error ${response.status}:`, errorText);
+      console.error(`Request model: ${model}, Body:`, JSON.stringify(requestBody, null, 2));
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
     
-    // Enhanced logging
-    console.log(`Attempt ${attemptNumber} API response:`, {
-      model: data.model,
-      finish_reason: data.choices?.[0]?.finish_reason,
-      content_length: data.choices?.[0]?.message?.content?.length || 0,
-      usage: data.usage
-    });
+    // Enhanced logging to verify actual model used
+    console.log(`✅ API Success - Model: ${data.model}, Finish: ${data.choices?.[0]?.finish_reason}, Content: ${data.choices?.[0]?.message?.content?.length || 0} chars`);
+    console.log(`Raw response preview:`, data.choices?.[0]?.message?.content?.substring(0, 100));
     
-    // Check for missing content
+    if (data.model !== model) {
+      console.warn(`⚠️ Model mismatch! Requested: ${model}, Got: ${data.model}`);
+    }
+    
+    // Check for missing content with detailed logging
     if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
-      console.error("Empty or missing content from OpenAI:", data);
+      console.error(`❌ Empty API response:`, JSON.stringify(data, null, 2));
       throw new Error("Empty response from OpenAI API");
     }
     
