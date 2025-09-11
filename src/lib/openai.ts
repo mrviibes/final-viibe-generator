@@ -73,8 +73,7 @@ export class OpenAIService {
     // Retry strategy: try current model, then fallback models
     const retryModels = [
       model,
-      model.startsWith('gpt-5-mini') ? 'gpt-5-2025-08-07' : model,
-      'gpt-4.1-2025-04-14'
+      model.startsWith('gpt-5-mini') ? 'gpt-5-2025-08-07' : model
     ].filter((m, i, arr) => arr.indexOf(m) === i); // Remove duplicates
 
     let lastError: Error | null = null;

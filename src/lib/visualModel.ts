@@ -286,17 +286,17 @@ Return pure JSON only.`;
       setTimeout(() => reject(new Error('TIMEOUT')), ms);
     });
 
-    // Primary attempt with GPT-4.1 for better reliability
+    // Primary attempt with GPT-5 mini for better reliability
     let result;
     try {
-      console.log('🎯 Using GPT-4.1 for visual generation with Edge Function enforcement...');
+      console.log('🎯 Using GPT-5 mini for visual generation with Edge Function enforcement...');
       result = await Promise.race([
         openAIService.chatJSON([
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ], {
           max_completion_tokens: 800,
-          model: 'gpt-4.1-2025-04-14',
+          model: 'gpt-5-mini-2025-08-07',
           edgeOnly: true
         }),
         makeTimeoutPromise()
@@ -316,7 +316,7 @@ Return pure JSON only.`;
               { role: 'user', content: compactUserPrompt }
             ], {
               max_completion_tokens: 600,
-              model: 'gpt-4.1-2025-04-14',
+              model: 'gpt-5-mini-2025-08-07',
               edgeOnly: true
             }),
             makeTimeoutPromise()
@@ -331,7 +331,7 @@ Return pure JSON only.`;
               { role: 'user', content: minimalPrompt }
             ], {
               max_completion_tokens: 800,
-              model: 'gpt-4.1-2025-04-14',
+              model: 'gpt-5-mini-2025-08-07',
               edgeOnly: true
             }),
             makeTimeoutPromise()

@@ -192,7 +192,7 @@ Output only this JSON format:
     
     const result = await openAIService.chatJSON(messages, {
       max_completion_tokens: 500,
-      model: 'gpt-4.1-2025-04-14'
+      model: 'gpt-5-mini-2025-08-07'
     });
     
     // Store the API metadata for later use
@@ -303,7 +303,7 @@ export async function generateCandidates(inputs: VibeInputs, n: number = 4): Pro
     candidates: finalCandidates,
     picked,
     audit: {
-      model: apiMeta?.modelUsed || 'gpt-4.1-2025-04-14',
+      model: apiMeta?.modelUsed || 'gpt-5-mini-2025-08-07',
       usedFallback,
       blockedCount,
       reason,

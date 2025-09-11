@@ -4718,7 +4718,7 @@ const Index = () => {
         role: 'user',
         content: 'Test connection. Return JSON response: {"status": "ok"}'
       }], {
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-5-mini-2025-08-07',
         max_completion_tokens: 50
       });
       if (testResult?.status === 'ok') {

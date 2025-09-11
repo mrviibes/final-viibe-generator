@@ -854,7 +854,7 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     console.log("User message:", userMessage);
     
     // Model cascade with stronger models for later attempts
-    const models = ['gpt-4.1-2025-04-14', 'gpt-5-mini-2025-08-07', 'gpt-5-2025-08-07'];
+    const models = ['gpt-5-mini-2025-08-07', 'gpt-5-2025-08-07'];
     const model = models[Math.min(attemptNumber - 1, models.length - 1)];
     
     console.log(`Using model: ${model}`);
