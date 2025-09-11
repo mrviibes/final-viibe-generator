@@ -210,8 +210,8 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
     const selectedFont = getRandomElement(fonts);
     const textStyle = getRandomElement(['subtle shadow', 'soft glow', 'clean stroke']);
     
-    // Put text instruction at the very beginning with explicit styling - exactly once
-    textParts.push(`Render the following text exactly once (single caption): "${handoff.key_line}". Style: ${layout.textPlacement}, ${selectedFont}, ${textStyle}, minimal styling. The text must be clearly visible and spelled correctly.`);
+    // MANDATORY TEXT INSTRUCTION at the very top
+    textParts.push(`TEXT INSTRUCTION (MANDATORY): Render this exact text once: "${handoff.key_line}". The text must appear clearly in the final image. Placement: ${layout.textPlacement}. Style: ${selectedFont}, ${textStyle}, minimal styling. Do not omit, do not distort, do not duplicate.`);
   }
   
   // 2. SCENE DESCRIPTION: Core subject with tone + SUBCATEGORY LOCK
@@ -269,6 +269,11 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const allParts = [...textParts, ...sceneParts];
   let positivePrompt = allParts.join(' ');
   
+  // Add redundant text requirement at the end for text-in-image mode
+  if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
+    positivePrompt += ' The text overlay is required for this design.';
+  }
+  
   // Add overlay-mode text avoidance directive only when explicitly avoiding text
   if (!shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
     const layoutArea = layout.textPlacement.includes('bottom') ? 'bottom area' : 
@@ -284,7 +289,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   
   // Choose negative prompt based on text injection mode  
   const negativePrompt = shouldInjectText 
-    ? "no misspelled text, no duplicated words, no random letters, no blurry or overlapping text, no unwanted logos, no unrelated sports or activities, no badges, no icons, no monograms, no thick banner bars, no UI panels, no secondary captions, no multiple text blocks" // Enhanced for text mode
+    ? "no misspelled text, no duplicated words, no blurry letters, no distorted text, no missing captions, no random extra text" // Simplified for text mode
     : "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no embedded text, no letters, no words, no signage"; // Enhanced for overlay mode
 
   return {
@@ -316,9 +321,9 @@ export function buildStricterLayoutPrompts(handoff: IdeogramHandoff, stricterLay
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
     
-    const stricterTextInstructions = `CRITICAL: Render the text exactly once, no duplicates, no second caption. Single caption block only. "${handoff.key_line}" with ${stricterLayoutToken} layout. Use ${selectedFont} typography with high contrast.`;
+    const stricterTextInstructions = `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "${handoff.key_line}". The text must appear clearly in the final image. Placement: ${stricterLayoutToken} layout. Style: ${selectedFont} typography with high contrast. Do not omit, do not distort, do not duplicate.`;
     
-    basePrompts.positive_prompt = `${stricterTextInstructions} ${basePrompts.positive_prompt}`;
+    basePrompts.positive_prompt = `${stricterTextInstructions} ${basePrompts.positive_prompt}. The text overlay is required for this design.`;
   }
   
   return basePrompts;
