@@ -299,6 +299,16 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
   validated?: boolean;
   issues?: string[];
 }> {
+  console.log('🏷️ Text generation started with inputs:', inputs);
+  console.log('📋 Final parameters for text generation:', {
+    category: inputs.category,
+    subcategory: inputs.subcategory,
+    tone: inputs.tone,
+    tags: inputs.tags,
+    style: inputs.style,
+    rating: inputs.rating
+  });
+  
   const startTime = Date.now();
   console.log("Starting parallel text generation (server + client)");
   
@@ -354,9 +364,12 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
 
     const duration = Date.now() - startTime;
     console.log(`Text generation completed in ${duration}ms`);
+    console.log('Server response data:', data);
+    console.log('Server response error:', error);
 
     if (error) {
       console.error("Edge function error:", error);
+      console.log("Using fallback due to edge function error");
       const fallbackLines = generateFallbackLines(requestInputs);
       return {
         lines: fallbackLines.lines,
@@ -365,9 +378,11 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
       };
     }
 
+    console.log('Checking server validation status:', data?.validated);
+
     // Check if server marked it as validated - trust server validation
-    if (data.validated === true) {
-      console.log("Server validated response - using it");
+    if (data?.validated === true) {
+      console.log("✅ Server validated response - using it");
       return {
         lines: data.lines || generateFallbackLines(requestInputs).lines,
         model: data.model || "server-validated",
@@ -376,10 +391,12 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
       };
     }
     
+    console.log('Server did not validate, attempting client-side validation');
+    
     // If server didn't validate, do client-side validation
     const validated = sanitizeAndValidate(JSON.stringify(data), inputs);
     if (!validated) {
-      console.log("Response failed validation, attempting retry");
+      console.log("❌ Response failed client validation, attempting retry");
       
       // Try once more with strict flag
       const { data: retryData, error: retryError } = await supabase.functions.invoke('generate-step2', {
@@ -409,7 +426,7 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
     }
 
     // If we got a fallback model response, try client-side OpenAI as backup
-    if (data.model === "fallback") {
+    if (data?.model === "fallback") {
       console.log("Server returned fallback, attempting client-side generation");
       
       try {
@@ -442,6 +459,8 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
         console.error("Client-side OpenAI error:", clientError);
       }
     }
+
+    console.log('Final fallback - returning server data or generated fallback');
 
     return {
       lines: data.lines || generateFallbackLines(inputs).lines,
