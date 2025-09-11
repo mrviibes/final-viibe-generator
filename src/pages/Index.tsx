@@ -4896,6 +4896,17 @@ const Index = () => {
     return selections;
   };
 
+  // Handle text editing
+  const handleTextEdit = (newSubtitle?: string, newDescription?: string) => {
+    if (newSubtitle !== undefined) {
+      if (selectedCompletionOption === "write-myself" && isCustomTextConfirmed) {
+        setStepTwoText(newSubtitle);
+      } else if (selectedCompletionOption === "ai-assist" && selectedGeneratedOption) {
+        setSelectedGeneratedOption(newSubtitle);
+      }
+    }
+  };
+
   // Add timeout ref for search debouncing
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -6518,6 +6529,8 @@ const Index = () => {
                 selections.push({
                   title: `Option ${selectedGeneratedIndex !== null ? selectedGeneratedIndex + 1 : 1}`,
                   subtitle: selectedGeneratedOption,
+                  canEdit: true,
+                  onEdit: handleTextEdit,
                   onChangeSelection: () => {
                     setSelectedGeneratedOption(null);
                     setSelectedGeneratedIndex(null);
@@ -6529,8 +6542,10 @@ const Index = () => {
               // Add custom text selection (for write myself)
               if (isCustomTextConfirmed && selectedCompletionOption === "write-myself") {
                 selections.push({
-                  title: "Custom Text",
+                  title: "Custom Text", 
                   subtitle: `"${stepTwoText}"`,
+                  canEdit: true,
+                  onEdit: handleTextEdit,
                   onChangeSelection: () => {
                     setIsCustomTextConfirmed(false);
                     setSelectedTextLayout(null);
