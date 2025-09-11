@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "@/components/ui/sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled, parseVisualTags } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
+import { validateVisualBatch } from "@/lib/visualValidator";
 import { testNetworkConnectivity } from "@/lib/networkTest";
 import { careersList } from "@/lib/careers";
 
@@ -180,9 +181,9 @@ function ensureVisualVariance(options: Array<{
     // Rewrite if needed (but never rewrite option1)
     if (needsRewrite && option.lane !== 'option1') {
       const templates = {
-        option2: ['people laughing', 'audience clapping', 'family smiling', 'friends cheering', 'crowd enjoying'],
-        option3: ['related object close-up', 'empty scene with props', 'worn items', 'equipment on table', 'background setting'],
-        option4: ['symbolic metaphor', 'abstract shapes', 'artistic representation', 'conceptual imagery', 'geometric forms']
+        option2: ['audience laughing', 'friends reacting mid-laugh', 'crowd recoiling dramatically', 'guests pointing, surprised'],
+        option3: ['mirror gag close-up', 'prop with twist relevant to joke', 'visual metaphor tied to line', 'scene detail enhancing joke'],
+        option4: ['unexpected mashup tied to joke', 'caricature exaggeration gag', 'surreal element reinforcing premise', 'dynamic action beat from joke']
       };
       const laneTemplates = templates[option.lane as keyof typeof templates] || templates.option4;
       const templateIndex = Math.abs(mainAnchor.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % laneTemplates.length;
@@ -297,64 +298,10 @@ function validateLayoutAwareVisuals(options: Array<{
 
   const tokenSuffix = requiredTokens.join(', ');
 
-  // If no valid options, generate smarter context-aware fallbacks
+  // If no valid options, do not fabricate placeholders - let upstream regeneration handle it
   if (validOptions.length === 0) {
-    console.log('🔄 Generating context-aware fallback prompts...');
-    
-    // Generate contextual fallbacks based on current session if available
-    const contextualFallbacks = (() => {
-      // Christmas-themed fallbacks for Christmas categories
-      if (session?.subcategory?.toLowerCase().includes('christmas')) {
-        return [{
-          lane: "option1",
-          prompt: `person wearing ugly Christmas sweater looking confused, ${tokenSuffix}`
-        }, {
-          lane: "option2", 
-          prompt: `tangled Christmas lights on floor, ${tokenSuffix}`
-        }, {
-          lane: "option3",
-          prompt: `empty gift boxes scattered around, ${tokenSuffix}`
-        }, {
-          lane: "option4",
-          prompt: `melting snowman with carrot nose, ${tokenSuffix}`
-        }];
-      }
-      
-      // Birthday fallbacks
-      if (session?.subcategory?.toLowerCase().includes('birthday')) {
-        return [{
-          lane: "option1",
-          prompt: `person staring at birthday cake, ${tokenSuffix}`
-        }, {
-          lane: "option2",
-          prompt: `deflated birthday balloons, ${tokenSuffix}`
-        }, {
-          lane: "option3", 
-          prompt: `birthday candles melting, ${tokenSuffix}`
-        }, {
-          lane: "option4",
-          prompt: `empty party hats on table, ${tokenSuffix}`
-        }];
-      }
-      
-      // Generic comedian-quality fallbacks
-      return [{
-        lane: "option1",
-        prompt: `person looking dramatically disappointed, ${tokenSuffix}`
-      }, {
-        lane: "option2",
-        prompt: `random everyday object sitting alone, ${tokenSuffix}`
-      }, {
-        lane: "option3",
-        prompt: `empty room with single chair, ${tokenSuffix}`
-      }, {
-        lane: "option4",
-        prompt: `abstract shapes suggesting confusion, ${tokenSuffix}`
-      }];
-    })();
-    
-    validOptions.push(...contextualFallbacks);
-    reasons.push('Auto-generated context-aware fallback prompts due to validation failures');
+    console.warn('❌ No visuals passed layout validation - will request regeneration upstream');
+    reasons.push('No options passed layout validation');
   }
 
   // Top-up to 4 options if we have 1-3 valid options
@@ -4579,48 +4526,65 @@ const Index = () => {
             category: selectedStyle || 'general',
             subcategory: selectedSubOption || ''
           });
-          const result = await generateVisualOptions(session, {
-            tone: selectedTextStyle || 'humorous',
-            tags: tags,
-            textContent: selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ""),
-            textLayoutId: selectedTextLayout || "negativeSpace",
-            recommendationMode: visualSpice
-          });
+          const maxAttempts = 3;
+          let chosenValidOptions: Array<{ lane: string; prompt: string }> = [];
+          let lastReasons: string[] = [];
 
-          // Ensure visual variance (enabled for stronger mode effects)
-          const varianceResult = ensureVisualVariance(result.visualOptions, selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ""), selectedTextLayout || "negativeSpace", true, visualSpice);
+          for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            const result = await generateVisualOptions(session, {
+              tone: selectedTextStyle || 'humorous',
+              tags: tags,
+              textContent: selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ''),
+              textLayoutId: selectedTextLayout || 'negativeSpace',
+              recommendationMode: visualSpice
+            });
 
-          // Validate layout-aware options
-          const validation = validateLayoutAwareVisuals(varianceResult.diversifiedOptions, selectedTextLayout || "negativeSpace", session);
-          if (validation.reasons.length > 0 && !validation.reasons.includes('Auto-generated fallback prompts due to validation failures')) {
-            console.warn('⚠️ Some visuals filtered:', validation.reasons);
-            sonnerToast.warning('Some visual options were filtered - using best available');
-          } else if (validation.reasons.includes('Auto-generated context-aware fallback prompts due to validation failures')) {
-            console.warn('🔄 Using context-aware fallback visuals:', validation.reasons);
-            sonnerToast.warning('Using context-aware fallback visuals - AI prompts needed adjustment');
+            const varianceResult = ensureVisualVariance(
+              result.visualOptions,
+              selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ''),
+              selectedTextLayout || 'negativeSpace',
+              true,
+              visualSpice
+            );
+
+            const layoutValidation = validateLayoutAwareVisuals(
+              varianceResult.diversifiedOptions,
+              selectedTextLayout || 'negativeSpace',
+              session
+            );
+
+            const validator = validateVisualBatch(
+              {
+                final_text: selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : ''),
+                category: selectedStyle || 'general',
+                subcategory: selectedSubOption || '',
+                mode: visualSpice,
+                layout_token: selectedTextLayout || 'negativeSpace'
+              },
+              layoutValidation.validOptions.map(o => ({ lane: o.lane, text: o.prompt }))
+            );
+
+            lastReasons = [...(layoutValidation.reasons || []), ...(validator.batch_reasons || [])];
+
+            if (validator.overall_pass && layoutValidation.validOptions.length === 4) {
+              chosenValidOptions = layoutValidation.validOptions;
+              break;
+            } else if (attempt === maxAttempts) {
+              chosenValidOptions = layoutValidation.validOptions;
+            }
           }
 
-          // Log any filtered options
-          if (validation.reasons.length > 0) {
-            console.warn('⚠️ Some visuals filtered:', validation.reasons);
-            sonnerToast.warning(`${validation.validOptions.length}/4 visuals passed validation`);
+          if (lastReasons.length > 0 && chosenValidOptions.length < 4) {
+            sonnerToast.warning('Some visual options failed validation and were retried');
           }
 
-          // Ensure all 4 lanes are present
-          const lanes = new Set(validation.validOptions.map(opt => opt.lane));
-          if (lanes.size < 4) {
-            sonnerToast.warning("Some visual options were filtered out for layout safety");
-          }
-          const mappedOptions = validation.validOptions.map(option => ({
+          const mappedOptions = chosenValidOptions.map(option => ({
             subject: option.prompt || (option.lane === 'objects' ? 'Objects and environment' : option.lane === 'group' ? 'Group of people, candid gestures' : option.lane === 'solo' ? 'One person — clear action' : 'Symbolic/abstract arrangement'),
             background: option.lane === 'objects' ? 'Arranged props with text-safe area' : `Context: ${selectedSubOption || ''}`,
             prompt: option.prompt,
             slot: option.lane
           }));
-          const recommendations = {
-            options: mappedOptions,
-            model: result.model
-          };
+          const recommendations = { options: mappedOptions, model: 'gpt-5-mini-2025-08-07' };
           setVisualRecommendations(recommendations);
         } catch (error) {
           console.error('Failed to generate visual recommendations:', error);

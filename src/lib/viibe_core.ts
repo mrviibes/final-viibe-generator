@@ -165,19 +165,7 @@ no random objects with no context, no abstract shapes, no watermarks, no logos, 
 - Feel cinematic and exciting,  
 - And could stand alone as a funny, shareable image.`;
 
-    const userPrompt = `JOKE/CAPTION TEXT TO ILLUSTRATE: "${textContent}"
-
-Context Details:
-- Category: ${session.category}
-- Subcategory: ${session.subcategory}  
-- Tone: ${tone}
-- Mode: ${recommendationMode}
-- Layout Space: ${textLayoutId}
-- Hard Tags (must appear): ${hardTags.join(', ') || 'none'}
-- Soft Tags (style influence): ${softTags.join(', ') || 'none'}
-${session.entity ? `- Specific Topic: ${session.entity}` : ''}
-
-Generate 4 visual concepts that directly illustrate or complement this joke while matching the selected mode.`;
+    const userPrompt = `Context:\n- final_text: "${textContent}"\n- category: ${session.category}\n- subcategory: ${session.subcategory}\n- mode: ${recommendationMode}\n- layout_token: ${textLayoutId}\n- hard_tags: ${hardTags.join(', ') || 'none'}\n- soft_tags: ${softTags.join(', ') || 'none'}`;
 
     console.log('🎯 Calling GPT directly for visual generation...');
     const result = await openAIService.chatJSON([
@@ -189,9 +177,12 @@ Generate 4 visual concepts that directly illustrate or complement this joke whil
       edgeOnly: true
     });
 
+    const concepts = (result.concepts || []).map((c: any) => ({ lane: c.lane, prompt: c.text }));
+    const legacyVisuals = (result.visualOptions || []).map((v: any) => ({ lane: v.lane, prompt: v.prompt }));
+    const mergedOptions = concepts.length ? concepts : legacyVisuals;
     const finalResult = {
-      visualOptions: result.visualOptions || [],
-      negativePrompt: result.negativePrompt || "no bland stock photo, no empty room, no generic object, no illegible clutter, no watermarks, no logos, no extra on-image text",
+      visualOptions: mergedOptions,
+      negativePrompt: "no generic placeholders, no bland stock photo, no random empty rooms, no abstract shapes, no watermarks, no logos, no on-image text",
       model: 'gpt-5-mini-2025-08-07'
     };
 
