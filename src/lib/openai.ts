@@ -64,8 +64,8 @@ export class OpenAIService {
   } = {}): Promise<any> {
     const {
       temperature = 0.8,
-      max_tokens = 2500,
-      max_completion_tokens,
+      max_tokens = 500, // Reduced for speed
+      max_completion_tokens = 180, // Fast completion
       model = 'gpt-5-mini-2025-08-07',
       edgeOnly = false
     } = options;

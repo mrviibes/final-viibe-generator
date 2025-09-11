@@ -191,7 +191,7 @@ Output only this JSON format:
     ];
     
     const result = await openAIService.chatJSON(messages, {
-      max_completion_tokens: 500,
+      max_completion_tokens: 180, // Reduced for speed
       model: 'gpt-5-mini-2025-08-07'
     });
     

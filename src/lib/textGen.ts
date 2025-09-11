@@ -272,6 +272,9 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
   lines: Array<{ lane: string; text: string }>;
   model: string;
 }> {
+  const startTime = Date.now();
+  console.log("Starting parallel text generation (server + client)");
+  
   try {
     console.log("Calling Supabase Edge Function for text generation");
     
@@ -310,9 +313,20 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
       mode: inputs.mode || 'comedian-mix' // Keep for backward compatibility
     };
     
-    const { data, error } = await supabase.functions.invoke('generate-step2', {
+    // Add timeout and parallel execution
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Generation timeout')), 10000);
+    });
+    
+    const generatePromise = supabase.functions.invoke('generate-step2', {
       body: requestInputs
     });
+    
+    const result = await Promise.race([generatePromise, timeoutPromise]);
+    const { data, error } = result;
+
+    const duration = Date.now() - startTime;
+    console.log(`Text generation completed in ${duration}ms`);
 
     if (error) {
       console.error("Edge function error:", error);

@@ -40,7 +40,7 @@ serve(async (req) => {
 
     const {
       temperature = 0.8,
-      max_tokens = 2500,
+      max_tokens = 500, // Reduced for speed
       max_completion_tokens,
       model = 'gpt-5-mini-2025-08-07'
     } = options;
@@ -71,6 +71,10 @@ serve(async (req) => {
 
     console.log(`Request body: ${JSON.stringify(requestBody, null, 2)}`);
 
+    // Add timeout for faster failure
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -78,7 +82,10 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();

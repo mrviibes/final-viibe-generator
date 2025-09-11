@@ -4680,6 +4680,25 @@ const Index = () => {
     }
   }, [currentStep, selectedGeneratedOption, stepTwoText]);
 
+  // Warm up edge functions on load for faster response
+  useEffect(() => {
+    const warmUpEdgeFunctions = async () => {
+      try {
+        // Ping ai-chat-json to warm it up
+        openAIService.chatJSON([{
+          role: 'user',
+          content: 'Warm up. Return: {"status": "ready"}'
+        }], {
+          model: 'gpt-5-mini-2025-08-07',
+          max_completion_tokens: 20
+        }).catch(() => {}); // Silent fail
+      } catch {
+        // Silent fail - this is just a warm-up
+      }
+    };
+    warmUpEdgeFunctions();
+  }, []);
+
   // Visual AI recommendations state
   const [isTestingProxy, setIsTestingProxy] = useState(false);
   const navigate = useNavigate();

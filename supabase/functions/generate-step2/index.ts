@@ -871,13 +871,17 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
       response_format: { type: "json_object" }
     };
     
-    // Model-specific parameters
+    // Model-specific parameters - reduced tokens for speed
     if (model.startsWith('gpt-5') || model.startsWith('gpt-4.1')) {
-      requestBody.max_completion_tokens = 300;
+      requestBody.max_completion_tokens = 180;
     } else {
-      requestBody.max_tokens = 300;
+      requestBody.max_tokens = 180;
       requestBody.temperature = 0.7;
     }
+    
+    // Add timeout for faster failure
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -886,7 +890,10 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -1000,8 +1007,8 @@ serve(async (req) => {
       });
     }
     
-    // Try up to 3 attempts with escalating models
-    const maxAttempts = 3;
+    // Try up to 2 attempts for speed
+    const maxAttempts = 2;
     let rawCandidate: Array<{lane: string, text: string}> | null = null;
     let finalResult: Array<{lane: string, text: string}> | null = null;
     let allErrors: string[] = [];
