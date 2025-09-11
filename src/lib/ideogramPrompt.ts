@@ -1,5 +1,6 @@
 import { IdeogramHandoff } from './ideogram';
 import { normalizeTypography } from './textUtils';
+import { buildUniversalTextPrompt, universalTextPlacementTemplates } from './universalTextTemplates';
 
 export interface IdeogramPrompts {
   positive_prompt: string;
@@ -195,24 +196,48 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
 }
 
 export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { injectText?: boolean } = {}): IdeogramPrompts {
+  const shouldInjectText = options.injectText !== false;
+  
+  // Check if we have a valid universal template for the layout using design_notes as layout indicator
+  const layoutIndicator = handoff.design_notes?.toLowerCase() || '';
+  const layoutTemplate = universalTextPlacementTemplates.find(t => 
+    layoutIndicator.includes(t.id.toLowerCase()) ||
+    layoutIndicator.includes(t.label.toLowerCase().replace(/\s+/g, ''))
+  );
+  
+  if (shouldInjectText && handoff.key_line && handoff.key_line.trim() && layoutTemplate) {
+    // Use the universal template system for modern, cinematic text placement
+    const subject = handoff.chosen_visual || handoff.rec_subject || `${handoff.tone} ${handoff.category} scene`;
+    const cleanSubject = subject.replace(/,?\s*(clear empty area|clear top band|clear bottom band|clear lower third|clear left panel|badge space|clear narrow bottom)/gi, '').trim();
+    
+    const styleSpec = handoff.visual_style && handoff.visual_style.toLowerCase() !== 'auto' 
+      ? `in ${handoff.visual_style} style` 
+      : 'in realistic photo style';
+    
+    const sceneDescription = `${handoff.tone} ${cleanSubject} ${styleSpec}`;
+    
+    const { positivePrompt, negativePrompt } = buildUniversalTextPrompt(
+      layoutTemplate.id, 
+      handoff.key_line, 
+      sceneDescription
+    );
+    
+    return {
+      positive_prompt: positivePrompt,
+      negative_prompt: negativePrompt,
+      safety_modifications: {
+        prompt_modified: false,
+        tags_modified: []
+      }
+    };
+  }
+  
+  // Fallback to legacy system for backward compatibility
   const textParts: string[] = [];
   const sceneParts: string[] = [];
   
   // Get layout configuration first
   const layout = getLayoutInstruction(handoff);
-  
-  // 1. TEXT-FIRST: EXPLICIT TEXT RENDERING INSTRUCTION (highest priority)
-  // Default to text-in-image mode unless explicitly set to false
-  const shouldInjectText = options.injectText !== false;
-  
-  if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
-    const fonts = getToneFonts(handoff.tone);
-    const selectedFont = getRandomElement(fonts);
-    const textStyle = getRandomElement(['subtle shadow', 'soft glow', 'clean stroke']);
-    
-    // MANDATORY TEXT INSTRUCTION at the very top
-    textParts.push(`TEXT INSTRUCTION (MANDATORY): Render this exact text once: "${handoff.key_line}". The text must appear clearly in the final image. Placement: ${layout.textPlacement}. Style: ${selectedFont}, ${textStyle}, minimal styling. Do not omit, do not distort, do not duplicate.`);
-  }
   
   // 2. SCENE DESCRIPTION: Core subject with tone + SUBCATEGORY LOCK
   const subject = handoff.chosen_visual || handoff.rec_subject || `${handoff.tone} ${handoff.category} scene`;

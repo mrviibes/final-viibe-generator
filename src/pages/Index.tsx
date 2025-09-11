@@ -64,31 +64,31 @@ const deriveShortTitle = (prompt: string): string => {
   return shortTitle.charAt(0).toUpperCase() + shortTitle.slice(1);
 };
 
-// Layout mappings for display
+// Modern layout mappings using universal templates
 const layoutMappings = {
   negativeSpace: {
     label: "Negative Space",
-    token: "clear empty area near largest margin"
+    description: "Text integrated seamlessly into natural empty areas"
   },
   memeTopBottom: {
-    label: "Meme Top/Bottom",
-    token: "clear top band, clear bottom band"
+    label: "Meme Top/Bottom", 
+    description: "Bold captions in clear horizontal bands"
   },
   lowerThird: {
     label: "Lower Third Banner",
-    token: "clear lower third"
+    description: "Clean banner-style caption across bottom third"
   },
   sideBarLeft: {
     label: "Side Bar (Left)",
-    token: "clear left panel"
+    description: "Vertical caption panel on the left side"
   },
   badgeSticker: {
-    label: "Badge/Sticker Callout",
-    token: "badge space top-right"
+    label: "Badge/Sticker Callout", 
+    description: "Text inside a clean modern badge element"
   },
   subtleCaption: {
     label: "Subtle Caption",
-    token: "clear narrow bottom strip"
+    description: "Minimal caption overlay, unobtrusive but legible"
   }
 };
 
@@ -7423,10 +7423,10 @@ const Index = () => {
                             <td className="p-3 text-sm">Text Placement</td>
                             <td className="p-3 text-sm">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.label || selectedTextLayout}</td>
                           </tr>
-                          <tr>
-                            <td className="p-3 text-sm">Layout Token</td>
-                            <td className="p-3 text-sm font-mono text-xs">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.token || "Unknown layout"}</td>
-                          </tr>
+                           <tr>
+                             <td className="p-3 text-sm">Layout Description</td>
+                             <td className="p-3 text-sm font-mono text-xs">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.description || "Unknown layout"}</td>
+                           </tr>
                         </>}
                       <tr>
                         <td className="p-3 text-sm">Visual Style</td>
