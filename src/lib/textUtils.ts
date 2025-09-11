@@ -1,3 +1,29 @@
+// Tag parsing utility for visual tags (same system as text generation)
+export function parseVisualTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
+  const hardTags: string[] = [];
+  const softTags: string[] = [];
+  
+  for (const tag of tags) {
+    const trimmed = tag.trim();
+    if (!trimmed) continue;
+    
+    // Check if starts and ends with quotes
+    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+        (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+      // Soft tag - remove quotes and store lowercased
+      const unquoted = trimmed.slice(1, -1).trim();
+      if (unquoted) {
+        softTags.push(unquoted.toLowerCase());
+      }
+    } else {
+      // Hard tag - keep original case for printing, but store for checks
+      hardTags.push(trimmed);
+    }
+  }
+  
+  return { hardTags, softTags };
+}
+
 export function normalizeTypography(text: string): string {
   return text
     // Convert curly quotes to straight quotes

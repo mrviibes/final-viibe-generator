@@ -63,6 +63,7 @@ export async function generateTextOptions(session: Session, { tone, tags = [] }:
    STEP 3 – VISUALS (Direct GPT with User's Format)  
 ========================================================= */
 import { openAIService } from './openai';
+import { parseVisualTags } from './textUtils';
 
 export async function generateVisualOptions(session: Session, { tone, tags = [], textContent = "", textLayoutId = "negativeSpace", recommendationMode = "balanced" }: { tone: string; tags?: string[]; textContent?: string; textLayoutId?: string; recommendationMode?: "balanced" | "cinematic" | "surreal" | "dynamic" | "chaos" }): Promise<{
   visualOptions: Array<{ lane: string; prompt: string }>;
@@ -70,7 +71,7 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
   model: string;
 }> {
   try {
-        console.log('🎨 generateVisualOptions called with:', { 
+    console.log('🎨 generateVisualOptions called with:', { 
       category: session.category, 
       subcategory: session.subcategory, 
       tone, 
@@ -79,6 +80,10 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
       textContent,
       textLayoutId 
     });
+
+    // Parse visual tags into hard tags (appear literally) and soft tags (influence style)
+    const { hardTags, softTags } = parseVisualTags(tags);
+    console.log('🏷️ Parsed visual tags:', { hardTags, softTags });
     
     // Generate mode-specific style guidance with stronger effects
     const getModeGuidance = (mode: string) => {
@@ -173,7 +178,8 @@ Tone: ${tone}
 Recommendation Mode: ${recommendationMode}
 Text Content: "${textContent}"
 Layout: ${textLayoutId}
-Tags: ${tags.join(', ') || 'none'}
+Hard Tags (must appear literally): ${hardTags.join(', ') || 'none'}
+Soft Tags (influence style only): ${softTags.join(', ') || 'none'}
 ${session.entity ? `Specific Topic: ${session.entity}` : ''}`;
 
     console.log('🎯 Calling GPT directly for visual generation...');

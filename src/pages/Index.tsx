@@ -29,7 +29,7 @@ import { SafetyValidationDialog } from "@/components/SafetyValidationDialog";
 
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "@/components/ui/sonner";
-import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
+import { normalizeTypography, suggestContractions, isTextMisspelled, parseVisualTags } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
 import { testNetworkConnectivity } from "@/lib/networkTest";
 import { careersList } from "@/lib/careers";
@@ -4544,7 +4544,8 @@ const Index = () => {
       const visualStyle = selectedVisualStyle || "realistic";
       const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Landscape";
       const textTagsStr = tags.join(', ') || "None";
-      const visualTagsStr = subjectTags.join(', ') || "None";
+      const { hardTags: visualHardTags } = parseVisualTags(subjectTags);
+      const visualTagsStr = visualHardTags.join(', ') || "None";
       const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : selectedSubjectOption === "design-myself" && subjectDescription ? subjectDescription : "";
       const subcategorySecondary = selectedStyle === 'pop-culture' && selectedPick ? selectedPick : undefined;
       const handoff = buildIdeogramHandoff({
@@ -5406,6 +5407,7 @@ const Index = () => {
       const tone = selectedTextStyleObj?.name || 'Humorous';
       const visualStyle = selectedVisualStyle || "realistic";
       const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Landscape";
+      const { hardTags: visualHardTags } = parseVisualTags(subjectTags);
       
       const ideogramPayload = buildIdeogramHandoff({
         visual_style: visualStyle,
@@ -5417,7 +5419,7 @@ const Index = () => {
         category: categoryName,
         aspect_ratio: aspectRatio,
         text_tags_csv: tags.join(', ') || "None",
-        visual_tags_csv: subjectTags.join(', ') || "None",
+        visual_tags_csv: visualHardTags.join(', ') || "None",
         ai_text_assist_used: selectedCompletionOption === "ai-assist",
         ai_visual_assist_used: selectedSubjectOption === "ai-assist",
         text_layout_id: selectedTextLayout || "negativeSpace" // CRITICAL: Pass layout ID
@@ -5486,7 +5488,8 @@ const Index = () => {
       const visualStyle = selectedVisualStyle || "realistic";
       const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Landscape";
       const textTagsStr = tags.join(', ') || "None";
-      const visualTagsStr = subjectTags.join(', ') || "None";
+      const { hardTags: visualHardTags } = parseVisualTags(subjectTags);
+      const visualTagsStr = visualHardTags.join(', ') || "None";
       const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : selectedSubjectOption === "design-myself" && subjectDescription ? subjectDescription : "";
       const subcategorySecondary = (selectedStyle === 'pop-culture' || (selectedStyle === 'vibes-punchlines' && selectedSubOption === 'Career Jokes')) && selectedPick ? selectedPick : undefined;
       const ideogramPayload = buildIdeogramHandoff({
@@ -6917,17 +6920,36 @@ const Index = () => {
                         </div>
 
                          <div className="max-w-lg mx-auto space-y-6">
-                           {/* Tag Input */}
-                           <div className="space-y-4">
-                              <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
-                              
-                              {/* Display tags - moved above toggle */}
-                              {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
-                                 {subjectTags.map((tag, index) => <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
-                                     {tag}
-                                     <X className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeSubjectTag(tag)} />
-                                   </Badge>)}
-                               </div>}
+                            {/* Tag Input */}
+                            <div className="space-y-4">
+                               <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                               
+                               {/* Smart tagging instructions - same as text generation */}
+                               <div className="text-center space-y-1">
+                                 <p className="text-xs text-muted-foreground">
+                                   <span className="font-medium">cake</span> = literally appears in image
+                                 </p>
+                                 <p className="text-xs text-muted-foreground">
+                                   <span className="font-medium">"romantic"</span> = influences style but not literal
+                                 </p>
+                               </div>
+                               
+                               {/* Display tags - moved above toggle */}
+                               {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
+                                  {subjectTags.map((tag, index) => {
+                                    const isQuoted = (tag.startsWith('"') && tag.endsWith('"')) || (tag.startsWith("'") && tag.endsWith("'"));
+                                    return (
+                                      <Badge 
+                                        key={index} 
+                                        variant={isQuoted ? "outline" : "secondary"} 
+                                        className={`text-sm px-3 py-1 ${isQuoted ? 'border-dashed border-2' : ''}`}
+                                      >
+                                        {tag}
+                                        <X className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeSubjectTag(tag)} />
+                                      </Badge>
+                                    );
+                                  })}
+                                </div>}
                               
                               
                               {/* Generate Button - Below the toggle */}
