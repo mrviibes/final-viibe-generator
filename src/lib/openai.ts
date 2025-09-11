@@ -70,11 +70,11 @@ export class OpenAIService {
       edgeOnly = false
     } = options;
 
-    // Retry strategy: try current model, then fallback models
+    // GPT-5 only retry strategy
     const retryModels = [
-      model,
-      model.startsWith('gpt-5-mini') ? 'gpt-5-2025-08-07' : model
-    ].filter((m, i, arr) => arr.indexOf(m) === i); // Remove duplicates
+      'gpt-5-mini-2025-08-07',
+      'gpt-5-2025-08-07'
+    ];
 
     let lastError: Error | null = null;
     let retryAttempt = 0;
@@ -102,28 +102,9 @@ export class OpenAIService {
             throw new Error(error.message || 'Edge Function error');
           }
 
-          // If using GPT-5 and got empty content, try fallback models
+          // No fallbacks - let retry handle it
           if (tryModel.includes('gpt-5') && (!data || !data.content || data.content.trim() === '')) {
-            console.log("GPT-5 returned empty content, trying fallback models");
-            
-            const fallbackModels = ["o4-mini-2025-04-16", "gpt-4.1-2025-04-14"];
-            for (const fallbackModel of fallbackModels) {
-              try {
-                const fallbackResult = await supabase.functions.invoke('ai-chat-json', {
-                  body: { 
-                    messages, 
-                    options: { ...options, model: fallbackModel, max_tokens: 300, temperature: 0.8 }
-                  }
-                });
-                
-                if (fallbackResult.data && !fallbackResult.error && fallbackResult.data.content?.trim()) {
-                  console.log(`Fallback model ${fallbackModel} succeeded`);
-                  return fallbackResult.data;
-                }
-              } catch (fallbackError) {
-                console.log(`Fallback model ${fallbackModel} failed:`, fallbackError);
-              }
-            }
+            console.log(`Empty response from ${tryModel}, will retry with next model`);
           }
 
           result = data;
@@ -288,7 +269,7 @@ Return as a json object with this exact format:
       const result = await this.chatJSON([
         { role: 'user', content: prompt }
       ], {
-        max_completion_tokens: 500, // Increased for reasoning overhead
+        max_completion_tokens: 650, // Increased for reasoning overhead
         model: 'gpt-5-mini-2025-08-07'
       });
 
@@ -348,7 +329,7 @@ Return as a json object: {"options": ["text 1", "text 2", "text 3", "text 4"]}`;
       const result = await this.chatJSON([
         { role: 'user', content: prompt }
       ], {
-        max_completion_tokens: 500, // Increased for reasoning overhead
+        max_completion_tokens: 650, // Increased for reasoning overhead
         model: 'gpt-5-mini-2025-08-07'
       });
 

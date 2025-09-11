@@ -298,7 +298,7 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
     
     // Add timeout and parallel execution
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Generation timeout')), 10000);
+      setTimeout(() => reject(new Error('Generation timeout')), 20000);
     });
     
     const generatePromise = supabase.functions.invoke('generate-step2', {

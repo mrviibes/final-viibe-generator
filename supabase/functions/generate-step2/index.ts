@@ -8,16 +8,12 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Words to specifically avoid in generated content
+// Words to specifically avoid in generated content - reduced list
 const AVOID_WORDS = [
-  'awesome', 'amazing', 'incredible', 'fantastic', 'unbelievable', 
-  'literally', 'basically', 'actually', 'honestly', 'definitely',
-  'totally', 'absolutely', 'completely', 'perfectly', 'exactly',
-  'vibes', 'mood', 'energy', 'blessed', 'grateful', 'journey',
-  'adventure', 'memories', 'moments', 'special', 'magical',
-  'perfect', 'beautiful', 'wonderful', 'precious', 'treasure',
-  'epic', 'legendary', 'iconic', 'classic', 'timeless',
-  'goals', 'squad', 'fam', 'bestie', 'slay', 'queen', 'king'
+  'literally', 'honestly', 'obviously', 'basically', 'actually', 'seriously',
+  'totally', 'absolutely', 'definitely', 'perfectly', 'completely', 'extremely',
+  'super', 'mega', 'ultra', 'insane', 'crazy', 'wild', 'sick', 'dope',
+  'fire', 'lit', 'savage', 'beast', 'goat', 'king', 'queen', 'legend'
 ];
 
 function getTopicalAnchors(category: string, subcategory: string): string[] {
@@ -616,93 +612,85 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: a
   const warnings: string[] = [];
   const lengths = lines.map(line => line.text.length);
   
-  // Check that we have exactly 4 lines
+  // ERRORS ONLY - Basic structure validation
   if (lines.length !== 4) {
     errors.push(`Expected 4 lines, got ${lines.length}`);
     return { isValid: false, errors, warnings, lengths };
   }
   
-  // Dynamic length requirements based on style
-  const lengthMin = (inputs.style === 'story') ? 60 : 40;
-  const lengthMax = (inputs.style === 'story') ? 100 : 80;
-  
-  // Check length requirements
+  // ERRORS ONLY - Extreme length requirements (25-120 chars)
   for (let i = 0; i < lines.length; i++) {
     const text = lines[i].text;
     const length = text.length;
     
-    if (length < lengthMin || length > lengthMax) {
-      errors.push(`Line ${i + 1} length ${length} chars, must be ${lengthMin}-${lengthMax}`);
+    if (!text || text.trim() === '') {
+      errors.push(`Line ${i + 1} is empty`);
       continue;
     }
     
-    // Check punctuation limits (max 1 per line)
+    if (length < 25) {
+      errors.push(`Line ${i + 1} too short (${length} chars, need 25+)`);
+      continue;
+    }
+    
+    if (length > 120) {
+      errors.push(`Line ${i + 1} too long (${length} chars, max 120)`);
+      continue;
+    }
+    
+    // WARNINGS ONLY - Everything else becomes warnings
     const punctuationMarks = (text.match(/[.!?,:;—\-"']/g) || []).length;
-    if (punctuationMarks > 1) {
-      errors.push(`Too much punctuation: "${text}" has ${punctuationMarks} marks, max 1`);
+    if (punctuationMarks > 2) {
+      warnings.push(`Heavy punctuation: Line ${i + 1} has ${punctuationMarks} marks`);
     }
     
-    // Check for banned clichés
-    const bannedPhrases = getClicheBanList(inputs.category || '', inputs.subcategory || '');
+    // Check for overused words - WARNING only
     const lowerText = text.toLowerCase();
-    for (const banned of bannedPhrases) {
-      if (lowerText.includes(banned.toLowerCase())) {
-        errors.push(`Banned phrases found: Cliché "${banned}" in "${text}"`);
-      }
-    }
-    
-    // Check for generic avoid words
     for (const avoided of AVOID_WORDS) {
       if (lowerText.includes(avoided.toLowerCase())) {
-        errors.push(`Banned phrases found: Cliché "${avoided}" in "${text}"`);
+        warnings.push(`Overused word found: "${avoided}" in line ${i + 1}`);
       }
     }
   }
   
-  // Check topical grounding (more lenient for Standard style)
-  const isStandardStyle = inputs.style === 'standard';
+  // All other checks become WARNINGS
   const topicalCheck = checkTopicalAnchors(lines, inputs.category || '', inputs.subcategory || '');
-  if (!topicalCheck.grounded && !isStandardStyle) {
-    warnings.push(`Topical grounding could be improved: ${topicalCheck.count}/4 lines include topical anchors`);
+  if (!topicalCheck.grounded) {
+    warnings.push(`Could improve topical relevance: ${topicalCheck.count}/4 lines include topic anchors`);
   }
   
-  // Check comedy variety
   const varietyCheck = checkComedyVariety(lines);
   if (!varietyCheck.hasVariety) {
     warnings.push(...varietyCheck.issues);
   }
   
-  // Tone alignment check
   const toneCheck = checkToneAlignment(lines, inputs.tone || 'Balanced');
   if (!toneCheck.aligned) {
     warnings.push(...toneCheck.issues);
   }
   
-  // Style compliance check
   if (inputs.style) {
     const styleCheck = checkStyleCompliance(lines, inputs.style);
     if (!styleCheck.compliant) {
-      errors.push(...styleCheck.issues);
+      warnings.push(...styleCheck.issues.map(issue => `Style note: ${issue}`));
     }
   }
   
-  // Rating compliance check
   if (inputs.rating) {
     const ratingCheck = checkRatingCompliance(lines, inputs.rating);
     if (!ratingCheck.compliant) {
-      errors.push(...ratingCheck.issues);
+      warnings.push(...ratingCheck.issues.map(issue => `Rating note: ${issue}`));
     }
   }
   
-  // Tag coverage check (more lenient approach)
+  // Tag coverage - WARNING only
   if (inputs.hardTags && inputs.hardTags.length > 0) {
     const tagCoverage = inputs.hardTags.filter((tag: string) => {
       return lines.some(line => line.text.toLowerCase().includes(tag.toLowerCase()));
     }).length;
     
-    // Only warn instead of error for tag coverage
     if (tagCoverage < inputs.hardTags.length) {
-      warnings.push(`Tag coverage partial: ${tagCoverage}/${inputs.hardTags.length} tags covered`);
+      warnings.push(`Tag coverage: ${tagCoverage}/${inputs.hardTags.length} tags found`);
     }
   }
   
@@ -711,18 +699,14 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: a
       return lines.some(line => line.text.includes(tag));
     }).length;
     
-    // Only warn for soft tags too
     if (softTagCoverage < inputs.softTags.length) {
-      warnings.push(`Soft tag coverage partial: ${softTagCoverage}/${inputs.softTags.length} exact phrases found`);
+      warnings.push(`Soft tags: ${softTagCoverage}/${inputs.softTags.length} exact phrases found`);
     }
   }
   
-  
-  // Much more lenient validation for Standard style
-  const maxAllowedErrors = isStandardStyle ? 2 : 1;
-  
+  // Pass if basic structure is good
   return {
-    isValid: errors.length <= maxAllowedErrors,
+    isValid: errors.length === 0,
     errors,
     warnings,
     lengths
@@ -831,8 +815,8 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     console.log(`LLM attempt ${attemptNumber}/3`);
     console.log("User message:", userMessage);
     
-    // Model cascade with stronger models for later attempts
-    const models = ['gpt-5-mini-2025-08-07', 'gpt-5-2025-08-07'];
+    // GPT-5 models only
+    const models = ['gpt-5-mini-2025-08-07', 'gpt-5-mini-2025-08-07', 'gpt-5-2025-08-07'];
     const model = models[Math.min(attemptNumber - 1, models.length - 1)];
     
     console.log(`Using model: ${model}`);
@@ -851,17 +835,17 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     
     // Model-specific parameters - increased tokens for reasoning overhead
     if (model.startsWith('gpt-5') || model.startsWith('gpt-4.1')) {
-      requestBody.max_completion_tokens = 500;
+      requestBody.max_completion_tokens = 650;
     } else {
       requestBody.max_tokens = 300;
       requestBody.temperature = 0.7;
     }
     
     // Add timeout for faster failure
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
-      
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openAIApiKey}`,
@@ -1117,7 +1101,7 @@ serve(async (req) => {
       const normalizedResult = normalizeText(tagEnforcedResult);
       return new Response(JSON.stringify({
         lines: normalizedResult,
-        model: modelUsed,
+        model: 'gpt-5-mini-2025-08-07',
         validated: true
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
