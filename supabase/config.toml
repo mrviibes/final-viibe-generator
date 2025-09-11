@@ -3,7 +3,13 @@ project_id = "qdigssobxfgoeuvkejpo"
 [functions.generate-step2]
 verify_jwt = false
 
+[functions.generate-step2-clean]
+verify_jwt = false
+
 [functions.ai-chat-json]
+verify_jwt = false
+
+[functions.openai-health]
 verify_jwt = false
 
 [functions.ideogram-generate]

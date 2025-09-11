@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { DEFAULT_MODEL, isGPT5Model, getTokenParameter, supportsTemperature } from "./modelConfig";
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
@@ -65,14 +66,13 @@ export class OpenAIService {
     const {
       temperature = 0.8,
       max_tokens = 500,
-      max_completion_tokens = 1500, // Increased for GPT-5
-      model = 'gpt-5-2025-08-07',
-      edgeOnly = false
+      max_completion_tokens = 1500,
+      model = DEFAULT_MODEL,
+      edgeOnly = true
     } = options;
 
-    const retryModels = [
-      'gpt-5-2025-08-07'
-    ];
+    // STRICT MODE: Only use the requested model, no fallbacks
+    const retryModels = [model];
 
     let lastError: Error | null = null;
     let retryAttempt = 0;
@@ -110,22 +110,8 @@ export class OpenAIService {
         } catch (edgeError) {
           console.warn('Edge Function failed:', edgeError);
           
-          // If edgeOnly is true, don't fallback to direct API
-          if (edgeOnly) {
-            throw edgeError;
-          }
-          
-          // Fallback to direct API if user has a key
-          if (this.apiKey) {
-            result = await this.attemptChatJSON(messages, {
-              temperature,
-              max_tokens,
-              max_completion_tokens,
-              model: tryModel
-            });
-          } else {
-            throw edgeError;
-          }
+          // STRICT MODE: edgeOnly = true, no fallbacks to direct API
+          throw edgeError;
         }
         
         // Add metadata about the API call
@@ -167,9 +153,9 @@ export class OpenAIService {
       model = 'gpt-5-2025-08-07'
     } = options;
 
-    const isGPT5Model = model?.startsWith('gpt-5');
+    const isGPT5 = isGPT5Model(model);
     const tokenLimit = max_completion_tokens || max_tokens;
-    const tokenParameter = isGPT5Model ? 'max_completion_tokens' : 'max_tokens';
+    const tokenParameter = getTokenParameter(model);
 
     // Build request body
     const requestBody: any = {
@@ -180,7 +166,7 @@ export class OpenAIService {
 
     // Always add response_format for JSON, and temperature for non-GPT5 models
     requestBody.response_format = { type: "json_object" };
-    if (!isGPT5Model) {
+    if (supportsTemperature(model)) {
       requestBody.temperature = temperature;
     }
 
@@ -267,8 +253,8 @@ Return as a json object with this exact format:
       const result = await this.chatJSON([
         { role: 'user', content: prompt }
       ], {
-        max_completion_tokens: 1000, // Increased for GPT-5
-        model: 'gpt-5-2025-08-07'
+        max_completion_tokens: 1000,
+        model: DEFAULT_MODEL
       });
 
       return result?.suggestions || [];
@@ -327,8 +313,8 @@ Return as a json object: {"options": ["text 1", "text 2", "text 3", "text 4"]}`;
       const result = await this.chatJSON([
         { role: 'user', content: prompt }
       ], {
-        max_completion_tokens: 1000, // Increased for GPT-5
-        model: 'gpt-5-2025-08-07'
+        max_completion_tokens: 1000,
+        model: DEFAULT_MODEL
       });
 
       const options = result?.options || [];

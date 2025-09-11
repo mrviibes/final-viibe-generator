@@ -130,6 +130,23 @@ serve(async (req) => {
     const content = data.choices?.[0]?.message?.content;
     const finishReason = data.choices?.[0]?.finish_reason;
     
+    // STRICT MODEL VALIDATION
+    const expectedModel = model || 'gpt-5-2025-08-07';
+    if (data.model !== expectedModel) {
+      console.error(`❌ Model mismatch: expected ${expectedModel}, got ${data.model}`);
+      return new Response(
+        JSON.stringify({ 
+          error: `Model mismatch: expected ${expectedModel}, got ${data.model}`,
+          expectedModel,
+          actualModel: data.model
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
     console.log(`✅ API Success - Model: ${data.model}, Finish: ${finishReason}, Content: ${content?.length || 0} chars`);
     
     if (!content || content.trim() === '') {

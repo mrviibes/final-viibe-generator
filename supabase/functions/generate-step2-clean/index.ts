@@ -41,8 +41,7 @@ async function generateWithGPT5(inputs: any): Promise<any> {
       { role: 'user', content: userPrompt }
     ],
     response_format: { type: "json_object" },
-    max_completion_tokens: 220,
-    temperature: 0.9
+    max_completion_tokens: 220
   };
   
   return retryWithBackoff(async () => {
