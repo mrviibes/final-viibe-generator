@@ -4420,7 +4420,6 @@ const Index = () => {
 
   // New prompt control options
   const [exactPromptMode, setExactPromptMode] = useState<boolean>(false);
-  const [enableMagicPrompt, setEnableMagicPrompt] = useState<boolean>(false);
   const [customSeed, setCustomSeed] = useState<string>("");
   const [defaultStyleType, setDefaultStyleType] = useState<'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME'>('GENERAL');
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -5433,7 +5432,7 @@ const Index = () => {
         negative_prompt: prompts.negative_prompt,
         aspect_ratio: aspectForIdeogram,
         model: 'V_3',
-        magic_prompt_option: enableMagicPrompt ? 'AUTO' : 'OFF',
+        magic_prompt_option: 'OFF',
         style_type: styleForIdeogram
       }, { data: [{ url: generatedImageUrl, prompt: '', resolution: '', is_image_safe: true }], created: '' });
       
@@ -5539,7 +5538,7 @@ const Index = () => {
 
       // Use custom seed if provided
       const seedValue = customSeed.trim() ? parseInt(customSeed.trim()) : undefined;
-      const magicPromptOption = enableMagicPrompt ? 'AUTO' : 'OFF';
+      const magicPromptOption = 'OFF';
       console.log('=== Ideogram Generation Debug ===');
       console.log('Exact prompt mode:', exactPromptMode);
       console.log('Direct prompt provided:', !!directPrompt.trim());
@@ -5717,7 +5716,6 @@ const Index = () => {
     setDirectPrompt("");
     setNegativePrompt("");
     setExactPromptMode(false);
-    setEnableMagicPrompt(false);
     setCustomSeed("");
     setDefaultStyleType('GENERAL');
     setVisualSpice('balanced');
@@ -6931,11 +6929,6 @@ const Index = () => {
                                    </Badge>)}
                                </div>}
                               
-                              {/* Magic Prompt Enhancement Toggle */}
-                              <div className="flex items-center justify-center gap-3 py-4">
-                                <label className="text-sm font-medium text-foreground">Visually Enhance Your Viibe</label>
-                                <Switch checked={enableMagicPrompt} onCheckedChange={setEnableMagicPrompt} />
-                              </div>
                               
                               {/* Generate Button - Below the toggle */}
                               <div className="flex justify-center">
