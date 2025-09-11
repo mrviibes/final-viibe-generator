@@ -42,6 +42,9 @@ export function buildIdeogramHandoff(params: {
   ai_text_assist_used: boolean;
   ai_visual_assist_used: boolean;
   
+  // Layout information - NEW
+  text_layout_id?: string;
+  
   // Visual AI Recommendations
   rec_subject?: string;
   rec_background?: string;
@@ -60,11 +63,14 @@ export function buildIdeogramHandoff(params: {
     visual_tags_csv,
     ai_text_assist_used,
     ai_visual_assist_used,
+    text_layout_id,
     rec_subject,
     rec_background
   } = params;
   
+  // Build comprehensive design notes including layout information
   const baseNotes = "high contrast, clean layout, social safe margins, no logos";
+  const layoutInfo = text_layout_id ? ` | Layout: ${text_layout_id}` : '';
   const visualConcept = chosen_visual ? ` | concept: ${chosen_visual}` : '';
   const tagReference = tags_csv ? ` | tags: ${tags_csv}` : '';
   
@@ -74,7 +80,7 @@ export function buildIdeogramHandoff(params: {
     occasion: subcategory,
     tone: tone,
     key_line: final_line,
-    design_notes: `${baseNotes}${visualConcept}${tagReference}`,
+    design_notes: `${baseNotes}${layoutInfo}${visualConcept}${tagReference}`,
     reference_tags: tags_csv,
     
     // Extended fields

@@ -198,14 +198,21 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
 export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { injectText?: boolean } = {}): IdeogramPrompts {
   const shouldInjectText = options.injectText !== false;
   
-  // Check if we have a valid universal template for the layout using design_notes as layout indicator
-  const layoutIndicator = handoff.design_notes?.toLowerCase() || '';
+  // Extract layout ID from design notes (format: "Layout: layoutId")
+  const layoutMatch = handoff.design_notes?.match(/Layout:\s*(\w+)/);
+  const layoutId = layoutMatch?.[1];
+  
+  // Check if we have a valid universal template for the layout
   const layoutTemplate = universalTextPlacementTemplates.find(t => 
-    layoutIndicator.includes(t.id.toLowerCase()) ||
-    layoutIndicator.includes(t.label.toLowerCase().replace(/\s+/g, ''))
+    t.id === layoutId ||
+    t.id.toLowerCase() === layoutId?.toLowerCase()
   );
   
+  console.log('🎯 Layout detection:', { layoutId, templateFound: !!layoutTemplate, designNotes: handoff.design_notes });
+  
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim() && layoutTemplate) {
+    console.log('✅ Using Universal Template System:', layoutTemplate.label);
+    
     // Use the universal template system for modern, cinematic text placement
     const subject = handoff.chosen_visual || handoff.rec_subject || `${handoff.tone} ${handoff.category} scene`;
     const cleanSubject = subject.replace(/,?\s*(clear empty area|clear top band|clear bottom band|clear lower third|clear left panel|badge space|clear narrow bottom)/gi, '').trim();
@@ -221,6 +228,8 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
       handoff.key_line, 
       sceneDescription
     );
+    
+    console.log('🎯 Universal Template Output:', { positivePrompt: positivePrompt.substring(0, 100) + '...', negativePrompt });
     
     return {
       positive_prompt: positivePrompt,

@@ -4561,7 +4561,8 @@ const Index = () => {
         text_tags_csv: textTagsStr,
         visual_tags_csv: visualTagsStr,
         ai_text_assist_used: selectedCompletionOption === "ai-assist",
-        ai_visual_assist_used: selectedSubjectOption === "ai-assist"
+        ai_visual_assist_used: selectedSubjectOption === "ai-assist",
+        text_layout_id: selectedTextLayout || "negativeSpace" // CRITICAL: Pass layout ID
       });
       const prompts = buildIdeogramPrompts(handoff, { injectText: textInsideImage });
       setDebugPrompts(prompts);
@@ -5419,7 +5420,8 @@ const Index = () => {
         text_tags_csv: tags.join(', ') || "None",
         visual_tags_csv: subjectTags.join(', ') || "None",
         ai_text_assist_used: selectedCompletionOption === "ai-assist",
-        ai_visual_assist_used: selectedSubjectOption === "ai-assist"
+        ai_visual_assist_used: selectedSubjectOption === "ai-assist",
+        text_layout_id: selectedTextLayout || "negativeSpace" // CRITICAL: Pass layout ID
       });
       
       const prompts = buildIdeogramPrompts(ideogramPayload, { injectText: true });
@@ -5501,7 +5503,8 @@ const Index = () => {
         text_tags_csv: textTagsStr,
         visual_tags_csv: visualTagsStr,
         ai_text_assist_used: selectedCompletionOption === "ai-assist",
-        ai_visual_assist_used: selectedSubjectOption === "ai-assist"
+        ai_visual_assist_used: selectedSubjectOption === "ai-assist",
+        text_layout_id: selectedTextLayout || "negativeSpace" // CRITICAL: Pass layout ID
       });
 
       // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
