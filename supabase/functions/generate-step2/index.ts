@@ -326,52 +326,24 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
   const styleDesc = styleDefinitions[style || 'standard'] || styleDefinitions['standard'];
   const ratingDesc = ratingDefs[rating || 'PG-13'] || ratingDefs['PG-13'];
   
-  return `Generate exactly 4 humorous text lines for memes/overlays.
+  return `Generate 4 ${tone.toLowerCase()} text lines for ${category}/${subcategory}. 
 
-FORMAT: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}, {"lane": "option3", "text": "..."}, {"lane": "option4", "text": "..."}]}
+JSON: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}, {"lane": "option3", "text": "..."}, {"lane": "option4", "text": "..."}]}
 
-REQUIREMENTS:
-- Length: ${lengthReq} (strict)
-- Style: ${styleDesc}
-- Rating: ${ratingDesc}
-- Tone: ${tone}
-- Max 1 punctuation per line
-- Sound conversational, not AI-generated
+Rules:
+- ${lengthReq}
+- ${ratingDesc}
+- Each line different style
+- Include: ${hardTags.join(", ") || "none"}
 
-VARIETY (each line different voice):
-- option1: deadpan delivery
-- option2: blunt approach  
-- option3: absurdist twist
-- option4: narrative style
-
-INCLUDE TAGS:
-- Hard tags (print literally): ${hardTags.join(", ") || "none"}
-- Soft tags (influence only): ${softTags.join(", ") || "none"}
-
-Generate json response only.`;
+JSON only.`;
 }
 
 function buildUserMessage(inputs: any, previousErrors: string[] = []): string {
-  const noveltyToken = `RND-${Math.floor(Math.random() * 10000)}`;
-  
-  let message = `Category: ${inputs.category}
-Subcategory: ${inputs.subcategory}
-Tone: ${inputs.tone}
-Token: ${noveltyToken}
-
-Generate json response only.`;
+  let message = `${inputs.category}: ${inputs.subcategory}, ${inputs.tone} tone`;
 
   if (previousErrors.length > 0) {
-    message += `
-
-PREVIOUS ATTEMPT ISSUES: ${previousErrors.join("; ")}
-      
-Please fix these issues while maintaining the ${inputs.tone} tone and natural flow. Remember: Max 100 chars per line, max one punctuation mark total per line.`;
-  }
-
-  
-  if (previousErrors.length > 0) {
-    message += `\nPrevious issues to fix: ${previousErrors.join(", ")}`;
+    message += `\nFix: ${previousErrors.slice(0, 2).join(", ")}`;
   }
 
   return message;
@@ -788,15 +760,15 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
       response_format: { type: "json_object" }
     };
     
-    // GPT-5 parameters - no reasoning field supported
-    requestBody.max_completion_tokens = 1200;
+    // GPT-5 parameters - increased tokens for better completion
+    requestBody.max_completion_tokens = 800;
     
     console.log(`Request body keys: ${Object.keys(requestBody).join(', ')}`);
     console.log(`Using model: ${model}`);
     
-    // Add timeout for faster failure
+    // Reduce timeout for faster failure detection
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

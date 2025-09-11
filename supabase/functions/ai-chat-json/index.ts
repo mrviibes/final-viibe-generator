@@ -86,9 +86,9 @@ serve(async (req) => {
     console.log(`Request body keys: ${Object.keys(requestBody).join(', ')}`);
     console.log(`Using model: ${model}`);
 
-    // Add timeout for faster failure
+    // Reduce timeout for faster failure detection
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
