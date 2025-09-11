@@ -3,11 +3,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, content-type',
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const TARGET_MODEL = 'gpt-5-2025-08-07';
+const TARGET_MODEL = 'gpt-5-mini-2025-08-07'; // Match generation model
 
 serve(async (req) => {
   // Handle CORS
@@ -16,21 +17,23 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🔍 OpenAI Health Check Starting');
+    console.log('🏥 OpenAI Health Check Starting');
     
     if (!openAIApiKey) {
+      console.error('❌ No OpenAI API key configured');
       return new Response(JSON.stringify({
-        success: false,
-        error: 'OpenAI API key not configured',
-        hasAccess: false,
-        model: 'none'
+        status: 'error',
+        message: 'OpenAI API key not configured',
+        keyPresent: false,
+        modelAccess: false,
+        timestamp: new Date().toISOString()
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Test exact model access
+    // Test generation model access with minimal request
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -40,40 +43,47 @@ serve(async (req) => {
       body: JSON.stringify({
         model: TARGET_MODEL,
         messages: [
-          { role: 'system', content: 'Return {"ok":true} as JSON' },
+          { role: 'system', content: 'Return {"test":"ok"} as JSON' },
           { role: 'user', content: 'ping' }
         ],
         response_format: { type: "json_object" },
-        max_completion_tokens: 5
+        max_completion_tokens: 10
       }),
+      signal: AbortSignal.timeout(8000),
     });
 
-    const data = await response.json();
-    
     if (!response.ok) {
-      console.error('❌ Health check failed:', response.status, data);
+      const errorText = await response.text();
+      console.error('❌ OpenAI API test failed:', response.status, errorText);
+      
       return new Response(JSON.stringify({
-        success: false,
-        error: data.error?.message || `HTTP ${response.status}`,
-        hasAccess: false,
-        model: TARGET_MODEL,
-        statusCode: response.status
+        status: 'error',
+        message: `OpenAI API test failed: ${response.status}`,
+        keyPresent: true,
+        modelAccess: false,
+        details: errorText.substring(0, 200),
+        timestamp: new Date().toISOString()
       }), {
-        status: response.status,
+        status: 200, // Return 200 so client can read the error
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
+    const data = await response.json();
     const actualModel = data.model;
-    const hasCorrectAccess = actualModel === TARGET_MODEL;
+    const expectedModel = TARGET_MODEL;
+    const modelMatch = actualModel === expectedModel;
     
-    console.log(`✅ Health check result - Expected: ${TARGET_MODEL}, Got: ${actualModel}, Match: ${hasCorrectAccess}`);
+    console.log(`✅ Health check result - Expected: ${expectedModel}, Got: ${actualModel}, Match: ${modelMatch}`);
     
     return new Response(JSON.stringify({
-      success: true,
-      hasAccess: hasCorrectAccess,
-      expectedModel: TARGET_MODEL,
-      actualModel: actualModel,
+      status: 'healthy',
+      message: 'OpenAI API is accessible',
+      keyPresent: true,
+      modelAccess: true,
+      expectedModel,
+      actualModel,
+      modelMatch,
       finishReason: data.choices?.[0]?.finish_reason,
       timestamp: new Date().toISOString()
     }), {
@@ -84,10 +94,11 @@ serve(async (req) => {
     console.error('❌ Health check error:', error.message);
     
     return new Response(JSON.stringify({
-      success: false,
-      error: error.message,
-      hasAccess: false,
-      model: TARGET_MODEL
+      status: 'error',
+      message: error.message,
+      keyPresent: !!openAIApiKey,
+      modelAccess: false,
+      timestamp: new Date().toISOString()
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

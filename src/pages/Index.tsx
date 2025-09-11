@@ -5327,12 +5327,27 @@ const Index = () => {
     } catch (error) {
       console.error('❌ Error generating text:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      // Enhanced error handling with specific suggestions
+      let actionLabel = "Retry";
+      let actionCallback = () => handleGenerateText();
+      
+      if (errorMessage.includes('timeout') || errorMessage.includes('network')) {
+        actionLabel = "Check Connection";
+        actionCallback = async () => {
+          sonnerToast.info("Check your internet connection and try again");
+        };
+      } else if (errorMessage.includes('API key')) {
+        actionLabel = "Check API Key";
+        actionCallback = async () => setShowApiKeyDialog(true);
+      }
+      
       sonnerToast.error('Text generation failed', {
-        description: `${errorMessage}. Check console for details.`,
-        duration: 5000,
+        description: `${errorMessage}. Try again or check your settings.`,
+        duration: 8000,
         action: {
-          label: "Retry",
-          onClick: () => handleGenerateText()
+          label: actionLabel,
+          onClick: actionCallback
         }
       });
     } finally {

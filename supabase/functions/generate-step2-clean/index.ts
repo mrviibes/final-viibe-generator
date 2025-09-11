@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Lock model constant - STRICT MODE
+// LOCKED MODEL - STRICT MODE
 const MODEL = 'gpt-5-mini-2025-08-07';
 
 async function retryWithBackoff(fn: () => Promise<any>, maxRetries = 2): Promise<any> {
@@ -30,10 +30,15 @@ async function generateWithGPT5(inputs: any): Promise<any> {
   const startTime = Date.now();
   console.log('🎯 Starting strict GPT-5 generation');
   
+  // ROBUST INPUT COERCION
+  const tagsArray = Array.isArray(inputs.tags) ? inputs.tags : 
+                   (typeof inputs.tags === 'string' ? [inputs.tags] : []);
+  const tagsStr = tagsArray.length > 0 ? tagsArray.join(',') : 'none';
+  
   // Minimal, strict prompts
   const systemPrompt = 'Return ONLY JSON: {"lines":[{"lane":"option1","text":""},{"lane":"option2","text":""},{"lane":"option3","text":""},{"lane":"option4","text":""}]}. Rules: 4 one-liners; length 40–80; enforce Style and Rating.';
   
-  const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${inputs.tags?.join(',') || 'none'} Style:${inputs.style} Rating:${inputs.rating}`;
+  const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG'}`;
   
   console.log('📝 Prompts - System:', systemPrompt.length, 'User:', userPrompt.length);
   
@@ -55,7 +60,7 @@ async function generateWithGPT5(inputs: any): Promise<any> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(12000), // Extended timeout
     });
     
     if (!response.ok) {
@@ -127,7 +132,21 @@ serve(async (req) => {
     console.log('🚀 Strict GPT-5 generation starting');
     
     const inputs = await req.json();
-    console.log('📨 Inputs:', JSON.stringify(inputs, null, 2));
+    console.log('📨 Raw inputs received:', JSON.stringify(inputs, null, 2));
+    
+    // ROBUST INPUT VALIDATION AND COERCION
+    if (!inputs.category || !inputs.subcategory || !inputs.tone) {
+      console.error('❌ Missing required fields');
+      return new Response(JSON.stringify({
+        error: 'Missing required fields: category, subcategory, tone',
+        success: false,
+        model: 'none',
+        validated: false
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // FAIL FAST - No API key = immediate error
     if (!openAIApiKey) {

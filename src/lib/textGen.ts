@@ -242,9 +242,18 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
 export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenOutput> {
   console.log('🚀 Generating step2 lines with inputs:', inputs);
   
+  // ROBUST INPUT COERCION
+  const coercedInputs = {
+    ...inputs,
+    tags: Array.isArray(inputs.tags) ? inputs.tags : 
+          (typeof inputs.tags === 'string' ? [inputs.tags] : []),
+    style: inputs.style || 'standard',
+    rating: inputs.rating || 'PG'
+  };
+  
   try {
     const { data, error } = await supabase.functions.invoke('generate-step2-clean', {
-      body: inputs
+      body: coercedInputs
     });
 
     if (error) {
@@ -252,20 +261,26 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
       throw new Error(`Step2 invoke error: ${error.message}`);
     }
 
-    console.log('✅ Generation response:', data);
+    console.log('✅ Generation response received:', data?.success ? 'SUCCESS' : 'FAILED');
 
     // STRICT SUCCESS CHECK - FAIL FAST
-    if (data.success === false || !data.lines) {
-      const errorMsg = data.error || 'Generation failed';
+    if (data?.success === false) {
+      const errorMsg = data.error || 'Generation failed without specific error';
       console.error('❌ Generation failed:', errorMsg);
-      throw new Error(errorMsg);
+      throw new Error(`Generation failed: ${errorMsg}`);
     }
 
-    if (!Array.isArray(data.lines) || data.lines.length < 4) {
-      console.error('❌ Bad response shape:', data);
-      throw new Error('Bad response shape from generation service');
+    if (!data?.lines || !Array.isArray(data.lines)) {
+      console.error('❌ Invalid response structure:', data);
+      throw new Error('Invalid response: missing or invalid lines array');
     }
 
+    if (data.lines.length < 4) {
+      console.error('❌ Insufficient lines returned:', data.lines.length);
+      throw new Error(`Only ${data.lines.length} lines returned, need 4`);
+    }
+
+    console.log('✅ Validation passed, returning lines');
     return {
       lines: data.lines.map((line: any) => ({
         lane: line.lane || 'default',
@@ -275,7 +290,7 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
 
   } catch (error) {
     console.error('❌ Text generation error:', error);
-    // Re-throw to surface in UI - NO SILENT FALLBACKS
+    // Re-throw to surface in UI with toast notifications
     throw error;
   }
 }
