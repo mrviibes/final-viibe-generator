@@ -66,13 +66,11 @@ export class OpenAIService {
       temperature = 0.8,
       max_tokens = 500,
       max_completion_tokens = 500, // Increased for reasoning overhead
-      model = 'gpt-5-mini-2025-08-07',
+      model = 'gpt-5-2025-08-07',
       edgeOnly = false
     } = options;
 
-    // GPT-5 only retry strategy
     const retryModels = [
-      'gpt-5-mini-2025-08-07',
       'gpt-5-2025-08-07'
     ];
 
@@ -166,7 +164,7 @@ export class OpenAIService {
       temperature = 0.8,
       max_tokens = 2500,
       max_completion_tokens,
-      model = 'gpt-5-mini-2025-08-07'
+      model = 'gpt-5-2025-08-07'
     } = options;
 
     const isGPT5Model = model?.startsWith('gpt-5');
@@ -270,7 +268,7 @@ Return as a json object with this exact format:
         { role: 'user', content: prompt }
       ], {
         max_completion_tokens: 650, // Increased for reasoning overhead
-        model: 'gpt-5-mini-2025-08-07'
+        model: 'gpt-5-2025-08-07'
       });
 
       return result?.suggestions || [];
@@ -330,7 +328,7 @@ Return as a json object: {"options": ["text 1", "text 2", "text 3", "text 4"]}`;
         { role: 'user', content: prompt }
       ], {
         max_completion_tokens: 650, // Increased for reasoning overhead
-        model: 'gpt-5-mini-2025-08-07'
+        model: 'gpt-5-2025-08-07'
       });
 
       const options = result?.options || [];

@@ -744,7 +744,7 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     console.log("User message:", userMessage);
     
     // Use only gpt-5-mini for consistency
-    const model = 'gpt-5-mini-2025-08-07';
+    const model = 'gpt-5-2025-08-07';
     
     console.log(`Using model: ${model}`);
     

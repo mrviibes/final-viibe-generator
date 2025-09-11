@@ -4691,7 +4691,7 @@ const Index = () => {
           role: 'user',
           content: 'Test json response ready?'
         }], {
-          model: 'gpt-5-mini-2025-08-07',
+          model: 'gpt-5-2025-08-07',
           max_completion_tokens: 50
         }).catch(() => {}); // Silent fail
       } catch {
@@ -4739,7 +4739,7 @@ const Index = () => {
         role: 'user',
         content: 'Test connection. Return JSON response: {"status": "ok"}'
       }], {
-        model: 'gpt-5-mini-2025-08-07',
+        model: 'gpt-5-2025-08-07',
         max_completion_tokens: 50
       });
       if (testResult?.status === 'ok') {

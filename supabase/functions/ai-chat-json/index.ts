@@ -54,7 +54,7 @@ serve(async (req) => {
       temperature = 0.8,
       max_tokens = 1200,
       max_completion_tokens,
-      model = 'gpt-5-mini-2025-08-07'
+      model = 'gpt-5-2025-08-07'
     } = options;
 
     console.log(`AI Chat JSON - Model: ${model}, Messages: ${messages.length}`);
