@@ -326,17 +326,11 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
   const styleDesc = styleDefinitions[style || 'standard'] || styleDefinitions['standard'];
   const ratingDesc = ratingDefs[rating || 'PG-13'] || ratingDefs['PG-13'];
   
-  return `Generate 4 ${tone.toLowerCase()} text lines for ${category}/${subcategory}. 
+  return `Generate 4 ${tone.toLowerCase()} lines for ${subcategory}. 
 
 JSON: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}, {"lane": "option3", "text": "..."}, {"lane": "option4", "text": "..."}]}
 
-Rules:
-- ${lengthReq}
-- ${ratingDesc}
-- Each line different style
-- Include: ${hardTags.join(", ") || "none"}
-
-JSON only.`;
+${lengthReq}. ${ratingDesc}.`;
 }
 
 function buildUserMessage(inputs: any, previousErrors: string[] = []): string {
@@ -761,7 +755,7 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     };
     
     // GPT-5 parameters - increased tokens for better completion
-    requestBody.max_completion_tokens = 800;
+    requestBody.max_completion_tokens = 1500;
     
     console.log(`Request body keys: ${Object.keys(requestBody).join(', ')}`);
     console.log(`Using model: ${model}`);

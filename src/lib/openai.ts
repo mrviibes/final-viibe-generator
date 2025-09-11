@@ -65,7 +65,7 @@ export class OpenAIService {
     const {
       temperature = 0.8,
       max_tokens = 500,
-      max_completion_tokens = 500, // Increased for reasoning overhead
+      max_completion_tokens = 1500, // Increased for GPT-5
       model = 'gpt-5-2025-08-07',
       edgeOnly = false
     } = options;
@@ -267,7 +267,7 @@ Return as a json object with this exact format:
       const result = await this.chatJSON([
         { role: 'user', content: prompt }
       ], {
-        max_completion_tokens: 650, // Increased for reasoning overhead
+        max_completion_tokens: 1000, // Increased for GPT-5
         model: 'gpt-5-2025-08-07'
       });
 
@@ -327,7 +327,7 @@ Return as a json object: {"options": ["text 1", "text 2", "text 3", "text 4"]}`;
       const result = await this.chatJSON([
         { role: 'user', content: prompt }
       ], {
-        max_completion_tokens: 650, // Increased for reasoning overhead
+        max_completion_tokens: 1000, // Increased for GPT-5
         model: 'gpt-5-2025-08-07'
       });
 
