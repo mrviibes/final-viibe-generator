@@ -6668,13 +6668,12 @@ const Index = () => {
                          {/* Style Dropdown */}
                          <div className="flex flex-col items-center gap-2">
                            <label className="text-sm font-medium text-muted-foreground">Style</label>
-                           <Select
-                             value={textStyle}
-                             onValueChange={(value) => {
-                               setTextStyle(value as 'standard' | 'story' | 'punchline-first' | 'pop-culture' | 'wildcard');
-                               handleGenerateText();
-                             }}
-                           >
+                            <Select
+                              value={textStyle}
+                              onValueChange={(value) => {
+                                setTextStyle(value as 'standard' | 'story' | 'punchline-first' | 'pop-culture' | 'wildcard');
+                              }}
+                            >
                              <SelectTrigger className="w-40">
                                <SelectValue />
                              </SelectTrigger>
@@ -6691,13 +6690,12 @@ const Index = () => {
                          {/* Rating Slider */}
                          <div className="flex flex-col items-center gap-2">
                            <label className="text-sm font-medium text-muted-foreground">Rating</label>
-                           <Select
-                             value={textRating}
-                             onValueChange={(value) => {
-                               setTextRating(value as 'G' | 'PG' | 'PG-13' | 'R');
-                               handleGenerateText();
-                             }}
-                           >
+                            <Select
+                              value={textRating}
+                              onValueChange={(value) => {
+                                setTextRating(value as 'G' | 'PG' | 'PG-13' | 'R');
+                              }}
+                            >
                              <SelectTrigger className="w-20">
                                <SelectValue />
                              </SelectTrigger>
