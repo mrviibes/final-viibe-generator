@@ -25,7 +25,7 @@ import { buildIdeogramPrompts, buildStricterLayoutPrompts, getAspectRatioForIdeo
 import { TextRenderIndicator } from "@/components/TextRenderIndicator";
 import { RetryWithLayoutDialog } from "@/components/RetryWithLayoutDialog";
 import { SafetyValidationDialog } from "@/components/SafetyValidationDialog";
-import { ContextUsedIndicator } from "@/components/ContextUsedIndicator";
+
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
@@ -4457,13 +4457,6 @@ const Index = () => {
   const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
-  const [lastGenerationContext, setLastGenerationContext] = useState<{
-    category: string;
-    subcategory: string; 
-    tone: string;
-    tags: string[];
-    model: string;
-  } | null>(null);
   const [subOptionSearchTerm, setSubOptionSearchTerm] = useState<string>("");
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -5279,14 +5272,6 @@ const Index = () => {
       });
       console.log('✅ Generated text options:', result);
 
-      // Set the context for the indicator
-      setLastGenerationContext({
-        category,
-        subcategory,
-        tone,
-        tags: finalTagsForGeneration,
-        model: result.model
-      });
 
       // Clear previous selection when generating/regenerating
       setSelectedGeneratedOption(null);
@@ -6648,19 +6633,6 @@ const Index = () => {
 
                 {/* Generated Text Options Grid - Show when options exist but no selection made */}
                 {generatedOptions.length > 0 && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    {/* Context Used Indicator */}
-                    {lastGenerationContext && (
-                      <div className="mb-6">
-                        <ContextUsedIndicator
-                          category={lastGenerationContext.category}
-                          subcategory={lastGenerationContext.subcategory}
-                          tone={lastGenerationContext.tone}
-                          tags={lastGenerationContext.tags}
-                          model={lastGenerationContext.model}
-                          onAddApiKey={() => setShowApiKeyDialog(true)}
-                        />
-                      </div>
-                    )}
                     
                     <div className="text-center mb-6">
                       <div className="flex items-center justify-center gap-3 mb-2">
