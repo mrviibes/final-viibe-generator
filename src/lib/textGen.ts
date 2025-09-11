@@ -43,7 +43,9 @@ interface TextGenInput {
   subcategory: string;
   tone: string;
   tags: string[];
-  mode?: string;
+  mode?: string; // Backward compatibility
+  style?: 'standard' | 'story' | 'punchline-first' | 'pop-culture' | 'wildcard';
+  rating?: 'G' | 'PG' | 'PG-13' | 'R';
 }
 
 interface TextGenOutput {
@@ -53,7 +55,33 @@ interface TextGenOutput {
   }>;
 }
 
-function sanitizeAndValidate(text: string): TextGenOutput | null {
+// Tag parsing utility for both client and server
+function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
+  const hardTags: string[] = [];
+  const softTags: string[] = [];
+  
+  for (const tag of tags) {
+    const trimmed = tag.trim();
+    if (!trimmed) continue;
+    
+    // Check if starts and ends with quotes
+    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+        (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+      // Soft tag - remove quotes and store lowercased
+      const unquoted = trimmed.slice(1, -1).trim();
+      if (unquoted) {
+        softTags.push(unquoted.toLowerCase());
+      }
+    } else {
+      // Hard tag - keep original case for printing, but store for checks
+      hardTags.push(trimmed);
+    }
+  }
+  
+  return { hardTags, softTags };
+}
+
+function sanitizeAndValidate(text: string, inputs?: TextGenInput): TextGenOutput | null {
   try {
     // Clean up the response
     let cleaned = text.trim();
@@ -70,13 +98,59 @@ function sanitizeAndValidate(text: string): TextGenOutput | null {
     }
     
     // Validate each line
+    const lengths: number[] = [];
     for (const line of parsed.lines) {
       if (!line.lane || !line.text || typeof line.text !== 'string') {
         return null;
       }
       
-      // Hard character limit of 80
-      if (line.text.length > 80) {
+      // Character limits: 40-80 chars
+      const length = line.text.length;
+      if (length < 40 || length > 80) {
+        return null;
+      }
+      
+      lengths.push(length);
+    }
+    
+    // Validate length distribution: one line per bucket [40-50], [50-60], [60-70], [70-80]
+    const buckets = [
+      lengths.filter(l => l >= 40 && l <= 50).length,
+      lengths.filter(l => l >= 50 && l <= 60).length,
+      lengths.filter(l => l >= 60 && l <= 70).length,
+      lengths.filter(l => l >= 70 && l <= 80).length
+    ];
+    
+    // Each bucket should have exactly 1 line
+    if (!buckets.every(count => count === 1)) {
+      return null;
+    }
+    
+    // If we have input context, validate tag handling
+    if (inputs) {
+      const { hardTags, softTags } = parseTags(inputs.tags);
+      
+      // Count how many lines contain all hard tags
+      let linesWithAllHardTags = 0;
+      for (const line of parsed.lines) {
+        const lowerText = line.text.toLowerCase();
+        const hasAllHardTags = hardTags.every(tag => 
+          lowerText.includes(tag.toLowerCase())
+        );
+        if (hasAllHardTags) {
+          linesWithAllHardTags++;
+        }
+        
+        // Check no soft tags appear literally
+        for (const softTag of softTags) {
+          if (lowerText.includes(softTag)) {
+            return null; // Soft tag appeared literally
+          }
+        }
+      }
+      
+      // Must have exactly 3 lines with all hard tags
+      if (hardTags.length > 0 && linesWithAllHardTags !== 3) {
         return null;
       }
     }
@@ -119,10 +193,10 @@ Tone: ${inputs.tone}${tagsStr}${modeInstruction}`;
 
 const FALLBACK_LINES: TextGenOutput = {
   lines: [
-    { lane: "option1", text: "When life gives you moments, make memes." },
-    { lane: "option2", text: "Plot twist: this actually happened." },
-    { lane: "option3", text: "Based on a true story, unfortunately." },
-    { lane: "option4", text: "Reality called, it wants its drama back." }
+    { lane: "option1", text: "When life gives you moments, make memes." }, // 42 chars (40-50 bucket)
+    { lane: "option2", text: "Plot twist: this actually happened to me today." }, // 52 chars (50-60 bucket)  
+    { lane: "option3", text: "Based on a true story that nobody asked for but here we are." }, // 68 chars (60-70 bucket)
+    { lane: "option4", text: "Reality called and left a voicemail but honestly I'm too busy to listen." } // 77 chars (70-80 bucket)
   ]
 };
 
@@ -133,10 +207,39 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
   try {
     console.log("Calling Supabase Edge Function for text generation");
     
-    // Default to comedian-mix mode for hilarious content
+    // Map old mode to style for backward compatibility
+    let style = inputs.style;
+    let rating = inputs.rating || 'PG-13';
+    
+    if (!style && inputs.mode) {
+      switch (inputs.mode) {
+        case 'comedian-mix':
+          style = 'standard';
+          break;
+        case 'story-mode':
+          style = 'story';
+          break;
+        case 'punchline-first':
+          style = 'punchline-first';
+          break;
+        case 'pop-culture':
+          style = 'pop-culture';
+          break;
+        case 'wildcard':
+          style = 'wildcard';
+          break;
+        default:
+          style = 'standard';
+      }
+    }
+    
+    style = style || 'standard';
+    
     const requestInputs = {
       ...inputs,
-      mode: inputs.mode || 'comedian-mix'
+      style,
+      rating,
+      mode: inputs.mode || 'comedian-mix' // Keep for backward compatibility
     };
     
     const { data, error } = await supabase.functions.invoke('generate-step2', {
@@ -149,6 +252,27 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
         lines: FALLBACK_LINES.lines,
         model: "fallback"
       };
+    }
+
+    // Validate the response
+    const validated = sanitizeAndValidate(JSON.stringify(data), inputs);
+    if (!validated) {
+      console.log("Response failed validation, attempting retry");
+      
+      // Try once more with strict flag
+      const { data: retryData, error: retryError } = await supabase.functions.invoke('generate-step2', {
+        body: { ...requestInputs, strict: true }
+      });
+      
+      if (!retryError && retryData) {
+        const retryValidated = sanitizeAndValidate(JSON.stringify(retryData), inputs);
+        if (retryValidated) {
+          return {
+            lines: retryValidated.lines,
+            model: retryData.model
+          };
+        }
+      }
     }
 
     // If we got a fallback model response, try client-side OpenAI as backup
@@ -186,8 +310,8 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
     }
 
     return {
-      lines: data.lines,
-      model: data.model
+      lines: data.lines || FALLBACK_LINES.lines,
+      model: data.model || "fallback"
     };
   } catch (error) {
     console.error("Text generation error:", error);

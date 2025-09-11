@@ -353,7 +353,33 @@ function checkToneAlignment(lines: Array<{lane: string, text: string}>, tone: st
   return issues.length > 0 ? issues.join("; ") : null;
 }
 
-function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[]): string {
+// Tag parsing utility (duplicated from client for edge function)
+function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
+  const hardTags: string[] = [];
+  const softTags: string[] = [];
+  
+  for (const tag of tags) {
+    const trimmed = tag.trim();
+    if (!trimmed) continue;
+    
+    // Check if starts and ends with quotes
+    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+        (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+      // Soft tag - remove quotes and store lowercased
+      const unquoted = trimmed.slice(1, -1).trim();
+      if (unquoted) {
+        softTags.push(unquoted.toLowerCase());
+      }
+    } else {
+      // Hard tag - keep original case for printing
+      hardTags.push(trimmed);
+    }
+  }
+  
+  return { hardTags, softTags };
+}
+
+function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[], style: string, rating: string): string {
   const banList = getClicheBanList(category, subcategory);
   const anchors = getTopicalAnchors(category, subcategory);
   const vibes = getVibeKeywords(category, subcategory);
@@ -362,6 +388,8 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
   const banPhrase = banList.length > 0 ? `\n\nSTRICTLY AVOID these overused props: ${banList.join(", ")}. Find unexpected angles instead.` : "";
   const anchorPhrase = anchors.length > 0 ? `\n\nTOPICALITY REQUIREMENT: At least 2 of 4 lines must include one of these fresh angles: ${anchors.join(", ")}. Ground lines in the actual situation.` : "";
   const vibePhrase = vibes.length > 0 ? `\n\nVIBE GROUNDING: At least 2 of 4 lines should reference "${subcategory}" context naturally.` : "";
+  
+  const { hardTags, softTags } = parseTags(tags);
   
   const toneGuidance = `\n\n${tone.toUpperCase()} TONE DEFINITION:
 ${toneInfo.definition}
@@ -374,15 +402,44 @@ ${toneInfo.donts.map(item => `- ${item}`).join('\n')}
 
 MICRO-EXAMPLES (${tone} style):
 ${toneInfo.microExamples.map(ex => `- "${ex}"`).join('\n')}`;
+
+  const styleGuidance = `\n\nSTYLE: ${style.toUpperCase()}
+${getStyleDefinition(style)}`;
+
+  const ratingGuidance = `\n\nRATING: ${rating}
+${getRatingDefinition(rating)}`;
   
-  const tagGuidance = tags.length > 0 ? `\n\nTAG INTEGRATION (HUMAN-LIKE):
-- Tags: [${tags.join(", ")}] must appear in at least 3 lines
-- NEVER use "Hero Jesse:" or "Jesse, hero" formats - too robotic!
-- Natural placements: "Jesse, our group's hero" / "when Jesse saves the day" / "hero vibes from Jesse"
-- Mix tag positions: beginning, middle, end of sentences
-- Make tags feel like they belong in the conversation` : "";
+  const tagGuidance = (hardTags.length > 0 || softTags.length > 0) ? `\n\nTAG HANDLING:
+${hardTags.length > 0 ? `- Hard tags [${hardTags.join(", ")}] must appear literally in exactly 3 of 4 lines` : ''}
+${softTags.length > 0 ? `- Soft tags [${softTags.join(", ")}] must NOT appear literally but should influence tone, pronouns, and framing` : ''}
+- Natural integration: vary tag positions (beginning, middle, end)
+- Make tags feel conversational, not forced` : "";
+
+// Style and rating definitions (duplicated for edge function)
+function getStyleDefinition(style: string): string {
+  const definitions = {
+    'standard': 'Balanced observational one-liners with varied structure and natural flow',
+    'story': 'Slight setup with quick narrative payoff - brief mini-stories that land the joke',
+    'punchline-first': 'Hit the joke early, then brief tag-back or twist for extra impact',
+    'pop-culture': 'Include relevant celebrities, movies, trends, or memes (avoid dated references)',
+    'wildcard': 'Randomized structure and experimental humor - be creative and unexpected'
+  };
   
-  return `You are writing casual, conversational one-liners that sound like real people talking. Generate exactly 4 lines that feel human, not AI-generated.
+  return definitions[style] || definitions['standard'];
+}
+
+function getRatingDefinition(rating: string): string {
+  const definitions = {
+    'G': 'Family-friendly humor only. No swearing, innuendo, or targeting individuals.',
+    'PG': 'Light sarcasm and playful roasting allowed. Keep it gentle and fun.',
+    'PG-13': 'Sharper roasts, mild innuendo, and cultural references. Never hateful or explicit.',
+    'R': 'Boundary-pushing roasts and edgy humor, but maintain safety filters (no hate/harassment/explicit content)'
+  };
+  
+  return definitions[rating] || definitions['PG-13'];
+}
+  
+  return `You are a professional text generator for memes and overlays. Create exactly 4 unique one-liners with different comedic voices and perfect length distribution.
 
 Output ONLY valid JSON in this exact format:
 {
@@ -394,28 +451,27 @@ Output ONLY valid JSON in this exact format:
   ]
 }
 
-HUMAN-LIKE RULES:
-- Write like texting a friend, not writing marketing copy
-- Use contractions: "can't," "won't," "it's," "we're"
-- Vary sentence structures (some short, some flowing)
-- Natural pauses and rhythms
-- Each line: 15–100 characters with clear length variety
-- Max one punctuation mark total per line (one of .,;:!?). Apostrophes in contractions are allowed.
-- No ellipses, em/en dashes, or quotes
+CRITICAL REQUIREMENTS:
+1. LENGTH BUCKETS (MANDATORY): Exactly one line per bucket:
+   - ONE line: 40-50 characters
+   - ONE line: 50-60 characters 
+   - ONE line: 60-70 characters
+   - ONE line: 70-80 characters
 
-LENGTH VARIETY (MANDATORY):
-- At least one SHORT line (15-35 chars): punchy, snappy
-- At least one LONG line (70-90 chars): flowing, detailed
-- Mix it up so every batch feels different${toneGuidance}
+2. HUMOR PRIORITY: 90%+ of outputs must be funny (unless tone=Serious allows non-humor)
+
+3. COMEDIC VOICE VARIETY: Each line must use different comedy styles:
+   - Energetic, deadpan, absurd, blunt, narrative, observational, etc.
+   - NO comedian names in output - voices are hidden influence only
+
+4. NATURAL FLOW:
+   - Write like texting a friend, use contractions
+   - Vary sentence structures
+   - Clear punctuation allowed (.,;:!?)${toneGuidance}${styleGuidance}${ratingGuidance}
 
 CATEGORY: ${category} > ${subcategory}${banPhrase}${anchorPhrase}${vibePhrase}${tagGuidance}
 
-AVOID ROBOTIC PATTERNS:
-- No "Achievement unlocked:" style formats
-- No "Plot twist:" beginnings (overused)
-- No lists or bullet points in text
-- No formal announcements or declarations
-- Write how people actually talk, not how bots write`;
+AVOID: Clichés, robotic patterns, "Achievement unlocked", "Plot twist", template language`;
 }
 
 function buildUserMessage(inputs: any): string {
@@ -1046,7 +1102,7 @@ Please fix these issues while maintaining the ${inputs.tone} tone and natural fl
     console.log(`Using model: ${model}`);
     
     // Use the enhanced system prompt
-    const systemPrompt = getSystemPrompt(inputs.category || '', inputs.subcategory || '', inputs.tone || 'Balanced', inputs.tags || []);
+    const systemPrompt = getSystemPrompt(inputs.category || '', inputs.subcategory || '', inputs.tone || 'Balanced', inputs.tags || [], inputs.style || 'standard', inputs.rating || 'PG-13');
     
     const requestBody: any = {
       model,

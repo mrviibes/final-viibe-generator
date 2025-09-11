@@ -4457,7 +4457,9 @@ const Index = () => {
   const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
-  const [textMode, setTextMode] = useState<string>("comedian-mix");
+  const [textMode, setTextMode] = useState<string>("standard");
+  const [textStyle, setTextStyle] = useState<'standard' | 'story' | 'punchline-first' | 'pop-culture' | 'wildcard'>("standard");
+  const [textRating, setTextRating] = useState<'G' | 'PG' | 'PG-13' | 'R'>("PG-13");
   
   // Text editing state - simplified
   const [isEditingSelectedText, setIsEditingSelectedText] = useState(false);
@@ -5284,7 +5286,9 @@ const Index = () => {
         subcategory,
         tone,
         tags: finalTagsForGeneration,
-        mode: textMode
+        style: textStyle,
+        rating: textRating,
+        mode: textMode // Keep for backward compatibility
       });
       console.log('✅ Generated text options:', result);
 
@@ -6621,9 +6625,9 @@ const Index = () => {
                       {/* Tags Input */}
                       <div className="space-y-3">
                         <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
-                        <p className="text-xs text-muted-foreground text-center">
-                          Tags you add will appear in your text.
-                        </p>
+                         <p className="text-xs text-muted-foreground text-center">
+                           Unquoted tags are printed (3 of 4 lines). Put tags in quotes to influence tone/POV without printing them: e.g., jesse, candles, 'female', "loser"
+                         </p>
                         
                         {/* Display Tags */}
                         {tags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
@@ -6659,41 +6663,64 @@ const Index = () => {
                         <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
                       </div>
                       
-                      {/* Text Mode Dropdown */}
-                      <div className="flex items-center justify-center gap-3 mb-4">
-                        <Select
-                          value={textMode}
-                          onValueChange={(value) => {
-                            setTextMode(value);
-                            if (value !== "regenerate") {
-                              handleGenerateText();
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="w-48">
-                            <SelectValue />
-                          </SelectTrigger>
-                           <SelectContent className="bg-background border border-border shadow-lg z-50">
-                            <SelectItem value="comedian-mix">Comedian Mix (40–80)</SelectItem>
-                            <SelectItem value="regenerate">Standard</SelectItem>
-                            <SelectItem value="story-mode">Story Mode</SelectItem>
-                            <SelectItem value="punchline-first">Punchline-First</SelectItem>
-                            <SelectItem value="pop-culture">Pop Culture Remix</SelectItem>
-                            <SelectItem value="roast-level">Roast Level Up</SelectItem>
-                            <SelectItem value="wildcard">Wildcard</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={handleGenerateText}
-                          disabled={isGenerating}
-                          className="text-xs"
-                        >
-                          {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                          Regenerate
-                        </Button>
-                      </div>
+                       {/* Style and Rating Controls */}
+                       <div className="flex items-center justify-center gap-4 mb-4">
+                         {/* Style Dropdown */}
+                         <div className="flex flex-col items-center gap-2">
+                           <label className="text-sm font-medium text-muted-foreground">Style</label>
+                           <Select
+                             value={textStyle}
+                             onValueChange={(value) => {
+                               setTextStyle(value as 'standard' | 'story' | 'punchline-first' | 'pop-culture' | 'wildcard');
+                               handleGenerateText();
+                             }}
+                           >
+                             <SelectTrigger className="w-40">
+                               <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent className="bg-background border border-border shadow-lg z-50">
+                               <SelectItem value="standard">Standard</SelectItem>
+                               <SelectItem value="story">Story Mode</SelectItem>
+                               <SelectItem value="punchline-first">Punchline First</SelectItem>
+                               <SelectItem value="pop-culture">Pop Culture</SelectItem>
+                               <SelectItem value="wildcard">Wildcard</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         
+                         {/* Rating Slider */}
+                         <div className="flex flex-col items-center gap-2">
+                           <label className="text-sm font-medium text-muted-foreground">Rating</label>
+                           <Select
+                             value={textRating}
+                             onValueChange={(value) => {
+                               setTextRating(value as 'G' | 'PG' | 'PG-13' | 'R');
+                               handleGenerateText();
+                             }}
+                           >
+                             <SelectTrigger className="w-20">
+                               <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent className="bg-background border border-border shadow-lg z-50">
+                               <SelectItem value="G">G</SelectItem>
+                               <SelectItem value="PG">PG</SelectItem>
+                               <SelectItem value="PG-13">PG-13</SelectItem>
+                               <SelectItem value="R">R</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         
+                         <Button 
+                           variant="outline" 
+                           size="sm" 
+                           onClick={handleGenerateText}
+                           disabled={isGenerating}
+                           className="text-xs mt-6"
+                         >
+                           {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                           Regenerate
+                         </Button>
+                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
