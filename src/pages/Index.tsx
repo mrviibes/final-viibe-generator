@@ -4365,6 +4365,9 @@ const Index = () => {
   const [directPrompt, setDirectPrompt] = useState<string>("");
   const [negativePrompt, setNegativePrompt] = useState<string>("");
 
+  // Toast
+  const { toast } = useToast();
+
   // New prompt control options
   const [exactPromptMode, setExactPromptMode] = useState<boolean>(false);
   const [customSeed, setCustomSeed] = useState<string>("");
@@ -4538,6 +4541,9 @@ const Index = () => {
               textLayoutId: selectedTextLayout || 'negativeSpace',
               recommendationMode: visualSpice
             });
+            if (!result?.visualOptions?.length || result.model === 'error') {
+              throw new Error('No concepts returned from server');
+            }
 
             const varianceResult = ensureVisualVariance(
               result.visualOptions,
@@ -4598,11 +4604,10 @@ const Index = () => {
               errorMessage = "Request too complex. Try simpler tags.";
             } else if (error.message.includes('PARSE_ERROR')) {
               errorMessage = "AI response format error. Please retry.";
+            } else if (error.message) {
+              errorMessage = error.message;
             }
           }
-          const {
-            toast
-          } = useToast();
           toast({
             title: "Visual Generation Error",
             description: errorMessage,
@@ -5110,6 +5115,14 @@ const Index = () => {
         textLayoutId: selectedTextLayout || "negativeSpace",
         recommendationMode: visualSpice
       });
+      if (!result?.visualOptions?.length || result.model === 'error') {
+        toast({
+          title: 'Visual Generation Error',
+          description: 'No concepts returned from server',
+          variant: 'destructive'
+        });
+        return;
+      }
 
       // Ensure visual variance (enabled for stronger mode effects)
       const varianceResult = ensureVisualVariance(result.visualOptions, finalLine || "", selectedTextLayout || "negativeSpace", true, visualSpice);
