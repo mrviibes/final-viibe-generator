@@ -35,11 +35,11 @@ async function generateWithGPT5(inputs: any): Promise<any> {
                    (typeof inputs.tags === 'string' ? [inputs.tags] : []);
   const tagsStr = tagsArray.length > 0 ? tagsArray.join(',') : 'none';
   
-  // COMPREHENSIVE STRICT SYSTEM PROMPT
-  const systemPrompt = `You are a professional stand-up comedian. 
-Generate exactly 4 unique one-liner jokes or captions. 
-Return ONLY valid JSON in this format:
+  // FINAL SYSTEM PROMPT - UPDATED
+  const systemPrompt = `You are a professional comedian. 
+Generate exactly 4 unique one-liner jokes or captions as JSON only.
 
+Return ONLY valid JSON in this exact structure:
 {
   "lines": [
     {"lane": "option1", "text": "..."},
@@ -49,65 +49,62 @@ Return ONLY valid JSON in this format:
   ]
 }
 
-## Core Rules:
+## Rules
 1. Lengths:
    - Option 1 = 40–50 characters
    - Option 2 = 50–60 characters
    - Option 3 = 60–70 characters
    - Option 4 = 70–80 characters
-   - Story Mode only: all 4 must be 80–100 characters with a setup + payoff.
+   - Story Mode only: all 4 = 80–100 characters with a clear setup → payoff.
 
 2. Punctuation:
    - MAX 1 punctuation mark per line (comma OR period OR colon).
-   - No em dashes (—).
-   - No ellipses (...).
+   - NO em dashes (—).
+   - NO ellipses (...).
 
-3. Perspectives / Tenses:
-   - Each batch of 4 MUST cover:
-     - One **general truth** (no "you" or tags).
-     - One **past-tense memory** (e.g., "last year," "remember when").
-     - One **present-tense roast** (direct: "you're" or "jesse is").
-     - One **tagged 3rd person** line if a name/tag is provided.
-   - Enforce variety across outputs, not 4 of the same perspective.
+3. Perspectives:
+   - Each batch of 4 must include:
+     - One general truth (no "you" or tags).
+     - One past-tense memory (e.g., "last year," "remember when").
+     - One present-tense roast/flirt (direct: "you" or tagged name).
+     - One 3rd-person tagged line (if a name/tag is provided).
 
-4. Tone must match selection:
-   - Humorous = observational, witty.
+4. Tone (must match user selection):
+   - Humorous = observational, witty, punny.
    - Savage = sharp roasts, unapologetic.
-   - Romantic = flirty, affectionate.
+   - Romantic = flirty, affectionate, warm.
    - Sentimental = heartfelt, sincere.
-   - Nostalgic = memory-driven, wistful.
+   - Nostalgic = wistful, memory-driven.
    - Inspirational = uplifting, motivational.
-   - Playful = mischievous, cheeky.
-   - Serious = plain, matter-of-fact.
+   - Playful = mischievous, cheeky fun.
+   - Serious = formal, matter-of-fact.
 
-5. Style must match selection:
+5. Style (must match user selection):
    - Standard = balanced one-liners.
-   - Story Mode = setup → payoff, 80–100 chars.
-   - Punchline First = joke lands in first half.
-   - Pop Culture = MUST include a celebrity, trend, or meme reference.
-   - Wildcard = random voice/format.
+   - Story Mode = narrative mini-story with setup → payoff.
+   - Punchline First = gag lands in first half.
+   - Pop Culture = MUST reference a celebrity, meme, movie, or trend.
+   - Wildcard = random comedic structures.
 
 6. Ratings:
-   - **G** = family-friendly, wholesome, no profanity or innuendo.
-   - **PG** = safe with light sarcasm. No profanity. Mild edge only.
-   - **PG-13** = sharper, sarcastic, edgy. Allow **mild profanity** 
-     (damn, hell) and innuendo. Push close to offensive, but not explicit.
-   - **R** = savage, risky, explicit. At least one line MUST use profanity 
-     (fuck, shit, ass) OR sexual innuendo. No hate speech or slurs.
+   - G = wholesome, family-safe. NO profanity or innuendo.
+   - PG = mild sarcasm. NO profanity.
+   - PG-13 = sharper, sarcastic, cheeky. At least 1 line MUST contain mild profanity
+     (e.g., "damn," "hell") OR innuendo. NO strong profanity.
+   - R = savage, edgy, explicit. At least 1 line MUST contain strong profanity
+     (e.g., fuck, shit, ass) or sexual innuendo. NO hate speech or slurs.
 
 7. Tags:
-   - Unquoted tags (e.g. jesse, cake) → must appear literally in 3/4 lines.
-   - Quoted tags (e.g. "loser", "romantic") → must not appear literally, 
-     but must shape tone, POV, or context.
+   - Unquoted tags → MUST appear literally in 3/4 lines.
+   - Quoted tags → MUST NOT appear literally, but must influence style/POV.
 
-8. Voice Variety:
-   - Each line should feel like a different comedian style 
-     (energetic storytelling, blunt observational, absurdist, deadpan, etc.).
-   - Do not repeat the same premise in all 4 lines (e.g., not 4 "cake" jokes).
+8. Voice variety:
+   - Each line should sound like a different comedian style (energetic storytelling, deadpan, absurdist, blunt observational, etc.).
+   - No repeated premises (e.g., 4 "cake" jokes in Birthday).
 
-9. Must feel like natural spoken jokes, not robotic templates.
+9. Must feel natural and conversational, like spoken jokes — not robotic templates.
 
-10. Output ONLY the JSON above, nothing else.`;
+10. Output ONLY the JSON object, no commentary or extra formatting.`;
   
   const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG'}`;
   
@@ -178,34 +175,22 @@ Return ONLY valid JSON in this format:
       throw new Error(`Invalid structure: expected 4 lines, got ${parsed.lines?.length || 0}`);
     }
     
-    // COMPREHENSIVE VALIDATION - LENGTH, PUNCTUATION, VARIETY, HUMAN RHYTHM, RATING, PERSPECTIVE
+    // COMPREHENSIVE VALIDATION - Updated per user spec
     const validationErrors = [];
     const isStoryMode = inputs.style === 'story';
     
-    // Story Mode: ALL 4 lines must be 80-100 chars
-    // Standard Mode: 40-50, 50-60, 60-70, 70-80
+    // Length validation - exact character ranges
     const expectedLengths = isStoryMode 
-      ? [90, 90, 90, 90] // Story mode: all 80-100 chars (target 90)
-      : [45, 55, 65, 75]; // Standard: 40-50, 50-60, 60-70, 70-80 chars
-    const lengthTolerances = isStoryMode 
-      ? [10, 10, 10, 10] // ±10 for story mode (80-100 range)
-      : [5, 5, 5, 5]; // ±5 for standard modes
+      ? [[80, 100], [80, 100], [80, 100], [80, 100]] // Story mode: all 80-100 chars
+      : [[40, 50], [50, 60], [60, 70], [70, 80]]; // Standard: exact bands
     
     const allTexts = parsed.lines.map((line: any) => line.text?.toLowerCase() || '');
     const unquotedTags = Array.isArray(inputs.tags) ? 
       inputs.tags.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"')) : [];
     
-    // Cliché premise words by category
-    const clicheMap: { [key: string]: string[] } = {
-      'Birthday': ['cake', 'candles', 'balloons', 'wrapping', 'party'],
-      'Christmas Day': ['tree', 'sweater', 'eggnog', 'fruitcake', 'carols'],
-      'New Year': ['resolution', 'countdown', 'champagne', 'midnight', 'fireworks']
-    };
-    const clicheWords = clicheMap[inputs.subcategory] || [];
-
-    // Rating validation - check for appropriate content
-    const mildProfanity = ['damn', 'hell', 'crap'];
-    const strongProfanity = ['fuck', 'shit', 'ass', 'dick', 'pussy', 'bitch'];
+    // Rating content validation
+    const mildProfanity = ['damn', 'hell'];
+    const strongProfanity = ['fuck', 'shit', 'ass'];
     const innuendoWords = ['bed', 'naked', 'sexy', 'hot', 'hard', 'wet', 'thick', 'deep'];
     
     let hasMildProfanity = false;
@@ -218,7 +203,7 @@ Return ONLY valid JSON in this format:
       if (innuendoWords.some(word => text.includes(word))) hasInnuendo = true;
     });
 
-    // Perspective/tense validation
+    // Perspective validation - CRITICAL requirements
     const hasGeneralTruth = allTexts.some(text => 
       !text.includes('you') && !text.includes('your') && 
       !unquotedTags.some(tag => text.includes(tag.toLowerCase()))
@@ -233,95 +218,75 @@ Return ONLY valid JSON in this format:
     const hasThirdPerson = unquotedTags.length > 0 ? 
       allTexts.some(text => unquotedTags.some(tag => text.includes(tag.toLowerCase()))) : true;
     
+    // Validate each line
     parsed.lines.forEach((line, index) => {
       const text = line.text || '';
       const length = text.length;
-      const expectedLength = expectedLengths[index];
-      const tolerance = lengthTolerances[index];
-      const minLength = expectedLength - tolerance;
-      const maxLength = expectedLength + tolerance;
+      const [minLength, maxLength] = expectedLengths[index];
       
-      // Check length bands
+      // Length validation
       if (length < minLength || length > maxLength) {
-        validationErrors.push(`Option ${index + 1} length ${length} outside range ${minLength}-${maxLength}`);
+        validationErrors.push(`emdash_forbidden`);
       }
       
-      // Check for em dashes
+      // Em dash validation - CRITICAL
       if (text.includes('—')) {
-        validationErrors.push(`Option ${index + 1} contains em dash (—) - not allowed`);
+        validationErrors.push(`emdash_forbidden`);
       }
       
-      // STRICT: Check punctuation limit (EXACTLY 1 per line)
+      // Punctuation validation - max 1 mark
       const punctuationCount = (text.match(/[,.;:!?]/g) || []).length;
-      if (punctuationCount !== 1) {
-        validationErrors.push(`Option ${index + 1} has ${punctuationCount} punctuation marks, must have exactly 1`);
+      if (punctuationCount > 1) {
+        validationErrors.push(`too_many_punct`);
       }
       
-      // Check for ellipsis
+      // Ellipsis validation
       if (text.includes('...') || text.includes('..')) {
-        validationErrors.push(`Option ${index + 1} contains ellipsis - not allowed`);
+        validationErrors.push(`ellipsis_forbidden`);
       }
     });
 
-    // Rating enforcement
+    // Rating enforcement - CRITICAL for user spec
     const rating = inputs.rating || 'PG';
     if (rating === 'G' && (hasMildProfanity || hasStrongProfanity || hasInnuendo)) {
-      validationErrors.push('G-rated content contains inappropriate language or innuendo');
+      validationErrors.push('rating_violation');
     }
     if (rating === 'PG' && (hasMildProfanity || hasStrongProfanity || hasInnuendo)) {
-      validationErrors.push('PG-rated content contains profanity or innuendo');
+      validationErrors.push('rating_violation');
     }
     if (rating === 'PG-13' && !hasMildProfanity && !hasInnuendo && !hasStrongProfanity) {
-      validationErrors.push('PG-13 content should include mild profanity or innuendo for appropriate rating');
+      validationErrors.push('missing_required_rated_line');
     }
     if (rating === 'R' && !hasStrongProfanity && !hasInnuendo) {
-      validationErrors.push('R-rated content must include strong profanity or explicit innuendo');
+      validationErrors.push('missing_required_rated_line');
     }
 
-    // Perspective/tense validation
+    // Perspective enforcement - CRITICAL per user spec
     if (!hasGeneralTruth) {
-      validationErrors.push('Missing general truth line (no "you" or tag names)');
+      validationErrors.push('missing_general_truth');
     }
     if (!hasPastTense) {
-      validationErrors.push('Missing past tense memory line (last year, remember when, etc.)');
+      validationErrors.push('missing_past_tense');
     }
     if (!hasPresentRoast) {
-      validationErrors.push('Missing present-tense roast line (you\'re, jesse is, etc.)');
+      validationErrors.push('missing_present_roast');
     }
     if (!hasThirdPerson && unquotedTags.length > 0) {
-      validationErrors.push('Missing tagged 3rd person line');
+      validationErrors.push('missing_third_person');
     }
     
-    // Cliché premise variety - max 1 occurrence per batch
-    clicheWords.forEach(word => {
-      const count = allTexts.filter(text => text.includes(word)).length;
-      if (count > 1) {
-        validationErrors.push(`Cliché word "${word}" appears in ${count}/4 lines, max 1 allowed for variety`);
-      }
-    });
-    
-    // Human rhythm check - avoid robotic patterns
-    const firstWords = parsed.lines.map((line: any) => {
-      const words = (line.text || '').split(/\s+/).slice(0, 3).join(' ').toLowerCase();
-      return words;
-    });
-    const uniqueStarts = new Set(firstWords);
-    if (uniqueStarts.size < 4) {
-      validationErrors.push('Lines start too similarly, lacks human variety');
-    }
-    
-    // Tag validation - unquoted tags should appear in 3/4 lines
+    // Tag enforcement - unquoted tags must appear in 3/4 lines
     unquotedTags.forEach(tag => {
       const count = allTexts.filter(text => text.includes(tag.toLowerCase())).length;
       if (count < 3) {
-        validationErrors.push(`Unquoted tag "${tag}" appears in only ${count}/4 lines, should be 3+`);
+        validationErrors.push('missing_hard_tags');
       }
     });
     
-    // Story Mode structure validation
+    // Style compliance
     if (isStoryMode) {
-      const pivotWords = ['then', 'after', 'later', 'when', 'finally', 'last year', 'by midnight', 'and then', 'remember when'];
-      const payoffWords = ['but', 'so', 'which', 'and then', 'still', 'yet', 'ending with'];
+      const pivotWords = ['then', 'after', 'when', 'finally', 'last year', 'so'];
+      const payoffWords = ['but', 'so', 'which', 'still', 'yet'];
       
       parsed.lines.forEach((line, index) => {
         const text = (line.text || '').toLowerCase();
@@ -329,25 +294,49 @@ Return ONLY valid JSON in this format:
         const hasPayoff = payoffWords.some(word => text.includes(word));
         
         if (!hasPivot || !hasPayoff) {
-          validationErrors.push(`Option ${index + 1} missing story structure (setup → payoff)`);
+          validationErrors.push('style_noncompliant');
         }
       });
     }
     
     // Pop culture validation
     if (inputs.style === 'pop_culture') {
-      const popCultureWords = ['taylor', 'swift', 'drake', 'rihanna', 'kanye', 'barbie', 'oppenheimer', 'marvel', 'dc', 'netflix', 'tiktok', 'youtube', 'meme', 'viral', 'hashtag', 'star wars', 'disney', 'nba', 'nfl'];
+      const popCultureWords = ['taylor', 'swift', 'drake', 'kanye', 'netflix', 'tiktok', 'marvel', 'disney', 'meme', 'viral'];
       const hasPopCulture = allTexts.some(text => {
         return popCultureWords.some(word => text.includes(word));
       });
       if (!hasPopCulture) {
-        validationErrors.push('Pop culture style requires celebrity, meme, or trend references');
+        validationErrors.push('style_noncompliant');
       }
     }
     
+    // Voice variety check
+    const firstWords = parsed.lines.map((line: any) => {
+      const words = (line.text || '').split(/\s+/).slice(0, 2).join(' ').toLowerCase();
+      return words;
+    });
+    const uniqueStarts = new Set(firstWords);
+    if (uniqueStarts.size < 4) {
+      validationErrors.push('robotic_pattern');
+    }
+    
+    // Premise variety - no duplicate themes
+    const clicheWords = ['cake', 'candles', 'party', 'birthday', 'years old'];
+    clicheWords.forEach(word => {
+      const count = allTexts.filter(text => text.includes(word)).length;
+      if (count > 1) {
+        validationErrors.push('duplicate_premise');
+      }
+    });
+    
     if (validationErrors.length > 0) {
-      console.warn('⚠️ Validation warnings:', validationErrors.join('; '));
-      // Continue despite warnings - don't fail completely in production
+      console.warn('⚠️ Validation errors:', validationErrors.join('; '));
+      // FAIL FAST for critical errors
+      if (validationErrors.includes('emdash_forbidden') || 
+          validationErrors.includes('missing_required_rated_line') ||
+          validationErrors.includes('missing_general_truth')) {
+        throw new Error(`Critical validation failure: ${validationErrors.join('; ')}`);
+      }
     }
     
     console.log('✅ VALIDATOR PASS: valid JSON with 4+ lines, length bands checked');
