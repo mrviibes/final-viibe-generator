@@ -6764,28 +6764,6 @@ const Index = () => {
                       <TextLayoutSelector selectedLayout={selectedTextLayout} onLayoutSelect={setSelectedTextLayout} />
                     </div>}
 
-                {/* Simplified Text Selection Interface */}
-                {selectedCompletionOption === "ai-assist" && selectedGeneratedOption && (
-                  <div className="mt-8">
-                    <div className="max-w-2xl mx-auto">
-                      <StackedSelectionCard
-                        selections={[
-                          {
-                            title: "AI Text",
-                            subtitle: selectedGeneratedOption,
-                            canEdit: true,
-                            onEdit: handleTextEdit,
-                            onChangeSelection: () => {
-                              setSelectedGeneratedOption('');
-                              setSelectedGeneratedIndex(-1);
-                              setIsEditingSelectedText(false);
-                            }
-                          }
-                        ]}
-                      />
-                    </div>
-                  </div>
-                )}
 
 
                 {/* TODO: Add additional sub-options here after text style is selected */}
