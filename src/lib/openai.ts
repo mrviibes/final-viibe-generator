@@ -295,57 +295,36 @@ Return as a json object with this exact format:
   async generateShortTexts(params: GenerateTextParams): Promise<string[]> {
     const { tone, category, subtopic, pick, tags = [], characterLimit, mode } = params;
     
-    let contextParts = [];
-    if (category) contextParts.push(`Category: ${category}`);
-    if (subtopic) contextParts.push(`Topic: ${subtopic}`);
-    if (pick) contextParts.push(`Specific focus: ${pick}`);
-    
-    const context = contextParts.join(', ');
-    
-    let prompt = `Generate exactly 4 short ${tone.toLowerCase()} text options for: ${context}.`;
+    let prompt = `Generate exactly 4 short ${tone.toLowerCase()} text options for: ${category}${subtopic ? `, ${subtopic}` : ''}${pick ? `, ${pick}` : ''}.`;
     
     if (tags.length > 0) {
-      prompt += ` IMPORTANT: Each option MUST include ALL of these exact words/tags: ${tags.join(', ')}.`;
+      prompt += ` Include these: ${tags.join(', ')}.`;
     }
     
     // Add mode-specific instructions
     if (mode === "comedian-mix") {
-      prompt = `Generate exactly 4 short HILARIOUS text options using 4 different comedian personas (observational, deadpan, absurdist, roast-but-safe, self-deprecating, one-liner, sarcastic-witty). 40–80 chars each, punchy, fresh, no clichés, no profanity/hate, JSON only.`;
-      if (tags.length > 0) {
-        prompt += ` IMPORTANT: Each option MUST include ALL of these exact words/tags: ${tags.join(', ')}.`;
-      }
+      prompt = `Generate exactly 4 HILARIOUS text options using different comedian styles. 40–80 chars each, punchy, fresh.`;
+      if (tags.length > 0) prompt += ` Include: ${tags.join(', ')}.`;
     } else if (mode && mode !== "regenerate") {
-      switch (mode) {
-        case "story-mode":
-          prompt += " MODE: Generate as short 2-3 sentence mini-stories with narrative flow.";
-          break;
-        case "punchline-first":
-          prompt += " MODE: Structure as joke payoff first, then tie-back. Snappy, meme-ready format.";
-          break;
-        case "pop-culture":
-          prompt += " MODE: Include trending memes, shows, sports, or current slang references.";
-          break;
-        case "roast-level":
-          prompt += " MODE: Increase savage/teasing tone while staying playful and fun.";
-          break;
-        case "wildcard":
-          prompt += " MODE: Generate surreal, absurd, or experimental humor. Be creative and unexpected.";
-          break;
-      }
+      const modeMap = {
+        "story-mode": " Use mini-story format.",
+        "punchline-first": " Lead with punchline.",
+        "pop-culture": " Include trending references.",
+        "roast-level": " Increase savage tone.",
+        "wildcard": " Be experimental."
+      };
+      prompt += modeMap[mode] || "";
     }
     
-    prompt += ` Each option must be ${characterLimit} characters or fewer. Be creative and engaging.
+    prompt += ` Max ${characterLimit} chars each. Creative and engaging.
 
-Return as a json object with this exact format:
-{
-  "options": ["text option 1", "text option 2", "text option 3", "text option 4"]
-}`;
+Return as a json object: {"options": ["text 1", "text 2", "text 3", "text 4"]}`;
 
     try {
       const result = await this.chatJSON([
         { role: 'user', content: prompt }
       ], {
-        max_completion_tokens: 300, // Reduced to prevent reasoning overruns
+        max_completion_tokens: 200, // Reduced for speed
         model: 'gpt-5-mini-2025-08-07'
       });
 

@@ -309,92 +309,59 @@ function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
 }
 
 function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[], style?: string, rating?: string): string {
-  const styleDefinition = getStyleDefinition(style || 'standard');
-  const ratingDefinition = getRatingDefinition(rating || 'PG-13');
-  const toneDetails = getToneDefinition(tone);
-  const anchors = getTopicalAnchors(category, subcategory);
-  const clicheBans = getClicheBanList(category, subcategory);
-  const vibeKeywords = getVibeKeywords(subcategory);
-  
-  // Voice variety assignment (4 specific voices per batch)
-  const voiceMappings = {
-    'option1': 'deadpan',
-    'option2': 'blunt', 
-    'option3': 'absurdist',
-    'option4': 'narrative'
-  };
-  
-  // Dynamic length requirements based on style
-  let lengthRequirement = "40-80 characters";
-  if (style === 'story') {
-    lengthRequirement = "60-100 characters for narrative flow";
-  }
-  
   const { hardTags, softTags } = parseTags(tags);
   
-  return `You are a professional comedy writer creating humorous text lines for memes and image overlays.
+  const styleDefinitions = {
+    'standard': 'Balanced one-liners (40-80 chars)',
+    'story': 'Mini-narratives with setup → payoff (60-100 chars)',
+    'pop-culture': 'Include celebrities, movies, TV, music, apps (40-80 chars)',
+    'punchline-first': 'Hit joke early, then tag-back (40-80 chars)',
+    'wildcard': 'Experimental humor (40-80 chars)'
+  };
+  
+  const ratingDefs = {
+    'G': 'Family-friendly only',
+    'PG': 'Light sarcasm allowed', 
+    'PG-13': 'Sharper roasts, mild profanity (damn, hell)',
+    'R': 'Explicit profanity (shit, fuck, ass), savage roasts'
+  };
+  
+  const lengthReq = style === 'story' ? "60-100 characters" : "40-80 characters";
+  const styleDesc = styleDefinitions[style || 'standard'] || styleDefinitions['standard'];
+  const ratingDesc = ratingDefs[rating || 'PG-13'] || ratingDefs['PG-13'];
+  
+  return `Generate exactly 4 humorous text lines for memes/overlays.
 
-CRITICAL REQUIREMENTS:
-1. Generate exactly 4 lines in valid JSON format: {"lines": [{"lane": "option1", "text": "..."}, ...]}
-2. Length requirement: ${lengthRequirement} (STRICTLY ENFORCED)
-3. Max one punctuation mark per line (period, comma, dash, etc.)
-4. Write conversationally - sound like a real person texting, not AI-generated content
-5. INTRA-BATCH VARIETY REQUIRED:
-   - option1: deadpan delivery (flat, matter-of-fact tone)
-   - option2: blunt approach (direct, no-nonsense)
-   - option3: absurdist twist (weird, unexpected)
-   - option4: narrative style (mini story arc)
+FORMAT: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}, {"lane": "option3", "text": "..."}, {"lane": "option4", "text": "..."}]}
 
-STYLE ENFORCEMENT: ${styleDefinition}
-${style === 'pop-culture' ? 'POP CULTURE MANDATORY: ALL 4 lines MUST reference specific celebrities, movies, TV shows, music artists, apps, or current trends. No generic references.' : ''}
-${style === 'story' ? 'STORY MODE MANDATORY: ALL 4 lines MUST follow setup → payoff narrative structure with 60-100 characters.' : ''}
-${style === 'punchline-first' ? 'PUNCHLINE FIRST MANDATORY: Lead with the gag, then add a brief tag or twist.' : ''}
+REQUIREMENTS:
+- Length: ${lengthReq} (strict)
+- Style: ${styleDesc}
+- Rating: ${ratingDesc}
+- Tone: ${tone}
+- Max 1 punctuation per line
+- Sound conversational, not AI-generated
 
-RATING ENFORCEMENT: ${ratingDefinition}
-${rating === 'R' ? 'R-RATING MANDATORY: Include explicit profanity (shit, fuck, ass, damn, hell) or savage roasts in AT LEAST 2/4 lines. Be brutal and edgy.' : ''}
-${rating === 'PG-13' ? 'PG-13 MANDATORY: Include sharper edge, mild profanity (damn, hell), or cultural digs in AT LEAST 1/4 lines.' : ''}
+VARIETY (each line different voice):
+- option1: deadpan delivery
+- option2: blunt approach  
+- option3: absurdist twist
+- option4: narrative style
 
-TONE GUIDANCE: ${toneDetails.definition}
-DO: ${toneDetails.dos.join(", ")}
-DON'T: ${toneDetails.donts.join(", ")}
+INCLUDE TAGS:
+- Hard tags (print literally): ${hardTags.join(", ") || "none"}
+- Soft tags (influence only): ${softTags.join(", ") || "none"}
 
-CONTENT REQUIREMENTS:
-- TOPICAL ANCHORS (use at least 2): ${anchors.join(", ")}
-- VIBE KEYWORDS: ${vibeKeywords.join(", ")}
-- HARD TAGS TO INCLUDE: ${hardTags.join(", ") || "none"}
-- EXACT PHRASES TO INCLUDE: ${softTags.join(", ") || "none"}
-
-CLICHÉ BAN LIST (NEVER use these): ${clicheBans.join(", ")}
-AVOID WORDS: ${AVOID_WORDS.slice(0, 10).join(", ")}
-
-Remember: Each line must feel distinctly different in voice and approach while maintaining cohesive tone and style.
-
-Respond with json only.`;
+Generate json response only.`;
 }
 
 function buildUserMessage(inputs: any, previousErrors: string[] = []): string {
   const noveltyToken = `RND-${Math.floor(Math.random() * 10000)}`;
-  const deviceSetting = Math.floor(Math.random() * 7) + 1;
-  
-  // Dynamic length targets based on style
-  const lengthMin = (inputs.style === 'story') ? 60 : 40;
-  const lengthMax = (inputs.style === 'story') ? 100 : 80;
-  
-  const lengthTargets = [
-    Math.floor(Math.random() * (lengthMax - lengthMin + 1)) + lengthMin,
-    Math.floor(Math.random() * (lengthMax - lengthMin + 1)) + lengthMin,
-    Math.floor(Math.random() * (lengthMax - lengthMin + 1)) + lengthMin,
-    Math.floor(Math.random() * (lengthMax - lengthMin + 1)) + lengthMin
-  ].sort((a, b) => a - b);
   
   let message = `Category: ${inputs.category}
 Subcategory: ${inputs.subcategory}
 Tone: ${inputs.tone}
-Novelty Token: ${noveltyToken}
-Device Setting: ${deviceSetting}
-LENGTH TARGETS (enforce variety): [${lengthTargets.join(", ")}]
-
-WRITE CONVERSATIONALLY: Sound like a real person texting, not an AI generating content. Use contractions, natural flow, and varied sentence lengths.
+Token: ${noveltyToken}
 
 Generate json response only.`;
 
@@ -404,6 +371,11 @@ Generate json response only.`;
 PREVIOUS ATTEMPT ISSUES: ${previousErrors.join("; ")}
       
 Please fix these issues while maintaining the ${inputs.tone} tone and natural flow. Remember: Max 100 chars per line, max one punctuation mark total per line.`;
+  }
+
+  
+  if (previousErrors.length > 0) {
+    message += `\nPrevious issues to fix: ${previousErrors.join(", ")}`;
   }
 
   return message;
