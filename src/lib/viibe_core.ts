@@ -181,15 +181,15 @@ ${session.entity ? `Specific Topic: ${session.entity}` : ''}`;
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
     ], {
-      model: 'gpt-4.1-2025-04-14',
-      max_completion_tokens: 300,
+      model: 'gpt-5-mini-2025-08-07',
+      max_completion_tokens: 1200,
       edgeOnly: true
     });
 
     const finalResult = {
       visualOptions: result.visualOptions || [],
       negativePrompt: result.negativePrompt || "no background text, no watermarks, no signage, no logos, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects",
-      model: 'gpt-4.1-2025-04-14'
+      model: 'gpt-5-mini-2025-08-07'
     };
 
     console.log('✅ Visual generation successful:', finalResult);

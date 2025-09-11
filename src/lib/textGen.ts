@@ -108,9 +108,9 @@ function sanitizeAndValidate(text: string, inputs?: TextGenInput): TextGenOutput
         continue;
       }
       
-      // Relaxed character limits: 25-120 chars
+      // Very relaxed character limits: 20-150 chars
       const length = line.text.length;
-      if (length < 25 || length > 120) {
+      if (length < 20 || length > 150) {
         continue;
       }
       

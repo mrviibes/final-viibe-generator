@@ -52,7 +52,7 @@ serve(async (req) => {
 
     const {
       temperature = 0.8,
-      max_tokens = 650,
+      max_tokens = 1200,
       max_completion_tokens,
       model = 'gpt-5-mini-2025-08-07'
     } = options;
@@ -75,6 +75,11 @@ serve(async (req) => {
       [tokenParameter]: tokenLimit,
       response_format: { type: "json_object" }
     };
+
+    // Add low reasoning effort for GPT-5 models to prevent token exhaustion
+    if (model.startsWith('gpt-5')) {
+      requestBody.reasoning = { effort: "low" };
+    }
 
     // Only add temperature for legacy models
     if (!isNewerModel) {
