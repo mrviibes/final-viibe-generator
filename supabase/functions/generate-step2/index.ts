@@ -8,159 +8,99 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
+// Words to specifically avoid in generated content
 const AVOID_WORDS = [
-  // Generic phrases that kill comedy
-  "timing is everything", "truth hurts", "laughter is the best medicine",
-  "it is what it is", "at the end of the day", "everything happens for a reason",
-  "when life gives you", "blessed", "grateful", "living my best life",
-  "adulting", "squad goals", "relationship goals", "mood", "same energy",
-  "no cap", "periodt", "slay", "stan", "tea", "lowkey", "highkey",
-  "sending thoughts and prayers", "this too shall pass", "stay positive",
-  
-  // Overused meme formats - EXPANDED
-  "nobody asked but", "tell me you're", "the audacity", "choose your fighter",
-  "this you?", "I'm deceased", "not me", "the way I", "bestie",
-  "plot twist", "mission failed successfully", "peak chaos", "vibes detected",
-  "reality called", "based on a true story", "unfortunately", "energy detected",
-  "achievement unlocked", "premium nonsense", "warranty voided", "tutorial level",
-  
-  // Cliché social media language  
-  "living for", "obsessed with", "here for it", "not sorry", "unapologetic",
-  "authentic self", "journey", "growth mindset", "manifesting"
+  'awesome', 'amazing', 'incredible', 'fantastic', 'unbelievable', 
+  'literally', 'basically', 'actually', 'honestly', 'definitely',
+  'totally', 'absolutely', 'completely', 'perfectly', 'exactly',
+  'vibes', 'mood', 'energy', 'blessed', 'grateful', 'journey',
+  'adventure', 'memories', 'moments', 'special', 'magical',
+  'perfect', 'beautiful', 'wonderful', 'precious', 'treasure',
+  'epic', 'legendary', 'iconic', 'classic', 'timeless',
+  'goals', 'squad', 'fam', 'bestie', 'slay', 'queen', 'king'
 ];
 
 function getTopicalAnchors(category: string, subcategory: string): string[] {
-  const anchors: string[] = [];
-  
-  if (category === "Celebrations") {
-    if (subcategory === "Birthday") {
-      anchors.push("group chat", "budget", "age", "calendar", "surprise", "awkward", "planning", "photos", "memory", "reminder");
-    } else if (subcategory === "Christmas Day") {
-      anchors.push("travel delay", "family group chat", "budget panic", "awkward tradition", "thermostat war", "receipt", "shipping delay", "leftover", "matching pajama", "office party", "hr training", "dietary drama", "assembly", "missing screw", "instruction", "battery", "wifi", "credit card", "parking", "checkout line");
-    } else if (subcategory === "New Year's Eve") {
-      anchors.push("resolution", "gym membership", "diet", "app download", "uber surge", "parking", "group chat", "countdown app", "phone battery", "photo backup");
+  const categoryMappings: Record<string, Record<string, string[]>> = {
+    "Celebrations": {
+      "Birthday": ["group chat", "budget", "age", "calendar", "surprise", "awkward", "planning", "photos", "memory", "reminder"],
+      "Wedding": ["dress", "venue", "budget", "planning", "stress", "family", "photos", "dance", "cake", "flowers"],
+      "Holiday": ["family", "tradition", "food", "gifts", "stress", "travel", "decorations", "weather", "shopping", "reunion"]
+    },
+    "Roasts": {
+      "Friend": ["history", "secrets", "habits", "quirks", "fails", "embarrassing", "inside jokes", "mutual friends", "memories", "texts"],
+      "Self": ["age", "choices", "habits", "appearance", "career", "relationships", "fitness", "skills", "procrastination", "reality"],
+      "Celebrity": ["career", "scandals", "social media", "movies", "music", "fashion", "relationships", "controversies", "comebacks", "tabloids"]
+    },
+    "Everyday": {
+      "Work": ["meetings", "deadlines", "coffee", "emails", "boss", "commute", "lunch", "overtime", "colleagues", "stress"],
+      "Dating": ["apps", "profiles", "conversations", "ghosting", "first dates", "expectations", "red flags", "texting", "commitment", "single"],
+      "Social Media": ["followers", "likes", "comments", "stories", "posts", "algorithm", "trends", "influencers", "content", "validation"]
     }
-  } else if (category === "Life Events") {
-    if (subcategory === "Wedding") {
-      anchors.push("budget", "planning", "guest list", "seating chart", "vendor", "timeline", "weather", "group chat", "photo", "coordination");
-    } else if (subcategory === "Graduation") {
-      anchors.push("job search", "student loan", "resume", "linkedin", "interview", "networking", "apartment hunt", "moving", "family photo");
-    }
-  } else if (category === "Sports") {
-    if (subcategory === "Basketball") {
-      anchors.push("pickup game", "rec league", "shooting percentage", "bench", "timeout", "draft", "trade deadline", "roster", "injury report", "practice");
-    } else if (subcategory === "American Football") {
-      anchors.push("fantasy league", "draft day", "waiver wire", "injury report", "playoff bracket", "superbowl party", "tailgate", "season ticket", "trade deadline");
-    } else if (subcategory === "Baseball") {
-      anchors.push("batting average", "spring training", "trade deadline", "farm system", "season ticket", "rain delay", "seventh inning", "playoff race");
-    } else if (subcategory === "Soccer") {
-      anchors.push("transfer window", "penalty kick", "injury time", "yellow card", "world cup", "championship", "league table", "group stage");
-    }
-  } else if (category === "Vibes & Punchlines") {
-    if (subcategory === "Career Jokes") {
-      anchors.push("open house", "showing", "staging", "listing photos", "lockbox", "escrow", "pre-approval", "lowball offer", "HOA", "appraisal", "commission", "closing", "expired listing", "client", "seller", "buyer", "listing", "offer", "inspection", "MLS");
-    }
-  }
-  
-  return anchors;
+  };
+
+  return categoryMappings[category]?.[subcategory] || ["life", "reality", "experience", "situation", "moment", "time"];
 }
 
 function getClicheBanList(category: string, subcategory: string): string[] {
-  const bans: string[] = [];
+  const baseClicheList = [
+    "another year older", "another year wiser", "aged like fine wine", "over the hill",
+    "blessed", "grateful", "journey", "adventure", "memories", "moments",
+    "perfect", "amazing", "incredible", "awesome", "fantastic",
+    "goals", "squad", "fam", "bestie", "slay", "queen", "king",
+    "vibes", "mood", "energy", "blessed", "iconic", "legendary"
+  ];
   
-  if (category === "Celebrations") {
-    if (subcategory === "Birthday") {
-      bans.push("cake", "candles", "balloons", "party hat", "gift", "present", "wish", "blow out");
-    } else if (subcategory === "Christmas Day") {
-      // RELAXED: Allow "tree", "ornaments" if used wittily. Hard ban only mega-clichés
-      bans.push("santa", "ho ho ho", "sleigh", "reindeer", "chimney", "cookies", "milk", "stockings", "north pole", "elves", "workshop", "jingle bells", "deck the halls", "silent night");
-    } else if (subcategory === "New Year's Eve") {
-      bans.push("midnight", "countdown", "champagne", "resolution", "fireworks", "ball drop", "auld lang syne", "kiss at midnight");
+  const categorySpecific: Record<string, Record<string, string[]>> = {
+    "Celebrations": {
+      "Birthday": ["cake", "candles", "wishes", "party", "celebration", "special day"],
+      "Wedding": ["big day", "happily ever after", "meant to be", "soulmates"],
+      "Holiday": ["holiday spirit", "magical time", "family time", "tradition"]
     }
-  } else if (category === "Life Events") {
-    if (subcategory === "Wedding") {
-      bans.push("altar", "vows", "rings", "bouquet", "dress", "tuxedo", "ceremony", "reception", "dancing", "cake cutting");
-    } else if (subcategory === "Graduation") {
-      bans.push("cap and gown", "diploma", "tassel", "ceremony", "valedictorian", "commencement");
-    }
-  } else if (category === "Sports") {
-    if (subcategory === "Basketball") {
-      bans.push("swish", "slam dunk", "three pointer", "buzzer beater", "full court press", "fast break", "alley oop");
-    } else if (subcategory === "American Football") {
-      bans.push("touchdown", "field goal", "quarterback", "end zone", "hail mary", "first down", "super bowl");
-    } else if (subcategory === "Baseball") {
-      bans.push("home run", "grand slam", "world series", "strike out", "double play", "bottom of the ninth");
-    } else if (subcategory === "Soccer") {
-      bans.push("goal", "penalty kick", "hat trick", "offside", "world cup", "free kick", "corner kick");
-    }
-  } else if (category === "Vibes & Punchlines") {
-    if (subcategory === "Career Jokes") {
-      bans.push("location, location, location", "dream home", "just listed", "best investment", "forever home", "starter home");
-    }
-  }
+  };
   
-  return bans;
+  const specificList = categorySpecific[category]?.[subcategory] || [];
+  return [...baseClicheList, ...specificList];
 }
 
-// Add vibe keywords that should appear in lines to ground them in the subcategory
-function getVibeKeywords(category: string, subcategory: string): string[] {
-  const vibes: string[] = [];
+function getVibeKeywords(subcategory: string): string[] {
+  const vibeMap: Record<string, string[]> = {
+    "Birthday": ["aging", "adulting", "planning disasters", "group dynamics", "nostalgic", "milestone panic"],
+    "Wedding": ["commitment anxiety", "family drama", "budget stress", "perfection pressure", "romance reality"],
+    "Holiday": ["family chaos", "tradition pressure", "gift stress", "food comas", "travel nightmares"],
+    "Friend": ["inside jokes", "shared trauma", "loyalty tests", "growth differences", "comfort zones"],
+    "Self": ["personal growth", "reality checks", "habit patterns", "self-awareness", "life phases"],
+    "Celebrity": ["public personas", "career arcs", "cultural impact", "controversy cycles", "relevance"],
+    "Work": ["corporate culture", "productivity theater", "office politics", "career ambitions", "work-life blur"],
+    "Dating": ["modern romance", "digital connection", "vulnerability", "compatibility", "relationship dynamics"],
+    "Social Media": ["digital validation", "curated reality", "attention economy", "comparison culture", "online personas"]
+  };
   
-  if (category === "Celebrations") {
-    if (subcategory === "Birthday") {
-      vibes.push("birthday", "born", "age", "year older", "celebration");
-    } else if (subcategory === "Christmas Day") {
-      vibes.push("christmas", "holiday", "december", "festive", "family gathering", "winter break");
-    } else if (subcategory === "New Year's Eve") {
-      vibes.push("new year", "resolution", "january", "fresh start", "year end");
-    }
-  } else if (category === "Life Events") {
-    if (subcategory === "Wedding") {
-      vibes.push("wedding", "marriage", "married", "spouse", "honeymoon");
-    } else if (subcategory === "Graduation") {
-      vibes.push("graduation", "graduate", "degree", "school", "student");
-    }
-  } else if (category === "Sports") {
-    if (subcategory === "Basketball") {
-      vibes.push("basketball", "court", "season", "game", "team", "player", "coach", "league");
-    } else if (subcategory === "American Football") {
-      vibes.push("football", "field", "season", "game", "team", "player", "coach", "league");
-    } else if (subcategory === "Baseball") {
-      vibes.push("baseball", "diamond", "season", "game", "team", "player", "coach", "league");
-    } else if (subcategory === "Soccer") {
-      vibes.push("soccer", "football", "pitch", "season", "game", "team", "player", "coach", "league");
-    }
-  } else if (category === "Vibes & Punchlines") {
-    if (subcategory === "Career Jokes") {
-      vibes.push("career", "job", "work", "professional", "office", "client", "business");
-    }
-  }
-  
-  return vibes;
+  return vibeMap[subcategory] || ["human nature", "social dynamics", "modern life", "personal quirks"];
 }
 
-function getToneDefinition(tone: string): { definition: string; dos: string[]; donts: string[]; microExamples: string[] } {
-  const definitions = {
+function getToneDefinition(tone: string): { definition: string; dos: string[]; donts: string[]; examples: string[] } {
+  const toneDetails: Record<string, { definition: string; dos: string[]; donts: string[]; examples: string[] }> = {
     "Savage": {
-      definition: "Brutally honest, cutting wit, zero mercy. Like roasting your best friend who can take it.",
+      definition: "Brutally honest and cutting. No mercy, but with wit.",
       dos: [
-        "Point out obvious flaws or failures",
-        "Use cutting observations about reality",
-        "Be blunt about uncomfortable truths",
-        "Mock pretensions and delusions",
-        "Call out hypocrisy directly"
+        "Point out uncomfortable truths",
+        "Use sharp, direct language", 
+        "Be merciless but clever",
+        "Target real flaws and weaknesses",
+        "Use surgical precision in your cuts"
       ],
       donts: [
-        "Be genuinely mean or cruel",
-        "Attack personal appearance maliciously", 
-        "Add softening words like 'kinda' or 'maybe'",
-        "Use hedging phrases that weaken the burn",
-        "Be polite or diplomatic"
+        "Be needlessly cruel without humor",
+        "Use generic insults",
+        "Be boring or predictable",
+        "Pull punches or be gentle",
+        "Apologize or soften the blow"
       ],
       microExamples: [
-        "Another year closer to irrelevance",
-        "Your planning skills peaked in kindergarten",
-        "We're pretending this was intentional"
+        "Your life choices make reality TV look classy",
+        "Even your GPS suggests alternate routes around your problems",
+        "You're proof that participation trophies were a mistake"
       ]
     },
     "Humorous": {
@@ -198,231 +138,94 @@ function getToneDefinition(tone: string): { definition: string; dos: string[]; d
         "Be cutting or harsh",
         "Use serious or heavy topics",
         "Be sarcastic in a mean way",
-        "Make anyone feel bad",
-        "Be too adult or sophisticated"
+        "Make people feel bad",
+        "Use dark or cynical humor"
       ],
       microExamples: [
-        "Look who's getting fancy with actual plans",
-        "Someone's feeling ambitious today",
-        "We're all just winging it and hoping for snacks"
+        "You collect hobbies like other people collect dust",
+        "Your cooking skills are charmingly experimental",
+        "You're like a human golden retriever with anxiety"
       ]
     },
     "Sentimental": {
-      definition: "Heartfelt and warm, expressing genuine emotion without being cheesy.",
+      definition: "Warm, nostalgic, and emotionally connected. Heartfelt but not cheesy.",
       dos: [
-        "Express genuine appreciation",
-        "Reference shared memories",
-        "Use warm, caring language",
-        "Be authentic about feelings",
-        "Focus on connection and gratitude"
+        "Reference shared experiences",
+        "Use warm, inclusive language",
+        "Acknowledge genuine connections",
+        "Balance emotion with authenticity",
+        "Create a sense of belonging"
       ],
       donts: [
-        "Be overly dramatic or flowery",
-        "Use greeting card language",
-        "Be too formal or stilted",
-        "Over-sentimentalize simple moments",
-        "Use cliché emotional phrases"
+        "Be overly saccharine or fake",
+        "Use generic greeting card language",
+        "Over-sentimentalize everything",
+        "Ignore the humor element entirely",
+        "Be preachy or lecture-y"
       ],
       microExamples: [
-        "Grateful for moments like these with you",
-        "Another year of memories we'll laugh about later",
-        "You make ordinary days feel special"
+        "We've survived worse together and lived to laugh about it",
+        "Still can't believe we've made it this far without adult supervision",
+        "Thanks for being weird with me all these years"
       ]
     },
     "Serious": {
-      definition: "Thoughtful and straightforward, showing respect for the moment.",
+      definition: "Thoughtful and meaningful without being heavy. Respectful depth.",
       dos: [
-        "Be direct and honest",
-        "Show genuine respect",
         "Use measured, thoughtful language",
-        "Focus on meaning and significance",
-        "Be authentic without drama"
+        "Acknowledge real challenges",
+        "Be authentic and genuine",
+        "Respect the gravity of situations",
+        "Find wisdom in experiences"
       ],
       donts: [
-        "Be overly formal or stiff",
-        "Use corporate speak",
-        "Be preachy or lecture-like",
-        "Over-philosophize simple things",
-        "Sound robotic or template-like"
+        "Be preachy or condescending",
+        "Use overly formal language",
+        "Lose the humor entirely",
+        "Be depressing or heavy",
+        "Sound like a self-help book"
       ],
       microExamples: [
-        "This matters more than you know",
-        "Taking time to appreciate what we've built",
-        "Some moments deserve proper recognition"
+        "Growth happens in the spaces between what we planned and what actually happened",
+        "Some chapters are harder to write than others",
+        "The best lessons usually come disguised as inconveniences"
       ]
     },
     "Inspirational": {
-      definition: "Uplifting and motivating without being preachy or cliché.",
+      definition: "Uplifting and motivating without being preachy. Genuine encouragement.",
       dos: [
-        "Focus on growth and possibility",
-        "Use empowering language",
-        "Reference overcoming challenges",
-        "Celebrate progress and potential",
-        "Be genuinely encouraging"
+        "Focus on potential and growth",
+        "Use encouraging but realistic language",
+        "Acknowledge challenges while emphasizing strength",
+        "Be genuinely supportive",
+        "Celebrate progress and effort"
       ],
       donts: [
         "Use generic motivational quotes",
-        "Be preachy or lecture-like",
-        "Sound like a corporate poster",
-        "Use empty buzzwords",
-        "Be unrealistic or naive"
+        "Ignore real struggles",
+        "Be unrealistically positive",
+        "Sound like a life coach",
+        "Dismiss valid concerns"
       ],
       microExamples: [
-        "Every challenge makes you stronger than before",
-        "You're building something worth celebrating",
-        "This is what progress actually looks like"
+        "You're writing a story that no one else could tell",
+        "Your weird is exactly the kind the world needs more of",
+        "Every stumble forward still counts as progress"
       ]
     }
   };
   
-  return definitions[tone] || definitions["Humorous"];
+  return toneDetails[tone] || toneDetails["Humorous"];
 }
 
-function checkToneAlignment(lines: Array<{lane: string, text: string}>, tone: string): string | null {
-  const toneInfo = getToneDefinition(tone);
-  const issues: string[] = [];
-  
-  // Check for hedging words that weaken tone
-  const hedgingWords = ["kinda", "maybe", "sort of", "kind of", "perhaps", "possibly", "somewhat"];
-  const politeWords = ["please", "thank you", "excuse me", "pardon", "sorry"];
-  
-  if (tone === "Savage") {
-    // Savage should be direct and cutting
-    for (const line of lines) {
-      const lowerText = line.text.toLowerCase();
-      
-      // Check for hedging that weakens savage tone
-      for (const hedge of hedgingWords) {
-        if (lowerText.includes(hedge)) {
-          issues.push(`Savage tone weakened by hedging word "${hedge}" in: "${line.text}"`);
-        }
-      }
-      
-      // Check for politeness that contradicts savage tone
-      for (const polite of politeWords) {
-        if (lowerText.includes(polite)) {
-          issues.push(`Savage tone contradicted by politeness "${polite}" in: "${line.text}"`);
-        }
-      }
-      
-      // Check for overly gentle phrasing
-      if (lowerText.includes("i think") || lowerText.includes("i guess") || lowerText.includes("i suppose")) {
-        issues.push(`Savage tone weakened by uncertain phrasing in: "${line.text}"`);
-      }
-    }
-  } else if (tone === "Sentimental") {
-    // Sentimental should be warm but not cheesy
-    const cheesyPhrases = ["blessed", "grateful heart", "so blessed", "sending love", "love and light"];
-    
-    for (const line of lines) {
-      const lowerText = line.text.toLowerCase();
-      
-      for (const cheesy of cheesyPhrases) {
-        if (lowerText.includes(cheesy)) {
-          issues.push(`Sentimental tone too cheesy with phrase "${cheesy}" in: "${line.text}"`);
-        }
-      }
-    }
-  }
-  
-  // General tone authenticity check
-  let authenticLines = 0;
-  for (const line of lines) {
-    const lowerText = line.text.toLowerCase();
-    
-    // Check if line sounds human vs AI-generated
-    const aiPatterns = [
-      "achievement unlocked",
-      "plot twist",
-      "level up",
-      "mission accomplished",
-      "status update",
-      "news flash"
-    ];
-    
-    const hasAiPattern = aiPatterns.some(pattern => lowerText.includes(pattern));
-    if (!hasAiPattern) {
-      authenticLines++;
-    }
-  }
-  
-  if (authenticLines < 3) {
-    issues.push(`Lines sound too AI-generated for ${tone} tone. Need more natural, human-like phrasing.`);
-  }
-  
-  return issues.length > 0 ? issues.join("; ") : null;
-}
-
-// Tag parsing utility (duplicated from client for edge function)
-function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
-  const hardTags: string[] = [];
-  const softTags: string[] = [];
-  
-  for (const tag of tags) {
-    const trimmed = tag.trim();
-    if (!trimmed) continue;
-    
-    // Check if starts and ends with quotes
-    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-        (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-      // Soft tag - remove quotes and store lowercased
-      const unquoted = trimmed.slice(1, -1).trim();
-      if (unquoted) {
-        softTags.push(unquoted.toLowerCase());
-      }
-    } else {
-      // Hard tag - keep original case for printing
-      hardTags.push(trimmed);
-    }
-  }
-  
-  return { hardTags, softTags };
-}
-
-function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[], style: string, rating: string): string {
-  const banList = getClicheBanList(category, subcategory);
-  const anchors = getTopicalAnchors(category, subcategory);
-  const vibes = getVibeKeywords(category, subcategory);
-  const toneInfo = getToneDefinition(tone);
-  
-  const banPhrase = banList.length > 0 ? `\n\nSTRICTLY AVOID these overused props: ${banList.join(", ")}. Find unexpected angles instead.` : "";
-  const anchorPhrase = anchors.length > 0 ? `\n\nTOPICALITY REQUIREMENT: At least 2 of 4 lines must include one of these fresh angles: ${anchors.join(", ")}. Ground lines in the actual situation.` : "";
-  const vibePhrase = vibes.length > 0 ? `\n\nVIBE GROUNDING: At least 2 of 4 lines should reference "${subcategory}" context naturally.` : "";
-  
-  const { hardTags, softTags } = parseTags(tags);
-  
-  const toneGuidance = `\n\n${tone.toUpperCase()} TONE DEFINITION:
-${toneInfo.definition}
-
-DO:
-${toneInfo.dos.map(item => `- ${item}`).join('\n')}
-
-DON'T:
-${toneInfo.donts.map(item => `- ${item}`).join('\n')}
-
-MICRO-EXAMPLES (${tone} style):
-${toneInfo.microExamples.map(ex => `- "${ex}"`).join('\n')}`;
-
-  const styleGuidance = `\n\nSTYLE: ${style.toUpperCase()}
-${getStyleDefinition(style)}`;
-
-  const ratingGuidance = `\n\nRATING: ${rating}
-${getRatingDefinition(rating)}`;
-  
-  const tagGuidance = (hardTags.length > 0 || softTags.length > 0) ? `\n\nTAG HANDLING:
-${hardTags.length > 0 ? `- Hard tags [${hardTags.join(", ")}] must appear literally in exactly 3 of 4 lines` : ''}
-${softTags.length > 0 ? `- Soft tags [${softTags.join(", ")}] must NOT appear literally but should influence tone, pronouns, and framing` : ''}
-- Natural integration: vary tag positions (beginning, middle, end)
-- Make tags feel conversational, not forced` : "";
-
-// Style and rating definitions (duplicated for edge function)
+// Style and rating definitions for text generation
 function getStyleDefinition(style: string): string {
   const definitions = {
-    'standard': 'MANDATORY: Balanced observational one-liners with varied structure and natural flow',
-    'story': 'MANDATORY: ALL 4 lines must be mini-narratives with setup → payoff structure. Format: "Character/situation setup, then comedic twist/outcome." Think brief mini-stories that unfold, not just observations.',
-    'punchline-first': 'MANDATORY: Must hit the joke early, then brief tag-back or twist for extra impact',
-    'pop-culture': 'MANDATORY: ALL 4 lines must include specific celebrities, movies, TV shows, music artists, apps, memes, or trending topics. No generic references.',
-    'wildcard': 'MANDATORY: Randomized structure and experimental humor - be creative and unexpected'
+    'standard': 'Balanced observational one-liners with varied structure and natural flow (40-80 chars)',
+    'story': 'ALL 4 lines must be mini-narratives with setup → payoff structure. Length: 60-100 chars for narrative flow.',
+    'punchline-first': 'Hit the joke early, then brief tag-back or twist for extra impact (40-80 chars)',
+    'pop-culture': 'ALL 4 lines must include specific celebrities, movies, TV shows, music artists, apps, or trending topics (40-80 chars)',
+    'wildcard': 'Randomized structure and experimental humor - be creative and unexpected (40-80 chars)'
   };
   
   return definitions[style] || definitions['standard'];
@@ -430,415 +233,409 @@ function getStyleDefinition(style: string): string {
 
 function getRatingDefinition(rating: string): string {
   const definitions = {
-    'G': 'MANDATORY G-RATED: Family-friendly humor only. No swearing, innuendo, roasting, or targeting individuals. Keep jokes wholesome and innocent.',
-    'PG': 'MANDATORY PG-RATED: Light sarcasm and playful roasting allowed. Mild teasing but keep it gentle and fun. No profanity or innuendo.',
-    'PG-13': 'MANDATORY PG-13-RATED: Sharper roasts, mild innuendo, cultural references, and light profanity (damn, hell, ass). More aggressive humor but never hateful or sexually explicit.',
-    'R': 'MANDATORY R-RATED: Must include profanity (shit, fuck, ass), sexual references, brutal personal roasts, dark humor, and boundary-pushing content. Be savage and explicit.'
+    'G': 'Family-friendly humor only. No swearing, innuendo, or targeting individuals. Wholesome and light.',
+    'PG': 'Light sarcasm and playful roasting allowed. Keep it gentle and fun. Mild teasing only.',
+    'PG-13': 'Sharper roasts, cultural digs, mild innuendo. MUST include at least one edgy element per batch. Mild profanity (damn, hell) allowed.',
+    'R': 'MUST include explicit profanity (shit, fuck, ass, etc), savage roasts, sexual references, or boundary-pushing content. Be brutal and edgy.'
   };
   
   return definitions[rating] || definitions['PG-13'];
 }
-  
-  return `You are a professional text generator for memes and overlays. Create exactly 4 unique one-liners with different comedic voices and perfect length distribution.
 
-Output ONLY valid JSON in this exact format:
-{
-  "lines": [
-    {"lane":"option1","text":"..."},
-    {"lane":"option2","text":"..."},
-    {"lane":"option3","text":"..."},
-    {"lane":"option4","text":"..."}
-  ]
+function checkToneAlignment(lines: Array<{lane: string, text: string}>, tone: string): { aligned: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  switch (tone) {
+    case "Savage":
+      const savageCount = lines.filter(line => {
+        const text = line.text.toLowerCase();
+        return /\b(brutal|harsh|savage|ruthless|merciless|cutting|sharp|vicious)\b/.test(text) ||
+               /\b(worst|terrible|awful|pathetic|useless|hopeless|disaster)\b/.test(text) ||
+               /\b(fail|failure|mess|joke|waste|train wreck)\b/.test(text);
+      }).length;
+      
+      if (savageCount < 2) {
+        issues.push(`Only ${savageCount}/4 lines are savage enough. Need more brutal, cutting humor.`);
+      }
+      break;
+      
+    case "Sentimental":
+      const sentimentalCount = lines.filter(line => {
+        const text = line.text.toLowerCase();
+        return /\b(we|us|our|together|shared|remember|always|still|never forget)\b/.test(text) ||
+               /\b(love|care|appreciate|treasure|cherish|grateful|thankful)\b/.test(text) ||
+               /\b(years|time|memories|moments|friendship|connection)\b/.test(text);
+      }).length;
+      
+      if (sentimentalCount < 2) {
+        issues.push(`Only ${sentimentalCount}/4 lines are sentimental enough. Need more emotional warmth and connection.`);
+      }
+      break;
+      
+    case "Playful":
+      const playfulCount = lines.filter(line => {
+        const text = line.text.toLowerCase();
+        return /\b(silly|funny|weird|quirky|adorable|cute|goofy|dorky)\b/.test(text) ||
+               /\b(like|just|kinda|sorta|totally|super|pretty)\b/.test(text);
+      }).length;
+      
+      if (playfulCount < 2) {
+        issues.push(`Only ${playfulCount}/4 lines are playful enough. Need more lighthearted, teasing energy.`);
+      }
+      break;
+  }
+  
+  return {
+    aligned: issues.length === 0,
+    issues
+  };
 }
 
+function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
+  const hardTags: string[] = [];
+  const softTags: string[] = [];
+  
+  for (const tag of tags) {
+    if (tag.startsWith('"') && tag.endsWith('"')) {
+      // Soft tag (exact phrase match)
+      softTags.push(tag.slice(1, -1));
+    } else {
+      // Hard tag (keyword presence)
+      hardTags.push(tag);
+    }
+  }
+  
+  return { hardTags, softTags };
+}
+
+function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[], style?: string, rating?: string): string {
+  const styleDefinition = getStyleDefinition(style || 'standard');
+  const ratingDefinition = getRatingDefinition(rating || 'PG-13');
+  const toneDetails = getToneDefinition(tone);
+  const anchors = getTopicalAnchors(category, subcategory);
+  const clicheBans = getClicheBanList(category, subcategory);
+  const vibeKeywords = getVibeKeywords(subcategory);
+  
+  // Voice variety assignment (hidden from user but affects generation)
+  const voices = ['energetic', 'blunt', 'absurd', 'deadpan', 'sarcastic', 'playful'];
+  const assignedVoice = voices[Math.floor(Math.random() * voices.length)];
+  
+  // Dynamic length requirements based on style
+  let lengthRequirement = "40-80 characters";
+  if (style === 'story') {
+    lengthRequirement = "60-100 characters for narrative flow";
+  }
+  
+  return `You are a professional comedy writer creating humorous text lines for memes and image overlays.
+
 CRITICAL REQUIREMENTS:
-1. LENGTH BUCKETS (MANDATORY): Exactly one line per bucket:
-   - ONE line: 40-50 characters
-   - ONE line: 50-60 characters 
-   - ONE line: 60-70 characters
-   - ONE line: 70-80 characters
+1. Generate exactly 4 lines in valid JSON format: {"lines": [{"lane": "option1", "text": "..."}, ...]}
+2. Length requirement: ${lengthRequirement} (strictly enforced)
+3. Max one punctuation mark per line (period, comma, dash, etc.)
+4. Write conversationally - sound like a real person texting
+5. Hidden voice style: ${assignedVoice} (incorporate this subtly into your writing voice)
 
-2. HUMOR PRIORITY: 90%+ of outputs must be funny (unless tone=Serious allows non-humor)
+STYLE ENFORCEMENT: ${styleDefinition}
+RATING ENFORCEMENT: ${ratingDefinition}
 
-3. COMEDIC VOICE VARIETY: Each line must use different comedy styles:
-   - Energetic, deadpan, absurd, blunt, narrative, observational, etc.
-   - NO comedian names in output - voices are hidden influence only
+VALIDATION RULES:
+- Pop Culture: ALL 4 lines must include specific celebrities, movies, TV shows, music artists, apps, or trends
+- Story Mode: ALL 4 lines must have narrative setup → payoff structure
+- R Rating: MUST include explicit profanity or savage content in at least 2/4 lines
+- PG-13 Rating: MUST include some edge/sass in at least 1/4 lines
 
-4. NATURAL FLOW:
-   - Write like texting a friend, use contractions
-   - Vary sentence structures
-   - Clear punctuation allowed (.,;:!?)${toneGuidance}${styleGuidance}${ratingGuidance}
+TONE GUIDANCE:
+${toneDetails.definition}
+Dos: ${toneDetails.dos}
+Don'ts: ${toneDetails.donts}
+Examples: ${toneDetails.examples}
 
-⚠️ VALIDATOR ENFORCED: All outputs will be automatically checked for:
-   - Style compliance (Pop Culture MUST include celebrities/movies/apps/trends in ALL 4 lines)
-   - Rating compliance (R-rated MUST be savage/edgy in at least 2 lines, G-rated MUST be wholesome)
-   - Length bucket distribution (exactly one line per 40-50, 50-60, 60-70, 70-80 range)
-   - Tag compliance (hard tags in 3/4 lines, soft tags influence only)
+TOPICAL ANCHORS (use at least 2): ${anchors.join(", ")}
+VIBE KEYWORDS: ${vibeKeywords.join(", ")}
+AVOID THESE CLICHÉS: ${clicheBans.join(", ")}
 
-CATEGORY: ${category} > ${subcategory}${banPhrase}${anchorPhrase}${vibePhrase}${tagGuidance}
-
-AVOID: Clichés, robotic patterns, "Achievement unlocked", "Plot twist", template language`;
+Respond with JSON only.`;
 }
 
 function buildUserMessage(inputs: any): string {
-  const { category, subcategory, tone, tags = [], mode = "regenerate" } = inputs;
+  const noveltyToken = `RND-${Math.floor(Math.random() * 10000)}`;
+  const deviceSetting = Math.floor(Math.random() * 7) + 1;
   
-  // Enhanced randomization for novelty
-  const randomToken = `RND-${Math.floor(Math.random() * 10000)}`;
-  const deviceRoulette = Math.floor(Math.random() * 8) + 1; // 1-8 for variety
+  // Dynamic length targets based on style
+  const lengthMin = (inputs.style === 'story') ? 60 : 40;
+  const lengthMax = (inputs.style === 'story') ? 100 : 80;
   
-  // Handle comedian-mix mode with different length targets
-  if (mode === "comedian-mix") {
-    // Enforce 40-80 character targets for comedian mode
-    const lengthTargets = [
-      40 + Math.floor(Math.random() * 11), // 40-50 chars
-      45 + Math.floor(Math.random() * 16), // 45-60 chars  
-      55 + Math.floor(Math.random() * 16), // 55-70 chars
-      65 + Math.floor(Math.random() * 16)  // 65-80 chars
-    ];
-    
-    // Generate comedian personas for this request
-    const comedianPersonas = ["observational", "deadpan", "absurdist", "roast-but-safe", "self-deprecating", "one-liner", "sarcastic-witty", "wordplay"];
-    const shuffledPersonas = comedianPersonas.sort(() => Math.random() - 0.5).slice(0, 4);
-    
-    let message = `Category: ${category}
-Subcategory: ${subcategory}
-Tone: Humorous (COMEDIAN-MIX MODE)
-Novelty Token: ${randomToken}
-Device Setting: ${deviceRoulette}
-LENGTH TARGETS (enforce variety): [${lengthTargets.join(', ')}]
-TAGS: ${tags.join(', ') || 'none'}
-COMEDIAN PERSONAS: [${shuffledPersonas.join(', ')}]
-
-COMEDIAN-MIX MODE RULES:
-- ALL lines must be 40-80 characters (strictly enforced)
-- Each line uses a DIFFERENT comedian persona from the list above
-- HILARIOUS content only - everything must be genuinely funny
-- Natural tag integration - make tags feel conversational
-- PG-13 safe roasting only - no slurs, hate, sexual content, or targeted harassment
-- Avoid clichés and overused comedy formats
-- Sound like real comedians texting, not AI generating content
-
-TAG INTEGRATION: Make tags feel natural - use them like you would in actual conversation. Avoid robotic formats like "Tag: text" or "Tag, text description."
+  const lengthTargets = [
+    Math.floor(Math.random() * (lengthMax - lengthMin + 1)) + lengthMin,
+    Math.floor(Math.random() * (lengthMax - lengthMin + 1)) + lengthMin,
+    Math.floor(Math.random() * (lengthMax - lengthMin + 1)) + lengthMin,
+    Math.floor(Math.random() * (lengthMax - lengthMin + 1)) + lengthMin
+  ].sort((a, b) => a - b);
+  
+  return `Category: ${inputs.category}
+Subcategory: ${inputs.subcategory}
+Tone: ${inputs.tone}
+Novelty Token: ${noveltyToken}
+Device Setting: ${deviceSetting}
+LENGTH TARGETS (enforce variety): [${lengthTargets.join(", ")}]
 
 WRITE CONVERSATIONALLY: Sound like a real person texting, not an AI generating content. Use contractions, natural flow, and varied sentence lengths.
 
 Respond with JSON only.`;
-    
-    return message;
-  }
-  
-  // Regular mode handling
-  // Enforce real length variety with guaranteed short and long
-  const shortTarget = Math.floor(Math.random() * 21) + 15; // 15-35 (guaranteed short)
-  const longTarget = Math.floor(Math.random() * 21) + 70;  // 70-90 (guaranteed long)
-  const midTarget1 = Math.floor(Math.random() * 35) + 35;  // 35-69 (middle range)
-  const midTarget2 = Math.floor(Math.random() * 35) + 35;  // 35-69 (middle range)
-  
-  const lengthTargets = [shortTarget, midTarget1, midTarget2, longTarget].sort((a, b) => a - b);
-  
-  let message = `Category: ${category}
-Subcategory: ${subcategory}
-Tone: ${tone}
-Novelty Token: ${randomToken}
-Device Setting: ${deviceRoulette}
-LENGTH TARGETS (enforce variety): [${lengthTargets.join(', ')}]`;
+}
 
-  // Include tags with natural integration guidance
-  if (tags.length > 0) {
-    message += `\nTAGS: ${tags.join(", ")}`;
-    message += `\n\nTAG INTEGRATION: Make tags feel natural - use them like you would in actual conversation. Avoid robotic formats like "Tag: text" or "Tag, text description."`;
+function checkComedyVariety(lines: Array<{lane: string, text: string}>): { hasVariety: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  // Check for repeated sentence structures
+  const structures = lines.map(line => {
+    const text = line.text;
+    if (text.includes("you're") || text.includes("you are")) return "you-statement";
+    if (text.includes("i'm") || text.includes("i am") || text.includes("my")) return "i-statement"; 
+    if (text.includes("we're") || text.includes("we are") || text.includes("our")) return "we-statement";
+    if (text.includes("when") || text.includes("if")) return "conditional";
+    return "other";
+  });
+  
+  const uniqueStructures = new Set(structures);
+  if (uniqueStructures.size < 3) {
+    issues.push(`Too many similar sentence structures. Need more variety in how lines are constructed.`);
   }
   
-  // Add mode-specific instructions
-  if (mode && mode !== "regenerate") {
-    switch (mode) {
-      case "story-mode":
-        message += `\n\nMODE INSTRUCTION: Generate as short 2-3 sentence mini-stories with narrative flow. Keep under 90 chars total.`;
-        break;
-      case "punchline-first":
-        message += `\n\nMODE INSTRUCTION: Structure as joke payoff first, then tie-back. Snappy, meme-ready format.`;
-        break;
-      case "pop-culture":
-        message += `\n\nMODE INSTRUCTION: Include trending memes, shows, sports, or current slang references naturally.`;
-        break;
-      case "roast-level":
-        message += `\n\nMODE INSTRUCTION: Increase savage/teasing tone while staying playful and fun. More edge but still friendly.`;
-        break;
-      case "wildcard":
-        message += `\n\nMODE INSTRUCTION: Generate surreal, absurd, or experimental humor. Be creative and unexpected while staying coherent.`;
-        break;
+  // Check for repeated keywords
+  const allWords = lines.flatMap(line => 
+    line.text.toLowerCase().split(/\s+/).filter(word => word.length > 3)
+  );
+  const wordCounts = allWords.reduce((acc, word) => {
+    acc[word] = (acc[word] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  const repeatedWords = Object.entries(wordCounts)
+    .filter(([word, count]) => count > 1 && !['your', 'that', 'this', 'with', 'like', 'just', 'even', 'still'].includes(word))
+    .map(([word]) => word);
+    
+  if (repeatedWords.length > 2) {
+    issues.push(`Repeated keywords: ${repeatedWords.join(", ")}. Need more lexical variety.`);
+  }
+  
+  return {
+    hasVariety: issues.length === 0,
+    issues
+  };
+}
+
+function checkTopicalAnchors(lines: Array<{lane: string, text: string}>, category: string, subcategory: string): { grounded: boolean; count: number; anchors: string[] } {
+  const expectedAnchors = getTopicalAnchors(category, subcategory);
+  let foundCount = 0;
+  const foundAnchors: string[] = [];
+  
+  for (const line of lines) {
+    const text = line.text.toLowerCase();
+    for (const anchor of expectedAnchors) {
+      if (text.includes(anchor.toLowerCase())) {
+        foundCount++;
+        foundAnchors.push(anchor);
+        break; // Only count one anchor per line
+      }
     }
   }
   
-  // Add conversation-style reminder
-  message += `\n\nWRITE CONVERSATIONALLY: Sound like a real person texting, not an AI generating content. Use contractions, natural flow, and varied sentence lengths.`;
-  message += `\n\nRespond with JSON only.`;
-  
-  return message;
-}
-
-function checkComedyVariety(lines: Array<{lane: string, text: string}>): string | null {
-  // Check for at least 2 different comedy patterns
-  const patterns = {
-    hasQuestion: lines.some(line => line.text.includes('?')),
-    hasExclamation: lines.some(line => line.text.includes('!')),
-    hasComparison: lines.some(line => /\b(like|than|vs|versus)\b/i.test(line.text)),
-    hasContrast: lines.some(line => /\b(but|however|except|until|unless)\b/i.test(line.text)),
-    hasReference: lines.some(line => /\b(when|if|that moment|every time)\b/i.test(line.text)),
-    hasNarrative: lines.some(line => /\b(today|yesterday|tomorrow|now|then|first|next|finally)\b/i.test(line.text))
+  return {
+    grounded: foundCount >= 2,
+    count: foundCount,
+    anchors: [...new Set(foundAnchors)]
   };
-  
-  const patternCount = Object.values(patterns).filter(Boolean).length;
-  if (patternCount < 2) {
-    return "Missing comedy variety - need at least 2 different humor patterns (questions, exclamations, comparisons, contrasts, references, narrative)";
-  }
-  
-  return null;
 }
 
-function checkTopicalAnchors(lines: Array<{lane: string, text: string}>, category: string, subcategory: string): string | null {
-  const anchors = getTopicalAnchors(category, subcategory);
-  if (anchors.length === 0) return null;
+function checkVibeGrounding(lines: Array<{lane: string, text: string}>, subcategory: string): { grounded: boolean; count: number } {
+  const vibeKeywords = getVibeKeywords(subcategory);
+  let foundCount = 0;
   
-  const anchoredLines = lines.filter(line => {
-    const lowerText = line.text.toLowerCase();
-    return anchors.some(anchor => lowerText.includes(anchor.toLowerCase()));
-  });
-  
-  // Relaxed requirement: need at least 2 lines (was 3)
-  if (anchoredLines.length < 2) {
-    return `Topical grounding insufficient: ${anchoredLines.length}/4 lines include topical anchors. Need at least 2 from: ${anchors.join(", ")}`;
+  for (const line of lines) {
+    const text = line.text.toLowerCase();
+    for (const keyword of vibeKeywords) {
+      if (text.includes(keyword.toLowerCase())) {
+        foundCount++;
+        break; // Only count one keyword per line
+      }
+    }
   }
   
-  return null;
+  return {
+    grounded: foundCount >= 1,
+    count: foundCount
+  };
 }
 
-function checkVibeGrounding(lines: Array<{lane: string, text: string}>, category: string, subcategory: string): string | null {
-  const vibes = getVibeKeywords(category, subcategory);
-  if (vibes.length === 0) return null;
-  
-  const vibeGroundedLines = lines.filter(line => {
-    const lowerText = line.text.toLowerCase();
-    return vibes.some(vibe => lowerText.includes(vibe.toLowerCase()));
-  });
-  
-  if (vibeGroundedLines.length < 2) {
-    return `Vibe grounding insufficient: ${vibeGroundedLines.length}/4 lines reference ${subcategory}. Need at least 2 using: ${vibes.join(", ")}`;
-  }
-  
-  return null;
-}
-
-function validateAndRepair(lines: Array<{lane: string, text: string}>, params: {
-  category: string;
-  subcategory: string; 
-  tone: string;
-  tags: string[];
-  style?: string;
-  rating?: string;
-  hardTags?: string[];
-  softTags?: string[];
-}): { 
+function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: any): { 
   isValid: boolean; 
   errors: string[]; 
-  warnings: string[];
-  repairedLines?: Array<{lane: string, text: string}>;
-  lengths?: number[];
+  warnings: string[]; 
+  lengths: number[] 
 } {
   const errors: string[] = [];
   const warnings: string[] = [];
-  let repairedLines = [...lines];
-  const { category, subcategory, tone, tags, style, rating, hardTags, softTags } = params;
-  
-  // Enforce 40-80 character length buckets (CRITICAL)
   const lengths = lines.map(line => line.text.length);
+  
+  // Check that we have exactly 4 lines
+  if (lines.length !== 4) {
+    errors.push(`Expected 4 lines, got ${lines.length}`);
+    return { isValid: false, errors, warnings, lengths };
+  }
+  
+  // Dynamic length requirements based on style
+  const lengthMin = (inputs.style === 'story') ? 60 : 40;
+  const lengthMax = (inputs.style === 'story') ? 100 : 80;
+  
+  // Check length requirements
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const length = line.text.length;
+    const text = lines[i].text;
+    const length = text.length;
     
-    // Hard enforce 40-80 character range
-    if (length < 40) {
-      errors.push(`Line ${i+1} too short: "${line.text}" (${length} chars, minimum 40)`);
-    }
-    if (length > 80) {
-      errors.push(`Line ${i+1} too long: "${line.text}" (${length} chars, maximum 80)`);
+    if (length < lengthMin || length > lengthMax) {
+      errors.push(`Line ${i + 1} length ${length} chars, must be ${lengthMin}-${lengthMax}`);
+      continue;
     }
     
-    // Punctuation check (max one of .,;:!?)
-    const punctuationMarks = line.text.match(/[.,;:!?]/g) || [];
-    if (punctuationMarks.length > 1) {
-      errors.push(`Too much punctuation: "${line.text}" has ${punctuationMarks.length} marks, max 1`);
+    // Check punctuation limits (max 1 per line)
+    const punctuationMarks = (text.match(/[.!?,:;—\-"']/g) || []).length;
+    if (punctuationMarks > 1) {
+      errors.push(`Too much punctuation: "${text}" has ${punctuationMarks} marks, max 1`);
     }
-  }
-  
-  // Enforce length variety within 40-80 range
-  const minRange = Math.max(...lengths) - Math.min(...lengths);
-  if (minRange < 15) {
-    warnings.push(`Length variety too narrow (range: ${minRange} chars). Need more variety within 40-80 char range.`);
-  }
-  
-  // Banned words check (critical)
-  const banList = getClicheBanList(category, subcategory);
-  const bannedFound: string[] = [];
-  
-  for (const line of lines) {
-    const lowerText = line.text.toLowerCase();
-    for (const ban of banList) {
-      if (lowerText.includes(ban.toLowerCase())) {
-        bannedFound.push(`"${ban}" in "${line.text}"`);
+    
+    // Check for banned clichés
+    const bannedPhrases = getClicheBanList(inputs.category || '', inputs.subcategory || '');
+    const lowerText = text.toLowerCase();
+    for (const banned of bannedPhrases) {
+      if (lowerText.includes(banned.toLowerCase())) {
+        errors.push(`Banned phrases found: Cliché "${banned}" in "${text}"`);
       }
     }
     
-    // Check avoid words
-    for (const avoid of AVOID_WORDS) {
-      if (lowerText.includes(avoid.toLowerCase())) {
-        bannedFound.push(`Cliché "${avoid}" in "${line.text}"`);
+    // Check for generic avoid words
+    for (const avoided of AVOID_WORDS) {
+      if (lowerText.includes(avoided.toLowerCase())) {
+        errors.push(`Banned phrases found: Cliché "${avoided}" in "${text}"`);
       }
     }
   }
   
-  if (bannedFound.length > 0) {
-    errors.push(`Banned phrases found: ${bannedFound.join("; ")}`);
+  // Check topical grounding
+  const topicalCheck = checkTopicalAnchors(lines, inputs.category || '', inputs.subcategory || '');
+  if (!topicalCheck.grounded) {
+    errors.push(`Topical grounding insufficient: ${topicalCheck.count}/4 lines include topical anchors. Need at least 2 from: ${getTopicalAnchors(inputs.category || '', inputs.subcategory || '').join(", ")}`);
   }
   
-  // Tag coverage (critical if tags provided) - but allow more flexibility
-  if (tags.length > 0) {
-    const taggedLines = lines.filter(line => {
-      const lowerText = line.text.toLowerCase();
-      return tags.every(tag => lowerText.includes(tag.toLowerCase()));
-    });
+  // Check comedy variety
+  const varietyCheck = checkComedyVariety(lines);
+  if (!varietyCheck.hasVariety) {
+    warnings.push(...varietyCheck.issues);
+  }
+  
+  // Tone alignment check
+  const toneCheck = checkToneAlignment(lines, inputs.tone || 'Balanced');
+  if (!toneCheck.aligned) {
+    warnings.push(...toneCheck.issues);
+  }
+  
+  // Tag coverage check  
+  if (inputs.hardTags && inputs.hardTags.length > 0) {
+    const tagCoverage = inputs.hardTags.filter((tag: string) => {
+      return lines.some(line => line.text.toLowerCase().includes(tag.toLowerCase()));
+    }).length;
     
-    if (taggedLines.length < 2) { // Relaxed from 3 to 2 for more natural results
-      errors.push(`Tag coverage insufficient: ${taggedLines.length}/4 lines include all tags [${tags.join(", ")}]. Need at least 2.`);
+    if (tagCoverage < inputs.hardTags.length) {
+      errors.push(`Tag coverage insufficient: ${tagCoverage}/${inputs.hardTags.length} tags covered`);
     }
   }
   
-  // Topical anchors check (critical)
-  const anchorError = checkTopicalAnchors(lines, category, subcategory);
-  if (anchorError) {
-    errors.push(anchorError);
+  if (inputs.softTags && inputs.softTags.length > 0) {
+    const softTagCoverage = inputs.softTags.filter((tag: string) => {
+      return lines.some(line => line.text.includes(tag));
+    }).length;
+    
+    if (softTagCoverage < inputs.softTags.length) {
+      errors.push(`Soft tag coverage insufficient: ${softTagCoverage}/${inputs.softTags.length} exact phrases found`);
+    }
   }
   
-  // Vibe grounding check (warning)
-  const vibeError = checkVibeGrounding(lines, category, subcategory);
-  if (vibeError) {
-    warnings.push(vibeError);
-  }
-  
-  // Comedy variety (warning)
-  const varietyError = checkComedyVariety(lines);
-  if (varietyError) {
-    warnings.push(varietyError);
-  }
-  
-  // Tone alignment check (critical)
-  const toneError = checkToneAlignment(lines, tone);
-  if (toneError) {
-    errors.push(`Tone alignment issues: ${toneError}`);
-  }
-  
-  // HARD ENFORCE Style validation (critical)
-  if (style === 'story') {
-    // ALL 4 lines must have narrative structure: setup → payoff
-    let storyCount = 0;
-    for (const line of lines) {
+  // Style validation
+  if (inputs.style === 'pop-culture') {
+    const popCultureCount = lines.filter(line => {
       const text = line.text.toLowerCase();
-      // Look for narrative indicators: past tense verbs, sequence words, character actions
-      const hasNarrative = /\b(walked|went|tried|started|decided|thought|wanted|came|left|found|saw|met|told|said|did|was|were|had|got|made)\b/.test(text) ||
-                          /\b(then|next|after|when|while|until|before|suddenly|finally|now|so)\b/.test(text) ||
-                          /\b(into|through|over|under|around|toward)\b/.test(text);
-      
-      if (hasNarrative) storyCount++;
-    }
-    
-    if (storyCount < 4) {
-      errors.push(`CRITICAL STYLE FAILURE: Only ${storyCount}/4 lines have story structure. ALL lines must be mini-narratives with setup and payoff.`);
-    }
-  } else if (style === 'pop-culture') {
-    const popCultureTerms = [
-      // Celebrities & public figures
-      'taylor swift', 'kanye', 'kardashian', 'elon musk', 'bezos', 'biden', 'trump', 'oprah', 'the rock', 'ryan reynolds',
-      // Movies & TV
-      'marvel', 'disney', 'netflix', 'amazon prime', 'hulu', 'hbo', 'stranger things', 'game of thrones', 'marvel', 'dc comics',
-      'spider-man', 'batman', 'avengers', 'star wars', 'pixar', 'fast and furious', 'john wick', 'mission impossible',
-      // Music & artists  
-      'spotify', 'apple music', 'drake', 'taylor swift', 'beyonce', 'ariana grande', 'weeknd', 'billie eilish',
-      // Social media & apps
-      'tiktok', 'instagram', 'twitter', 'snapchat', 'youtube', 'facebook', 'linkedin', 'discord', 'zoom', 'uber', 'airbnb',
-      // Gaming & tech
-      'iphone', 'android', 'playstation', 'xbox', 'nintendo', 'fortnite', 'minecraft', 'call of duty', 'tesla', 'apple',
-      // Memes & trends
-      'karen', 'boomer', 'millennial', 'gen z', 'ok boomer', 'salty', 'sus', 'cap', 'no cap', 'periodt', 'slay'
-    ];
-    
-    let popCultureCount = 0;
-    for (const line of lines) {
-      const lowerText = line.text.toLowerCase();
-      if (popCultureTerms.some(term => lowerText.includes(term))) {
-        popCultureCount++;
-      }
-    }
+      // Expanded pop culture detection
+      return text.includes('netflix') || text.includes('spotify') || text.includes('tiktok') || 
+             text.includes('instagram') || text.includes('twitter') || text.includes('facebook') ||
+             text.includes('youtube') || text.includes('snapchat') || text.includes('zoom') ||
+             /\b(taylor swift|kanye|drake|rihanna|beyonce|kim kardashian|elon musk|zuckerberg)\b/.test(text) ||
+             /\b(marvel|disney|netflix|hbo|amazon|apple|google|microsoft)\b/.test(text) ||
+             /\b(iphone|android|tesla|uber|airbnb|tinder|bumble)\b/.test(text) ||
+             /\b(covid|pandemic|zoom|tiktok|meme|viral|trending)\b/.test(text) ||
+             /\b(avengers|batman|superman|star wars|game of thrones)\b/.test(text);
+    }).length;
     
     if (popCultureCount < 4) {
       errors.push(`CRITICAL STYLE FAILURE: Only ${popCultureCount}/4 lines contain pop culture references. ALL lines must include celebrities, movies, shows, apps, or trends.`);
     }
   }
   
-  // HARD ENFORCE Rating validation (critical)
-  if (rating === 'R') {
-    // MANDATORY: Must include explicit profanity and savage content
-    let profanityCount = 0;
-    let savageCount = 0;
+  if (inputs.style === 'story') {
+    const storyCount = lines.filter(line => {
+      const text = line.text;
+      // Look for narrative indicators: setup phrases, temporal words, character actions
+      return /\b(when|then|once|after|before|suddenly|meanwhile|later|first|next|finally)\b/i.test(text) ||
+             /\b(walked|went|tried|decided|thought|realized|discovered|found)\b/i.test(text) ||
+             /\b(turned out|ended up|it was|became|happened|occurred)\b/i.test(text);
+    }).length;
     
-    const profanityWords = ['shit', 'fuck', 'ass', 'damn', 'hell', 'bitch', 'bastard'];
-    const savageWords = ['brutal', 'savage', 'roast', 'destroy', 'murder', 'kill', 'dead', 'pathetic', 'loser', 'failure'];
-    const sexualWords = ['sex', 'sexual', 'horny', 'sexy', 'orgasm', 'climax', 'erection', 'wet', 'hard', 'come', 'cum'];
+    if (storyCount < 3) {
+      errors.push(`CRITICAL STYLE FAILURE: Only ${storyCount}/4 lines have narrative structure. Story mode requires setup → payoff in most lines.`);
+    }
+  }
+  
+  if (inputs.style === 'punchline-first') {
+    const punchlineFirstCount = lines.filter(line => {
+      const text = line.text;
+      const midpoint = Math.floor(text.length / 2);
+      const firstHalf = text.substring(0, midpoint);
+      // Check if punchline/joke is in first half
+      return /\b(not|never|always|worst|best|only|just|already|still|even)\b/i.test(firstHalf) ||
+             /[.!?]/.test(firstHalf);
+    }).length;
     
-    for (const line of lines) {
+    if (punchlineFirstCount < 2) {
+      errors.push(`CRITICAL STYLE FAILURE: Only ${punchlineFirstCount}/4 lines lead with the punchline. Structure: joke first, then setup/tag.`);
+    }
+  }
+  
+  // Rating validation
+  if (inputs.rating === 'R') {
+    const savageCount = lines.filter(line => {
       const text = line.text.toLowerCase();
-      
-      if (profanityWords.some(word => text.includes(word))) profanityCount++;
-      if (savageWords.some(word => text.includes(word)) || sexualWords.some(word => text.includes(word))) savageCount++;
-    }
+      const hasProfanity = /\b(fuck|shit|ass|damn|hell|bitch|bastard|piss|crap)\b/.test(text);
+      const hasSavageContent = /\b(brutal|savage|roast|destroy|wreck|murder|kill|dead|death)\b/.test(text) ||
+                              /\b(ugly|fat|old|stupid|dumb|pathetic|loser|failure)\b/.test(text) ||
+                              /\b(sex|sexual|porn|horny|naked|strip|bang|screw)\b/.test(text);
+      return hasProfanity || hasSavageContent;
+    }).length;
     
-    if (profanityCount < 2) {
-      errors.push(`CRITICAL RATING FAILURE: Only ${profanityCount}/4 lines contain required profanity. R-rating MUST include explicit language (shit, fuck, ass, etc.).`);
-    }
     if (savageCount < 2) {
-      errors.push(`CRITICAL RATING FAILURE: Only ${savageCount}/4 lines are savage enough. R-rating MUST be brutal, edgy, and boundary-pushing.`);
+      errors.push(`CRITICAL RATING FAILURE: Only ${savageCount}/4 lines are R-rated. MUST include explicit profanity, savage roasts, or boundary-pushing content in at least 2 lines.`);
     }
-  } else if (rating === 'PG-13') {
-    // Should have some edge but not excessive profanity
-    const mildProfanity = ['damn', 'hell', 'ass', 'crap'];
-    const hardProfanity = ['shit', 'fuck', 'bitch'];
-    
-    let hasEdge = false;
-    for (const line of lines) {
+  }
+  
+  if (inputs.rating === 'PG-13') {
+    const edgyCount = lines.filter(line => {
       const text = line.text.toLowerCase();
-      if (mildProfanity.some(word => text.includes(word)) || 
-          /\b(innuendo|sexual|roast|savage|brutal)\b/.test(text)) {
-        hasEdge = true;
-        break;
-      }
-      // Flag if using hard profanity in PG-13
-      if (hardProfanity.some(word => text.includes(word))) {
-        errors.push(`PG-13 content contains excessive profanity: "${line.text}"`);
-      }
-    }
+      const hasMildProfanity = /\b(damn|hell|crap|suck)\b/.test(text);
+      const hasEdgyContent = /\b(roast|burn|savage|awkward|cringe|fail|disaster)\b/.test(text) ||
+                             /\b(weird|strange|odd|crazy|insane|wild)\b/.test(text);
+      return hasMildProfanity || hasEdgyContent;
+    }).length;
     
-    if (!hasEdge) {
-      errors.push(`PG-13 content too tame. Should include mild profanity, innuendo, or edgy humor.`);
-    }
-  } else if (rating === 'G') {
-    // Must be completely family-friendly
-    const inappropriateWords = ['damn', 'hell', 'ass', 'shit', 'fuck', 'sex', 'drunk', 'stupid', 'idiot', 'suck', 'sucks'];
-    for (const line of lines) {
-      const text = line.text.toLowerCase();
-      const inappropriate = inappropriateWords.find(word => text.includes(word));
-      if (inappropriate) {
-        errors.push(`G-rated content contains inappropriate word "${inappropriate}": "${line.text}"`);
-      }
+    if (edgyCount < 1) {
+      errors.push(`RATING WARNING: PG-13 content should have some edge or sass. Consider adding mild attitude or cultural digs.`);
     }
   }
   
@@ -846,357 +643,100 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, params: {
     isValid: errors.length === 0,
     errors,
     warnings,
-    repairedLines: repairedLines,
     lengths
   };
 }
 
-// Normalize text to remove em dashes and other unwanted characters
 function normalizeText(lines: Array<{lane: string, text: string}>): Array<{lane: string, text: string}> {
-  return lines.map(line => {
-    let text = line.text
-      .replace(/[""'']/g, '')  // Remove curly quotes
-      .replace(/—/g, ' ')      // Remove em dash
-      .replace(/–/g, ' ')      // Remove en dash
-      .replace(/\.\.\./g, ' ') // Remove ellipses
-      .replace(/\s+/g, ' ')    // Clean up multiple spaces
-      .trim();
-    
-    // Enforce max one punctuation mark from [.,;:!?]
-    const punctuationMarks = text.match(/[.,;:!?]/g) || [];
-    if (punctuationMarks.length > 1) {
-      // Keep only the first occurrence
-      let foundFirst = false;
-      text = text.replace(/[.,;:!?]/g, (match) => {
-        if (!foundFirst) {
-          foundFirst = true;
-          return match;
-        }
-        return '';
-      });
-    }
-    
-    // Ensure length constraint with simple trimming if needed
-    if (text.length > 100) {
-      const lastSpace = text.lastIndexOf(' ', 100);
-      text = lastSpace > 80 ? text.substring(0, lastSpace) : text.substring(0, 100);
-    }
-    
-    return { ...line, text };
-  });
+  return lines.map(line => ({
+    lane: line.lane,
+    text: line.text.trim()
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .replace(/([.!?])\s*$/, '$1') // Ensure single punctuation at end if any
+  }));
 }
 
 function ensureTagCoverage(lines: Array<{lane: string, text: string}>, tags: string[]): Array<{lane: string, text: string}> {
   if (tags.length === 0) return lines;
   
-  const result = [...lines];
-  let taggedCount = 0;
+  const { hardTags, softTags } = parseTags(tags);
+  const modifiedLines = [...lines];
   
-  // Count lines that already include all tags
-  for (let i = 0; i < result.length; i++) {
-    const lowerText = result[i].text.toLowerCase();
-    const hasAllTags = tags.every(tag => lowerText.includes(tag.toLowerCase()));
-    if (hasAllTags) taggedCount++;
-  }
-  
-  console.log(`Tag coverage before adjustment: ${taggedCount}/4 lines include all tags [${tags.join(", ")}]`);
-  
-  // If we need more tagged lines, modify lines naturally
-  if (taggedCount < 3) {
-    let modifications = 0;
+  // Simple tag injection for hard tags that are missing
+  for (const hardTag of hardTags) {
+    const hasTag = modifiedLines.some(line => 
+      line.text.toLowerCase().includes(hardTag.toLowerCase())
+    );
     
-    for (let i = 0; i < result.length && taggedCount + modifications < 3; i++) {
-      const lowerText = result[i].text.toLowerCase();
-      const hasAllTags = tags.every(tag => lowerText.includes(tag.toLowerCase()));
-      
-      if (!hasAllTags) {
-        const originalText = result[i].text;
-        let newText = "";
-        
-        // Natural integration strategies - make it conversational
-        const insertionStyles = [
-          // Beginning conversational
-          () => {
-            if (tags.length === 1) {
-              return `${tags[0]}, ${originalText.toLowerCase()}`;
-            } else if (tags.length === 2) {
-              return `${tags[0]} and ${tags[1]} ${originalText.toLowerCase()}`;
-            }
-            return `${tags.join(" and ")} ${originalText.toLowerCase()}`;
-          },
-          
-          // Middle natural insertion
-          () => {
-            const words = originalText.split(' ');
-            const midPoint = Math.floor(words.length / 2);
-            if (tags.length === 1) {
-              words.splice(midPoint, 0, tags[0]);
-            } else if (tags.length === 2) {
-              words.splice(midPoint, 0, `${tags[0]} and ${tags[1]}`);
-            } else {
-              words.splice(midPoint, 0, tags.join(" "));
-            }
-            return words.join(' ');
-          },
-          
-          // End conversational
-          () => {
-            if (tags.length === 1) {
-              return `${originalText.replace(/[.!]$/, '')} with ${tags[0]}`;
-            } else if (tags.length === 2) {
-              return `${originalText.replace(/[.!]$/, '')}, ${tags[0]} and ${tags[1]}`;
-            }
-            return `${originalText.replace(/[.!]$/, '')} (${tags.join(" ")})`;
-          },
-          
-          // Possessive/relationship style
-          () => {
-            if (tags.length === 2) {
-              return originalText.replace(/\b(the|our|my)\b/i, `${tags[0]} and ${tags[1]}'s`);
-            } else if (tags.length === 1) {
-              return originalText.replace(/\b(the|our|my)\b/i, `${tags[0]}'s`);
-            }
-            return originalText;
-          }
-        ];
-        
-        // Try insertion styles in random order
-        const shuffledStyles = insertionStyles.sort(() => Math.random() - 0.5);
-        
-        for (const style of shuffledStyles) {
-          try {
-            newText = style();
-            
-            // Check length and quality
-            if (newText.length <= 100 && newText.length >= 15 && 
-                !newText.includes(": ") && // Avoid robotic colons
-                !newText.startsWith("Achievement") &&
-                !newText.startsWith("Plot twist")) {
-              
-              // Capitalize properly
-              newText = newText.charAt(0).toUpperCase() + newText.slice(1);
-              break;
-            }
-          } catch (e) {
-            continue;
-          }
-        }
-        
-        // Fallback: simple natural addition
-        if (!newText || newText.length > 100) {
-          if (tags.length === 1) {
-            newText = `${originalText.replace(/[.!]$/, '')}, thanks to ${tags[0]}`;
-          } else {
-            newText = `${originalText.replace(/[.!]$/, '')} ft. ${tags.join(" & ")}`;
-          }
-        }
-        
-        // Final safety check
-        if (newText.length <= 100 && newText.length >= 15) {
-          result[i].text = newText;
-          modifications++;
-          console.log(`Modified line ${i + 1}: "${originalText}" → "${newText}"`);
-        }
+    if (!hasTag && modifiedLines.length > 0) {
+      // Inject tag into first line that has space
+      const targetLine = modifiedLines.find(line => line.text.length < 70);
+      if (targetLine) {
+        targetLine.text = `${targetLine.text} ${hardTag}`.trim();
       }
     }
-    
-    console.log(`Tag coverage after adjustment: ${taggedCount + modifications}/4 lines include all tags`);
   }
   
-  return result;
+  return modifiedLines;
 }
 
 function getToneAwareFallback(category: string, subcategory: string, tone: string, tags: string[]): Array<{lane: string, text: string}> {
-  const tagIntegration = tags.length > 0 ? tags[0] : "";
-  
-  const fallbacks = {
-    "Celebrations": {
-      "Birthday": {
-        "Savage": [
-          `${tagIntegration ? tagIntegration + ', ' : ''}another year closer to irrelevance`,
-          `Your planning skills${tagIntegration ? ' ' + tagIntegration : ''} peaked in kindergarten`, 
-          `We're all pretending${tagIntegration ? ' ' + tagIntegration + ' has' : ' this has'} a plan`,
-          `${tagIntegration ? tagIntegration + ' celebrating' : 'Celebrating'} aging out of relevance`
-        ],
-        "Humorous": [
-          `${tagIntegration ? tagIntegration + ' and' : 'Another'} the annual aging process`,
-          `Adulting is just Googling${tagIntegration ? ' with ' + tagIntegration : ''} how to do things`,
-          `${tagIntegration ? tagIntegration + ' living on' : 'Life runs on'} caffeine and good intentions`,
-          `Reality called${tagIntegration ? ' ' + tagIntegration : ''} but we sent it to voicemail`
-        ],
-        "Playful": [
-          `Look who's${tagIntegration ? ' ' + tagIntegration + ' is' : ''} getting fancy with actual plans`,
-          `Someone${tagIntegration ? ' ' + tagIntegration : ''} is feeling ambitious today`,
-          `We're all${tagIntegration ? ' including ' + tagIntegration : ''} just winging it and hoping for snacks`,
-          `${tagIntegration ? tagIntegration + ' making' : 'Making'} this look way too easy`
-        ],
-        "Sentimental": [
-          `Grateful for${tagIntegration ? ' ' + tagIntegration + ' and' : ''} moments like these`,
-          `Another year${tagIntegration ? ' with ' + tagIntegration : ''} of memories we'll treasure`,
-          `You${tagIntegration ? ' and ' + tagIntegration : ''} make ordinary days feel special`,
-          `Celebrating${tagIntegration ? ' ' + tagIntegration + ' and' : ''} the gift of connection`
-        ],
-        "Serious": [
-          `This${tagIntegration ? ' moment with ' + tagIntegration : ''} matters more than you know`,
-          `Taking time${tagIntegration ? ' with ' + tagIntegration : ''} to appreciate what we've built`,
-          `Some moments${tagIntegration ? ' with ' + tagIntegration : ''} deserve proper recognition`,
-          `The value${tagIntegration ? ' of ' + tagIntegration : ''} of genuine celebration`
-        ],
-        "Inspirational": [
-          `Every challenge${tagIntegration ? ' ' + tagIntegration + ' faces' : ''} makes you stronger`,
-          `You're${tagIntegration ? ' ' + tagIntegration + ' is' : ''} building something worth celebrating`,
-          `This is${tagIntegration ? ' ' + tagIntegration + ' showing' : ''} what progress looks like`,
-          `Your journey${tagIntegration ? ' with ' + tagIntegration : ''} inspires everyone around you`
-        ]
-      }
-    },
-    "Vibes & Punchlines": {
-      "Career Jokes": {
-        "Savage": [
-          `${tagIntegration ? tagIntegration + ' helping' : 'Helping'} clients make terrible financial decisions`,
-          `Your commission${tagIntegration ? ' from ' + tagIntegration : ''} won't cover therapy for this stress`,
-          `${tagIntegration ? tagIntegration + ' pretending' : 'Pretending'} this house is worth the asking price`,
-          `Another${tagIntegration ? ' ' + tagIntegration : ''} open house where nobody shows up`
-        ],
-        "Humorous": [
-          `${tagIntegration ? tagIntegration + ' living on' : 'Living on'} coffee and showing optimism`,
-          `Real estate wisdom${tagIntegration ? ' from ' + tagIntegration : ''}: just smile and point at features`,
-          `${tagIntegration ? tagIntegration + ' pretending' : 'Pretending'} to know what "good bones" means`,
-          `Market strategy${tagIntegration ? ' for ' + tagIntegration : ''}: hope and prayer with staging`
-        ],
-        "Playful": [
-          `${tagIntegration ? tagIntegration + ' channeling' : 'Channeling'} that HGTV energy for every showing`,
-          `Someone${tagIntegration ? ' ' + tagIntegration : ''} thinks this kitchen needs "just a little work"`,
-          `Real estate IQ${tagIntegration ? ' of ' + tagIntegration : ''}: still calculating square footage`,
-          `${tagIntegration ? tagIntegration + ' making' : 'Making'} every house sound like a steal`
-        ],
-        "Sentimental": [
-          `Grateful for${tagIntegration ? ' ' + tagIntegration + ' and' : ''} helping families find home`,
-          `Another family${tagIntegration ? ' with ' + tagIntegration : ''} gets their keys to happiness`,
-          `You${tagIntegration ? ' and ' + tagIntegration : ''} make dreams of homeownership real`,
-          `Celebrating${tagIntegration ? ' ' + tagIntegration + ' and' : ''} the joy of closing day`
-        ],
-        "Serious": [
-          `This transaction${tagIntegration ? ' with ' + tagIntegration : ''} represents months of preparation`,
-          `Taking time${tagIntegration ? ' with ' + tagIntegration : ''} to ensure every detail is covered`,
-          `Professional service${tagIntegration ? ' from ' + tagIntegration : ''} makes all the difference`,
-          `The responsibility${tagIntegration ? ' of ' + tagIntegration : ''} guiding major life decisions`
-        ],
-        "Inspirational": [
-          `Every challenge${tagIntegration ? ' ' + tagIntegration + ' faces' : ''} builds stronger expertise`,
-          `You're${tagIntegration ? ' ' + tagIntegration + ' is' : ''} building lasting relationships through service`,
-          `This market${tagIntegration ? ' with ' + tagIntegration : ''} shows what persistence creates`,
-          `Your dedication${tagIntegration ? ' ' + tagIntegration : ''} turns house hunting into homecoming`
-        ]
-      }
-    },
-    "Sports": {
-      "Basketball": {
-        "Savage": [
-          `${tagIntegration ? tagIntegration + ' shooting' : 'Shooting'} bricks like it's a construction project`,
-          `Your basketball skills${tagIntegration ? ' ' + tagIntegration : ''} peaked in middle school`,
-          `${tagIntegration ? tagIntegration + ' benched' : 'Benched'} yourself before the coach could`,
-          `This defense${tagIntegration ? ' from ' + tagIntegration : ''} wouldn't stop a wheelchair team`
-        ],
-        "Humorous": [
-          `${tagIntegration ? tagIntegration + ' pretending' : 'Pretending'} that was totally intentional`,
-          `Basketball strategy${tagIntegration ? ' with ' + tagIntegration : ''}: hope for the best`,
-          `${tagIntegration ? tagIntegration + ' living' : 'Living'} that pickup game main character energy`,
-          `Court vision${tagIntegration ? ' for ' + tagIntegration : ''}: exclusively tunnel vision`
-        ],
-        "Playful": [
-          `${tagIntegration ? tagIntegration + ' channeling' : 'Channeling'} those legendary bench warming skills`,
-          `Someone${tagIntegration ? ' ' + tagIntegration : ''} watched one NBA game and thinks they're ready`,
-          `Basketball IQ${tagIntegration ? ' of ' + tagIntegration : ''}: still loading`,
-          `${tagIntegration ? tagIntegration + ' making' : 'Making'} recreational league look competitive`
-        ]
-      },
-      "American Football": {
-        "Savage": [
-          `${tagIntegration ? tagIntegration + ' throwing' : 'Throwing'} interceptions like it's the plan`,
-          `Your fantasy team${tagIntegration ? ' ' + tagIntegration : ''} is more fantasy than reality`,
-          `${tagIntegration ? tagIntegration + ' fumbled' : 'Fumbled'} before the play even started`,
-          `This game plan${tagIntegration ? ' from ' + tagIntegration : ''} was written in crayon`
-        ],
-        "Humorous": [
-          `${tagIntegration ? tagIntegration + ' treating' : 'Treating'} the playbook like a suggestion`,
-          `Football wisdom${tagIntegration ? ' with ' + tagIntegration : ''}: just run faster`,
-          `${tagIntegration ? tagIntegration + ' perfecting' : 'Perfecting'} the art of creative penalties`,
-          `Game strategy${tagIntegration ? ' for ' + tagIntegration : ''}: chaos with a side of hope`
-        ],
-        "Playful": [
-          `${tagIntegration ? tagIntegration + ' bringing' : 'Bringing'} that backyard football energy`,
-          `Someone${tagIntegration ? ' ' + tagIntegration : ''} thinks they're the next franchise player`,
-          `Football IQ${tagIntegration ? ' of ' + tagIntegration : ''}: still buffering`,
-          `${tagIntegration ? tagIntegration + ' making' : 'Making'} tackle football look like a contact sport`
-        ]
-      }
-    }
+  const fallbacksByTone: Record<string, string[]> = {
+    "Savage": [
+      "Your life choices make reality TV look classy",
+      "Even GPS suggests alternate routes around your problems", 
+      "You're proof participation trophies were a mistake",
+      "Your decisions have their own disaster relief fund"
+    ],
+    "Humorous": [
+      "Adulting is just Googling how to do things",
+      "My life runs on caffeine and good intentions",
+      "Reality called but I sent it to voicemail", 
+      "I'm not lazy I'm on energy saving mode"
+    ],
+    "Playful": [
+      "You collect hobbies like other people collect dust",
+      "Your cooking skills are charmingly experimental",
+      "You're like a human golden retriever with anxiety",
+      "Your life is basically a sitcom without the laugh track"
+    ],
+    "Sentimental": [
+      "Still can't believe we've made it this far",
+      "Thanks for being weird with me all these years",
+      "We've survived worse and lived to laugh about it",
+      "Some friendships just make sense no matter what"
+    ],
+    "Serious": [
+      "Growth happens between plans and reality",
+      "Some chapters are harder to write than others", 
+      "The best lessons come disguised as inconveniences",
+      "Every experience teaches us something about ourselves"
+    ],
+    "Inspirational": [
+      "You're writing a story no one else could tell",
+      "Your weird is exactly what the world needs more of",
+      "Every stumble forward still counts as progress",
+      "The journey shapes us more than the destination"
+    ]
   };
   
-  const categoryFallbacks = fallbacks[category];
-  if (!categoryFallbacks) {
-    return getEmergencyFallback(tone, tagIntegration);
-  }
+  const baseLines = fallbacksByTone[tone] || fallbacksByTone["Humorous"];
   
-  const subcategoryFallbacks = categoryFallbacks[subcategory];
-  if (!subcategoryFallbacks) {
-    return getEmergencyFallback(tone, tagIntegration);
-  }
-  
-  const toneFallbacks = subcategoryFallbacks[tone];
-  if (!toneFallbacks) {
-    return getEmergencyFallback(tone, tagIntegration);
-  }
-  
-  return toneFallbacks.map((text, index) => ({
+  return baseLines.map((text, index) => ({
     lane: `option${index + 1}`,
     text
   }));
 }
 
-function getEmergencyFallback(tone: string, tagIntegration: string): Array<{lane: string, text: string}> {
-  const toneDefaults = {
-    "Savage": [
-      `Well this${tagIntegration ? ' ' + tagIntegration + ' situation' : ''} is awkward`,
-      `Expected more${tagIntegration ? ' from ' + tagIntegration : ''}, got this instead`,
-      `Someone${tagIntegration ? ' ' + tagIntegration : ''} is really phoning it in`,
-      `The bar was low${tagIntegration ? ' for ' + tagIntegration : ''} and we still missed it`
-    ],
-    "Humorous": [
-      `Reality called${tagIntegration ? ' ' + tagIntegration : ''} but we sent it to voicemail`,
-      `This is fine${tagIntegration ? ' with ' + tagIntegration : ''} - everything is fine`,
-      `Working as intended${tagIntegration ? ' by ' + tagIntegration : ''} (definitely not)`,
-      `Adulting${tagIntegration ? ' with ' + tagIntegration : ''} is just making it up as we go`
-    ],
-    "Playful": [
-      `Oops${tagIntegration ? ' ' + tagIntegration : ''} - did we do that right?`,
-      `Adventure mode${tagIntegration ? ' with ' + tagIntegration : ''}: activated`,
-      `Well that was interesting${tagIntegration ? ' ' + tagIntegration : ''}`,
-      `Someone${tagIntegration ? ' ' + tagIntegration : ''} is feeling ambitious today`
-    ],
-    "Sentimental": [
-      `Grateful for${tagIntegration ? ' ' + tagIntegration + ' and' : ''} whatever comes our way`,
-      `Every moment${tagIntegration ? ' with ' + tagIntegration : ''} has its own beauty`,
-      `Finding joy${tagIntegration ? ' in ' + tagIntegration : ''} in the unexpected`,
-      `These moments${tagIntegration ? ' with ' + tagIntegration : ''} matter more than we know`
-    ],
-    "Serious": [
-      `Taking a moment${tagIntegration ? ' with ' + tagIntegration : ''} to regroup`,
-      `Sometimes${tagIntegration ? ' ' + tagIntegration + ' shows us' : ''} the path isn't clear`,
-      `Working through this${tagIntegration ? ' with ' + tagIntegration : ''} step by step`,
-      `Focus${tagIntegration ? ' on ' + tagIntegration + ' and' : ''} on what matters most`
-    ],
-    "Inspirational": [
-      `Every challenge${tagIntegration ? ' ' + tagIntegration + ' faces' : ''} makes you stronger`,
-      `This is just${tagIntegration ? ' ' + tagIntegration + ' showing' : ''} part of the journey`,
-      `Growing stronger${tagIntegration ? ' with ' + tagIntegration : ''} through every challenge`,
-      `The best${tagIntegration ? ' of ' + tagIntegration : ''} is yet to come`
-    ]
-  };
-
-  const defaults = toneDefaults[tone] || toneDefaults["Humorous"];
-  return defaults.map((text, index) => ({
+function getEmergencyFallback(): Array<{lane: string, text: string}> {
+  const emergency = [
+    "Sometimes the universe has a sense of humor",
+    "Life keeps happening whether we're ready or not",
+    "We're all just figuring it out as we go", 
+    "Every day is an adventure in unexpected possibilities"
+  ];
+  
+  return emergency.map((text, index) => ({
     lane: `option${index + 1}`,
     text
   }));
@@ -1213,11 +753,11 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
 Please fix these issues while maintaining the ${inputs.tone} tone and natural flow. Remember: Max 100 chars per line, max one punctuation mark total per line.`;
     }
     
-    console.log(`LLM attempt ${attemptNumber}/2`);
+    console.log(`LLM attempt ${attemptNumber}/3`);
     console.log("User message:", userMessage);
     
-    // Model cascade
-    const models = ['gpt-4.1-2025-04-14', 'gpt-5-mini-2025-08-07'];
+    // Model cascade with stronger models for later attempts
+    const models = ['gpt-4.1-2025-04-14', 'gpt-5-mini-2025-08-07', 'gpt-5-2025-08-07'];
     const model = models[Math.min(attemptNumber - 1, models.length - 1)];
     
     console.log(`Using model: ${model}`);
@@ -1356,18 +896,20 @@ serve(async (req) => {
       const fallbackLines = getToneAwareFallback(inputs.category || '', inputs.subcategory || '', inputs.tone || 'Balanced', inputs.tags || []);
       return new Response(JSON.stringify({
         lines: fallbackLines,
-        model: "fallback"
+        model: "fallback",
+        validated: false
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
     
-    // Try up to 2 attempts
-    const maxAttempts = 2;
+    // Try up to 3 attempts with escalating models
+    const maxAttempts = 3;
     let rawCandidate: Array<{lane: string, text: string}> | null = null;
     let finalResult: Array<{lane: string, text: string}> | null = null;
     let allErrors: string[] = [];
     let modelUsed = "unknown";
+    let validated = false;
     
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       console.log(`LLM attempt ${attempt}/${maxAttempts}`);
@@ -1378,6 +920,7 @@ serve(async (req) => {
         
         if (result.success && result.lines) {
           finalResult = result.lines;
+          validated = true;
           console.log(`Success after ${attempt} attempt(s), lengths:`, result.lengths);
           break;
         } else {
@@ -1403,24 +946,16 @@ serve(async (req) => {
       const normalizedResult = normalizeText(tagEnforcedResult);
       return new Response(JSON.stringify({
         lines: normalizedResult,
-        model: modelUsed
+        model: modelUsed,
+        validated: true
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
     
-    // If we have raw candidate from earlier attempts that parsed but failed validation, use those
-    if (rawCandidate) {
-      console.log(`Using preserved raw candidate from earlier attempt instead of fallback`);
-      const tagEnforcedCandidate = ensureTagCoverage(rawCandidate, inputs.tags || []);
-      const normalizedCandidate = normalizeText(tagEnforcedCandidate);
-      return new Response(JSON.stringify({
-        lines: normalizedCandidate,
-        model: `${modelUsed} (unvalidated)`
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+    // NO LONGER USE UNVALIDATED CANDIDATES - strict enforcement
+    console.log(`All attempts failed validation. Using fallback instead of unvalidated content.`);
+    console.log(`Validation errors:`, allErrors);
     
     // Final fallback
     console.log(`API completely failed, using tone-aware fallback:`, allErrors);
@@ -1429,7 +964,8 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       lines: normalizedFallback,
-      model: "fallback"
+      model: "fallback",
+      validated: false
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -1444,7 +980,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       lines: normalizedEmergency,
       model: "emergency-fallback",
-      error: error.message
+      error: error.message,
+      validated: false
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
