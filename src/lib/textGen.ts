@@ -43,6 +43,7 @@ interface TextGenInput {
   subcategory: string;
   tone: string;
   tags: string[];
+  mode?: string;
 }
 
 interface TextGenOutput {
@@ -88,10 +89,32 @@ function sanitizeAndValidate(text: string): TextGenOutput | null {
 
 function buildUserMessage(inputs: TextGenInput): string {
   const tagsStr = inputs.tags.length > 0 ? `, tags: [${inputs.tags.map(t => `"${t}"`).join(",")}]` : "";
+  
+  let modeInstruction = "";
+  if (inputs.mode && inputs.mode !== "regenerate") {
+    switch (inputs.mode) {
+      case "story-mode":
+        modeInstruction = ". MODE: Generate as short 2-3 sentence mini-stories with narrative flow";
+        break;
+      case "punchline-first":
+        modeInstruction = ". MODE: Structure as joke payoff first, then tie-back. Snappy, meme-ready format";
+        break;
+      case "pop-culture":
+        modeInstruction = ". MODE: Include trending memes, shows, sports, or current slang references";
+        break;
+      case "roast-level":
+        modeInstruction = ". MODE: Increase savage/teasing tone while staying playful and fun";
+        break;
+      case "wildcard":
+        modeInstruction = ". MODE: Generate surreal, absurd, or experimental humor. Be creative and unexpected";
+        break;
+    }
+  }
+  
   return `Generate 4 one-liners for:
 Category: ${inputs.category}
 Subcategory: ${inputs.subcategory}
-Tone: ${inputs.tone}${tagsStr}`;
+Tone: ${inputs.tone}${tagsStr}${modeInstruction}`;
 }
 
 const FALLBACK_LINES: TextGenOutput = {
@@ -137,7 +160,8 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
             subtopic: inputs.subcategory,
             tone: inputs.tone,
             tags: inputs.tags,
-            characterLimit: 90
+            characterLimit: 90,
+            mode: inputs.mode
           });
           
           if (clientLines && clientLines.length >= 4) {

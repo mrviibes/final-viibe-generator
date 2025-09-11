@@ -14,6 +14,7 @@ export interface GenerateTextParams {
   pick?: string;
   tags?: string[];
   characterLimit: number;
+  mode?: string;
 }
 
 // Helper to safely parse JSON arrays from API responses
@@ -293,7 +294,7 @@ Return as a JSON object with this exact format:
   }
 
   async generateShortTexts(params: GenerateTextParams): Promise<string[]> {
-    const { tone, category, subtopic, pick, tags = [], characterLimit } = params;
+    const { tone, category, subtopic, pick, tags = [], characterLimit, mode } = params;
     
     let contextParts = [];
     if (category) contextParts.push(`Category: ${category}`);
@@ -306,6 +307,27 @@ Return as a JSON object with this exact format:
     
     if (tags.length > 0) {
       prompt += ` IMPORTANT: Each option MUST include ALL of these exact words/tags: ${tags.join(', ')}.`;
+    }
+    
+    // Add mode-specific instructions
+    if (mode && mode !== "regenerate") {
+      switch (mode) {
+        case "story-mode":
+          prompt += " MODE: Generate as short 2-3 sentence mini-stories with narrative flow.";
+          break;
+        case "punchline-first":
+          prompt += " MODE: Structure as joke payoff first, then tie-back. Snappy, meme-ready format.";
+          break;
+        case "pop-culture":
+          prompt += " MODE: Include trending memes, shows, sports, or current slang references.";
+          break;
+        case "roast-level":
+          prompt += " MODE: Increase savage/teasing tone while staying playful and fun.";
+          break;
+        case "wildcard":
+          prompt += " MODE: Generate surreal, absurd, or experimental humor. Be creative and unexpected.";
+          break;
+      }
     }
     
     prompt += ` Each option must be ${characterLimit} characters or fewer. Be creative and engaging.

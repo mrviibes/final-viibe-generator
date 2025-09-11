@@ -419,7 +419,7 @@ AVOID ROBOTIC PATTERNS:
 }
 
 function buildUserMessage(inputs: any): string {
-  const { category, subcategory, tone, tags = [] } = inputs;
+  const { category, subcategory, tone, tags = [], mode = "regenerate" } = inputs;
   
   // Enhanced randomization for novelty
   const randomToken = `RND-${Math.floor(Math.random() * 10000)}`;
@@ -444,6 +444,27 @@ LENGTH TARGETS (enforce variety): [${lengthTargets.join(', ')}]`;
   if (tags.length > 0) {
     message += `\nTAGS: ${tags.join(", ")}`;
     message += `\n\nTAG INTEGRATION: Make tags feel natural - use them like you would in actual conversation. Avoid robotic formats like "Tag: text" or "Tag, text description."`;
+  }
+  
+  // Add mode-specific instructions
+  if (mode && mode !== "regenerate") {
+    switch (mode) {
+      case "story-mode":
+        message += `\n\nMODE INSTRUCTION: Generate as short 2-3 sentence mini-stories with narrative flow. Keep under 90 chars total.`;
+        break;
+      case "punchline-first":
+        message += `\n\nMODE INSTRUCTION: Structure as joke payoff first, then tie-back. Snappy, meme-ready format.`;
+        break;
+      case "pop-culture":
+        message += `\n\nMODE INSTRUCTION: Include trending memes, shows, sports, or current slang references naturally.`;
+        break;
+      case "roast-level":
+        message += `\n\nMODE INSTRUCTION: Increase savage/teasing tone while staying playful and fun. More edge but still friendly.`;
+        break;
+      case "wildcard":
+        message += `\n\nMODE INSTRUCTION: Generate surreal, absurd, or experimental humor. Be creative and unexpected while staying coherent.`;
+        break;
+    }
   }
   
   // Add conversation-style reminder
@@ -1094,6 +1115,9 @@ serve(async (req) => {
   try {
     const inputs = await req.json();
     console.log("Request data:", inputs);
+    
+    // Extract mode for custom instructions
+    const mode = inputs.mode || "regenerate";
     
     // If no API key, return fallback immediately
     if (!openAIApiKey) {
