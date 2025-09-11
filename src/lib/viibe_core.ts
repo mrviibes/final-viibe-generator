@@ -103,9 +103,9 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
       }
     };
 
-    const systemPrompt = `You generate 4 vivid visual concepts as JSON only.
-
+    const systemPrompt = `You generate 4 vivid, funny, cinematic visual scene ideas as JSON only.  
 Return EXACTLY:
+
 {
   "visualOptions":[
     {"lane":"option1","prompt":"..."},
@@ -116,59 +116,68 @@ Return EXACTLY:
   "negativePrompt":"..."
 }
 
-Rules:
-- Tie directly to the user text and selection:
-  Category:[${session.category}]  Subcategory:[${session.subcategory}]  Tone:[${tone}]
-  Subject focus must be relevant to Subcategory (no generic empty rooms).
-- Respect Text Layout: [${textLayoutId}] (reserve that zone cleanly).
-- Each concept is a 1–2 sentence cinematic scene pitch (no lists, no camera jargon dumps).
-- Must be exciting, specific, and imageable. No filler like "random object," "abstract shapes."
-- Never output any extra text outside JSON.
+## Core Rules:
+- Visuals must tie directly to the provided joke/caption text.  
+- Must be cinematic, exciting, and imaginative — NOT generic filler.  
+- Always leave [${textLayoutId}] clean for text placement.  
+- Concepts should feel like fun, shareable meme images that match the joke.  
 
-Global style vocabulary you may use sparingly:
-  cinematic lighting, stadium spotlights, dramatic shadows, shallow depth, motion blur,
-  confetti burst, rain spray, lens flare, neon rim light, smoke/fog, bokeh crowd, wide angle.
+## Negative Rules:
+no bland stock photo, no empty rooms, no balloons/cake placeholders unless the joke explicitly requires them,  
+no random objects with no context, no abstract shapes, no watermarks, no logos, no on-image text.  
 
-Negative rules for all modes:
-  no bland stock photo, no empty room, no generic object, no text/watermarks, no logos.
+## Mode Behavior (enforce one block based on user's [${recommendationMode}] selection):
 
-Mode enforcement (insert one block based on UI selection [${recommendationMode}]):
+[Balanced]  
+- Polished, realistic photography style.  
+- Clear subject action directly tied to [${session.subcategory}] and the joke.  
+- Clean composition, good lighting, readable negative space.  
 
-[MODE: Balanced]
-- Polished, realistic sports/photojournalism look.
-- Clear subject action relevant to [${session.subcategory}], clean composition for [${textLayoutId}].
+[Cinematic Action]  
+- Movie-poster energy.  
+- Dramatic lighting, spotlight, motion blur, debris/confetti in air.  
+- Epic atmosphere, stadium or stage feel.  
 
-[MODE: Cinematic Action]
-- Movie-poster energy: hero moment, spotlights, dynamic camera, dramatic color contrast.
-- Add motion cues (spray, turf flecks, confetti), crowd bokeh, epic atmosphere.
+[Dynamic Action]  
+- Freeze-frame chaos or peak energy moment.  
+- Mid-air dives, jumping, slipping, crashing, sweating, exploding candles, exaggerated motion.  
+- Focused subject with visible kinetic effects.  
 
-[MODE: Dynamic Action]
-- Freeze a peak action beat (mid-air dive, sprint, tackle, leap).
-- Emphasize speed trails, motion blur, sweat, impact debris; keep background readable.
+[Surreal / Dreamlike]  
+- Impossible or dreamlike imagery tied to joke (floating objects, melting props, warped reflections, giant clocks).  
+- Bend physics and scale but keep [${session.subcategory}] context recognizable.  
 
-[MODE: Surreal / Dreamlike]
-- Bend reality to heighten the joke (floating gear, oversized props, dream color fog).
-- Impossible physics allowed; maintain [${session.subcategory}] identity.
+[Randomized Chaos]  
+- Unexpected mashup of joke + [${session.subcategory}] + something absurd.  
+- Wild palettes, glitchy energy, "surprise me" feel.  
+- Must remain funny, not abstract filler.  
 
-[MODE: Randomized Chaos]
-- Mash two unexpected visual ideas tied to [${session.subcategory}] and the joke.
-- Bold palettes, playful composition; still leave [${textLayoutId}] clean.
+[Exaggerated Proportions]  
+- Cartoonish caricature style.  
+- Oversized heads, tiny bodies, comically exaggerated props.  
+- Big emotions, meme-friendly composition.  
 
-[MODE: Exaggerated Proportions]
-- Caricature—big heads, small bodies (funny but polished), expressive faces.
-- Keep gear accurate to [${session.subcategory}] so it reads instantly.
+---
 
-Now produce 4 distinct concepts that follow the chosen mode and rules.`;
+## Now generate 4 distinct visual concepts that:  
+- Match the chosen mode,  
+- Tie directly to the joke text,  
+- Feel cinematic and exciting,  
+- And could stand alone as a funny, shareable image.`;
 
-    const userPrompt = `Category: ${session.category}
-Subcategory: ${session.subcategory}
-Tone: ${tone}
-Recommendation Mode: ${recommendationMode}
-Text Content: "${textContent}"
-Layout: ${textLayoutId}
-Hard Tags (must appear literally): ${hardTags.join(', ') || 'none'}
-Soft Tags (influence style only): ${softTags.join(', ') || 'none'}
-${session.entity ? `Specific Topic: ${session.entity}` : ''}`;
+    const userPrompt = `JOKE/CAPTION TEXT TO ILLUSTRATE: "${textContent}"
+
+Context Details:
+- Category: ${session.category}
+- Subcategory: ${session.subcategory}  
+- Tone: ${tone}
+- Mode: ${recommendationMode}
+- Layout Space: ${textLayoutId}
+- Hard Tags (must appear): ${hardTags.join(', ') || 'none'}
+- Soft Tags (style influence): ${softTags.join(', ') || 'none'}
+${session.entity ? `- Specific Topic: ${session.entity}` : ''}
+
+Generate 4 visual concepts that directly illustrate or complement this joke while matching the selected mode.`;
 
     console.log('🎯 Calling GPT directly for visual generation...');
     const result = await openAIService.chatJSON([
