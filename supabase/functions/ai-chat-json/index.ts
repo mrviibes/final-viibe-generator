@@ -76,17 +76,15 @@ serve(async (req) => {
       response_format: { type: "json_object" }
     };
 
-    // Add low reasoning effort for GPT-5 models to prevent token exhaustion
-    if (model.startsWith('gpt-5')) {
-      requestBody.reasoning = { effort: "low" };
-    }
+    // GPT-5 models don't support reasoning parameter - removed
 
     // Only add temperature for legacy models
     if (!isNewerModel) {
       requestBody.temperature = temperature;
     }
 
-    console.log(`Request body: ${JSON.stringify(requestBody, null, 2)}`);
+    console.log(`Request body keys: ${Object.keys(requestBody).join(', ')}`);
+    console.log(`Using model: ${model}`);
 
     // Add timeout for faster failure
     const controller = new AbortController();

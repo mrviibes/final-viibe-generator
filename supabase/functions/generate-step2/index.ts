@@ -771,9 +771,8 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     console.log(`LLM attempt ${attemptNumber}/2`);
     console.log("User message:", userMessage);
     
-    // Force GPT-5 models only - no 4.x fallbacks for consistent response format
-    const models = ['gpt-5-mini-2025-08-07', 'gpt-5-2025-08-07'];
-    const model = models[Math.min(attemptNumber - 1, models.length - 1)];
+    // Use only gpt-5-mini for consistency
+    const model = 'gpt-5-mini-2025-08-07';
     
     console.log(`Using model: ${model}`);
     
@@ -789,14 +788,11 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
       response_format: { type: "json_object" }
     };
     
-    // Model-specific parameters - increased tokens and low reasoning effort
-    if (model.startsWith('gpt-5')) {
-      requestBody.max_completion_tokens = 1200;
-      requestBody.reasoning = { effort: "low" }; // Prevent token exhaustion
-    } else {
-      requestBody.max_tokens = 300;
-      requestBody.temperature = 0.7;
-    }
+    // GPT-5 parameters - no reasoning field supported
+    requestBody.max_completion_tokens = 1200;
+    
+    console.log(`Request body keys: ${Object.keys(requestBody).join(', ')}`);
+    console.log(`Using model: ${model}`);
     
     // Add timeout for faster failure
     const controller = new AbortController();
@@ -914,11 +910,11 @@ serve(async (req) => {
       const fallbackLines = getToneAwareFallback(inputs);
       return new Response(JSON.stringify({
         lines: fallbackLines,
-        model: "gpt-5-mini-2025-08-07", // Report the intended model
-        validated: true,
+        model: "fallback",
+        validated: false,
         success: true,
         generatedWith: 'Emergency Fallback',
-        issues: []
+        issues: ["OpenAI API key not configured"]
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -959,11 +955,11 @@ serve(async (req) => {
     const fallbackLines = getToneAwareFallback(inputs);
     return new Response(JSON.stringify({
       lines: fallbackLines,
-      model: "gpt-5-mini-2025-08-07", // Report the intended model, not "fallback"
-      validated: true,
+      model: "fallback",
+      validated: false,
       success: true,
       generatedWith: 'Fallback',
-      issues: []
+      issues: ["API generation failed"]
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -974,11 +970,11 @@ serve(async (req) => {
     const fallbackLines = getToneAwareFallback({});
     return new Response(JSON.stringify({
       lines: fallbackLines,
-      model: "gpt-5-mini-2025-08-07", // Report the intended model
-      validated: true,
+      model: "fallback",
+      validated: false,
       success: true,
       generatedWith: 'Emergency Fallback',
-      issues: []
+      issues: ["API completely failed"]
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
