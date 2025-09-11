@@ -10,7 +10,7 @@ const corsHeaders = {
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 // LOCKED MODEL - STRICT MODE
-const MODEL = 'gpt-5-mini-2025-08-07';
+const MODEL = 'gpt-4.1-2025-04-14';
 
 async function retryWithBackoff(fn: () => Promise<any>, maxRetries = 2): Promise<any> {
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
