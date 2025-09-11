@@ -4517,7 +4517,7 @@ const Index = () => {
   }>({});
 
   // Visual creativity control
-  const [visualSpice, setVisualSpice] = useState<'balanced' | 'cinematic' | 'surreal' | 'dynamic' | 'chaos'>('balanced');
+  const [visualSpice, setVisualSpice] = useState<'balanced' | 'cinematic' | 'surreal' | 'dynamic' | 'chaos' | 'exaggerated'>('balanced');
 
   // Visual AI recommendations state
   const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
@@ -6971,16 +6971,17 @@ const Index = () => {
                               <div className="flex items-center justify-center gap-3 mb-2">
                                 <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
                                 <div className="flex items-center gap-2">
-                                  <Select value={visualSpice} onValueChange={(value: 'balanced' | 'cinematic' | 'surreal' | 'dynamic' | 'chaos') => setVisualSpice(value)}>
-                                    <SelectTrigger className="w-32 h-8 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="balanced">Balanced</SelectItem>
-                                      <SelectItem value="cinematic">Cinematic</SelectItem>
-                                      <SelectItem value="surreal">Surreal</SelectItem>
-                                      <SelectItem value="dynamic">Dynamic Action</SelectItem>
-                                      <SelectItem value="chaos">Randomized Chaos</SelectItem>
+                                   <Select value={visualSpice} onValueChange={(value: 'balanced' | 'cinematic' | 'surreal' | 'dynamic' | 'chaos' | 'exaggerated') => setVisualSpice(value)}>
+                                     <SelectTrigger className="w-40 h-8 text-xs">
+                                       <SelectValue />
+                                     </SelectTrigger>
+                                     <SelectContent>
+                                       <SelectItem value="balanced">Balanced</SelectItem>
+                                       <SelectItem value="cinematic">Cinematic Action</SelectItem>
+                                       <SelectItem value="surreal">Surreal/Dreamlike</SelectItem>
+                                       <SelectItem value="dynamic">Dynamic Action</SelectItem>
+                                       <SelectItem value="chaos">Randomized Chaos</SelectItem>
+                                       <SelectItem value="exaggerated">Exaggerated Proportions</SelectItem>
                                     </SelectContent>
                                   </Select>
                                   <Button variant="outline" size="sm" onClick={handleGenerateSubject} disabled={isGeneratingSubject} className="text-xs">

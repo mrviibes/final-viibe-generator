@@ -65,7 +65,7 @@ export async function generateTextOptions(session: Session, { tone, tags = [] }:
 import { openAIService } from './openai';
 import { parseVisualTags } from './textUtils';
 
-export async function generateVisualOptions(session: Session, { tone, tags = [], textContent = "", textLayoutId = "negativeSpace", recommendationMode = "balanced" }: { tone: string; tags?: string[]; textContent?: string; textLayoutId?: string; recommendationMode?: "balanced" | "cinematic" | "surreal" | "dynamic" | "chaos" }): Promise<{
+export async function generateVisualOptions(session: Session, { tone, tags = [], textContent = "", textLayoutId = "negativeSpace", recommendationMode = "balanced" }: { tone: string; tags?: string[]; textContent?: string; textLayoutId?: string; recommendationMode?: "balanced" | "cinematic" | "surreal" | "dynamic" | "chaos" | "exaggerated" }): Promise<{
   visualOptions: Array<{ lane: string; prompt: string }>;
   negativePrompt: string;
   model: string;
@@ -89,20 +89,23 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
     const getModeGuidance = (mode: string) => {
       switch (mode) {
         case 'cinematic':
-          return 'CINEMATIC STYLE: Use dramatic shadows, movie-poster lighting, intense close-ups, epic wide shots, film grain texture, dramatic color grading, hero poses, emotional intensity';
+          return 'Movie-poster energy: hero moment, spotlights, dynamic camera, dramatic color contrast. Add motion cues (spray, turf flecks, confetti), crowd bokeh, epic atmosphere.';
         case 'surreal':
-          return 'SURREAL STYLE: Include impossible physics, floating objects, melting textures, dreamlike distortions, mind-bending perspectives, abstract shapes mixing with reality, unexpected scale shifts';
+          return 'Bend reality to heighten the joke (floating gear, oversized props, dream color fog). Impossible physics allowed; maintain subcategory identity.';
         case 'dynamic':
-          return 'DYNAMIC ACTION: Show explosive motion, speed lines, action poses, dramatic angles, high energy, movement blur, intense action scenes, powerful gestures';
+          return 'Freeze a peak action beat (mid-air dive, sprint, tackle, leap). Emphasize speed trails, motion blur, sweat, impact debris; keep background readable.';
         case 'chaos':
-          return 'CHAOTIC MIX: Combine multiple art styles randomly - mix cartoon with realistic, abstract with photographic, different time periods, clashing color schemes, unexpected combinations';
+          return 'Mash two unexpected visual ideas tied to subcategory and the joke. Bold palettes, playful composition; still leave layout space clean.';
+        case 'exaggerated':
+          return 'Caricature—big heads, small bodies (funny but polished), expressive faces. Keep gear accurate to subcategory so it reads instantly.';
         default: // balanced
-          return 'BALANCED STYLE: Clean modern aesthetic, natural lighting, accessible composition, pleasing colors, professional quality';
+          return 'Polished, realistic sports/photojournalism look. Clear subject action relevant to subcategory, clean composition for layout.';
       }
     };
 
-    const systemPrompt = `Generate 4 COMPLETELY different visual concepts for image generation. Return ONLY valid JSON:
+    const systemPrompt = `You generate 4 vivid visual concepts as JSON only.
 
+Return EXACTLY:
 {
   "visualOptions":[
     {"lane":"option1","prompt":"..."},
@@ -113,64 +116,49 @@ export async function generateVisualOptions(session: Session, { tone, tags = [],
   "negativePrompt":"..."
 }
 
-CRITICAL RULES:
+Rules:
+- Tie directly to the user text and selection:
+  Category:[${session.category}]  Subcategory:[${session.subcategory}]  Tone:[${tone}]
+  Subject focus must be relevant to Subcategory (no generic empty rooms).
+- Respect Text Layout: [${textLayoutId}] (reserve that zone cleanly).
+- Each concept is a 1–2 sentence cinematic scene pitch (no lists, no camera jargon dumps).
+- Must be exciting, specific, and imageable. No filler like "random object," "abstract shapes."
+- Never output any extra text outside JSON.
 
-1. **Subcategory Lock**:
-   - All visual concepts MUST focus on the specified subcategory only
-   - Do NOT generate any other sport, activity, or unrelated subject
-   - Ensure all prompts align strictly with the selected subcategory
+Global style vocabulary you may use sparingly:
+  cinematic lighting, stadium spotlights, dramatic shadows, shallow depth, motion blur,
+  confetti burst, rain spray, lens flare, neon rim light, smoke/fog, bokeh crowd, wide angle.
 
-2. **Maximum Diversity Required**:
-   - Each option must be a TOTALLY different visual concept within the subcategory
-   - NO similar subjects, angles, or styles between options
-   - Think: person vs object vs scene vs abstract concept
-   - Force creative variety - if one is close-up, another is far away
-   - Different moods, different energy levels, different visual approaches
+Negative rules for all modes:
+  no bland stock photo, no empty room, no generic object, no text/watermarks, no logos.
 
-3. **Simple, Clear Descriptions (8-15 words)**:
-   - Write like you're describing it to a friend
-   - Use everyday language, not technical photography terms
-   - Focus on what people will see, not camera settings
-   - Natural descriptions: "person looking surprised" not "low-angle shot of startled subject"
-   - Keep it simple: "bright sunny day" not "golden hour rim lighting"
+Mode enforcement (insert one block based on UI selection [${recommendationMode}]):
 
-3. **Concept Variety by Option**:
-   - **Option1**: Focus on a person or character (different expression/pose each time)
-   - **Option2**: Focus on objects or things (completely different from Option1)
-   - **Option3**: Focus on a scene or environment (wide view, setting)
-   - **Option4**: Focus on an abstract or creative concept (artistic, unexpected)
+[MODE: Balanced]
+- Polished, realistic sports/photojournalism look.
+- Clear subject action relevant to [${session.subcategory}], clean composition for [${textLayoutId}].
 
-4. **Layout Space** (add one based on textLayoutId):
-   - negativeSpace  → ", clear empty area near largest margin"
-   - memeTopBottom  → ", clear top band, clear bottom band" 
-   - lowerThird     → ", clear lower third"
-   - sideBarLeft    → ", clear left panel"
-   - badgeSticker   → ", badge space top-right"
-   - subtleCaption  → ", clear narrow bottom strip"
+[MODE: Cinematic Action]
+- Movie-poster energy: hero moment, spotlights, dynamic camera, dramatic color contrast.
+- Add motion cues (spray, turf flecks, confetti), crowd bokeh, epic atmosphere.
 
-5. **Recommendation Mode Effects** (CRITICAL - Apply Heavily):
-   ${getModeGuidance(recommendationMode)}
-   
-   IMPORTANT: Each option MUST strongly reflect the ${recommendationMode.toUpperCase()} mode. Make the differences obvious and distinct.
+[MODE: Dynamic Action]
+- Freeze a peak action beat (mid-air dive, sprint, tackle, leap).
+- Emphasize speed trails, motion blur, sweat, impact debris; keep background readable.
 
-6. **Keep It Natural**:
-   - NO technical terms (aperture, ISO, focal length, etc.)
-   - NO confusing photography jargon
-   - Write how humans naturally describe images
-   - Make it easy to understand what the image will look like
+[MODE: Surreal / Dreamlike]
+- Bend reality to heighten the joke (floating gear, oversized props, dream color fog).
+- Impossible physics allowed; maintain [${session.subcategory}] identity.
 
-7. **Negative Prompt**: "no text, no words, no letters, no watermarks, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects"
+[MODE: Randomized Chaos]
+- Mash two unexpected visual ideas tied to [${session.subcategory}] and the joke.
+- Bold palettes, playful composition; still leave [${textLayoutId}] clean.
 
-EXAMPLE for birthday + balanced:
-{
-  "visualOptions":[
-    {"lane":"option1","prompt":"person blowing out birthday candles with big smile, clear lower third"},
-    {"lane":"option2","prompt":"colorful balloons floating in bright room, clear lower third"},  
-    {"lane":"option3","prompt":"party decorations scattered on table, clear lower third"},
-    {"lane":"option4","prompt":"abstract celebration with confetti explosion, clear lower third"}
-  ],
-  "negativePrompt":"no text, no words, no letters, no watermarks, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects"
-}`;
+[MODE: Exaggerated Proportions]
+- Caricature—big heads, small bodies (funny but polished), expressive faces.
+- Keep gear accurate to [${session.subcategory}] so it reads instantly.
+
+Now produce 4 distinct concepts that follow the chosen mode and rules.`;
 
     const userPrompt = `Category: ${session.category}
 Subcategory: ${session.subcategory}
@@ -194,7 +182,7 @@ ${session.entity ? `Specific Topic: ${session.entity}` : ''}`;
 
     const finalResult = {
       visualOptions: result.visualOptions || [],
-      negativePrompt: result.negativePrompt || "no background text, no watermarks, no signage, no logos, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects",
+      negativePrompt: result.negativePrompt || "no bland stock photo, no empty room, no generic object, no illegible clutter, no watermarks, no logos, no extra on-image text",
       model: 'gpt-5-mini-2025-08-07'
     };
 
@@ -205,7 +193,7 @@ ${session.entity ? `Specific Topic: ${session.entity}` : ''}`;
     // Fallback to empty options on error
     const errorResult = {
       visualOptions: [],
-      negativePrompt: "no background text, no watermarks, no signage, no logos, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects",
+      negativePrompt: "no bland stock photo, no empty room, no generic object, no illegible clutter, no watermarks, no logos, no extra on-image text",
       model: "error"
     };
     (errorResult as any).errorCode = "GENERATION_FAILED";
@@ -234,7 +222,7 @@ export function composeFinalPayload({
     textLayoutSpec: LAYOUTS[textLayoutId as keyof typeof LAYOUTS] || LAYOUTS.negativeSpace,
     visualStyle,
     visualPrompt: chosenVisual?.prompt || "",
-    negativePrompt: negativePrompt || "no background text, no watermarks, no signage, no logos, no stray words, no random text, no duplicated captions, no background writing, no unwanted logos, no elements from unrelated sports or activities, no mismatched equipment, no incorrect uniforms, no irrelevant scenery, no extra random subjects",
+    negativePrompt: negativePrompt || "no bland stock photo, no empty room, no generic object, no illegible clutter, no watermarks, no logos, no extra on-image text",
     dimensions,
     contextId: session.contextId,
     tone: session.tone || "",
