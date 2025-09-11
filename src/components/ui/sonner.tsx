@@ -1,29 +1,17 @@
-import { useTheme } from "next-themes"
-import { Toaster as Sonner, toast } from "sonner"
+// No-op toast system - all notifications disabled
+const Toaster = () => null
 
-type ToasterProps = React.ComponentProps<typeof Sonner>
-
-const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
-  return (
-    <Sonner
-      theme={theme as ToasterProps["theme"]}
-      className="toaster group"
-      toastOptions={{
-        classNames: {
-          toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-muted-foreground",
-          actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-          cancelButton:
-            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
-        },
-      }}
-      {...props}
-    />
-  )
+// No-op toast function - does nothing
+const toast = {
+  success: (...args: any[]) => {},
+  error: (...args: any[]) => {},
+  warning: (...args: any[]) => {},
+  info: (...args: any[]) => {},
+  message: (...args: any[]) => {},
+  promise: (...args: any[]) => {},
+  custom: (...args: any[]) => {},
+  dismiss: (...args: any[]) => {},
+  loading: (...args: any[]) => {},
 }
 
 export { Toaster, toast }

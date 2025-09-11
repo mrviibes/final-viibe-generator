@@ -27,7 +27,7 @@ import { RetryWithLayoutDialog } from "@/components/RetryWithLayoutDialog";
 import { SafetyValidationDialog } from "@/components/SafetyValidationDialog";
 
 import { useToast } from "@/hooks/use-toast";
-import { toast as sonnerToast } from "sonner";
+import { toast as sonnerToast } from "@/components/ui/sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
 import { careersList } from "@/lib/careers";
