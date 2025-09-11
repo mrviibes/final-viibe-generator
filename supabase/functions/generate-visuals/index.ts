@@ -23,14 +23,79 @@ interface VisualInput {
   layout_token: string;
 }
 
-// Streamlined system prompt for reliable JSON output
+// Visual vocabulary for category-specific props
+const VISUAL_VOCABULARY = {
+  "Celebrations": {
+    "Birthday": {
+      props: "cake with frosting candles, balloons, party hats, wrapped gifts, confetti, streamers",
+      atmosphere: "warm festive lighting, frosting textures, sparkler candles, neon birthday sign"
+    },
+    "Wedding": {
+      props: "wedding cake, rings, bouquet, veil, champagne glasses",
+      atmosphere: "romantic glow, fairy lights, aisle petals, archway"
+    },
+    "Christmas": {
+      props: "Christmas tree, string lights, ornaments, stockings, wreaths, wrapped gifts",
+      atmosphere: "warm fireplace glow, snowy window, twinkling fairy lights"
+    },
+    "Halloween": {
+      props: "jack-o-lanterns, spooky masks, cobwebs, skeletons, candy buckets, bats",
+      atmosphere: "eerie moonlight, fog, candlelit pumpkins, haunted house vibe"
+    }
+  },
+  "Sports": {
+    "American Football": {
+      props: "football, helmet, shoulder pads, playbook, stadium scoreboard",
+      atmosphere: "floodlights, grassy field, roaring crowd, sideline energy"
+    },
+    "Soccer": {
+      props: "soccer ball, cleats, shin guards, nets, trophy cup",
+      atmosphere: "grassy pitch, stadium floodlights, colorful fans, confetti rain"
+    },
+    "Basketball": {
+      props: "basketball, hoop, sneakers, sweat towel, scoreboard",
+      atmosphere: "hardwood court, buzzing arena, dramatic spotlights"
+    }
+  },
+  "Daily Life": {
+    "Work": {
+      props: "laptops, coffee mugs, sticky notes, conference table, charts",
+      atmosphere: "office lighting, messy desk, casual clutter"
+    },
+    "Parenting": {
+      props: "toys, strollers, crayons, spilled snacks, baby bottles",
+      atmosphere: "chaotic living room, colorful mess, joyful clutter"
+    },
+    "Dating": {
+      props: "candlelit table, roses, champagne, heart-shaped balloons",
+      atmosphere: "city lights at night, cozy restaurant, sunset skyline"
+    }
+  }
+};
+
+// Universal prompt template with text instruction priority
 const SYSTEM_PROMPT_UNIVERSAL = (
-  { mode, layout }: { mode: string; layout: string }
-) => `Generate 4 visual concepts as JSON only. NO extra text.
+  { mode, layout, category, subcategory }: { mode: string; layout: string; category: string; subcategory: string }
+) => {
+  // Get category-specific visual vocabulary
+  const vocab = VISUAL_VOCABULARY[category]?.[subcategory] || { props: "", atmosphere: "" };
+  
+  return `Generate 4 visual concepts as JSON only. NO extra text.
 
 {"concepts":[{"lane":"option1","text":"..."},{"lane":"option2","text":"..."},{"lane":"option3","text":"..."},{"lane":"option4","text":"..."}]}
 
-Rules: Each concept 15-25 words. Connect to joke directly. Leave [${layout}] clear. Mode: ${mode}. NO generic content.`;
+UNIVERSAL TEMPLATE FOR EACH CONCEPT:
+TEXT INSTRUCTION (MANDATORY): Render the provided text clearly integrated into [${layout}] negative space.
+Style: large clean sans-serif, cinematic contrast, subtle glow for readability.
+
+Scene: ${mode} ${category} → ${subcategory} setup.
+${vocab.props ? `Must include props: ${vocab.props}` : ""}
+${vocab.atmosphere ? `Atmosphere: ${vocab.atmosphere}` : ""}
+Cinematic style: dynamic lighting, vivid atmosphere, memorable props.
+Composition preserves [${layout}] as negative space for text overlay.
+
+Rules: 15-25 words per concept. Connect to joke directly. NO generic placeholders.`;
+};
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -65,8 +130,10 @@ serve(async (req) => {
 
     console.log('inputs', { final_text, category, subcategory, mode, layout_token });
 
-    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, layout: layout_token });
-    const user = `Joke: "${final_text}"\nCategory: ${category} (${subcategory})\nMode: ${mode}`;
+    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, layout: layout_token, category, subcategory });
+    const user = `Text to overlay: "${final_text}"\nCategory: ${category} (${subcategory})\nMode: ${mode}
+    
+NEGATIVE PROMPT GUIDANCE: no plain candles, no bland props, no generic placeholders, no random empty rooms, no abstract filler shapes, no clipart, no watermarks, no logos, no on-image text.`;
 
     // Try models in sequence until one succeeds
     for (const modelConfig of MODELS) {
