@@ -252,16 +252,26 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const subject = handoff.chosen_visual || handoff.rec_subject || `${handoff.tone} ${handoff.category} scene`;
   const cleanSubject = subject.replace(/,?\s*(clear empty area near largest margin|clear top band|clear bottom band|clear lower third|clear left panel|badge space top-right|clear narrow bottom strip)/gi, '').trim();
   
+  // Check if this is a generic/random visual that shouldn't get category-specific treatment
+  const isGenericVisual = handoff.chosen_visual && (
+    handoff.chosen_visual.toLowerCase().includes('random') || 
+    handoff.chosen_visual.toLowerCase().includes('everyday') ||
+    handoff.chosen_visual.toLowerCase().includes('abstract') ||
+    handoff.chosen_visual.toLowerCase().includes('generic')
+  );
+  
   // 3. Style specification
   const styleSpec = handoff.visual_style && handoff.visual_style.toLowerCase() !== 'auto' 
     ? `in ${handoff.visual_style} style` 
     : 'in realistic photo style';
-  
+
   sceneParts.push(`${handoff.tone} ${cleanSubject} ${styleSpec}.`);
   
-  // 4. SUBCATEGORY LOCK: Enforce the chosen subcategory
-  if (handoff.subcategory_primary) {
+  // 4. SUBCATEGORY LOCK: Only enforce if not a generic visual choice
+  if (handoff.subcategory_primary && !isGenericVisual) {
     sceneParts.push(`Subject must be ${handoff.subcategory_primary}. Do not generate any other sport or activity.`);
+  } else if (isGenericVisual) {
+    console.log('🎯 Respecting generic visual choice, skipping subcategory enforcement');
   }
   
   // 4. Cinematic lighting and atmosphere (randomized)
@@ -277,9 +287,9 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const mood = getRandomElement(moodOptions);
   sceneParts.push(`Emphasize ${mood}.`);
   
-  // 7. Visual tags if provided (filtered for safety)
+  // 7. Visual tags if provided (filtered for safety and generic choice respect)
   let modifiedTags: string[] = [];
-  if (handoff.visual_tags_csv && handoff.visual_tags_csv !== "None") {
+  if (handoff.visual_tags_csv && handoff.visual_tags_csv !== "None" && !isGenericVisual) {
     const tagResults = handoff.visual_tags_csv
       .split(',')
       .map(tag => sanitizeVisualTag(tag.trim()))
@@ -297,6 +307,16 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
     if (safeVisualElements) {
       sceneParts.push(`Visual elements: ${safeVisualElements}.`);
     }
+  } else if (isGenericVisual) {
+    console.log('🎯 Skipping category-specific visual tags for generic choice');
+  }
+  
+  // Add explicit text rendering instruction FIRST for better success
+  if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
+    const fonts = getToneFonts(handoff.tone);
+    const selectedFont = getRandomElement(fonts);
+    const textInstruction = `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "${handoff.key_line}". ${layout.textPlacement}. Use ${selectedFont} with high contrast against background.`;
+    textParts.unshift(textInstruction);
   }
   
   // CRITICAL: Text instructions FIRST, then scene description
@@ -305,7 +325,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   
   // Add redundant text requirement at the end for text-in-image mode
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
-    positivePrompt += ' The text overlay is required for this design.';
+    positivePrompt += ' IMPORTANT: The text must be clearly visible and readable in the final image.';
   }
   
   // Add overlay-mode text avoidance directive only when explicitly avoiding text
@@ -323,7 +343,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   
   // Choose negative prompt based on text injection mode  
   const negativePrompt = shouldInjectText 
-    ? "no misspelled text, no duplicated words, no blurry letters, no distorted text, no missing captions, no random extra text" // Simplified for text mode
+    ? "no misspelled text, no duplicated words, no blurry letters, no distorted text, no missing captions, no random extra text, no garbled typography, no invisible text, no cut-off text" // Enhanced for text mode
     : "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no embedded text, no letters, no words, no signage"; // Enhanced for overlay mode
 
   return {

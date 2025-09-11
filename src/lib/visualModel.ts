@@ -47,10 +47,22 @@ function autoEnrichInputs(inputs: VisualInputs): VisualInputs {
     enriched.tags = ['group chat', 'chat bubbles', 'phone screen', ...enriched.tags].slice(0, 8);
   }
   
-  // Auto-seed category-specific tags if not provided
-  if (inputs.tags.length < 3) {
+  // Check if user chose a generic/random visual option that should stay generic
+  const chosenVisual = (inputs as any).chosenVisual || '';
+  const isGenericChoice = chosenVisual.toLowerCase().includes('random') || 
+                         chosenVisual.toLowerCase().includes('everyday') ||
+                         chosenVisual.toLowerCase().includes('abstract') ||
+                         chosenVisual.toLowerCase().includes('generic');
+  
+  // Auto-seed category-specific tags if not provided AND user didn't choose a generic option
+  if (inputs.tags.length < 3 && !isGenericChoice) {
     const categoryTags = getCategorySpecificTags(inputs.category, inputs.subcategory);
     enriched.tags = [...inputs.tags, ...categoryTags].slice(0, 6);
+    console.log('🏷️ Added category-specific tags:', categoryTags);
+  } else if (isGenericChoice) {
+    console.log('🎯 Respecting user choice for generic visual, skipping category tags');
+    // Add minimal generic tags instead
+    enriched.tags = [...inputs.tags, 'minimalist', 'clean'].slice(0, 4);
   }
   
   return enriched;
@@ -223,8 +235,9 @@ export async function generateVisualRecommendations(
   inputs: VisualInputs,
   n: number = VISUAL_OPTIONS_COUNT
 ): Promise<VisualResult> {
-  // Auto-enrich inputs before processing
-  const enrichedInputs = autoEnrichInputs(inputs);
+  // Pass the chosen visual to autoEnrichInputs for generic choice detection
+  const inputsWithChosen = { ...inputs, chosenVisual: (inputs as any).chosenVisual || '' };
+  const enrichedInputs = autoEnrichInputs(inputsWithChosen);
   const { category, subcategory, tone, tags, visualStyle, finalLine, specificEntity, subjectOption, dimensions } = enrichedInputs;
   
 const systemPrompt = `Generate 4 vivid visual concepts for social graphics. Keep prompts concise (60-80 words each).
