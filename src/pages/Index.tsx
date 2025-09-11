@@ -6641,85 +6641,38 @@ const Index = () => {
                         <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
                       </div>
                       
-                      {/* Text Mode Buttons */}
-                      <div className="flex flex-wrap justify-center gap-2 mb-4">
-                        <Button 
-                          variant={textMode === "regenerate" ? "default" : "outline"} 
-                          size="sm" 
-                          onClick={() => {
-                            setTextMode("regenerate");
-                            handleGenerateText();
+                      {/* Text Mode Dropdown */}
+                      <div className="flex items-center justify-center gap-3 mb-4">
+                        <Select
+                          value={textMode}
+                          onValueChange={(value) => {
+                            setTextMode(value);
+                            if (value !== "regenerate") {
+                              handleGenerateText();
+                            }
                           }}
+                        >
+                          <SelectTrigger className="w-48">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border border-border shadow-lg z-50">
+                            <SelectItem value="regenerate">Standard</SelectItem>
+                            <SelectItem value="story-mode">Story Mode</SelectItem>
+                            <SelectItem value="punchline-first">Punchline-First</SelectItem>
+                            <SelectItem value="pop-culture">Pop Culture Remix</SelectItem>
+                            <SelectItem value="roast-level">Roast Level Up</SelectItem>
+                            <SelectItem value="wildcard">Wildcard</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleGenerateText}
                           disabled={isGenerating}
                           className="text-xs"
                         >
-                          {isGenerating && textMode === "regenerate" ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                          {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
                           Regenerate
-                        </Button>
-                        <Button 
-                          variant={textMode === "story-mode" ? "default" : "outline"} 
-                          size="sm" 
-                          onClick={() => {
-                            setTextMode("story-mode");
-                            handleGenerateText();
-                          }}
-                          disabled={isGenerating}
-                          className="text-xs"
-                        >
-                          {isGenerating && textMode === "story-mode" ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                          Story Mode
-                        </Button>
-                        <Button 
-                          variant={textMode === "punchline-first" ? "default" : "outline"} 
-                          size="sm" 
-                          onClick={() => {
-                            setTextMode("punchline-first");
-                            handleGenerateText();
-                          }}
-                          disabled={isGenerating}
-                          className="text-xs"
-                        >
-                          {isGenerating && textMode === "punchline-first" ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                          Punchline-First
-                        </Button>
-                        <Button 
-                          variant={textMode === "pop-culture" ? "default" : "outline"} 
-                          size="sm" 
-                          onClick={() => {
-                            setTextMode("pop-culture");
-                            handleGenerateText();
-                          }}
-                          disabled={isGenerating}
-                          className="text-xs"
-                        >
-                          {isGenerating && textMode === "pop-culture" ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                          Pop Culture Remix
-                        </Button>
-                        <Button 
-                          variant={textMode === "roast-level" ? "default" : "outline"} 
-                          size="sm" 
-                          onClick={() => {
-                            setTextMode("roast-level");
-                            handleGenerateText();
-                          }}
-                          disabled={isGenerating}
-                          className="text-xs"
-                        >
-                          {isGenerating && textMode === "roast-level" ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                          Roast Level Up
-                        </Button>
-                        <Button 
-                          variant={textMode === "wildcard" ? "default" : "outline"} 
-                          size="sm" 
-                          onClick={() => {
-                            setTextMode("wildcard");
-                            handleGenerateText();
-                          }}
-                          disabled={isGenerating}
-                          className="text-xs"
-                        >
-                          {isGenerating && textMode === "wildcard" ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                          Wildcard
                         </Button>
                       </div>
                     </div>
