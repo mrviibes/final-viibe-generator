@@ -126,7 +126,7 @@ function sanitizeAndValidate(text: string, inputs?: TextGenInput): TextGenOutput
       return null;
     }
     
-    // If we have input context, validate tag handling
+    // If we have input context, validate tag handling, style, and rating
     if (inputs) {
       const { hardTags, softTags } = parseTags(inputs.tags);
       
@@ -152,6 +152,50 @@ function sanitizeAndValidate(text: string, inputs?: TextGenInput): TextGenOutput
       // Must have exactly 3 lines with all hard tags
       if (hardTags.length > 0 && linesWithAllHardTags !== 3) {
         return null;
+      }
+      
+      // Style validation
+      if (inputs.style === 'pop-culture') {
+        const popCultureTerms = [
+          'taylor swift', 'kanye', 'kardashian', 'elon musk', 'netflix', 'disney', 'marvel', 'tiktok', 'instagram', 
+          'spotify', 'iphone', 'android', 'fortnite', 'minecraft', 'uber', 'airbnb', 'zoom'
+        ];
+        
+        let popCultureCount = 0;
+        for (const line of parsed.lines) {
+          const lowerText = line.text.toLowerCase();
+          if (popCultureTerms.some(term => lowerText.includes(term))) {
+            popCultureCount++;
+          }
+        }
+        
+        if (popCultureCount < 4) {
+          return null; // Not enough pop culture references
+        }
+      }
+      
+      // Rating validation
+      if (inputs.rating === 'R') {
+        const edgyTerms = ['damn', 'hell', 'ass', 'shit', 'fuck', 'savage', 'brutal', 'roast', 'destroy', 'trash', 'worst'];
+        let edgyCount = 0;
+        for (const line of parsed.lines) {
+          const lowerText = line.text.toLowerCase();
+          if (edgyTerms.some(term => lowerText.includes(term))) {
+            edgyCount++;
+          }
+        }
+        
+        if (edgyCount < 2) {
+          return null; // Not edgy enough for R rating
+        }
+      } else if (inputs.rating === 'G') {
+        const profanityTerms = ['damn', 'hell', 'ass', 'shit', 'fuck', 'bitch', 'crap', 'suck', 'stupid', 'idiot', 'loser'];
+        for (const line of parsed.lines) {
+          const lowerText = line.text.toLowerCase();
+          if (profanityTerms.some(term => lowerText.includes(term))) {
+            return null; // Contains profanity for G rating
+          }
+        }
       }
     }
     
@@ -191,14 +235,38 @@ Subcategory: ${inputs.subcategory}
 Tone: ${inputs.tone}${tagsStr}${modeInstruction}`;
 }
 
-const FALLBACK_LINES: TextGenOutput = {
-  lines: [
-    { lane: "option1", text: "When life gives you moments, make memes." }, // 42 chars (40-50 bucket)
-    { lane: "option2", text: "Plot twist: this actually happened to me today." }, // 52 chars (50-60 bucket)  
-    { lane: "option3", text: "Based on a true story that nobody asked for but here we are." }, // 68 chars (60-70 bucket)
-    { lane: "option4", text: "Reality called and left a voicemail but honestly I'm too busy to listen." } // 77 chars (70-80 bucket)
-  ]
-};
+function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
+  if (inputs.style === 'pop-culture') {
+    return {
+      lines: [
+        { lane: "option1", text: "Netflix just canceled my attention span." }, // 42 chars (40-50 bucket)
+        { lane: "option2", text: "This situation needs its own TikTok trend honestly." }, // 53 chars (50-60 bucket)  
+        { lane: "option3", text: "Marvel could never write a plot twist this unexpected for sure." }, // 68 chars (60-70 bucket)
+        { lane: "option4", text: "Even Taylor Swift wouldn't write a song about this level of chaos happening." } // 78 chars (70-80 bucket)
+      ]
+    };
+  }
+  
+  if (inputs.rating === 'R') {
+    return {
+      lines: [
+        { lane: "option1", text: "This situation is absolutely fucking wild." }, // 43 chars (40-50 bucket)
+        { lane: "option2", text: "Reality just roasted me harder than I deserved." }, // 50 chars (50-60 bucket)  
+        { lane: "option3", text: "Plot twist: life decided to be a savage ass comedian today." }, // 63 chars (60-70 bucket)
+        { lane: "option4", text: "Based on a true story that nobody asked for but damn here we are anyway." } // 75 chars (70-80 bucket)
+      ]
+    };
+  }
+  
+  return {
+    lines: [
+      { lane: "option1", text: "When life gives you moments, make memes." }, // 42 chars (40-50 bucket)
+      { lane: "option2", text: "Plot twist: this actually happened to me today." }, // 52 chars (50-60 bucket)  
+      { lane: "option3", text: "Based on a true story that nobody asked for but here we are." }, // 68 chars (60-70 bucket)
+      { lane: "option4", text: "Reality called and left a voicemail but honestly I'm too busy to listen." } // 77 chars (70-80 bucket)
+    ]
+  };
+}
 
 export async function generateStep2Lines(inputs: TextGenInput): Promise<{
   lines: Array<{ lane: string; text: string }>;
@@ -248,8 +316,9 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
 
     if (error) {
       console.error("Edge function error:", error);
+      const fallbackLines = generateFallbackLines(requestInputs);
       return {
-        lines: FALLBACK_LINES.lines,
+        lines: fallbackLines.lines,
         model: "fallback"
       };
     }
@@ -310,13 +379,14 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
     }
 
     return {
-      lines: data.lines || FALLBACK_LINES.lines,
+      lines: data.lines || generateFallbackLines(inputs).lines,
       model: data.model || "fallback"
     };
   } catch (error) {
     console.error("Text generation error:", error);
+    const fallbackLines = generateFallbackLines(inputs);
     return {
-      lines: FALLBACK_LINES.lines,
+      lines: fallbackLines.lines,
       model: "fallback"
     };
   }

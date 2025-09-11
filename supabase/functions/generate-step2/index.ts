@@ -418,11 +418,11 @@ ${softTags.length > 0 ? `- Soft tags [${softTags.join(", ")}] must NOT appear li
 // Style and rating definitions (duplicated for edge function)
 function getStyleDefinition(style: string): string {
   const definitions = {
-    'standard': 'Balanced observational one-liners with varied structure and natural flow',
-    'story': 'Slight setup with quick narrative payoff - brief mini-stories that land the joke',
-    'punchline-first': 'Hit the joke early, then brief tag-back or twist for extra impact',
-    'pop-culture': 'Include relevant celebrities, movies, trends, or memes (avoid dated references)',
-    'wildcard': 'Randomized structure and experimental humor - be creative and unexpected'
+    'standard': 'MANDATORY: Balanced observational one-liners with varied structure and natural flow',
+    'story': 'MANDATORY: Must use slight setup with quick narrative payoff - brief mini-stories that land the joke',
+    'punchline-first': 'MANDATORY: Must hit the joke early, then brief tag-back or twist for extra impact',
+    'pop-culture': 'MANDATORY: Every line must include at least one celebrity, movie, TV show, music artist, trending topic, or meme reference. Examples: Marvel movies, Netflix shows, TikTok trends, current celebrities, viral memes, popular apps, streaming services, social media platforms. No generic references.',
+    'wildcard': 'MANDATORY: Randomized structure and experimental humor - be creative and unexpected'
   };
   
   return definitions[style] || definitions['standard'];
@@ -430,10 +430,10 @@ function getStyleDefinition(style: string): string {
 
 function getRatingDefinition(rating: string): string {
   const definitions = {
-    'G': 'Family-friendly humor only. No swearing, innuendo, or targeting individuals.',
-    'PG': 'Light sarcasm and playful roasting allowed. Keep it gentle and fun.',
-    'PG-13': 'Sharper roasts, mild innuendo, and cultural references. Never hateful or explicit.',
-    'R': 'Boundary-pushing roasts and edgy humor, but maintain safety filters (no hate/harassment/explicit content)'
+    'G': 'MANDATORY G-RATED: Family-friendly humor only. No swearing, innuendo, roasting, or targeting individuals. Keep jokes wholesome and innocent.',
+    'PG': 'MANDATORY PG-RATED: Light sarcasm and playful roasting allowed. Mild teasing but keep it gentle and fun. No profanity or innuendo.',
+    'PG-13': 'MANDATORY PG-13-RATED: Sharper roasts, mild innuendo, cultural references, and light profanity (damn, hell, ass). More aggressive humor but never hateful or sexually explicit.',
+    'R': 'MANDATORY R-RATED: Boundary-pushing roasts, edgy humor, stronger profanity, savage insults, and risqué content. Be brutal and unfiltered but maintain safety filters (no hate speech/harassment/graphic sexual content).'
   };
   
   return definitions[rating] || definitions['PG-13'];
@@ -468,6 +468,12 @@ CRITICAL REQUIREMENTS:
    - Write like texting a friend, use contractions
    - Vary sentence structures
    - Clear punctuation allowed (.,;:!?)${toneGuidance}${styleGuidance}${ratingGuidance}
+
+⚠️ VALIDATOR ENFORCED: All outputs will be automatically checked for:
+   - Style compliance (Pop Culture MUST include celebrities/movies/apps/trends in ALL 4 lines)
+   - Rating compliance (R-rated MUST be savage/edgy in at least 2 lines, G-rated MUST be wholesome)
+   - Length bucket distribution (exactly one line per 40-50, 50-60, 60-70, 70-80 range)
+   - Tag compliance (hard tags in 3/4 lines, soft tags influence only)
 
 CATEGORY: ${category} > ${subcategory}${banPhrase}${anchorPhrase}${vibePhrase}${tagGuidance}
 
@@ -624,7 +630,16 @@ function checkVibeGrounding(lines: Array<{lane: string, text: string}>, category
   return null;
 }
 
-function validateAndRepair(lines: Array<{lane: string, text: string}>, category: string, subcategory: string, tone: string, tags: string[]): { 
+function validateAndRepair(lines: Array<{lane: string, text: string}>, params: {
+  category: string;
+  subcategory: string; 
+  tone: string;
+  tags: string[];
+  style?: string;
+  rating?: string;
+  hardTags?: string[];
+  softTags?: string[];
+}): { 
   isValid: boolean; 
   errors: string[]; 
   warnings: string[];
@@ -634,6 +649,7 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, category:
   const errors: string[] = [];
   const warnings: string[] = [];
   let repairedLines = [...lines];
+  const { category, subcategory, tone, tags, style, rating, hardTags, softTags } = params;
   
   // Character limits and punctuation (critical)
   for (const line of lines) {
@@ -719,6 +735,64 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, category:
   const toneError = checkToneAlignment(lines, tone);
   if (toneError) {
     errors.push(`Tone alignment issues: ${toneError}`);
+  }
+  
+  // Style validation (critical)
+  if (style === 'pop-culture') {
+    const popCultureTerms = [
+      // Celebrities & public figures
+      'taylor swift', 'kanye', 'kardashian', 'elon musk', 'bezos', 'biden', 'trump', 'oprah', 'the rock', 'ryan reynolds',
+      // Movies & TV
+      'marvel', 'disney', 'netflix', 'amazon prime', 'hulu', 'hbo', 'stranger things', 'game of thrones', 'marvel', 'dc comics',
+      'spider-man', 'batman', 'avengers', 'star wars', 'pixar', 'fast and furious', 'john wick', 'mission impossible',
+      // Music & artists  
+      'spotify', 'apple music', 'drake', 'taylor swift', 'beyonce', 'ariana grande', 'weeknd', 'billie eilish',
+      // Social media & apps
+      'tiktok', 'instagram', 'twitter', 'snapchat', 'youtube', 'facebook', 'linkedin', 'discord', 'zoom', 'uber', 'airbnb',
+      // Gaming & tech
+      'iphone', 'android', 'playstation', 'xbox', 'nintendo', 'fortnite', 'minecraft', 'call of duty', 'tesla', 'apple',
+      // Memes & trends
+      'karen', 'boomer', 'millennial', 'gen z', 'ok boomer', 'salty', 'sus', 'cap', 'no cap', 'periodt', 'slay'
+    ];
+    
+    let popCultureCount = 0;
+    for (const line of lines) {
+      const lowerText = line.text.toLowerCase();
+      if (popCultureTerms.some(term => lowerText.includes(term))) {
+        popCultureCount++;
+      }
+    }
+    
+    if (popCultureCount < 4) {
+      errors.push(`Pop Culture style violation: Only ${popCultureCount}/4 lines contain pop culture references. ALL lines must include celebrities, movies, shows, apps, or trends.`);
+    }
+  }
+  
+  // Rating validation (critical)
+  if (rating === 'R') {
+    const edgyTerms = ['damn', 'hell', 'ass', 'shit', 'fucking', 'bitch', 'savage', 'brutal', 'roast', 'destroy', 'annihilate', 'obliterate'];
+    let edgyCount = 0;
+    for (const line of lines) {
+      const lowerText = line.text.toLowerCase();
+      if (edgyTerms.some(term => lowerText.includes(term)) || 
+          lowerText.includes('flop') || lowerText.includes('fail') || 
+          lowerText.includes('trash') || lowerText.includes('worst')) {
+        edgyCount++;
+      }
+    }
+    
+    if (edgyCount < 2) {
+      errors.push(`R-rating violation: Only ${edgyCount}/4 lines are edgy enough. Need more savage/brutal language for R-rated content.`);
+    }
+  } else if (rating === 'G') {
+    const profanityTerms = ['damn', 'hell', 'ass', 'shit', 'fuck', 'bitch', 'crap', 'suck', 'stupid', 'idiot', 'loser'];
+    for (const line of lines) {
+      const lowerText = line.text.toLowerCase();
+      if (profanityTerms.some(term => lowerText.includes(term))) {
+        errors.push(`G-rating violation: Line "${line.text}" contains inappropriate language for family-friendly content.`);
+        break;
+      }
+    }
   }
   
   return {
@@ -1176,7 +1250,16 @@ Please fix these issues while maintaining the ${inputs.tone} tone and natural fl
     }
     
     // Validate with our rules
-    const validation = validateAndRepair(parsedLines, inputs.category || '', inputs.subcategory || '', inputs.tone || 'Balanced', inputs.tags || [], inputs.mode);
+    const validation = validateAndRepair(parsedLines, {
+      category: inputs.category || '',
+      subcategory: inputs.subcategory || '',
+      tone: inputs.tone || 'Balanced',
+      tags: inputs.tags || [],
+      style: inputs.style,
+      rating: inputs.rating,
+      hardTags: hardTags,
+      softTags: softTags
+    });
     
     if (validation.isValid) {
       console.log(`Attempt ${attemptNumber} succeeded`);
