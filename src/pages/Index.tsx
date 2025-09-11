@@ -5341,7 +5341,15 @@ const Index = () => {
       }
     } catch (error) {
       console.error('❌ Error generating text:', error);
-      sonnerToast.error('Failed to generate text options. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      sonnerToast.error('Text generation failed', {
+        description: `${errorMessage}. Check console for details.`,
+        duration: 5000,
+        action: {
+          label: "Retry",
+          onClick: () => handleGenerateText()
+        }
+      });
     } finally {
       setIsGenerating(false);
     }

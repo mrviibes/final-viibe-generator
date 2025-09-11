@@ -3,13 +3,14 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Lock model constant - no fallbacks
-const MODEL = 'gpt-5-2025-08-07';
+// Lock model constant - no fallbacks  
+const MODEL = 'gpt-5-mini-2025-08-07';
 
 async function retryWithBackoff(fn: () => Promise<any>, maxRetries = 2): Promise<any> {
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
@@ -48,12 +49,12 @@ ${inputs.tags && inputs.tags.length > 0 ? `Tags: ${inputs.tags.join(', ')}` : ''
       { role: 'user', content: userPrompt }
     ],
     response_format: { type: "json_object" },
-    max_completion_tokens: 220
+    max_completion_tokens: 300
   };
   
   return retryWithBackoff(async () => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

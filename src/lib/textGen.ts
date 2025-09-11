@@ -246,103 +246,48 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<{
   issues?: string[];
 }> {
   console.log('🏷️ Text generation started with inputs:', inputs);
-  console.log('📋 Final parameters for text generation:', {
-    category: inputs.category,
-    subcategory: inputs.subcategory,
-    tone: inputs.tone,
-    tags: inputs.tags,
-    style: inputs.style,
-    rating: inputs.rating
-  });
-  
-  const startTime = Date.now();
-  console.log("Starting parallel text generation (server + client)");
   
   try {
-    console.log("Calling Supabase Edge Function for text generation");
-    
-    // Map old mode to style for backward compatibility
-    let style = inputs.style;
-    let rating = inputs.rating || 'PG-13';
-    
-    if (!style && inputs.mode) {
-      switch (inputs.mode) {
-        case 'comedian-mix':
-          style = 'standard';
-          break;
-        case 'story-mode':
-          style = 'story';
-          break;
-        case 'punchline-first':
-          style = 'punchline-first';
-          break;
-        case 'pop-culture':
-          style = 'pop-culture';
-          break;
-        case 'wildcard':
-          style = 'wildcard';
-          break;
-        default:
-          style = 'standard';
-      }
-    }
-    
-    style = style || 'standard';
-    
     const requestInputs = {
       ...inputs,
-      style,
-      rating,
-      mode: inputs.mode || 'comedian-mix' // Keep for backward compatibility
+      style: inputs.style || 'standard',
+      rating: inputs.rating || 'PG-13',
     };
     
-    // Add timeout and parallel execution
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Generation timeout')), 35000);
-    });
-    
-    const generatePromise = supabase.functions.invoke('generate-step2-clean', {
+    const { data, error } = await supabase.functions.invoke('generate-step2-clean', {
       body: requestInputs
     });
-    
-    const result = await Promise.race([generatePromise, timeoutPromise]);
-    const { data, error } = result;
 
-    const duration = Date.now() - startTime;
-    console.log(`Text generation completed in ${duration}ms`);
-    console.log('Server response data:', data);
-    console.log('Server response error:', error);
+    console.log('Server response:', { data, error });
 
+    // Check for HTTP errors first
     if (error) {
-      console.error("❌ STRICT GPT-5 FAILED:", error);
-      // NO FALLBACKS - Surface the error to UI
-      throw new Error(`GPT-5 generation failed: ${error.message || 'Unknown error'}`);
+      console.error("❌ Generation HTTP Error:", error);
+      throw new Error(`Generation failed: ${error.message || 'Unknown HTTP error'}`);
     }
 
-    console.log('Checking server validation status:', data?.validated);
-
-    // STRICT VALIDATION - MUST SUCCESS OR FAIL
-    if (data?.success === false || data?.error) {
-      throw new Error(`GPT-5 failed: ${data?.error || 'Generation error'}`);
+    // Check response structure
+    if (!data) {
+      throw new Error('No data received from generation service');
     }
 
-    // SUCCESS - Return validated lines
-    if (data?.validated === true && data?.lines) {
-      console.log("✅ GPT-5 SUCCESS:", data.model);
-      return {
-        lines: data.lines,
-        model: data.model,
-        validated: true,
-        issues: data.issues || []
-      };
+    if (data.success === false) {
+      throw new Error(data.error || 'Generation service returned failure');
     }
 
-    // Should not reach here with strict mode
-    throw new Error('Unexpected response format from GPT-5');
+    if (!data.lines || !Array.isArray(data.lines) || data.lines.length === 0) {
+      throw new Error('Invalid response: no lines generated');
+    }
+
+    console.log("✅ Generation Success:", data.model);
+    return {
+      lines: data.lines,
+      model: data.model || 'unknown',
+      validated: data.validated || false,
+      issues: data.issues || []
+    };
   } catch (error) {
-    console.error("❌ STRICT MODE FAILURE:", error);
-    
-    // In strict mode, surface errors to UI instead of silent fallbacks
-    throw new Error(`Text generation failed: ${error.message || 'Unknown error'}`);
+    console.error("❌ Generation Error:", error);
+    throw error;
   }
 }
