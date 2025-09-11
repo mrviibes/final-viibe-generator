@@ -5368,7 +5368,7 @@ const Index = () => {
       
       const prompts = buildIdeogramPrompts(ideogramPayload, { injectText: true });
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
-      const styleForIdeogram = getStyleTypeForIdeogram(visualStyle);
+      const styleForIdeogram = getStyleTypeForIdeogram(visualStyle, true);
       
       const retryResult = await retryWithTextFallback({
         prompt: prompts.positive_prompt,
@@ -5476,7 +5476,7 @@ const Index = () => {
       }
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
       // Always respect the selected visual style, but use default if exact mode
-      const styleForIdeogram = exactPromptMode ? defaultStyleType : visualStyle ? getStyleTypeForIdeogram(visualStyle) : defaultStyleType;
+      const styleForIdeogram = exactPromptMode ? defaultStyleType : visualStyle ? getStyleTypeForIdeogram(visualStyle, textInsideImage) : defaultStyleType;
 
       // Use custom seed if provided
       const seedValue = customSeed.trim() ? parseInt(customSeed.trim()) : undefined;

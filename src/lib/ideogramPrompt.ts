@@ -17,8 +17,9 @@ const fontsByTone: Record<string, string[]> = {
   humorous: ['playful rounded', 'friendly sans'],
   celebratory: ['bold script', 'festive serif'],
   motivational: ['strong sans-serif', 'impactful condensed'],
+  inspirational: ['clean sans-serif', 'readable sans-serif'],
   thankful: ['warm serif', 'grateful script'],
-  default: ['clean sans-serif', 'readable serif']
+  default: ['clean sans-serif', 'readable sans-serif']
 };
 
 // Randomization elements for variety
@@ -172,8 +173,12 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
       textPlacement: 'text as badge callout in top-right corner, compact design'
     },
     'clear narrow bottom strip': {
-      composition: 'composition with clear narrow horizontal strip at bottom',
-      textPlacement: 'subtle caption overlay at narrow bottom strip, small clean sans-serif, center aligned, high contrast'
+      composition: 'composition with clear negative space at bottom',
+      textPlacement: 'subtle caption overlay at bottom, small clean sans-serif, center aligned, high contrast'
+    },
+    'clear empty area near largest margin': {
+      composition: 'composition with clear negative space at bottom',
+      textPlacement: 'subtle caption overlay at bottom, small clean sans-serif, center aligned, high contrast'
     }
   };
   
@@ -205,8 +210,8 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
     const selectedFont = getRandomElement(fonts);
     const textStyle = getRandomElement(['subtle shadow', 'soft glow', 'clean stroke']);
     
-    // Put text instruction at the very beginning with explicit styling
-    textParts.push(`Render the following text directly in the image: "${handoff.key_line}". Style: ${layout.textPlacement}, ${selectedFont}, ${textStyle}, minimal styling. The text must be clearly visible and spelled correctly.`);
+    // Put text instruction at the very beginning with explicit styling - exactly once
+    textParts.push(`Render the following text exactly once (single caption): "${handoff.key_line}". Style: ${layout.textPlacement}, ${selectedFont}, ${textStyle}, minimal styling. The text must be clearly visible and spelled correctly.`);
   }
   
   // 2. SCENE DESCRIPTION: Core subject with tone + SUBCATEGORY LOCK
@@ -279,7 +284,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   
   // Choose negative prompt based on text injection mode  
   const negativePrompt = shouldInjectText 
-    ? "no misspelled text, no duplicated words, no random letters, no blurry or overlapping text, no unwanted logos, no unrelated sports or activities" // Focused for text mode
+    ? "no misspelled text, no duplicated words, no random letters, no blurry or overlapping text, no unwanted logos, no unrelated sports or activities, no badges, no icons, no monograms, no thick banner bars, no UI panels, no secondary captions, no multiple text blocks" // Enhanced for text mode
     : "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no embedded text, no letters, no words, no signage"; // Enhanced for overlay mode
 
   return {
@@ -342,9 +347,9 @@ export function getAspectRatioForIdeogram(aspectRatio: string): 'ASPECT_10_16' |
   return ratioMap[aspectRatio] || 'ASPECT_16_9';
 }
 
-export function getStyleTypeForIdeogram(visualStyle: string): 'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME' {
+export function getStyleTypeForIdeogram(visualStyle: string, hasTextInjection?: boolean): 'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME' {
   const styleMap: Record<string, 'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME'> = {
-    'auto': 'AUTO',
+    'auto': hasTextInjection ? 'REALISTIC' : 'AUTO', // Prefer REALISTIC for text injection
     'general': 'GENERAL', 
     'realistic': 'REALISTIC',
     'design': 'DESIGN',
@@ -358,5 +363,5 @@ export function getStyleTypeForIdeogram(visualStyle: string): 'AUTO' | 'GENERAL'
     'caricature': 'ANIME'
   };
   
-  return styleMap[visualStyle?.toLowerCase()] || 'AUTO';
+  return styleMap[visualStyle?.toLowerCase()] || (hasTextInjection ? 'REALISTIC' : 'AUTO');
 }

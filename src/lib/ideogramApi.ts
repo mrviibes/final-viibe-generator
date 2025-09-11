@@ -142,7 +142,7 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
     console.log('Content safety: Prompt was sanitized before generation');
   }
   
-  // Force DESIGN style and disable magic prompt when baking text
+  // Disable magic prompt when baking text to prevent Ideogram from adding extra wording
   const containsTextDirective = request.prompt.toLowerCase().includes('render the following text') || 
                                request.prompt.toLowerCase().includes('render text') || 
                                request.prompt.toLowerCase().includes('text exactly once');
@@ -150,9 +150,7 @@ export async function generateIdeogramImage(request: IdeogramGenerateRequest): P
   const sanitizedRequest = {
     ...request,
     prompt: promptValidation.cleaned,
-    // Force DESIGN style for better text rendering when prompt contains text instructions
-    style_type: containsTextDirective ? 'DESIGN' : request.style_type,
-    // Disable magic prompt when baking text to prevent Ideogram from adding extra wording
+    // Keep original style but disable magic prompt when baking text to prevent extra wording
     magic_prompt_option: containsTextDirective ? 'OFF' : request.magic_prompt_option
   };
   
@@ -254,7 +252,6 @@ export async function generateWithStricterLayout(
   return generateIdeogramImage({
     ...request,
     prompt: modifiedPrompt,
-    style_type: 'DESIGN', // Force DESIGN style for better text rendering
     magic_prompt_option: 'OFF' // Disable magic prompt to prevent extra wording
   });
 }
@@ -276,7 +273,6 @@ export async function retryWithTextFallback(
     const retryResult = await generateIdeogramImage({
       ...request,
       prompt: stricterPrompt,
-      style_type: 'DESIGN',
       magic_prompt_option: 'OFF'
     });
     
