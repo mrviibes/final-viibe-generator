@@ -165,6 +165,19 @@ Return ONLY valid JSON in this format:
       throw new Error(`Empty content (finish: ${finishReason})`);
     }
     
+    // PARSE JSON CONTENT
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch (error) {
+      throw new Error(`Invalid JSON response: ${error.message}`);
+    }
+    
+    // VALIDATE STRUCTURE
+    if (!parsed.lines || !Array.isArray(parsed.lines) || parsed.lines.length < 4) {
+      throw new Error(`Invalid structure: expected 4 lines, got ${parsed.lines?.length || 0}`);
+    }
+    
     // COMPREHENSIVE VALIDATION - LENGTH, PUNCTUATION, VARIETY, HUMAN RHYTHM, RATING, PERSPECTIVE
     const validationErrors = [];
     const isStoryMode = inputs.style === 'story';
