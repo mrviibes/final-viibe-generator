@@ -55,10 +55,11 @@ Return ONLY valid JSON:
    - Option 2 = 50–60 characters
    - Option 3 = 60–70 characters
    - Option 4 = 70–80 characters
-   - Story Mode only: all 4 lines = 80–100 characters (setup + payoff narrative).
-2. Punctuation:
-   - MAX 1 punctuation mark per line (comma OR period OR colon).
-   - No em dashes.
+   - Story Mode ONLY: ALL 4 lines = 80–100 characters (setup + payoff narrative).
+2. Punctuation (STRICT):
+   - EXACTLY 1 punctuation mark per line (comma OR period OR colon).
+   - NO MORE than one punctuation mark.
+   - No em dashes, no ellipsis.
 3. Tone must match selection:
    - Humorous = observational or pun-based.
    - Savage = sharp roast, sarcastic.
@@ -70,8 +71,8 @@ Return ONLY valid JSON:
    - Serious = plain, respectful.
 4. Style must match selection:
    - Standard = balanced observational.
-   - Story Mode = mini-story with setup → payoff.
-   - Punchline First = gag lands in first half.
+   - Story Mode = mini-story with setup → payoff (80-100 chars each).
+   - Punchline First = gag lands in first 30 characters.
    - Pop Culture = MUST mention a celebrity, meme, or trend.
    - Wildcard = random format/voice.
 5. Rating:
@@ -82,11 +83,14 @@ Return ONLY valid JSON:
 6. Tags:
    - Unquoted tags (e.g. jesse, cake) → appear literally in 3/4 lines.
    - Quoted tags (e.g. "loser", "romantic") → do NOT appear, but steer tone/voice.
-7. Variety:
+7. Variety (ENFORCE):
    - Each line must use a different comedic voice from this hidden bank: energetic storytelling, raw fearless, cultural commentary, millennial adulting humor, edgy wit, political/global, physical/family-centric, blunt observational, narrative, deadpan.
-   - Do not repeat the same premise across all 4 (e.g. not all about cake).
-   - At least one must be observational, one cultural, one absurd, one roast.
-8. Must feel like spoken human jokes, not stiff sentences.
+   - Do NOT repeat cliché premises (max 1 per batch): cake/candles/balloons for Birthday, tree/sweater/eggnog for Christmas.
+   - REQUIRE: one observational, one cultural, one absurd, one roast.
+8. Human rhythm (CRITICAL):
+   - Must feel like spoken human jokes, not AI templates.
+   - Use conversational delivery, natural pauses.
+   - Avoid robotic patterns or repeated sentence structures.
 9. Output ONLY valid JSON in the structure above.`;
   
   const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG'}`;
@@ -145,7 +149,7 @@ Return ONLY valid JSON:
       throw new Error(`Empty content (finish: ${finishReason})`);
     }
     
-     // ENHANCED VALIDATION WITH NEW REQUIREMENTS
+    // ENHANCED VALIDATION WITH STRICTER REQUIREMENTS
     let parsed;
     try {
       parsed = JSON.parse(content);
@@ -158,19 +162,30 @@ Return ONLY valid JSON:
       throw new Error('Bad response shape');
     }
     
-    // COMPREHENSIVE VALIDATION - LENGTH, PUNCTUATION, VARIETY
+    // COMPREHENSIVE VALIDATION - LENGTH, PUNCTUATION, VARIETY, HUMAN RHYTHM
     const validationErrors = [];
     const isStoryMode = inputs.style === 'story';
+    
+    // Story Mode: ALL 4 lines must be 80-100 chars
+    // Standard Mode: 40-50, 50-60, 60-70, 70-80
     const expectedLengths = isStoryMode 
-      ? [80, 80, 80, 80] // Story mode: all 80-100 chars
+      ? [90, 90, 90, 90] // Story mode: all 80-100 chars (target 90)
       : [45, 55, 65, 75]; // Standard: 40-50, 50-60, 60-70, 70-80 chars
     const lengthTolerances = isStoryMode 
-      ? [20, 20, 20, 20] // ±20 for story mode (80-100 range)
+      ? [10, 10, 10, 10] // ±10 for story mode (80-100 range)
       : [5, 5, 5, 5]; // ±5 for standard modes
     
     const allTexts = parsed.lines.map((line: any) => line.text?.toLowerCase() || '');
     const unquotedTags = Array.isArray(inputs.tags) ? 
       inputs.tags.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"')) : [];
+    
+    // Cliché premise words by category
+    const clicheMap: { [key: string]: string[] } = {
+      'Birthday': ['cake', 'candles', 'balloons', 'wrapping', 'party'],
+      'Christmas Day': ['tree', 'sweater', 'eggnog', 'fruitcake', 'carols'],
+      'New Year': ['resolution', 'countdown', 'champagne', 'midnight', 'fireworks']
+    };
+    const clicheWords = clicheMap[inputs.subcategory] || [];
     
     parsed.lines.forEach((line, index) => {
       const text = line.text || '';
@@ -190,21 +205,35 @@ Return ONLY valid JSON:
         validationErrors.push(`Option ${index + 1} contains em dash (—) - not allowed`);
       }
       
-      // NEW: Check punctuation limit (max 1 per line)
+      // STRICT: Check punctuation limit (EXACTLY 1 per line)
       const punctuationCount = (text.match(/[,.;:!?]/g) || []).length;
-      if (punctuationCount > 1) {
-        validationErrors.push(`Option ${index + 1} has ${punctuationCount} punctuation marks, max 1 allowed`);
+      if (punctuationCount !== 1) {
+        validationErrors.push(`Option ${index + 1} has ${punctuationCount} punctuation marks, must have exactly 1`);
+      }
+      
+      // Check for ellipsis
+      if (text.includes('...') || text.includes('..')) {
+        validationErrors.push(`Option ${index + 1} contains ellipsis - not allowed`);
       }
     });
     
-    // NEW: Variety validation - check for repeated premise words
-    const premiseWords = ['cake', 'candles', 'birthday', 'old', 'age', 'year', 'party', 'wish', 'blow'];
-    premiseWords.forEach(word => {
+    // NEW: Cliché premise variety - max 1 occurrence per batch
+    clicheWords.forEach(word => {
       const count = allTexts.filter(text => text.includes(word)).length;
-      if (count >= 3) {
-        validationErrors.push(`Word "${word}" appears in ${count}/4 lines, lacks variety`);
+      if (count > 1) {
+        validationErrors.push(`Cliché word "${word}" appears in ${count}/4 lines, max 1 allowed for variety`);
       }
     });
+    
+    // NEW: Human rhythm check - avoid robotic patterns
+    const firstWords = parsed.lines.map((line: any) => {
+      const words = (line.text || '').split(/\s+/).slice(0, 3).join(' ').toLowerCase();
+      return words;
+    });
+    const uniqueStarts = new Set(firstWords);
+    if (uniqueStarts.size < 4) {
+      validationErrors.push('Lines start too similarly, lacks human variety');
+    }
     
     // NEW: Tag validation - unquoted tags should appear in 3/4 lines
     unquotedTags.forEach(tag => {
@@ -214,13 +243,27 @@ Return ONLY valid JSON:
       }
     });
     
+    // NEW: Story Mode structure validation
+    if (isStoryMode) {
+      const pivotWords = ['then', 'after', 'later', 'when', 'finally', 'last year', 'by midnight', 'and then'];
+      const payoffWords = ['but', 'so', 'which', 'and then', 'still', 'yet'];
+      
+      parsed.lines.forEach((line, index) => {
+        const text = (line.text || '').toLowerCase();
+        const hasPivot = pivotWords.some(word => text.includes(word));
+        const hasPayoff = payoffWords.some(word => text.includes(word));
+        
+        if (!hasPivot || !hasPayoff) {
+          validationErrors.push(`Option ${index + 1} missing story structure (setup → payoff)`);
+        }
+      });
+    }
+    
     // NEW: Pop culture validation
     if (inputs.style === 'pop_culture') {
+      const popCultureWords = ['taylor', 'swift', 'drake', 'rihanna', 'kanye', 'barbie', 'oppenheimer', 'marvel', 'dc', 'netflix', 'tiktok', 'youtube', 'meme', 'viral', 'hashtag', 'star wars', 'disney', 'nba', 'nfl'];
       const hasPopCulture = allTexts.some(text => {
-        return text.includes('netflix') || text.includes('spotify') || text.includes('tiktok') || 
-               text.includes('instagram') || text.includes('twitter') || text.includes('uber') ||
-               text.includes('amazon') || text.includes('google') || text.includes('apple') ||
-               /\b(taylor|swift|kardashian|beyonce|musk|trump|biden|lebron|drake)\b/i.test(text);
+        return popCultureWords.some(word => text.includes(word));
       });
       if (!hasPopCulture) {
         validationErrors.push('Pop culture style requires celebrity, meme, or trend references');
