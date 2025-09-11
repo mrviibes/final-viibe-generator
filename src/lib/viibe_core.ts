@@ -64,140 +64,75 @@ export async function generateTextOptions(session: Session, { tone, tags = [] }:
 ========================================================= */
 import { openAIService } from './openai';
 import { parseVisualTags } from './textUtils';
+import { supabase } from '@/integrations/supabase/client';
 
+// Use direct Edge Function endpoint for visual generation
 export async function generateVisualOptions(session: Session, { tone, tags = [], textContent = "", textLayoutId = "negativeSpace", recommendationMode = "balanced" }: { tone: string; tags?: string[]; textContent?: string; textLayoutId?: string; recommendationMode?: "balanced" | "cinematic" | "surreal" | "dynamic" | "chaos" | "exaggerated" }): Promise<{
   visualOptions: Array<{ lane: string; prompt: string }>;
   negativePrompt: string;
   model: string;
 }> {
   try {
-    console.log('🎨 generateVisualOptions called with:', { 
+    console.log('🎨 generateVisualOptions calling new Edge Function:', { 
       category: session.category, 
       subcategory: session.subcategory, 
       tone, 
       tags, 
       entity: session.entity,
       textContent,
-      textLayoutId 
+      textLayoutId,
+      recommendationMode
     });
 
     // Parse visual tags into hard tags (appear literally) and soft tags (influence style)
     const { hardTags, softTags } = parseVisualTags(tags);
     console.log('🏷️ Parsed visual tags:', { hardTags, softTags });
     
-    // Generate mode-specific style guidance with stronger effects
-    const getModeGuidance = (mode: string) => {
-      switch (mode) {
-        case 'cinematic':
-          return 'Movie-poster energy: hero moment, spotlights, dynamic camera, dramatic color contrast. Add motion cues (spray, turf flecks, confetti), crowd bokeh, epic atmosphere.';
-        case 'surreal':
-          return 'Bend reality to heighten the joke (floating gear, oversized props, dream color fog). Impossible physics allowed; maintain subcategory identity.';
-        case 'dynamic':
-          return 'Freeze a peak action beat (mid-air dive, sprint, tackle, leap). Emphasize speed trails, motion blur, sweat, impact debris; keep background readable.';
-        case 'chaos':
-          return 'Mash two unexpected visual ideas tied to subcategory and the joke. Bold palettes, playful composition; still leave layout space clean.';
-        case 'exaggerated':
-          return 'Caricature—big heads, small bodies (funny but polished), expressive faces. Keep gear accurate to subcategory so it reads instantly.';
-        default: // balanced
-          return 'Polished, realistic sports/photojournalism look. Clear subject action relevant to subcategory, clean composition for layout.';
+    // Call the new generate-visuals Edge Function
+    const { data, error } = await supabase.functions.invoke('generate-visuals', {
+      body: {
+        final_text: textContent,
+        category: session.category,
+        subcategory: session.subcategory,
+        mode: recommendationMode,
+        layout_token: textLayoutId
       }
-    };
-
-    const systemPrompt = `You generate 4 vivid, funny, cinematic visual scene ideas as JSON only.  
-Return EXACTLY:
-
-{
-  "visualOptions":[
-    {"lane":"option1","prompt":"..."},
-    {"lane":"option2","prompt":"..."},
-    {"lane":"option3","prompt":"..."},
-    {"lane":"option4","prompt":"..."}
-  ],
-  "negativePrompt":"..."
-}
-
-## Core Rules:
-- Visuals must tie directly to the provided joke/caption text.  
-- Must be cinematic, exciting, and imaginative — NOT generic filler.  
-- Always leave [${textLayoutId}] clean for text placement.  
-- Concepts should feel like fun, shareable meme images that match the joke.  
-
-## Negative Rules:
-no bland stock photo, no empty rooms, no balloons/cake placeholders unless the joke explicitly requires them,  
-no random objects with no context, no abstract shapes, no watermarks, no logos, no on-image text.  
-
-## Mode Behavior (enforce one block based on user's [${recommendationMode}] selection):
-
-[Balanced]  
-- Polished, realistic photography style.  
-- Clear subject action directly tied to [${session.subcategory}] and the joke.  
-- Clean composition, good lighting, readable negative space.  
-
-[Cinematic Action]  
-- Movie-poster energy.  
-- Dramatic lighting, spotlight, motion blur, debris/confetti in air.  
-- Epic atmosphere, stadium or stage feel.  
-
-[Dynamic Action]  
-- Freeze-frame chaos or peak energy moment.  
-- Mid-air dives, jumping, slipping, crashing, sweating, exploding candles, exaggerated motion.  
-- Focused subject with visible kinetic effects.  
-
-[Surreal / Dreamlike]  
-- Impossible or dreamlike imagery tied to joke (floating objects, melting props, warped reflections, giant clocks).  
-- Bend physics and scale but keep [${session.subcategory}] context recognizable.  
-
-[Randomized Chaos]  
-- Unexpected mashup of joke + [${session.subcategory}] + something absurd.  
-- Wild palettes, glitchy energy, "surprise me" feel.  
-- Must remain funny, not abstract filler.  
-
-[Exaggerated Proportions]  
-- Cartoonish caricature style.  
-- Oversized heads, tiny bodies, comically exaggerated props.  
-- Big emotions, meme-friendly composition.  
-
----
-
-## Now generate 4 distinct visual concepts that:  
-- Match the chosen mode,  
-- Tie directly to the joke text,  
-- Feel cinematic and exciting,  
-- And could stand alone as a funny, shareable image.`;
-
-    const userPrompt = `Context:\n- final_text: "${textContent}"\n- category: ${session.category}\n- subcategory: ${session.subcategory}\n- mode: ${recommendationMode}\n- layout_token: ${textLayoutId}\n- hard_tags: ${hardTags.join(', ') || 'none'}\n- soft_tags: ${softTags.join(', ') || 'none'}`;
-
-    console.log('🎯 Calling GPT directly for visual generation...');
-    const result = await openAIService.chatJSON([
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ], {
-      model: 'gpt-5-mini-2025-08-07',
-      max_completion_tokens: 800,
-      edgeOnly: true
     });
 
-    const concepts = (result.concepts || []).map((c: any) => ({ lane: c.lane, prompt: c.text }));
-    const legacyVisuals = (result.visualOptions || []).map((v: any) => ({ lane: v.lane, prompt: v.prompt }));
-    const mergedOptions = concepts.length ? concepts : legacyVisuals;
+    if (error) {
+      console.error('Edge Function error:', error);
+      throw new Error(error.message || 'Visual generation failed');
+    }
+
+    if (!data?.success) {
+      console.error('Visual generation failed:', data?.error);
+      throw new Error(data?.error || 'No concepts returned');
+    }
+
+    // Transform the response to match expected format
+    const visualOptions = data.concepts.map((concept: any) => ({
+      lane: concept.lane,
+      prompt: concept.text
+    }));
+
     const finalResult = {
-      visualOptions: mergedOptions,
-      negativePrompt: "no generic placeholders, no bland stock photo, no random empty rooms, no abstract shapes, no watermarks, no logos, no on-image text",
-      model: 'gpt-5-mini-2025-08-07'
+      visualOptions,
+      negativePrompt: "no bland stock photo, no empty room, no generic object, no illegible clutter, no watermarks, no logos, no extra on-image text",
+      model: data.model || 'gpt-5-mini-2025-08-07'
     };
 
     console.log('✅ Visual generation successful:', finalResult);
     return finalResult;
   } catch (error) {
     console.error('Error in generateVisualOptions:', error);
-    // Fallback to empty options on error
+    // Return error state instead of empty options
     const errorResult = {
       visualOptions: [],
       negativePrompt: "no bland stock photo, no empty room, no generic object, no illegible clutter, no watermarks, no logos, no extra on-image text",
       model: "error"
     };
     (errorResult as any).errorCode = "GENERATION_FAILED";
-    return errorResult;
+    throw error; // Re-throw to trigger proper error handling in UI
   }
 }
 

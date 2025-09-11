@@ -4675,9 +4675,6 @@ const Index = () => {
   // Visual AI recommendations state
   const [isTestingProxy, setIsTestingProxy] = useState(false);
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
 
   // Helper function to truncate text to max words
   const truncateWords = (text: string, maxWords: number): string => {
