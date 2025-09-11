@@ -40,7 +40,7 @@ serve(async (req) => {
 
     const {
       temperature = 0.8,
-      max_tokens = 500, // Reduced for speed
+      max_tokens = 500, // Increased for reasoning overhead
       max_completion_tokens,
       model = 'gpt-5-mini-2025-08-07'
     } = options;

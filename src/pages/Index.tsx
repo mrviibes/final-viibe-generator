@@ -4692,7 +4692,7 @@ const Index = () => {
           content: 'Warm up. Return json response: {"status": "ready"}'
         }], {
           model: 'gpt-5-mini-2025-08-07',
-          max_completion_tokens: 20
+          max_completion_tokens: 100
         }).catch(() => {}); // Silent fail
       } catch {
         // Silent fail - this is just a warm-up
