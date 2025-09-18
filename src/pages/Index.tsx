@@ -4813,19 +4813,6 @@ const Index = () => {
       selections.push({
         title: `Subject Option: ${subjectOption?.name}`,
         subtitle: subjectOption?.description,
-        canEdit: true,
-        onEdit: (newSubtitle?: string) => {
-          if (newSubtitle && subjectOption) {
-            // Update the subject option description
-            const updatedOptions = subjectOptions.map(option => 
-              option.id === subjectOption.id 
-                ? { ...option, description: newSubtitle }
-                : option
-            );
-            // Note: This would need state management to persist, for now just show the change
-            console.log('Updated description:', newSubtitle);
-          }
-        },
         onChangeSelection: () => {
           setSelectedSubjectOption(null);
           setSubjectTags([]);
@@ -4852,6 +4839,22 @@ const Index = () => {
         selections.push({
           title: optionTitle,
           subtitle: compactDescription,
+          canEdit: true,
+          onEdit: (newSubtitle?: string) => {
+            if (newSubtitle && selectedVisualIndex !== null) {
+              const updatedOptions = [...visualOptions];
+              // Parse the edited description back into subject and background
+              const parts = newSubtitle.split(' - ');
+              if (parts.length >= 2) {
+                updatedOptions[selectedVisualIndex] = {
+                  ...updatedOptions[selectedVisualIndex],
+                  subject: parts[0],
+                  background: parts.slice(1).join(' - ')
+                };
+                setVisualOptions(updatedOptions);
+              }
+            }
+          },
           onChangeSelection: () => {
             setSelectedVisualIndex(null);
             setSelectedDimension(null);
