@@ -5887,11 +5887,41 @@ const Index = () => {
     try {
       const results = await openAIService.searchPopCulture(selectedSubOption, searchTerm);
       setSearchResults(results);
+      
+      // Show success message if results found
+      if (results.length > 0) {
+        toast({
+          title: "Search Complete",
+          description: `Found ${results.length} ${selectedSubOption} suggestions`
+        });
+      }
     } catch (error) {
       console.error('Search error:', error);
-      setSearchError(error instanceof Error ? error.message : 'Search failed');
-      if (error instanceof Error && error.message.includes('API key')) {
-        setShowApiKeyDialog(true);
+      const errorMsg = error instanceof Error ? error.message : 'Search failed';
+      setSearchError(errorMsg);
+      
+      // Better error handling for specific cases
+      if (error instanceof Error) {
+        if (error.message.includes('API key')) {
+          setShowApiKeyDialog(true);
+          toast({
+            variant: "destructive",
+            title: "API Key Required",
+            description: "OpenAI API key needed for search functionality"
+          });
+        } else if (error.message.includes('prompt too long')) {
+          toast({
+            variant: "destructive", 
+            title: "Search Term Too Long",
+            description: "Try a shorter, more specific search term"
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Search Failed", 
+            description: "Using fallback database instead"
+          });
+        }
       }
     } finally {
       setIsSearching(false);
@@ -5922,12 +5952,12 @@ const Index = () => {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // Debounced search - trigger after 250ms of no typing (much faster)
+    // Debounced search - trigger after 150ms of no typing (faster response)
     searchTimeoutRef.current = setTimeout(() => {
       if (value.trim()) {
         handleSearch(value);
       }
-    }, 250);
+    }, 150);
   };
   return <div className="min-h-screen bg-background py-12 px-4 pb-32">
       <div className="max-w-6xl mx-auto">
@@ -6427,12 +6457,12 @@ const Index = () => {
                   </div>
 
                   {/* Search Status and Results */}
-                  {searchTerm.length >= 2 && <>
+                  {searchTerm.length >= 1 && <>
                       {isSearching && <div className="text-center p-4 bg-muted/50 rounded-lg border border-border">
                           <div className="flex items-center justify-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin" />
                             <p className="text-sm text-muted-foreground">
-                              Searching extensive {selectedSubOption.toLowerCase()} database...
+                              Searching {selectedSubOption} database...
                             </p>
                           </div>
                         </div>}
@@ -6463,9 +6493,9 @@ const Index = () => {
                           </Card>
                         </>}
 
-                      {!isSearching && searchResults.length === 0 && !searchError && searchTerm.length >= 2 && <div className="text-center p-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/50">
+                      {!isSearching && searchResults.length === 0 && !searchError && searchTerm.length >= 1 && <div className="text-center p-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/50">
                           <p className="text-sm text-muted-foreground mb-2">
-                            No results found in database
+                            No results found for "{searchTerm}" in {selectedSubOption}
                           </p>
                           <Button onClick={() => {
                     setSelectedPick(searchTerm.trim());
@@ -6476,9 +6506,9 @@ const Index = () => {
                         </div>}
                     </>}
 
-                  {searchTerm.length > 0 && searchTerm.length < 2 && <div className="text-center p-4 bg-muted/20 rounded-lg border border-dashed border-muted-foreground/30">
+                  {searchTerm.length > 0 && searchTerm.length < 1 && <div className="text-center p-4 bg-muted/20 rounded-lg border border-dashed border-muted-foreground/30">
                       <p className="text-sm text-muted-foreground">
-                        Type at least 2 characters to search...
+                        Start typing to search {selectedSubOption}...
                       </p>
                     </div>}
 

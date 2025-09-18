@@ -240,45 +240,131 @@ export class OpenAIService {
   }
 
   async searchPopCulture(category: string, searchTerm: string): Promise<OpenAISearchResult[]> {
-    const prompt = `Generate exactly 5 creative and relevant ${category.toLowerCase()} suggestions related to "${searchTerm}". Focus on popular, well-known entries that would be engaging for users. Keep descriptions concise (1-2 sentences).
+    // Shortened prompt to avoid token limits
+    const prompt = `5 ${category} suggestions for "${searchTerm}". Popular, engaging entries.
 
-Return as a json object with this exact format:
-{
-  "suggestions": [
-    {"title": "Suggestion Title", "description": "Brief description"}
-  ]
-}`;
+JSON format:
+{"suggestions": [{"title": "Name", "description": "Brief"}]}`;
 
     try {
       const result = await this.chatJSON([
         { role: 'user', content: prompt }
       ], {
-        max_completion_tokens: 1000,
+        max_completion_tokens: 300,
         model: DEFAULT_MODEL
       });
 
-      return result?.suggestions || [];
+      const suggestions = result?.suggestions || [];
+      
+      // If AI fails, combine with fallback database
+      if (suggestions.length === 0) {
+        return this.getPopCultureFallbacks(category, searchTerm);
+      }
+      
+      return suggestions;
     } catch (error) {
       console.error('Pop culture search failed:', error);
-      
-      // Return fallback suggestions based on category
-      const fallbacks: Record<string, OpenAISearchResult[]> = {
-        movies: [
-          { title: "Popular Action Movie", description: "High-energy blockbuster with thrilling sequences" },
-          { title: "Acclaimed Drama", description: "Award-winning dramatic performance" }
-        ],
-        music: [
-          { title: "Chart-topping Hit", description: "Current popular song everyone's talking about" },
-          { title: "Classic Rock Anthem", description: "Timeless rock song that never gets old" }
-        ],
-        default: [
-          { title: "Trending Topic", description: "Popular culture reference everyone knows" },
-          { title: "Cultural Icon", description: "Widely recognized cultural phenomenon" }
-        ]
-      };
-      
-      return fallbacks[category.toLowerCase()] || fallbacks.default;
+      return this.getPopCultureFallbacks(category, searchTerm);
     }
+  }
+
+  private getPopCultureFallbacks(category: string, searchTerm: string): OpenAISearchResult[] {
+    const term = searchTerm.toLowerCase();
+    
+    // Comprehensive fallback database
+    const fallbackDatabase: Record<string, OpenAISearchResult[]> = {
+      movies: [
+        { title: "Avengers: Endgame", description: "Epic superhero finale" },
+        { title: "The Dark Knight", description: "Batman vs Joker masterpiece" },
+        { title: "Titanic", description: "Epic romance disaster film" },
+        { title: "Star Wars", description: "Space opera saga" },
+        { title: "Marvel Movies", description: "Superhero cinematic universe" },
+        { title: "Disney Films", description: "Animated classics and new hits" },
+        { title: "Horror Movies", description: "Scary films and thrillers" },
+        { title: "Comedy Films", description: "Laugh-out-loud comedies" },
+        { title: "Action Movies", description: "High-octane adventures" },
+        { title: "Romantic Movies", description: "Love stories and rom-coms" }
+      ],
+      music: [
+        { title: "Taylor Swift", description: "Pop superstar and songwriter" },
+        { title: "Bad Bunny", description: "Reggaeton and Latin trap king" },
+        { title: "Drake", description: "Hip-hop and R&B megastar" },
+        { title: "Billie Eilish", description: "Alternative pop sensation" },
+        { title: "The Weeknd", description: "R&B and pop hitmaker" },
+        { title: "Hip-Hop Hits", description: "Latest rap and hip-hop tracks" },
+        { title: "Pop Classics", description: "Timeless pop anthems" },
+        { title: "Rock Legends", description: "Iconic rock bands and songs" },
+        { title: "Country Music", description: "Modern and classic country" },
+        { title: "Electronic Dance", description: "EDM and dance hits" }
+      ],
+      celebrities: [
+        { title: "Dwayne Johnson", description: "The Rock actor and wrestler" },
+        { title: "Ryan Reynolds", description: "Deadpool actor and comedian" },
+        { title: "Zendaya", description: "Spider-Man and Euphoria star" },
+        { title: "Chris Evans", description: "Captain America actor" },
+        { title: "Margot Robbie", description: "Barbie and Harley Quinn star" },
+        { title: "Social Media Stars", description: "TikTok and Instagram influencers" },
+        { title: "Marvel Actors", description: "MCU superhero stars" },
+        { title: "Comedy Legends", description: "Stand-up and movie comedians" },
+        { title: "Reality TV Stars", description: "Popular reality show personalities" },
+        { title: "Athletes", description: "Sports superstars" }
+      ],
+      'tv shows': [
+        { title: "Stranger Things", description: "Supernatural 80s nostalgia" },
+        { title: "The Office", description: "Workplace mockumentary comedy" },
+        { title: "Game of Thrones", description: "Fantasy epic series" },
+        { title: "Breaking Bad", description: "Chemistry teacher turned criminal" },
+        { title: "Friends", description: "Classic NYC friend group sitcom" },
+        { title: "Netflix Originals", description: "Streaming platform exclusives" },
+        { title: "Reality TV", description: "Competition and lifestyle shows" },
+        { title: "Anime Series", description: "Popular Japanese animation" },
+        { title: "Comedy Shows", description: "Sitcoms and sketch comedy" },
+        { title: "Drama Series", description: "Compelling dramatic storylines" }
+      ],
+      memes: [
+        { title: "Distracted Boyfriend", description: "Classic choice meme format" },
+        { title: "This is Fine", description: "Dog in burning room meme" },
+        { title: "Drake Pointing", description: "Approval/disapproval format" },
+        { title: "Surprised Pikachu", description: "Shocked reaction meme" },
+        { title: "Woman Yelling at Cat", description: "Dinner table argument meme" },
+        { title: "TikTok Trends", description: "Viral TikTok meme formats" },
+        { title: "Twitter Memes", description: "Social media viral content" },
+        { title: "Reaction GIFs", description: "Animated response images" },
+        { title: "Internet Slang", description: "Online phrases and terms" },
+        { title: "Viral Videos", description: "YouTube and social media hits" }
+      ],
+      trends: [
+        { title: "Social Media Trends", description: "Latest platform crazes" },
+        { title: "Fashion Trends", description: "Current style movements" },
+        { title: "Dance Trends", description: "Viral choreography and moves" },
+        { title: "Food Trends", description: "Popular recipes and restaurants" },
+        { title: "Tech Trends", description: "Latest gadgets and apps" },
+        { title: "Fitness Trends", description: "Popular workout styles" },
+        { title: "Travel Trends", description: "Hot destinations and experiences" },
+        { title: "Beauty Trends", description: "Makeup and skincare crazes" },
+        { title: "Gaming Trends", description: "Popular games and streamers" },
+        { title: "Lifestyle Trends", description: "Cultural movements and habits" }
+      ]
+    };
+
+    let categoryResults = fallbackDatabase[category.toLowerCase()] || [];
+    
+    // Filter results based on search term if provided
+    if (term && term.length > 1) {
+      const filtered = categoryResults.filter(item => 
+        item.title.toLowerCase().includes(term) || 
+        item.description.toLowerCase().includes(term)
+      );
+      
+      if (filtered.length > 0) {
+        categoryResults = filtered;
+      }
+    }
+    
+    // Return up to 5 results, shuffled for variety
+    return categoryResults
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 5);
   }
 
   async generateShortTexts(params: GenerateTextParams): Promise<string[]> {
