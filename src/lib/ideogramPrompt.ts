@@ -407,8 +407,14 @@ export function getAspectRatioForIdeogram(aspectRatio: string): 'ASPECT_10_16' |
 }
 
 export function getStyleTypeForIdeogram(visualStyle: string, hasTextInjection?: boolean): 'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME' {
+  // FORCE DESIGN style for text injection - this is critical for text rendering success
+  if (hasTextInjection) {
+    console.log('🎯 Forcing DESIGN style for text injection (better text rendering)');
+    return 'DESIGN';
+  }
+  
   const styleMap: Record<string, 'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME'> = {
-    'auto': hasTextInjection ? 'DESIGN' : 'AUTO', // Prefer DESIGN for text injection (better text rendering)
+    'auto': 'AUTO',
     'general': 'GENERAL', 
     'realistic': 'REALISTIC',
     'design': 'DESIGN',
@@ -422,5 +428,5 @@ export function getStyleTypeForIdeogram(visualStyle: string, hasTextInjection?: 
     'caricature': 'ANIME'
   };
   
-  return styleMap[visualStyle?.toLowerCase()] || (hasTextInjection ? 'REALISTIC' : 'AUTO');
+  return styleMap[visualStyle?.toLowerCase()] || 'AUTO';
 }

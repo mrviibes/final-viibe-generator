@@ -14,18 +14,20 @@ export const universalTextPlacementTemplates: TextPlacementTemplate[] = [
     id: "memeTopBottom",
     label: "Meme Top/Bottom",
     description: "Bold captions in clear horizontal bands at top and/or bottom",
-    positivePrompt: `TEXT INSTRUCTION (CRITICAL - ABSOLUTE PRIORITY): Render this exact text once: "[FINAL_TEXT]".
-Placement: bold caption at top and/or bottom in clear horizontal bands.
-Style: cinematic meme aesthetic, large modern sans-serif, center aligned,
-high contrast, clean stroke. No tacky outline or old meme font.
-The text must appear clearly and be easy to read. No garbling, no distortion, no misspellings.
-TEXT MUST BE PERFECTLY LEGIBLE AND MATCH EXACTLY.
+    positivePrompt: `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "[FINAL_TEXT]".
+Placement: one single bold caption spanning the meme top/bottom band. 
+Style: modern sans-serif, large, high contrast, meme-ready. 
+Do not split the caption into multiple boxes. 
+Do not reword, shorten, or paraphrase the caption. 
+Render the caption as one continuous sentence exactly as provided. 
+Text must be fully clear, legible, and unbroken.
 
 [SCENE_DESCRIPTION]
-Composition must include clear top and bottom bands for text placement.`,
-    negativePrompt: `no impact font, no outdated meme style, no tacky outlines,
-no duplicated text, no blurry text, no missing captions,
-no random extra words, no watermarks, no logos`
+Composition must preserve the meme top and bottom bands for caption placement.`,
+    negativePrompt: `no multiple text boxes, no reworded text, no broken or garbled letters, 
+no abstract filler shapes, no empty generic backgrounds, 
+no watermarks, no logos, no duplicate captions, 
+no ornamental or handwritten fonts, no faded or blurry text`
   },
   {
     id: "negativeSpace",

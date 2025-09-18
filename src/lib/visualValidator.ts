@@ -168,9 +168,9 @@ export function shouldRetry(validation: VisualValidation): boolean {
   return validation.text_rendering_failed || !validation.overall_pass;
 }
 
-export function validateCaptionMatch(expectedText: string, actualText: string): { exactMatch: boolean; legible: boolean; confidence: number } {
+export function validateCaptionMatch(expectedText: string, actualText: string): { exactMatch: boolean; legible: boolean; confidence: number; isSplit: boolean } {
   if (!expectedText || !actualText) {
-    return { exactMatch: false, legible: false, confidence: 0 };
+    return { exactMatch: false, legible: false, confidence: 0, isSplit: false };
   }
 
   // Normalize both texts for comparison
@@ -183,10 +183,20 @@ export function validateCaptionMatch(expectedText: string, actualText: string): 
   const normalizedExpected = normalizeText(expectedText);
   const normalizedActual = normalizeText(actualText);
 
+  // Check for text splitting patterns (common in failed meme renders)
+  const splitPatterns = [
+    /(.+)\s+(.+)\s+(.+)/, // Text split into 3+ fragments
+    /^[A-Z\s]{2,10}$/, // Short all-caps fragments like "BAC IN THE DAY"
+    /\b\w+\s+\w+\s+\w+\b.*\n.*\b\w+\s+\w+/, // Multi-line splits
+  ];
+  
+  const isSplit = splitPatterns.some(pattern => pattern.test(actualText)) && 
+                  actualText.split(/\s+/).length < expectedText.split(/\s+/).length * 0.7;
+
   // Check for garbling patterns
   const hasGarbling = garblingPatterns.some(pattern => pattern.test(actualText));
-  if (hasGarbling) {
-    return { exactMatch: false, legible: false, confidence: 0 };
+  if (hasGarbling || isSplit) {
+    return { exactMatch: false, legible: false, confidence: 0, isSplit };
   }
 
   // Calculate similarity
@@ -194,7 +204,7 @@ export function validateCaptionMatch(expectedText: string, actualText: string): 
   const actualWords = normalizedActual.split(' ').filter(w => w.length > 0);
   
   if (expectedWords.length === 0) {
-    return { exactMatch: true, legible: true, confidence: 1 };
+    return { exactMatch: true, legible: true, confidence: 1, isSplit: false };
   }
 
   // Count matching words
@@ -211,9 +221,9 @@ export function validateCaptionMatch(expectedText: string, actualText: string): 
 
   const confidence = matchingWords / expectedWords.length;
   const exactMatch = confidence >= 0.8; // 80% word match threshold
-  const legible = confidence >= 0.5 && !hasGarbling; // 50% threshold for legibility
+  const legible = confidence >= 0.5 && !hasGarbling && !isSplit; // Enhanced legibility check
 
-  return { exactMatch, legible, confidence };
+  return { exactMatch, legible, confidence, isSplit };
 }
 
 // Simple Levenshtein distance for fuzzy matching

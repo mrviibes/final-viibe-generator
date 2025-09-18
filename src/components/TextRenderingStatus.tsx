@@ -4,6 +4,8 @@ import { Loader2 } from "lucide-react";
 export type TextRenderingStatusType = 
   | "placing-caption"
   | "retrying-stronger-layout" 
+  | "text-split-retrying"
+  | "text-garbled-retrying"
   | "using-overlay-fallback"
   | "completed"
   | null;
@@ -25,6 +27,16 @@ export function TextRenderingStatus({ status, className = "" }: TextRenderingSta
     "retrying-stronger-layout": {
       text: "Retrying with stronger layout...",
       variant: "secondary" as const,
+      showSpinner: true
+    },
+    "text-split-retrying": {
+      text: "Text was split into blocks, retrying...",
+      variant: "destructive" as const,
+      showSpinner: true
+    },
+    "text-garbled-retrying": {
+      text: "Text was garbled, retrying...",
+      variant: "destructive" as const,
       showSpinner: true
     },
     "using-overlay-fallback": {
