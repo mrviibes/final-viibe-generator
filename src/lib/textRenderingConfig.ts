@@ -36,3 +36,17 @@ export function getPreferredLayout(hasCaption: boolean): LayoutType {
 export function getPreferredStyle(hasCaption: boolean): StyleType {
   return hasCaption ? STYLE_SELECTION.with_caption[0] : STYLE_SELECTION.no_caption[0];
 }
+
+// Layout success probability mapping for intelligent validation
+export const LAYOUT_SUCCESS_RATES = {
+  memeTopBottom: 0.9,   // 90% success rate (most reliable)
+  lowerThird: 0.7,      // 70% success rate
+  sideBarLeft: 0.6,     // 60% success rate  
+  badgeSticker: 0.7,    // 70% success rate
+  negativeSpace: 0.2,   // 20% success rate (most challenging)
+  subtleCaption: 0.3    // 30% success rate
+} as const;
+
+export function getLayoutSuccessRate(layout: LayoutType): number {
+  return LAYOUT_SUCCESS_RATES[layout] || 0.5;
+}

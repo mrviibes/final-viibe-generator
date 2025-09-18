@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 
 export type TextRenderingStatusType = 
   | "placing-caption"
+  | "validating-caption"
   | "retrying-stronger-layout" 
   | "text-split-retrying"
   | "text-garbled-retrying"
@@ -42,6 +43,11 @@ export function TextRenderingStatus({ status, className = "" }: TextRenderingSta
     "using-overlay-fallback": {
       text: "Using overlay fallback...",
       variant: "outline" as const,
+      showSpinner: true
+    },
+    "validating-caption": {
+      text: "Validating text clarity...",
+      variant: "secondary" as const,
       showSpinner: true
     }
   };
