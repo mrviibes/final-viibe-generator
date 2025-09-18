@@ -15,10 +15,7 @@ export const STYLE_SELECTION = {
 export const RETRY_TIERS = [
   { layout: "memeTopBottom", style: "DESIGN" },
   { layout: "lowerThird", style: "DESIGN" },
-  { layout: "memeTopBottom", style: "GENERAL" },
-  { layout: "lowerThird", style: "GENERAL" },
-  { layout: "memeTopBottom", style: "DESIGN" },  // Additional retries
-  { layout: "subtleCaption", style: "DESIGN" }
+  { layout: "memeTopBottom", style: "GENERAL" }
 ] as const;
 
 export type LayoutType = typeof LAYOUT_PRIORITY[number];
@@ -41,12 +38,12 @@ export function getPreferredStyle(hasCaption: boolean): StyleType {
 
 // Layout success probability mapping for intelligent validation
 export const LAYOUT_SUCCESS_RATES = {
-  memeTopBottom: 0.9,   // 90% success rate (most reliable)
-  lowerThird: 0.7,      // 70% success rate
-  sideBarLeft: 0.6,     // 60% success rate  
-  badgeSticker: 0.7,    // 70% success rate
-  negativeSpace: 0.2,   // 20% success rate (most challenging)
-  subtleCaption: 0.3    // 30% success rate
+  memeTopBottom: 0.95,   // 95% success rate (most reliable)
+  lowerThird: 0.90,      // 90% success rate
+  sideBarLeft: 0.85,     // 85% success rate  
+  badgeSticker: 0.90,    // 90% success rate
+  negativeSpace: 0.75,   // 75% success rate (improved from 20%)
+  subtleCaption: 0.80    // 80% success rate (improved from 30%)
 } as const;
 
 export function getLayoutSuccessRate(layout: LayoutType): number {

@@ -229,9 +229,9 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
       sceneDescription
     );
     
-    // Strengthen text rendering instructions
-    const strengthenedPositive = `${positivePrompt} CRITICAL: The text "${handoff.key_line}" MUST be clearly readable, correctly spelled, and prominently displayed. DO NOT OMIT ANY TEXT. Text rendering is MANDATORY.`;
-    const strengthenedNegative = `${negativePrompt}, blurry text, garbled text, missing text, illegible text, text cutoff, partial text`;
+    // Strengthen text rendering instructions (concise version to avoid API limits)
+    const strengthenedPositive = `${positivePrompt} Text must be legible: "${handoff.key_line}"`;
+    const strengthenedNegative = `${negativePrompt}, blurry text, missing text`;
     
     console.log('🎯 Universal Template Output:', { positivePrompt: positivePrompt.substring(0, 100) + '...', negativePrompt });
     
@@ -319,7 +319,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
-    const textInstruction = `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "${handoff.key_line}". Placement: ${layout.textPlacement}. Style: large clean sans serif, high contrast, subtle glow or stroke, fully legible. The caption must appear clearly and be readable.`;
+    const textInstruction = `Text: "${handoff.key_line}". ${selectedFont}, legible.`;
     textParts.unshift(textInstruction);
   }
   
@@ -329,16 +329,13 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   
   // Add multiple redundant text requirements for better success
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
-    positivePrompt += ` CRITICAL TEXT REQUIREMENT: The text "${handoff.key_line}" must be clearly visible and readable in the final image. No garbled text allowed. Text must match exactly.`;
+    positivePrompt += ` Text visible: "${handoff.key_line}".`;
   }
   
   // Add overlay-mode text avoidance directive only when explicitly avoiding text
   if (!shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
-    const layoutArea = layout.textPlacement.includes('bottom') ? 'bottom area' : 
-                      layout.textPlacement.includes('top') ? 'top area' :
-                      layout.textPlacement.includes('left') ? 'left area' : 
-                      'designated text area';
-    positivePrompt += ` Reserve the ${layoutArea} as clear space for overlay caption added later. Do not render any text, letters, numbers, or captions in the image.`;
+    // Simplified instruction for overlay caption  
+    positivePrompt += ` Clear space for text overlay. No text in image.`;
   }
   
   // Sanitize the final prompt
@@ -379,9 +376,9 @@ export function buildStricterLayoutPrompts(handoff: IdeogramHandoff, stricterLay
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
     
-    const stricterTextInstructions = `TEXT INSTRUCTION (CRITICAL - ABSOLUTE PRIORITY): Render this exact text once: "${handoff.key_line}". The text must appear clearly in the final image. Placement: ${stricterLayoutToken} layout. Style: ${selectedFont} typography with high contrast. Do not omit, do not distort, do not duplicate, do not garble. Text must be perfectly legible.`;
+    const stricterTextInstructions = `Text: "${handoff.key_line}" in ${stricterLayoutToken}. High contrast ${selectedFont}.`;
     
-    basePrompts.positive_prompt = `${stricterTextInstructions} ${basePrompts.positive_prompt}. MANDATORY: The text overlay is required and must be readable for this design.`;
+    basePrompts.positive_prompt = `${stricterTextInstructions} ${basePrompts.positive_prompt}`;
   }
   
   return basePrompts;

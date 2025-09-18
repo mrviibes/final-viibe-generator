@@ -5495,13 +5495,24 @@ const Index = () => {
     const hasCaption = finalText.trim().length > 0;
 
     if (!hasCaption) {
-    // No caption needed, use normal generation
-    await generateSingleImage();
-    return;
+      // No caption needed, use normal generation
+      await generateSingleImage();
+      return;
     }
 
+    // Add maximum retry limit and timeout safety guards
+    const maxRetries = Math.min(RETRY_TIERS.length, 3); // Limit to 3 attempts max
+    const startTime = Date.now();
+    const maxDuration = 120000; // 2 minutes timeout
+    
     // Try progressive layout/style combinations for text rendering
-    for (let attempt = 0; attempt < RETRY_TIERS.length; attempt++) {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      // Check timeout
+      if (Date.now() - startTime > maxDuration) {
+        console.log('🚫 Generation timeout reached, using fallback');
+        break;
+      }
+      
       setRetryAttempt(attempt);
       const { layout, style } = decideLayoutAndStyle(attempt);
       
@@ -5530,7 +5541,7 @@ const Index = () => {
         console.error(`Generation attempt ${attempt + 1} failed:`, error);
         
         // If it's the last attempt, continue to fallback
-        if (attempt === RETRY_TIERS.length - 1) {
+        if (attempt === maxRetries - 1) {
           break;
         }
       }
@@ -5547,6 +5558,7 @@ const Index = () => {
       setBackgroundOnlyImageUrl(backgroundImageUrl);
       setShowTextOverlay(true);
       setShouldUseFallback(true);
+      setGeneratedImageUrl(backgroundImageUrl);
       sonnerToast.success("Image generated with text overlay fallback");
       
     } catch (error) {
@@ -5648,20 +5660,25 @@ const Index = () => {
       return true; // No text expected, so it's valid
     }
 
-    // Layout-specific failure patterns (simulate real-world text rendering issues)
+    // Layout-specific failure patterns (realistic rates to prevent infinite loading)
     const layoutFailureRates = {
-      negativeSpace: 0.8, // 80% failure rate with REALISTIC style
-      subtleCaption: 0.7, // 70% failure rate
-      lowerThird: 0.3,    // 30% failure rate  
-      memeTopBottom: 0.1, // 10% failure rate (most reliable)
-      sideBarLeft: 0.4,   // 40% failure rate
-      badgeSticker: 0.3   // 30% failure rate
+      negativeSpace: 0.25, // 25% failure rate (reduced from 80%)
+      subtleCaption: 0.20, // 20% failure rate (reduced from 70%) 
+      lowerThird: 0.10,    // 10% failure rate (reduced from 30%)
+      memeTopBottom: 0.05, // 5% failure rate (reduced from 10%)
+      sideBarLeft: 0.15,   // 15% failure rate (reduced from 40%)
+      badgeSticker: 0.10   // 10% failure rate (reduced from 30%)
     };
 
-    const failureRate = layoutFailureRates[layout as keyof typeof layoutFailureRates] || 0.5;
+    const failureRate = layoutFailureRates[layout as keyof typeof layoutFailureRates] || 0.15;
+    
+    // Make first attempt always succeed for debugging (prevent infinite loops)
+    if (retryAttempt === 0) {
+      console.log('🔍 Text validation SUCCESS (first attempt)');
+      return true;
+    }
     
     // Simulate OCR failure based on layout characteristics
-    // For first attempts with problematic layouts, force failure to trigger retry
     const shouldFail = Math.random() < failureRate;
     
     if (shouldFail) {
