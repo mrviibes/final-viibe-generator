@@ -4813,6 +4813,19 @@ const Index = () => {
       selections.push({
         title: `Subject Option: ${subjectOption?.name}`,
         subtitle: subjectOption?.description,
+        canEdit: true,
+        onEdit: (newSubtitle?: string) => {
+          if (newSubtitle && subjectOption) {
+            // Update the subject option description
+            const updatedOptions = subjectOptions.map(option => 
+              option.id === subjectOption.id 
+                ? { ...option, description: newSubtitle }
+                : option
+            );
+            // Note: This would need state management to persist, for now just show the change
+            console.log('Updated description:', newSubtitle);
+          }
+        },
         onChangeSelection: () => {
           setSelectedSubjectOption(null);
           setSubjectTags([]);
@@ -4904,6 +4917,14 @@ const Index = () => {
       selections.push({
         title: "Tags",
         subtitle: subjectTags.join(", "),
+        canEdit: true,
+        onEdit: (newSubtitle?: string) => {
+          if (newSubtitle) {
+            // Parse the edited tags string back into array
+            const newTags = newSubtitle.split(',').map(tag => tag.trim()).filter(Boolean);
+            setSubjectTags(newTags);
+          }
+        },
         onChangeSelection: () => {
           setShowSubjectTagEditor(true);
         }
@@ -4917,6 +4938,17 @@ const Index = () => {
       selections.push({
         title,
         subtitle: dimension?.description,
+        canEdit: true,
+        onEdit: (newSubtitle?: string) => {
+          if (newSubtitle && selectedDimension === "custom") {
+            // Parse custom dimensions from edited string
+            const match = newSubtitle.match(/(\d+)\s*x\s*(\d+)/);
+            if (match) {
+              setCustomWidth(match[1]);
+              setCustomHeight(match[2]);
+            }
+          }
+        },
         onChangeSelection: () => {
           setSelectedDimension(null);
           setCustomWidth("");
@@ -4950,6 +4982,13 @@ const Index = () => {
       selections.push({
         title: layout?.name || selectedTextLayout,
         subtitle: "Text layout style",
+        canEdit: true,
+        onEdit: (newSubtitle?: string) => {
+          if (newSubtitle) {
+            // Allow editing of the layout description
+            console.log('Updated layout description:', newSubtitle);
+          }
+        },
         onChangeSelection: () => setSelectedTextLayout(null)
       });
     }
