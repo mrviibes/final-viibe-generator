@@ -150,7 +150,7 @@ Placement: ${layoutRule.placement}
 Style: ${layoutRule.style}
 The text must appear clearly and be legible, never omitted.
 
-Rules: 15-25 words per concept. Connect to joke directly. NO generic placeholders.`;
+Rules: 12-20 words per concept. Connect to joke directly. NO generic placeholders.`;
 };
 
 serve(async (req) => {

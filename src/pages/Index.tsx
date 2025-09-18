@@ -279,8 +279,8 @@ function validateLayoutAwareVisuals(options: Array<{
     });
     promptWithoutTokens = promptWithoutTokens.replace(/,\s*/g, ' ').trim();
     const subjectWordCount = promptWithoutTokens.split(/\s+/).filter(w => w.length > 0).length;
-    if (subjectWordCount < 4 || subjectWordCount > 22) {
-      issues.push(`word count: ${subjectWordCount} (need 4-22)`);
+    if (subjectWordCount < 4 || subjectWordCount > 25) {
+      issues.push(`word count: ${subjectWordCount} (need 4-25)`);
       isValid = false;
     }
 
