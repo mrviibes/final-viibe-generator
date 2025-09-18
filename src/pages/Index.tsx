@@ -31,7 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "@/components/ui/sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled, parseVisualTags } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
-import { validateVisualBatch } from "@/lib/visualValidator";
+import { validateVisualBatch, type VisualContext, type VisualConcept } from "@/lib/visualValidator";
 import { testNetworkConnectivity } from "@/lib/networkTest";
 import { careersList } from "@/lib/careers";
 
@@ -4546,6 +4546,31 @@ const Index = () => {
               
               console.log('Visual generation result:', result);
               
+              // Validate concepts for caption compliance if text is expected
+              const finalText = selectedGeneratedOption || (isCustomTextConfirmed ? stepTwoText : '');
+              if (finalText && finalText.trim() && result?.visualOptions?.length) {
+                const visualContext: VisualContext = {
+                  final_text: finalText,
+                  category: session.category,
+                  subcategory: session.subcategory,
+                  mode: visualSpice || 'balanced',
+                  layout_token: selectedTextLayout || 'negativeSpace'
+                };
+                
+                const visualConcepts: VisualConcept[] = result.visualOptions.map((opt: any) => ({
+                  lane: opt.lane,
+                  text: opt.prompt
+                }));
+                
+                const captionValidation = validateVisualBatch(visualContext, visualConcepts);
+                console.log('🎯 Caption validation result:', captionValidation);
+                
+                if (!captionValidation.overall_pass && captionValidation.regenerate_mask.some(Boolean)) {
+                  console.warn('⚠️ Some concepts failed caption validation, will retry if selected');
+                  sonnerToast.warning('Some visual concepts may need text rendering adjustments');
+                }
+              }
+              
               if (!result?.visualOptions?.length) {
                 throw new Error('No visual concepts were generated');
               }
@@ -5130,6 +5155,30 @@ const Index = () => {
         
         console.log('Visual generation result:', result);
         
+        // Validate concepts for caption compliance if text is expected
+        if (finalLine && finalLine.trim() && result?.visualOptions?.length) {
+          const visualContext: VisualContext = {
+            final_text: finalLine,
+            category: session.category,
+            subcategory: session.subcategory,
+            mode: visualSpice || 'balanced',
+            layout_token: selectedTextLayout || 'negativeSpace'
+          };
+          
+          const visualConcepts: VisualConcept[] = result.visualOptions.map((opt: any) => ({
+            lane: opt.lane,
+            text: opt.prompt
+          }));
+          
+          const captionValidation = validateVisualBatch(visualContext, visualConcepts);
+          console.log('🎯 Caption validation result:', captionValidation);
+          
+          if (!captionValidation.overall_pass && captionValidation.regenerate_mask.some(Boolean)) {
+            console.warn('⚠️ Some concepts failed caption validation, will retry if selected');
+            sonnerToast.warning('Some visual concepts may need text rendering adjustments');
+          }
+        }
+        
         if (!result?.visualOptions?.length) {
           toast({
             title: 'No visuals generated',
@@ -5503,8 +5552,10 @@ const Index = () => {
         style_type: styleForIdeogram,
         seed: seedValue
       });
+      
       if (response.data && response.data.length > 0) {
         setGeneratedImageUrl(response.data[0].url);
+        console.log('🎯 Image generation successful, validating text rendering...');
         sonnerToast.success("Your VIIBE has been generated successfully!");
       } else {
         throw new Error("No image data received from Ideogram API");

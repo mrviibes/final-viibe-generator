@@ -311,11 +311,11 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
     console.log('🎯 Skipping category-specific visual tags for generic choice');
   }
   
-  // Add explicit text rendering instruction FIRST for better success
+  // CRITICAL: Text instructions FIRST with maximum priority
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
-    const textInstruction = `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "${handoff.key_line}". ${layout.textPlacement}. Use ${selectedFont} with high contrast against background.`;
+    const textInstruction = `TEXT INSTRUCTION (CRITICAL - MANDATORY): Render this exact text once: "${handoff.key_line}". ${layout.textPlacement}. Use ${selectedFont} with high contrast against background. Text must appear clearly, fully legible, not distorted, not garbled. No misspellings, no duplicated words, no missing letters.`;
     textParts.unshift(textInstruction);
   }
   
@@ -323,9 +323,9 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const allParts = [...textParts, ...sceneParts];
   let positivePrompt = allParts.join(' ');
   
-  // Add redundant text requirement at the end for text-in-image mode
+  // Add multiple redundant text requirements for better success
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
-    positivePrompt += ' IMPORTANT: The text must be clearly visible and readable in the final image.';
+    positivePrompt += ` CRITICAL TEXT REQUIREMENT: The text "${handoff.key_line}" must be clearly visible and readable in the final image. No garbled text allowed. Text must match exactly.`;
   }
   
   // Add overlay-mode text avoidance directive only when explicitly avoiding text
@@ -341,10 +341,10 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const promptSanitization = sanitizePrompt(positivePrompt);
   positivePrompt = promptSanitization.cleaned;
   
-  // Choose negative prompt based on text injection mode  
+  // Choose negative prompt based on text injection mode - focus on text quality, less constraints
   const negativePrompt = shouldInjectText 
-    ? "no misspelled text, no duplicated words, no blurry letters, no distorted text, no missing captions, no random extra text, no garbled typography, no invisible text, no cut-off text" // Enhanced for text mode
-    : "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no embedded text, no letters, no words, no signage"; // Enhanced for overlay mode
+    ? "no misspelled text, no duplicated words, no blurry letters, no distorted text, no missing captions, no random extra text, no garbled typography, no invisible text, no cut-off text, no unreadable font, no text artifacts" // Enhanced for text mode
+    : "no embedded text, no letters, no words, no signage, no watermarks, no logos"; // Simplified for overlay mode - allow creative poses
 
   return {
     positive_prompt: positivePrompt,
@@ -375,9 +375,9 @@ export function buildStricterLayoutPrompts(handoff: IdeogramHandoff, stricterLay
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
     
-    const stricterTextInstructions = `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "${handoff.key_line}". The text must appear clearly in the final image. Placement: ${stricterLayoutToken} layout. Style: ${selectedFont} typography with high contrast. Do not omit, do not distort, do not duplicate.`;
+    const stricterTextInstructions = `TEXT INSTRUCTION (CRITICAL - ABSOLUTE PRIORITY): Render this exact text once: "${handoff.key_line}". The text must appear clearly in the final image. Placement: ${stricterLayoutToken} layout. Style: ${selectedFont} typography with high contrast. Do not omit, do not distort, do not duplicate, do not garble. Text must be perfectly legible.`;
     
-    basePrompts.positive_prompt = `${stricterTextInstructions} ${basePrompts.positive_prompt}. The text overlay is required for this design.`;
+    basePrompts.positive_prompt = `${stricterTextInstructions} ${basePrompts.positive_prompt}. MANDATORY: The text overlay is required and must be readable for this design.`;
   }
   
   return basePrompts;

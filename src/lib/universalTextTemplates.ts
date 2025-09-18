@@ -14,11 +14,12 @@ export const universalTextPlacementTemplates: TextPlacementTemplate[] = [
     id: "memeTopBottom",
     label: "Meme Top/Bottom",
     description: "Bold captions in clear horizontal bands at top and/or bottom",
-    positivePrompt: `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "[FINAL_TEXT]".
+    positivePrompt: `TEXT INSTRUCTION (CRITICAL - ABSOLUTE PRIORITY): Render this exact text once: "[FINAL_TEXT]".
 Placement: bold caption at top and/or bottom in clear horizontal bands.
 Style: cinematic meme aesthetic, large modern sans-serif, center aligned,
 high contrast, clean stroke. No tacky outline or old meme font.
-The text must appear clearly and be easy to read.
+The text must appear clearly and be easy to read. No garbling, no distortion, no misspellings.
+TEXT MUST BE PERFECTLY LEGIBLE AND MATCH EXACTLY.
 
 [SCENE_DESCRIPTION]
 Composition must include clear top and bottom bands for text placement.`,
@@ -45,11 +46,12 @@ no extra random captions, no watermarks, no logos`
     id: "lowerThird",
     label: "Lower Third Banner",
     description: "Clean banner-style caption across bottom third",
-    positivePrompt: `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "[FINAL_TEXT]".
+    positivePrompt: `TEXT INSTRUCTION (CRITICAL - ABSOLUTE PRIORITY): Render this exact text once: "[FINAL_TEXT]".
 Placement: clean banner-style caption across bottom third of the image.
 Style: cinematic lower-third aesthetic, modern sans-serif, centered or justified alignment,
 subtle semi-transparent band if needed for readability.
-Text must be sharp, clear, and high contrast against background.
+Text must be sharp, clear, and high contrast against background. No garbling, no distortion.
+TEXT MUST BE PERFECTLY LEGIBLE AND MATCH EXACTLY.
 
 [SCENE_DESCRIPTION]
 Composition must leave space for a lower-third banner.`,

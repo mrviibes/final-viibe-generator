@@ -14,6 +14,10 @@ export type VisualValidation = {
   per_concept: Array<{ lane: string; pass: boolean; reasons: string[] }>;
   regenerate_mask: boolean[];
   batch_reasons: string[];
+  caption_compliance?: {
+    expected_text: string;
+    detected_issues: Array<{ lane: string; issue: string; confidence: number }>;
+  };
 };
 
 const bannedPhrases = [
@@ -29,6 +33,15 @@ const bannedPhrases = [
   'group of people laughing',
   'group of people',
   'bland filler props'
+];
+
+// Caption validation patterns for detecting garbled text
+const garblingPatterns = [
+  /\b[A-Z]{3,}\s[A-Z]{3,}\b/, // "THE PHUE A DR"
+  /\b[A-Z]\s[A-Z]\s[A-Z]\b/, // "T H E"
+  /\b\w+\d+\w*\b/, // "word2text"
+  /[^a-zA-Z0-9\s'.,!?-]/, // Non-standard characters
+  /(.)\1{3,}/, // Repeated characters like "aaaa"
 ];
 
 const modeKeywords: Record<string, string[]> = {
@@ -78,7 +91,27 @@ export function validateVisualBatch(context: VisualContext, concepts: VisualConc
       pass = false;
     }
 
-    // 4) Forbidden content
+    // 4) Caption compliance validation (if text is expected)
+    if (context.final_text && context.final_text.trim()) {
+      // Check for garbling patterns
+      const hasGarbling = garblingPatterns.some(pattern => pattern.test(text));
+      if (hasGarbling) {
+        reasons.push('caption_text_garbled');
+        pass = false;
+      }
+
+      // Basic text similarity check
+      const expectedWords = context.final_text.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      const textWords = text.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      const commonWords = expectedWords.filter(word => textWords.some(tw => tw.includes(word) || word.includes(tw)));
+      
+      if (expectedWords.length > 0 && commonWords.length / expectedWords.length < 0.3) {
+        reasons.push('caption_text_mismatch');
+        pass = false;
+      }
+    }
+
+    // 5) Forbidden content
     if (/watermark|logo|on-image text/i.test(text)) {
       reasons.push('forbidden_content');
       pass = false;
