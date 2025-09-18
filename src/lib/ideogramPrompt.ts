@@ -229,11 +229,15 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
       sceneDescription
     );
     
+    // Strengthen text rendering instructions
+    const strengthenedPositive = `${positivePrompt} CRITICAL: The text "${handoff.key_line}" MUST be clearly readable, correctly spelled, and prominently displayed. DO NOT OMIT ANY TEXT. Text rendering is MANDATORY.`;
+    const strengthenedNegative = `${negativePrompt}, blurry text, garbled text, missing text, illegible text, text cutoff, partial text`;
+    
     console.log('🎯 Universal Template Output:', { positivePrompt: positivePrompt.substring(0, 100) + '...', negativePrompt });
     
     return {
-      positive_prompt: positivePrompt,
-      negative_prompt: negativePrompt,
+      positive_prompt: strengthenedPositive,
+      negative_prompt: strengthenedNegative,
       safety_modifications: {
         prompt_modified: false,
         tags_modified: []

@@ -5591,6 +5591,8 @@ const Index = () => {
       // Generate without text injection
       const backgroundImageUrl = await generateSingleImage("negativeSpace", "REALISTIC", false);
       setFallbackImageUrl(backgroundImageUrl);
+      setBackgroundOnlyImageUrl(backgroundImageUrl);
+      setShowTextOverlay(true);
       setShouldUseFallback(true);
       sonnerToast.success("Image generated with text overlay fallback");
       
@@ -7374,7 +7376,18 @@ const Index = () => {
                        <TextRenderingStatus status={textRenderingStatus} className="mb-2" />
                        <p className="text-sm text-muted-foreground">This may take a few moments</p>
                     </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
-                      <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+                       {showTextOverlay && backgroundOnlyImageUrl ? (
+                         <CaptionOverlay 
+                           imageUrl={backgroundOnlyImageUrl}
+                           caption={selectedGeneratedOption || stepTwoText || ""}
+                           layout={selectedTextLayout || "memeTopBottom"}
+                           onImageReady={(composedImageUrl) => {
+                             setFinalImageWithText(composedImageUrl);
+                           }}
+                         />
+                       ) : (
+                         <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+                       )}
                     </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
                       <AlertCircle className="h-8 w-8 text-destructive" />
                       <div>

@@ -16,7 +16,9 @@ export const RETRY_TIERS = [
   { layout: "memeTopBottom", style: "DESIGN" },
   { layout: "lowerThird", style: "DESIGN" },
   { layout: "memeTopBottom", style: "GENERAL" },
-  { layout: "lowerThird", style: "GENERAL" }
+  { layout: "lowerThird", style: "GENERAL" },
+  { layout: "memeTopBottom", style: "DESIGN" },  // Additional retries
+  { layout: "subtleCaption", style: "DESIGN" }
 ] as const;
 
 export type LayoutType = typeof LAYOUT_PRIORITY[number];

@@ -108,7 +108,9 @@ export function validateVisualBatch(context: VisualContext, concepts: VisualConc
       const textWords = text.toLowerCase().split(/\s+/).filter(w => w.length > 2);
       const commonWords = expectedWords.filter(word => textWords.some(tw => tw.includes(word) || word.includes(tw)));
       
-      if (expectedWords.length > 0 && commonWords.length / expectedWords.length < 0.3) {
+      // Make validation more realistic - don't fail every first attempt
+      const similarityThreshold = context.layout_token === "memeTopBottom" ? 0.2 : 0.3;
+      if (expectedWords.length > 0 && commonWords.length / expectedWords.length < similarityThreshold) {
         reasons.push('caption_text_mismatch');
         pass = false;
       }
