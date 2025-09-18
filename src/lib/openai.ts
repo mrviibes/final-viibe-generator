@@ -298,11 +298,23 @@ JSON format:
         { title: "Electronic Dance", description: "EDM and dance hits" }
       ],
       celebrities: [
+        { title: "Adam Sandler", description: "Comedy movie star and SNL alum" },
+        { title: "Will Ferrell", description: "Anchorman and Step Brothers comedian" },
+        { title: "Jim Carrey", description: "The Mask and Ace Ventura star" },
+        { title: "Kevin Hart", description: "Stand-up comedian and actor" },
+        { title: "Chris Rock", description: "Stand-up legend and comedian" },
+        { title: "Steve Carell", description: "The Office and movie comedy star" },
+        { title: "Ben Stiller", description: "Zoolander and Meet the Parents actor" },
+        { title: "Eddie Murphy", description: "Beverly Hills Cop and comedy legend" },
         { title: "Dwayne Johnson", description: "The Rock actor and wrestler" },
         { title: "Ryan Reynolds", description: "Deadpool actor and comedian" },
         { title: "Zendaya", description: "Spider-Man and Euphoria star" },
         { title: "Chris Evans", description: "Captain America actor" },
         { title: "Margot Robbie", description: "Barbie and Harley Quinn star" },
+        { title: "Leonardo DiCaprio", description: "Titanic and Oscar-winning actor" },
+        { title: "Jennifer Lawrence", description: "Hunger Games and Silver Linings star" },
+        { title: "Robert Downey Jr.", description: "Iron Man and Sherlock Holmes actor" },
+        { title: "Scarlett Johansson", description: "Black Widow and Lost in Translation star" },
         { title: "Social Media Stars", description: "TikTok and Instagram influencers" },
         { title: "Marvel Actors", description: "MCU superhero stars" },
         { title: "Comedy Legends", description: "Stand-up and movie comedians" },
@@ -350,11 +362,23 @@ JSON format:
     let categoryResults = fallbackDatabase[category.toLowerCase()] || [];
     
     // Filter results based on search term if provided
-    if (term && term.length > 1) {
-      const filtered = categoryResults.filter(item => 
-        item.title.toLowerCase().includes(term) || 
-        item.description.toLowerCase().includes(term)
+    if (term && term.length > 0) {
+      // First, look for exact matches (prioritize these)
+      const exactMatches = categoryResults.filter(item => 
+        item.title.toLowerCase() === term ||
+        item.title.toLowerCase().includes(term)
       );
+      
+      // Then look for partial matches in title or description
+      const partialMatches = categoryResults.filter(item => 
+        !exactMatches.includes(item) && (
+          item.title.toLowerCase().includes(term) || 
+          item.description.toLowerCase().includes(term)
+        )
+      );
+      
+      // Combine exact matches first, then partial matches
+      const filtered = [...exactMatches, ...partialMatches];
       
       if (filtered.length > 0) {
         categoryResults = filtered;
