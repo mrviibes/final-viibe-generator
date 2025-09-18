@@ -4839,6 +4839,22 @@ const Index = () => {
         selections.push({
           title: optionTitle,
           subtitle: compactDescription,
+          canEdit: true,
+          onEdit: (newSubtitle?: string) => {
+            if (newSubtitle && selectedVisualIndex !== null) {
+              const updatedOptions = [...visualOptions];
+              // Parse the edited description back into subject and background
+              const parts = newSubtitle.split(' - ');
+              if (parts.length >= 2) {
+                updatedOptions[selectedVisualIndex] = {
+                  ...updatedOptions[selectedVisualIndex],
+                  subject: parts[0],
+                  background: parts.slice(1).join(' - ')
+                };
+                setVisualOptions(updatedOptions);
+              }
+            }
+          },
           onChangeSelection: () => {
             setSelectedVisualIndex(null);
             setSelectedDimension(null);
@@ -4866,6 +4882,14 @@ const Index = () => {
       selections.push({
         title: "Custom Visual Description",
         subtitle: `"${subjectDescription}"`,
+        canEdit: true,
+        onEdit: (newSubtitle?: string) => {
+          if (newSubtitle) {
+            // Remove quotes if they exist and update the description
+            const cleanedDescription = newSubtitle.replace(/^["']|["']$/g, '');
+            setSubjectDescription(cleanedDescription);
+          }
+        },
         onChangeSelection: () => {
           setIsSubjectDescriptionConfirmed(false);
           setSelectedDimension(null);
