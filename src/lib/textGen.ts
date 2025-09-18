@@ -283,7 +283,7 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
     tags: Array.isArray(inputs.tags) ? inputs.tags : 
           (typeof inputs.tags === 'string' ? [inputs.tags] : []),
     style: inputs.style || 'standard',
-    rating: inputs.rating || 'PG'
+    rating: inputs.rating || 'PG-13'
   };
   
   try {

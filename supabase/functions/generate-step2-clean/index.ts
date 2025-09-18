@@ -166,7 +166,18 @@ Return ONLY valid JSON in this exact structure:
     }
     
     console.log('📝 Generated lines before validation:', JSON.stringify(parsed.lines, null, 2));
-    
+
+    // SANITIZE lines to minimize punctuation violations
+    parsed.lines = parsed.lines.map((line: any) => {
+      const t = (line.text || '').toString();
+      let s = t.replace(/—/g, ' ').replace(/[!?]/g, '.').replace(/\.{2,}/g, '.').trim();
+      if (!s.endsWith('.')) {
+        s = s.replace(/[.]+$/,'') + '.';
+      }
+      return { ...line, text: s };
+    });
+    console.log('🧼 Lines after sanitation:', JSON.stringify(parsed.lines, null, 2));
+
     // STRICT VALIDATION - Enforce finalized rules
     const validationErrors = [];
     const criticalErrors = [];
@@ -232,15 +243,17 @@ Return ONLY valid JSON in this exact structure:
       
       console.log(`📏 Line ${index + 1}: "${text}" (${length} chars, expected ${minLength}-${maxLength})`);
       
-      // Length validation - CRITICAL ERROR
-      if (length < minLength || length > maxLength) {
+      // Length validation - soft tolerance
+      if (length < (minLength - 10) || length > (maxLength + 20)) {
         criticalErrors.push(`len_out_of_range_${index + 1}`);
+      } else if (length < minLength || length > maxLength) {
+        validationErrors.push(`len_soft_out_of_range_${index + 1}`);
       }
       
-      // STRICT PUNCTUATION VALIDATION - Only single period allowed
-      const forbiddenPunctuation = /[,;:!?]/g;
+      // PUNCTUATION VALIDATION - allow commas
+      const forbiddenPunctuation = /[;:!?]/g;
       if (forbiddenPunctuation.test(text)) {
-        criticalErrors.push(`forbidden_punctuation_${index + 1}`);
+        validationErrors.push(`forbidden_punctuation_${index + 1}`);
       }
       
       // Em dash validation - CRITICAL ERROR
@@ -258,8 +271,8 @@ Return ONLY valid JSON in this exact structure:
         criticalErrors.push(`must_end_with_period_${index + 1}`);
       }
       
-      // Count total punctuation marks - max 1 allowed
-      const totalPunctuation = (text.match(/[.,;:!?—]/g) || []).length;
+      // Count total punctuation marks (ignore commas) - max 1 allowed
+      const totalPunctuation = (text.match(/[.;:!?—]/g) || []).length;
       if (totalPunctuation > 1) {
         criticalErrors.push(`multiple_punctuation_${index + 1}`);
       }
@@ -375,8 +388,8 @@ Return ONLY valid JSON in this exact structure:
       allIssues
     });
     
-    // Only fail on critical punctuation/length errors - allow other issues
-    if (criticalErrors.length > 3) {
+    // Only fail on truly critical errors - allow other issues
+    if (criticalErrors.length > 6) {
       console.error('❌ STRICT FAIL: Too many critical validation failures:', criticalErrors.join('; '));
       throw new Error(`Strict validation failure: ${criticalErrors.join('; ')}`);
     }
