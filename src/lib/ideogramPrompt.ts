@@ -328,10 +328,10 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
     }
     subjectNegatives.push('no substitutions for the subject', 'no altering subject age or gender');
     
-    // Enhanced text rendering negatives
+    // Simple text negatives
     const textNegatives = shouldInjectText 
-      ? ['blurry text', 'missing text', 'broken letters', 'garbled letters', 'extra background text', 'multiple text boxes', 'duplicate captions', 'split text', 'fragmented text']
-      : ['blurry text', 'missing text'];
+      ? ['blurry text', 'wrong spelling']
+      : ['blurry text'];
     
     let enhancedNegativePrompt = [
       negativePrompt,
@@ -343,10 +343,8 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
     // Apply pop culture enhancements
     enhancedNegativePrompt = getEnhancedNegativePrompt(enhancedNegativePrompt, popCultureContext);
     
-    // Strengthen text rendering instructions with mandatory directive
-    const strengthenedPositive = shouldInjectText 
-      ? `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "${handoff.key_line}". One single block only. No splitting. No duplication. No misspellings. No substitutions.\n\n${positivePrompt}`
-      : positivePrompt;
+    // Use clean positive prompt without verbose instructions
+    const strengthenedPositive = positivePrompt;
     
     console.log('🎯 Universal Template Output:', { 
       positivePrompt: positivePrompt.substring(0, 100) + '...', 
