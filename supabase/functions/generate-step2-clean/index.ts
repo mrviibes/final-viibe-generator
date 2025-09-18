@@ -35,59 +35,61 @@ async function generateWithGPT5(inputs: any): Promise<any> {
                    (typeof inputs.tags === 'string' ? [inputs.tags] : []);
   const tagsStr = tagsArray.length > 0 ? tagsArray.join(',') : 'none';
   
-  // ENHANCED SYSTEM PROMPT - MORE EXPLICIT GUIDANCE
-  const systemPrompt = `You are a professional comedian writer. Generate exactly 4 unique one-liner jokes as JSON.
+  // Parse tags (hard vs soft)
+  const hardTags = tagsArray.filter((tag: string) => !tag.startsWith('"') || !tag.endsWith('"'));
+  const softTags = tagsArray.filter((tag: string) => tag.startsWith('"') && tag.endsWith('"'))
+    .map((tag: string) => tag.slice(1, -1));
 
-CRITICAL: Return ONLY valid JSON in this exact structure:
+  // FINALIZED SYSTEM PROMPT
+  const systemPrompt = `You generate exactly 4 unique one-liner jokes or captions.  
+Return ONLY valid JSON in this exact structure:
+
 {
   "lines": [
-    {"lane": "option1", "text": "Basketball players make terrible boyfriends"},
-    {"lane": "option2", "text": "Jesse shoots his shot better on court than in DMs"},
-    {"lane": "option3", "text": "Last season you promised to take me to the finals"},
-    {"lane": "option4", "text": "They say Jesse has game but I'm still waiting to see it"}
+    {"lane":"option1","text":"..."},
+    {"lane":"option2","text":"..."},
+    {"lane":"option3","text":"..."},
+    {"lane":"option4","text":"..."}
   ]
 }
 
-## MANDATORY RULES
+## Hard Rules
+- Output exactly 4 unique lines.
+- Each line must end with a single period. No commas, colons, semicolons, exclamations, or question marks. No em dashes. No ellipses.
+- Length: option1 = 40–50 chars, option2 = 50–60, option3 = 60–70, option4 = 70–80.  
+  ${inputs.style === 'story' ? '(Story Mode: all 4 must be 80–100 with setup → payoff.)' : ''}
+- Perspectives per batch: one general truth, one past-tense memory, one present-tense roast/flirt, one third-person tagged line (if a name tag exists).
+- Tone must match ${inputs.tone} selection.
+- Style must match ${inputs.style || 'standard'} selection.
+- Rating must match ${inputs.rating || 'PG'} selection.
+- Tags:  
+  * Unquoted tags ${hardTags.length > 0 ? `(${hardTags.join(', ')})` : ''} MUST appear literally in 3 of 4 lines.  
+  * Quoted tags ${softTags.length > 0 ? `(${softTags.join(', ')})` : ''} must NOT appear literally, but must guide style, mood, or POV.  
+- Voice variety: each line should sound like a different comedian style (absurdist, deadpan, blunt, playful, motivational, etc.).
+- Must read like natural spoken jokes, not templates.
 
-1. CHARACTER LENGTHS (EXACT):
-   - Option 1: 40-50 characters
-   - Option 2: 50-60 characters  
-   - Option 3: 60-70 characters
-   - Option 4: 70-80 characters
+## Tone Map
+- Humorous = observational, witty, punny.
+- Savage = sharp roast, unapologetic.
+- Romantic = flirty, affectionate.
+- Sentimental = heartfelt, sincere.
+- Nostalgic = wistful, memory-driven.
+- Inspirational = uplifting, motivational.
+- Playful = mischievous, cheeky.
+- Serious = plain, formal.
 
-2. PUNCTUATION (CRITICAL):
-   - Maximum 1 punctuation mark per line
-   - NEVER use em dashes (—) - use commas or periods only
-   - NEVER use ellipses (...) 
-   - Examples: "Jesse loves basketball, I love Jesse" ✓
-   - Examples: "Jesse loves basketball—and me" ✗ (em dash forbidden)
+## Style Map
+- Standard = balanced one-liners.
+- Story Mode = narrative mini-story with setup → payoff, 80–100 chars.
+- Punchline First = gag lands in the first half.
+- Pop Culture = MUST include a celebrity, meme, or trend.
+- Wildcard = unpredictable, but still a valid joke.
 
-3. TONE MATCHING:
-   - ${inputs.tone} tone MUST be clear in every line
-   - Romantic = flirty, warm, affectionate language
-   - Humorous = witty, punchy, observational
-   - Savage = sharp, roasting, unapologetic
-
-4. RATING COMPLIANCE:
-   - G/PG: Clean, family-friendly content
-   - PG-13: Include some edge - mild innuendo or attitude acceptable
-   - R: Explicit content, strong language allowed
-
-5. TAG INTEGRATION:
-   - Include provided tags naturally in most lines
-   - Make tags feel organic, not forced
-
-6. VARIETY REQUIREMENTS:
-   - Use different sentence structures 
-   - Vary perspectives (general truths, past memories, direct address)
-   - Different comedy styles (observational, deadpan, storytelling)
-
-7. SUBCATEGORY RELEVANCE:
-   - Must relate to ${inputs.subcategory} context
-   - Use relevant vocabulary and situations
-
-REMEMBER: Output ONLY the JSON object. No explanations or formatting.`;
+## Rating Map
+- G = wholesome, no profanity, no innuendo.
+- PG = mild sarcasm, no profanity.
+- PG-13 = sharper, cheeky. At least one line MUST include mild profanity (damn, hell) or innuendo. Strong profanity blocked.
+- R = edgy, explicit. At least one line MUST include strong profanity (fuck, shit, ass) or explicit innuendo. No slurs or hate.`;
   
   const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG'}`;
   
@@ -165,11 +167,16 @@ REMEMBER: Output ONLY the JSON object. No explanations or formatting.`;
     
     console.log('📝 Generated lines before validation:', JSON.stringify(parsed.lines, null, 2));
     
-    // RELAXED VALIDATION - Allow partial success
+    // STRICT VALIDATION - Enforce finalized rules
     const validationErrors = [];
     const criticalErrors = [];
     const warnings = [];
     const isStoryMode = inputs.style === 'story';
+    
+    // Parse tags into hard (unquoted) and soft (quoted)
+    const hardTags = tagsArray.filter((tag: string) => !tag.startsWith('"') || !tag.endsWith('"'));
+    const softTags = tagsArray.filter((tag: string) => tag.startsWith('"') && tag.endsWith('"'))
+      .map((tag: string) => tag.slice(1, -1));
     
     // Length validation - exact character ranges
     const expectedLengths = isStoryMode 
@@ -178,11 +185,10 @@ REMEMBER: Output ONLY the JSON object. No explanations or formatting.`;
     
     const allTexts = parsed.lines.map((line: any) => line.text?.toLowerCase() || '');
     const originalTexts = parsed.lines.map((line: any) => line.text || '');
-    const unquotedTags = Array.isArray(inputs.tags) ? 
-      inputs.tags.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"')) : [];
     
     console.log('🔍 Validating texts:', originalTexts);
-    console.log('🏷️ Unquoted tags:', unquotedTags);
+    console.log('🏷️ Hard tags:', hardTags);
+    console.log('🏷️ Soft tags:', softTags);
     
     // Rating content validation - more flexible
     const mildProfanity = ['damn', 'hell', 'crap'];
@@ -201,24 +207,24 @@ REMEMBER: Output ONLY the JSON object. No explanations or formatting.`;
       if (/terrible|awful|worst|suck|fail|pathetic/.test(text)) hasAttitude = true;
     });
 
-    // Perspective validation - relaxed requirements
+    // Perspective validation - strict requirements for finalized spec
     const hasGeneralTruth = allTexts.some(text => 
       !text.includes('you') && !text.includes('your') && 
-      !unquotedTags.some(tag => text.includes(tag.toLowerCase()))
+      !hardTags.some(tag => text.includes(tag.toLowerCase()))
     );
     const hasPastTense = allTexts.some(text => 
       /last |remember |used to|back |yesterday|ago|was |were /.test(text)
     );
     const hasPresentRoast = allTexts.some(text => 
       /you're|you |your |you'll/.test(text) || 
-      unquotedTags.some(tag => text.includes(tag.toLowerCase()))
+      hardTags.some(tag => text.includes(tag.toLowerCase()))
     );
-    const hasThirdPerson = unquotedTags.length > 0 ? 
-      allTexts.some(text => unquotedTags.some(tag => text.includes(tag.toLowerCase()))) : true;
+    const hasThirdPerson = hardTags.length > 0 ? 
+      allTexts.some(text => hardTags.some(tag => text.includes(tag.toLowerCase()))) : true;
     
     console.log('👁️ Perspective check:', { hasGeneralTruth, hasPastTense, hasPresentRoast, hasThirdPerson });
     
-    // Validate each line
+    // Validate each line with strict punctuation rules
     parsed.lines.forEach((line, index) => {
       const text = line.text || '';
       const length = text.length;
@@ -226,66 +232,85 @@ REMEMBER: Output ONLY the JSON object. No explanations or formatting.`;
       
       console.log(`📏 Line ${index + 1}: "${text}" (${length} chars, expected ${minLength}-${maxLength})`);
       
-      // Length validation - fixed bug
+      // Length validation - CRITICAL ERROR
       if (length < minLength || length > maxLength) {
-        validationErrors.push(`len_out_of_range_${index + 1}`);
+        criticalErrors.push(`len_out_of_range_${index + 1}`);
       }
       
-      // Em dash validation - CRITICAL (only critical error)
+      // STRICT PUNCTUATION VALIDATION - Only single period allowed
+      const forbiddenPunctuation = /[,;:!?]/g;
+      if (forbiddenPunctuation.test(text)) {
+        criticalErrors.push(`forbidden_punctuation_${index + 1}`);
+      }
+      
+      // Em dash validation - CRITICAL ERROR
       if (text.includes('—')) {
-        criticalErrors.push(`emdash_forbidden`);
+        criticalErrors.push(`emdash_forbidden_${index + 1}`);
       }
       
-      // Punctuation validation - max 1 mark (warning only)
-      const punctuationCount = (text.match(/[,.;:!?]/g) || []).length;
-      if (punctuationCount > 1) {
-        warnings.push(`too_many_punct`);
-      }
-      
-      // Ellipsis validation (warning only)
+      // Ellipsis validation - CRITICAL ERROR
       if (text.includes('...') || text.includes('..')) {
-        warnings.push(`ellipsis_forbidden`);
+        criticalErrors.push(`ellipsis_forbidden_${index + 1}`);
+      }
+      
+      // Must end with single period
+      if (!text.endsWith('.') || text.match(/\.$/) === null) {
+        criticalErrors.push(`must_end_with_period_${index + 1}`);
+      }
+      
+      // Count total punctuation marks - max 1 allowed
+      const totalPunctuation = (text.match(/[.,;:!?—]/g) || []).length;
+      if (totalPunctuation > 1) {
+        criticalErrors.push(`multiple_punctuation_${index + 1}`);
       }
     });
 
-    // Rating enforcement - more flexible
+    // STRICT Rating enforcement according to finalized spec
     const rating = inputs.rating || 'PG';
     console.log('🎬 Rating check:', { rating, hasMildProfanity, hasStrongProfanity, hasInnuendo, hasAttitude });
     
     if (rating === 'G' && (hasMildProfanity || hasStrongProfanity)) {
-      validationErrors.push('rating_violation');
+      criticalErrors.push('rating_violation_g');
     }
     if (rating === 'PG' && (hasStrongProfanity)) {
-      validationErrors.push('rating_violation');
+      criticalErrors.push('rating_violation_pg');
     }
-    // PG-13: Accept mild profanity, innuendo, OR attitude (relaxed)
-    if (rating === 'PG-13' && !hasMildProfanity && !hasInnuendo && !hasAttitude) {
-      warnings.push('missing_pg13_edge'); // Warning, not critical
+    // PG-13: MUST include mild profanity OR innuendo (per spec)
+    if (rating === 'PG-13' && !hasMildProfanity && !hasInnuendo) {
+      criticalErrors.push('missing_pg13_edge');
     }
-    // R: Still require strong content  
+    // R: MUST include strong profanity OR explicit innuendo (per spec)
     if (rating === 'R' && !hasStrongProfanity && !hasInnuendo) {
-      validationErrors.push('missing_required_rated_line');
+      criticalErrors.push('missing_required_r_content');
     }
 
-    // Perspective enforcement - warnings only (not critical)
+    // STRICT Perspective enforcement (per spec)
     if (!hasGeneralTruth) {
-      warnings.push('missing_general_truth');
+      criticalErrors.push('missing_general_truth');
     }
     if (!hasPastTense) {
-      warnings.push('missing_past_tense');
+      criticalErrors.push('missing_past_tense');
     }
     if (!hasPresentRoast) {
-      warnings.push('missing_present_roast');
+      criticalErrors.push('missing_present_roast');
     }
-    if (!hasThirdPerson && unquotedTags.length > 0) {
-      warnings.push('missing_third_person');
+    if (!hasThirdPerson && hardTags.length > 0) {
+      criticalErrors.push('missing_third_person');
     }
     
-    // Tag enforcement - relaxed to 2/4 lines minimum
-    unquotedTags.forEach(tag => {
+    // STRICT Tag enforcement - hard tags MUST appear in 3/4 lines (per spec)
+    hardTags.forEach(tag => {
       const count = allTexts.filter(text => text.includes(tag.toLowerCase())).length;
-      if (count < 2) {
-        warnings.push('missing_hard_tags');
+      if (count < 3) {
+        criticalErrors.push('missing_hard_tags');
+      }
+    });
+    
+    // Soft tags must NOT appear literally (per spec)
+    softTags.forEach(tag => {
+      const count = allTexts.filter(text => text.includes(tag.toLowerCase())).length;
+      if (count > 0) {
+        criticalErrors.push('soft_tag_leaked');
       }
     });
     
@@ -335,7 +360,7 @@ REMEMBER: Output ONLY the JSON object. No explanations or formatting.`;
       }
     });
     
-    // IMPROVED ERROR HANDLING
+    // STRICT ERROR HANDLING - per finalized validator spec
     const allErrors = [...criticalErrors, ...validationErrors];
     const allIssues = [...allErrors, ...warnings];
     
@@ -346,25 +371,17 @@ REMEMBER: Output ONLY the JSON object. No explanations or formatting.`;
       allIssues
     });
     
-    if (allIssues.length > 0) {
-      console.warn('⚠️ Validation issues:', allIssues.join('; '));
-    }
-    
-    // FAIL FAST only for critical errors (em dashes)
+    // STRICT MODE - Any critical errors cause immediate failure
     if (criticalErrors.length > 0) {
-      console.error('❌ HARD FAIL: Critical validation failure:', criticalErrors.join('; '));
-      throw new Error(`Critical validation failure: ${criticalErrors.join('; ')}`);
+      console.error('❌ STRICT FAIL: Critical validation failure:', criticalErrors.join('; '));
+      throw new Error(`Strict validation failure: ${criticalErrors.join('; ')}`);
     }
     
-    // Allow validation errors but log them
-    if (validationErrors.length > 0) {
-      console.warn('⚠️ Non-critical validation errors (allowing):', validationErrors.join('; '));
-    }
+    // Success only if no critical errors (per finalized spec)
+    console.log('✅ STRICT GENERATION SUCCESS: all critical validations passed');
     
-    console.log('✅ GENERATION SUCCESS: returning content with quality score');
-    
-    // Calculate quality score
-    const qualityScore = Math.max(0, 100 - (criticalErrors.length * 50) - (validationErrors.length * 10) - (warnings.length * 5));
+    // Calculate quality score (penalize any issues)
+    const qualityScore = Math.max(0, 100 - (criticalErrors.length * 100) - (validationErrors.length * 20) - (warnings.length * 5));
     
     return {
       lines: parsed.lines.slice(0, 4),
@@ -377,7 +394,7 @@ REMEMBER: Output ONLY the JSON object. No explanations or formatting.`;
         errors: validationErrors,
         warnings: warnings
       },
-      generatedWith: 'GPT-4.1 Enhanced',
+      generatedWith: 'GPT-4.1 Strict Mode',
       telemetry: { latencyMs, finishReason, tokensIn: data.usage?.prompt_tokens, tokensOut: data.usage?.completion_tokens }
     };
   });
@@ -425,11 +442,44 @@ serve(async (req) => {
       });
     }
 
-    // STRICT GPT-5 GENERATION - NO FALLBACKS
-    const result = await generateWithGPT5(inputs);
-    console.log('✅ GPT-5 SUCCESS:', result.model);
+    // STRICT GPT-4.1 GENERATION WITH 3-RETRY REGENERATION
+    let lastError = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`🎯 Strict generation attempt ${attempt}/3`);
+        const result = await generateWithGPT5(inputs);
+        console.log('✅ GPT-4.1 SUCCESS:', result.model);
+        
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        lastError = error;
+        console.warn(`❌ Attempt ${attempt}/3 failed:`, error.message);
+        
+        // If this is the last attempt, fail
+        if (attempt === 3) {
+          break;
+        }
+        
+        // Brief delay before retry
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
     
-    return new Response(JSON.stringify(result), {
+    // All 3 attempts failed
+    console.error('❌ FINAL FAIL: All 3 strict generation attempts failed');
+    
+    return new Response(JSON.stringify({
+      error: `All 3 generation attempts failed: ${lastError?.message || 'Unknown error'}`,
+      success: false,
+      model: 'error',
+      validated: false,
+      requestedModel: MODEL,
+      attempts: 3,
+      timestamp: new Date().toISOString()
+    }), {
+      status: 200, // Return 200 so client can read the error
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
