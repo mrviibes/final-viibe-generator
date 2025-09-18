@@ -311,11 +311,18 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
     console.log('🎯 Skipping category-specific visual tags for generic choice');
   }
   
-  // Add explicit text rendering instruction FIRST for better success
+  // Add explicit text rendering instruction FIRST for better success with enhanced prominence
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
-    const textInstruction = `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "${handoff.key_line}". ${layout.textPlacement}. Use ${selectedFont} with high contrast against background.`;
+    
+    // Special instructions for Lower Third Banner layout
+    const isLowerThird = layout.textPlacement.toLowerCase().includes('lower third');
+    const enhancedPlacement = isLowerThird 
+      ? `${layout.textPlacement}. CRITICAL: Place text in a clear banner across the bottom third of the image with strong background contrast and zero visual interference from scene elements`
+      : layout.textPlacement;
+    
+    const textInstruction = `🔥 CRITICAL TEXT REQUIREMENT (MUST APPEAR): "${handoff.key_line}" MUST be rendered clearly and legibly in the final image. ${enhancedPlacement}. Font: ${selectedFont} with maximum contrast. TEXT IS MANDATORY - DO NOT OMIT.`;
     textParts.unshift(textInstruction);
   }
   
@@ -323,9 +330,9 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const allParts = [...textParts, ...sceneParts];
   let positivePrompt = allParts.join(' ');
   
-  // Add redundant text requirement at the end for text-in-image mode
+  // Add redundant text requirement at the end for text-in-image mode with stronger language
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
-    positivePrompt += ' IMPORTANT: The text must be clearly visible and readable in the final image.';
+    positivePrompt += ` 🔥 FINAL REMINDER: The text "${handoff.key_line}" MUST appear clearly and prominently in the final image. Text rendering is MANDATORY. Do not generate an image without visible text.`;
   }
   
   // Add overlay-mode text avoidance directive only when explicitly avoiding text
@@ -341,9 +348,9 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const promptSanitization = sanitizePrompt(positivePrompt);
   positivePrompt = promptSanitization.cleaned;
   
-  // Choose negative prompt based on text injection mode  
+  // Choose negative prompt based on text injection mode with enhanced restrictions
   const negativePrompt = shouldInjectText 
-    ? "no misspelled text, no duplicated words, no blurry letters, no distorted text, no missing captions, no random extra text, no garbled typography, no invisible text, no cut-off text" // Enhanced for text mode
+    ? "no misspelled text, no duplicated words, no blurry letters, no distorted text, no missing captions, no random extra text, no garbled typography, no invisible text, no cut-off text, no faded text, no partially obscured text, no text behind objects, no text overlapping with visual elements, no illegible text, no microscopic text, no text that blends into background" // Enhanced for text mode
     : "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe, no embedded text, no letters, no words, no signage"; // Enhanced for overlay mode
 
   return {
@@ -370,14 +377,14 @@ export function buildStricterLayoutPrompts(handoff: IdeogramHandoff, stricterLay
   
   const basePrompts = buildIdeogramPrompts(modifiedHandoff);
   
-  // Add even more explicit text rendering instructions for stricter layout
+  // Add even more explicit text rendering instructions for stricter layout with maximum emphasis
   if (handoff.key_line && handoff.key_line.trim()) {
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
     
-    const stricterTextInstructions = `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "${handoff.key_line}". The text must appear clearly in the final image. Placement: ${stricterLayoutToken} layout. Style: ${selectedFont} typography with high contrast. Do not omit, do not distort, do not duplicate.`;
+    const stricterTextInstructions = `🔥 ULTRA-CRITICAL TEXT REQUIREMENT: "${handoff.key_line}" MUST BE PROMINENTLY DISPLAYED. This text is MANDATORY and CANNOT be omitted. Placement: ${stricterLayoutToken} layout with MAXIMUM visibility. Style: ${selectedFont} typography with EXTREME contrast. Text must be the most prominent element. ZERO tolerance for invisible, faded, or obscured text.`;
     
-    basePrompts.positive_prompt = `${stricterTextInstructions} ${basePrompts.positive_prompt}. The text overlay is required for this design.`;
+    basePrompts.positive_prompt = `${stricterTextInstructions} ${basePrompts.positive_prompt}. 🔥 FINAL WARNING: Generate image with visible text or it will be rejected.`;
   }
   
   return basePrompts;

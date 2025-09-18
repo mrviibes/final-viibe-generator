@@ -5397,11 +5397,13 @@ const Index = () => {
       description: "Your Ideogram API key has been saved securely."
     });
   };
-  // Text retry functions for improved text rendering
+  // Enhanced text retry functions for improved text rendering
   const handleRetryTextRendering = async () => {
     if (!generatedImageUrl) return;
     
     setIsRetryingText(true);
+    sonnerToast.info("Trying enhanced text rendering...");
+    
     try {
       // Get the current generation parameters
       const finalText = selectedGeneratedOption || stepTwoText || "";
@@ -5422,6 +5424,18 @@ const Index = () => {
       const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Landscape";
       const { hardTags: visualHardTags } = parseVisualTags(subjectTags);
       
+      // Use stricter layout tokens for better text rendering
+      const stricterLayoutTokens = {
+        'negativeSpace': 'clear empty area with maximum text contrast',
+        'memeTopBottom': 'clear top and bottom bands for bold text',
+        'lowerThird': 'clear lower third with banner-style text placement',
+        'sideBarLeft': 'clear left panel for vertical text',
+        'badgeSticker': 'clear corner space for badge text',
+        'subtleCaption': 'clear bottom strip for subtle caption'
+      };
+      
+      const stricterToken = stricterLayoutTokens[selectedTextLayout as keyof typeof stricterLayoutTokens] || 'clear area for maximum text visibility';
+      
       const ideogramPayload = buildIdeogramHandoff({
         visual_style: visualStyle,
         subcategory: subcategory,
@@ -5435,10 +5449,14 @@ const Index = () => {
         visual_tags_csv: visualHardTags.join(', ') || "None",
         ai_text_assist_used: selectedCompletionOption === "ai-assist",
         ai_visual_assist_used: selectedSubjectOption === "ai-assist",
-        text_layout_id: selectedTextLayout || "negativeSpace" // CRITICAL: Pass layout ID
+        text_layout_id: selectedTextLayout || "negativeSpace"
       });
       
-      const prompts = buildIdeogramPrompts(ideogramPayload, { injectText: true });
+      // Enhance design notes with stricter layout requirements for better text rendering
+      ideogramPayload.design_notes = `${ideogramPayload.design_notes} | Enhanced: ${stricterToken}`;
+      
+      // Use stricter prompts for better text rendering
+      const prompts = buildStricterLayoutPrompts(ideogramPayload, stricterToken);
       const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
       const styleForIdeogram = getStyleTypeForIdeogram(visualStyle, true);
       
@@ -5457,10 +5475,12 @@ const Index = () => {
       } else if (retryResult.shouldFallbackToOverlay) {
         sonnerToast.info("Switching to overlay mode for better text");
         handleRetryAsOverlay();
+      } else {
+        sonnerToast.warning("Text rendering retry didn't improve results. Try overlay mode.");
       }
       
     } catch (error) {
-      console.error('Text retry failed:', error);
+      console.error('Enhanced text retry failed:', error);
       sonnerToast.error('Text retry failed. Try overlay mode instead.');
     } finally {
       setIsRetryingText(false);
@@ -7240,31 +7260,55 @@ const Index = () => {
                   </div>
                 </div>
                 
-                <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
-                  {isGeneratingImage ? <div className="text-center">
-                      <Button variant="brand" disabled className="mb-4">
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Generating VIIBE...
-                      </Button>
-                      <p className="text-sm text-muted-foreground">This may take a few moments</p>
-                    </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
-                      <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
-                    </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
-                      <AlertCircle className="h-8 w-8 text-destructive" />
-                      <div>
-                        <p className="text-destructive text-lg font-medium">Generation Failed</p>
-                        <p className="text-muted-foreground text-sm mt-1">{imageGenerationError}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button onClick={handleGenerateImage} variant="outline" size="sm">
-                          Try Again
-                        </Button>
-                        {imageGenerationError.includes('CORS proxy needs activation') && <Button variant="brand" size="sm" onClick={() => setShowCorsRetryDialog(true)}>
-                            Enable CORS Proxy
-                          </Button>}
-                      </div>
-                    </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
-                 </div>
+                 <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
+                   {isGeneratingImage ? <div className="text-center">
+                       <Button variant="brand" disabled className="mb-4">
+                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                         Generating VIIBE...
+                       </Button>
+                       <p className="text-sm text-muted-foreground">This may take a few moments</p>
+                     </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
+                       <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+                       
+                       {/* Text Render Status Indicator */}
+                       {(selectedGeneratedOption || stepTwoText) && (
+                         <div className="mt-4">
+                           <TextRenderIndicator
+                             textInsideImage={textInsideImage}
+                             hasTextInPrompt={Boolean((selectedGeneratedOption || stepTwoText).trim())}
+                             imageUrl={generatedImageUrl}
+                             onRetryTextRendering={handleRetryTextRendering}
+                             onRetryAsOverlay={handleRetryAsOverlay}
+                             isRetrying={isRetryingText}
+                           />
+                         </div>
+                       )}
+                     </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
+                       <AlertCircle className="h-8 w-8 text-destructive" />
+                       <div>
+                         <p className="text-destructive text-lg font-medium">Generation Failed</p>
+                         <p className="text-muted-foreground text-sm mt-1">{imageGenerationError}</p>
+                       </div>
+                       <div className="flex gap-2">
+                         <Button onClick={handleGenerateImage} variant="outline" size="sm">
+                           Try Again
+                         </Button>
+                         {imageGenerationError.includes('CORS proxy needs activation') && <Button variant="brand" size="sm" onClick={() => setShowCorsRetryDialog(true)}>
+                             Enable CORS Proxy
+                           </Button>}
+                       </div>
+                     </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
+                  </div>
+                 
+                  {/* Enhanced Text Detection and Automatic Retry */}
+                  {generatedImageUrl && textInsideImage && (selectedGeneratedOption || stepTwoText) && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 p-4 rounded-lg mb-4 text-center">
+                      <p className="text-sm font-medium mb-2">🔍 Checking for text visibility in generated image...</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-300">
+                        If text is not visible or unclear, use the retry options above to improve text rendering.
+                      </p>
+                    </div>
+                  )}
 
                  
                   {/* Text Misspelling Detection */}
