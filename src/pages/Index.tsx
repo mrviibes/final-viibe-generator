@@ -104,8 +104,8 @@ function ensureVisualVariance(options: Array<{
   }>;
   reasons: string[];
 } {
-  // Enable variety enforcement for all modes to strengthen impact
-  const shouldEnforceVariety = true;
+  // Disable internal rewrites/top-ups to avoid generic placeholders
+  const shouldEnforceVariety = false;
   
   if (!shouldEnforceVariety) {
     return {
@@ -304,8 +304,8 @@ function validateLayoutAwareVisuals(options: Array<{
     reasons.push('No options passed layout validation');
   }
 
-  // Top-up to 4 options if we have 1-3 valid options
-  if (validOptions.length > 0 && validOptions.length < 4) {
+  // Top-up disabled to avoid generating generic placeholders; allow upstream regeneration instead
+  if (false && validOptions.length > 0 && validOptions.length < 4) {
     console.log(`🔧 Topping up from ${validOptions.length} to 4 options with smart fallbacks...`);
     
     // Determine which lanes are missing

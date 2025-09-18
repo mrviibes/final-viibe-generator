@@ -101,12 +101,23 @@ const VISUAL_VOCABULARY = {
   }
 };
 
+// Case-insensitive lookup for visual vocabulary
+function getVocabInsensitive(category: string, subcategory: string): { props: string; atmosphere: string } {
+  const catKey = Object.keys(VISUAL_VOCABULARY).find(k => k.toLowerCase() === String(category).toLowerCase());
+  if (!catKey) return { props: '', atmosphere: '' };
+  const subMap = (VISUAL_VOCABULARY as any)[catKey] || {};
+  const subKey = Object.keys(subMap).find(k => k.toLowerCase() === String(subcategory).toLowerCase());
+  if (!subKey) return { props: '', atmosphere: '' };
+  const match = subMap[subKey] || {};
+  return { props: String(match.props || ''), atmosphere: String(match.atmosphere || '') };
+}
+
 // Enhanced visual prompt template that eliminates placeholders
 const SYSTEM_PROMPT_UNIVERSAL = (
   { mode, layout, category, subcategory }: { mode: string; layout: string; category: string; subcategory: string }
 ) => {
   // Get category-specific visual vocabulary
-  const vocab = VISUAL_VOCABULARY[category]?.[subcategory] || { props: "", atmosphere: "" };
+  const vocab = getVocabInsensitive(category, subcategory);
   const layoutRule = LAYOUT_RULES[layout] || LAYOUT_RULES["negativeSpace"];
   
   const modeInstructions = {
