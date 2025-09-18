@@ -4852,22 +4852,6 @@ const Index = () => {
         selections.push({
           title: optionTitle,
           subtitle: compactDescription,
-          canEdit: true,
-          onEdit: (newSubtitle?: string) => {
-            if (newSubtitle && selectedVisualIndex !== null) {
-              const updatedOptions = [...visualOptions];
-              // Parse the edited description back into subject and background
-              const parts = newSubtitle.split(' - ');
-              if (parts.length >= 2) {
-                updatedOptions[selectedVisualIndex] = {
-                  ...updatedOptions[selectedVisualIndex],
-                  subject: parts[0],
-                  background: parts.slice(1).join(' - ')
-                };
-                setVisualOptions(updatedOptions);
-              }
-            }
-          },
           onChangeSelection: () => {
             setSelectedVisualIndex(null);
             setSelectedDimension(null);
@@ -4895,14 +4879,6 @@ const Index = () => {
       selections.push({
         title: "Custom Visual Description",
         subtitle: `"${subjectDescription}"`,
-        canEdit: true,
-        onEdit: (newSubtitle?: string) => {
-          if (newSubtitle) {
-            // Remove quotes if they exist and update the description
-            const cleanedDescription = newSubtitle.replace(/^["']|["']$/g, '');
-            setSubjectDescription(cleanedDescription);
-          }
-        },
         onChangeSelection: () => {
           setIsSubjectDescriptionConfirmed(false);
           setSelectedDimension(null);
@@ -4917,14 +4893,6 @@ const Index = () => {
       selections.push({
         title: "Tags",
         subtitle: subjectTags.join(", "),
-        canEdit: true,
-        onEdit: (newSubtitle?: string) => {
-          if (newSubtitle) {
-            // Parse the edited tags string back into array
-            const newTags = newSubtitle.split(',').map(tag => tag.trim()).filter(Boolean);
-            setSubjectTags(newTags);
-          }
-        },
         onChangeSelection: () => {
           setShowSubjectTagEditor(true);
         }
@@ -4938,17 +4906,6 @@ const Index = () => {
       selections.push({
         title,
         subtitle: dimension?.description,
-        canEdit: true,
-        onEdit: (newSubtitle?: string) => {
-          if (newSubtitle && selectedDimension === "custom") {
-            // Parse custom dimensions from edited string
-            const match = newSubtitle.match(/(\d+)\s*x\s*(\d+)/);
-            if (match) {
-              setCustomWidth(match[1]);
-              setCustomHeight(match[2]);
-            }
-          }
-        },
         onChangeSelection: () => {
           setSelectedDimension(null);
           setCustomWidth("");
@@ -4982,13 +4939,6 @@ const Index = () => {
       selections.push({
         title: layout?.name || selectedTextLayout,
         subtitle: "Text layout style",
-        canEdit: true,
-        onEdit: (newSubtitle?: string) => {
-          if (newSubtitle) {
-            // Allow editing of the layout description
-            console.log('Updated layout description:', newSubtitle);
-          }
-        },
         onChangeSelection: () => setSelectedTextLayout(null)
       });
     }
