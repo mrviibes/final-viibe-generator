@@ -101,7 +101,7 @@ const VISUAL_VOCABULARY = {
   }
 };
 
-// Universal prompt template with text instruction priority
+// Enhanced visual prompt template that eliminates placeholders
 const SYSTEM_PROMPT_UNIVERSAL = (
   { mode, layout, category, subcategory }: { mode: string; layout: string; category: string; subcategory: string }
 ) => {
@@ -109,24 +109,46 @@ const SYSTEM_PROMPT_UNIVERSAL = (
   const vocab = VISUAL_VOCABULARY[category]?.[subcategory] || { props: "", atmosphere: "" };
   const layoutRule = LAYOUT_RULES[layout] || LAYOUT_RULES["negativeSpace"];
   
-  return `Generate 4 visual concepts as JSON only. NO extra text.
+  const modeInstructions = {
+    balanced: "Polished, realistic photo style. Clear subject action + props tied to the joke. Good lighting, readable negative space.",
+    cinematic: "Movie-poster energy. Spotlights, glitter, smoke, lasers, confetti, dramatic poses. Scene feels like a big stage or blockbuster moment.",
+    dynamic: "Peak mid-motion chaos. Candles blowing out, balloons bursting, cake flying, confetti mid-air. Subject caught mid-action.",
+    surreal: "Impossible but funny. Cake as a disco ball, subject singing to a floating mic, giant candles. Dreamlike lighting, fog, neon.",
+    chaos: "Unexpected mashup. Joke + Subcategory + absurd element (e.g., singing into a giant candle, cake as a concert stage). Bright palettes, unpredictable energy.",
+    exaggerated: "Cartoonish caricature. Big head, tiny body, oversized props (mic, candles, cake). Meme-friendly humor."
+  };
+  
+  return `You generate 4 vivid, cinematic, and funny scene concepts as JSON only.
 
-{"concepts":[{"lane":"option1","text":"..."},{"lane":"option2","text":"..."},{"lane":"option3","text":"..."},{"lane":"option4","text":"..."}]}
+Return EXACTLY:
+{
+  "concepts":[
+    {"lane":"option1","text":"..."},
+    {"lane":"option2","text":"..."},
+    {"lane":"option3","text":"..."},
+    {"lane":"option4","text":"..."}
+  ]
+}
 
-UNIVERSAL TEMPLATE FOR EACH CONCEPT:
+## Hard Rules:
+- Each concept MUST tie directly to the caption/joke text.
+- Each concept MUST include props and atmosphere relevant to Category [${category}] and Subcategory [${subcategory}].
+- No filler placeholders. Never say "prop with twist," "group of people," or "abstract shapes."
+- Each option must be a cinematic **scene idea** — a moment someone could visualize as a poster or meme.
+- Always leave ${layout} clean for caption placement.
 
-TEXT INSTRUCTION (MANDATORY): Render the provided text clearly integrated into the scene.
+## Mode Enforcement:
+${modeInstructions[mode] || modeInstructions.balanced}
+
+## Required Elements:
+${vocab.props ? `Props: ${vocab.props}` : ""}
+${vocab.atmosphere ? `Atmosphere: ${vocab.atmosphere}` : ""}
+
+## TEXT INSTRUCTION (MANDATORY): 
+Render the provided text clearly integrated into the scene.
 Placement: ${layoutRule.placement}
 Style: ${layoutRule.style}
 The text must appear clearly and be legible, never omitted.
-
----
-
-Scene: ${mode} ${category} → ${subcategory} setup.
-${vocab.props ? `Must include props: ${vocab.props}` : ""}
-${vocab.atmosphere ? `Atmosphere: ${vocab.atmosphere}` : ""}
-Cinematic style: dynamic lighting, vivid atmosphere, memorable props.
-Composition must preserve space for text overlay as specified above.
 
 Rules: 15-25 words per concept. Connect to joke directly. NO generic placeholders.`;
 };
@@ -165,9 +187,11 @@ serve(async (req) => {
     console.log('inputs', { final_text, category, subcategory, mode, layout_token });
 
     const system = SYSTEM_PROMPT_UNIVERSAL({ mode, layout: layout_token, category, subcategory });
-    const user = `Text to overlay: "${final_text}"\nCategory: ${category} (${subcategory})\nMode: ${mode}
+    const user = `Text to overlay: "${final_text}"
+Category: ${category} (${subcategory})
+Mode: ${mode}
     
-NEGATIVE PROMPT GUIDANCE: no bland filler props, no empty rooms, no abstract shapes, no watermarks, no logos, no on-image text besides caption.`;
+NEGATIVE PROMPT GUIDANCE: no filler props, no empty rooms, no watermarks, no logos, no on-image text besides caption.`;
 
     // Try models in sequence until one succeeds
     for (const modelConfig of MODELS) {
@@ -248,8 +272,12 @@ NEGATIVE PROMPT GUIDANCE: no bland filler props, no empty rooms, no abstract sha
           continue;
         }
 
-        // Check for banned phrases
-        const banned = ['random object', 'empty room', 'abstract shapes', 'generic photo'];
+        // Check for banned phrases (expanded list)
+        const banned = [
+          'random object', 'empty room', 'abstract shapes', 'generic photo',
+          'prop with twist', 'group of people laughing', 'abstract geometric shapes',
+          'group of people', 'person looking disappointed', 'random everyday object'
+        ];
         const fails = out.concepts.some((c: any) =>
           typeof c?.text === 'string' && banned.some(b => c.text.toLowerCase().includes(b))
         );

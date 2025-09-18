@@ -20,19 +20,24 @@ const bannedPhrases = [
   'random object',
   'empty room',
   'abstract shapes',
+  'abstract geometric shapes',
   'person looking disappointed',
   'generic photo',
   'random everyday object',
-  'empty chair'
+  'empty chair',
+  'prop with twist',
+  'group of people laughing',
+  'group of people',
+  'bland filler props'
 ];
 
 const modeKeywords: Record<string, string[]> = {
-  balanced: ['realistic', 'cinematic', 'lighting', 'photo', 'portrait', 'crowd', 'scene'],
-  cinematic: ['spotlight', 'motion blur', 'confetti', 'debris', 'dramatic', 'epic', 'bokeh'],
-  dynamic: ['running', 'leaping', 'jump', 'mid-air', 'midair', 'tripping', 'stumbling', 'flying', 'crashing'],
-  surreal: ['impossible', 'floating', 'melting', 'warped', 'giant', 'dream', 'ethereal', 'levitating', 'phantom'],
-  chaos: ['mashup', 'absurd', 'unexpected', 'wild', 'glitch', 'glitchy', 'chaos', 'surprise'],
-  exaggerated: ['giant head', 'big-headed', 'tiny body', 'oversized', 'caricature', 'exaggerated']
+  balanced: ['realistic', 'cinematic', 'lighting', 'photo', 'portrait', 'crowd', 'scene', 'polished'],
+  cinematic: ['spotlight', 'motion blur', 'confetti', 'debris', 'dramatic', 'epic', 'bokeh', 'movie-poster', 'stage', 'blockbuster', 'glitter', 'smoke', 'lasers'],
+  dynamic: ['running', 'leaping', 'jump', 'mid-air', 'midair', 'tripping', 'stumbling', 'flying', 'crashing', 'blowing out', 'bursting', 'mid-action', 'chaos'],
+  surreal: ['impossible', 'floating', 'melting', 'warped', 'giant', 'dream', 'ethereal', 'levitating', 'phantom', 'disco ball', 'neon', 'fog'],
+  chaos: ['mashup', 'absurd', 'unexpected', 'wild', 'glitch', 'glitchy', 'chaos', 'surprise', 'concert stage', 'bright palettes'],
+  exaggerated: ['giant head', 'big-headed', 'tiny body', 'oversized', 'caricature', 'exaggerated', 'cartoonish', 'meme-friendly']
 };
 
 function normalize(s: string): string {
@@ -64,7 +69,16 @@ export function validateVisualBatch(context: VisualContext, concepts: VisualConc
       pass = false;
     }
 
-    // 3) Forbidden content
+    // 3) Joke-tie validation (check if concept references key words from final text)
+    const finalTextWords = context.final_text.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    const hasJokeTie = finalTextWords.some(word => lower.includes(word)) || 
+                       finalTextWords.length === 0; // Allow if no substantial words to match
+    if (!hasJokeTie) {
+      reasons.push('no_joke_connection');
+      pass = false;
+    }
+
+    // 4) Forbidden content
     if (/watermark|logo|on-image text/i.test(text)) {
       reasons.push('forbidden_content');
       pass = false;
