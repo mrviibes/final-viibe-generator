@@ -1,6 +1,7 @@
 import { IdeogramHandoff } from './ideogram';
 import { normalizeTypography } from './textUtils';
 import { buildUniversalTextPrompt, universalTextPlacementTemplates } from './universalTextTemplates';
+import { isLongCaption } from './textRenderingConfig';
 import { 
   extractAppearanceAttributes, 
   combineAppearanceAttributes, 
@@ -202,7 +203,7 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
   };
 }
 
-export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { injectText?: boolean } = {}): IdeogramPrompts {
+export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { injectText?: boolean; strengthLevel?: number } = {}): IdeogramPrompts {
   const shouldInjectText = options.injectText !== false;
   
   // PHASE 1: Extract appearance attributes from all input sources
@@ -260,7 +261,8 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
     const { positivePrompt, negativePrompt } = buildUniversalTextPrompt(
       layoutTemplate.id, 
       handoff.key_line, 
-      sceneDescription
+      sceneDescription,
+      options.strengthLevel || 1
     );
     
     // PHASE 3: Add contextual negative prompts for appearance consistency

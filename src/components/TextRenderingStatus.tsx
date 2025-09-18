@@ -8,6 +8,8 @@ export type TextRenderingStatusType =
   | "text-split-retrying"
   | "text-garbled-retrying"
   | "using-overlay-fallback"
+  | "long-caption-detected"
+  | "enhanced-rendering"
   | "completed"
   | null;
 
@@ -47,6 +49,16 @@ export function TextRenderingStatus({ status, className = "" }: TextRenderingSta
     },
     "validating-caption": {
       text: "Validating text clarity...",
+      variant: "secondary" as const,
+      showSpinner: true
+    },
+    "long-caption-detected": {
+      text: "Long caption detected, using enhanced rendering...",
+      variant: "outline" as const,
+      showSpinner: true
+    },
+    "enhanced-rendering": {
+      text: "Using enhanced prompt strength...",
       variant: "secondary" as const,
       showSpinner: true
     }

@@ -35,7 +35,7 @@ import { validateVisualBatch, validateCaptionMatch, shouldRetry, type VisualCont
 import { validateAppearanceConsistency } from "@/lib/appearanceValidator";
 import { testNetworkConnectivity } from "@/lib/networkTest";
 import { careersList } from "@/lib/careers";
-import { LAYOUT_PRIORITY, RETRY_TIERS, decideLayoutAndStyle, getPreferredLayout, getPreferredStyle } from "@/lib/textRenderingConfig";
+import { LAYOUT_PRIORITY, RETRY_TIERS, decideLayoutAndStyle, getPreferredLayout, getPreferredStyle, isLongCaption, decideLongCaptionLayoutAndStyle } from "@/lib/textRenderingConfig";
 import { TextRenderingStatus, type TextRenderingStatusType } from "@/components/TextRenderingStatus";
 import { CaptionOverlay } from "@/components/CaptionOverlay";
 

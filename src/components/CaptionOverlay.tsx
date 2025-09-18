@@ -7,9 +7,10 @@ interface CaptionOverlayProps {
   caption: string;
   layout: string;
   onImageReady?: (dataUrl: string) => void;
+  fallbackMode?: boolean; // For programmatic overlay fallback
 }
 
-export function CaptionOverlay({ imageUrl, caption, layout, onImageReady }: CaptionOverlayProps) {
+export function CaptionOverlay({ imageUrl, caption, layout, onImageReady, fallbackMode = false }: CaptionOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isReady, setIsReady] = useState(false);
 
@@ -31,9 +32,12 @@ export function CaptionOverlay({ imageUrl, caption, layout, onImageReady }: Capt
       // Draw base image
       ctx.drawImage(img, 0, 0);
 
-      // Configure text style based on layout
-      const fontSize = Math.max(img.width * 0.05, 24);
-      ctx.font = `bold ${fontSize}px 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif`;
+      // Enhanced text properties for fallback mode
+      const fontSize = fallbackMode ? Math.max(24, Math.min(48, canvas.width / 20)) : Math.max(img.width * 0.05, 24);
+      ctx.font = `bold ${fontSize}px Impact, "Arial Black", sans-serif`;
+      ctx.fillStyle = 'white';
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = fallbackMode ? Math.max(2, fontSize / 16) : fontSize * 0.1;
       ctx.textAlign = 'center';
       ctx.fillStyle = '#FFFFFF';
       ctx.strokeStyle = '#000000';

@@ -18,13 +18,34 @@ export const RETRY_TIERS = [
   { layout: "memeTopBottom", style: "GENERAL" }
 ] as const;
 
-export type LayoutType = typeof LAYOUT_PRIORITY[number];
+// Enhanced retry tiers for long captions (≥12 words or ≥80 characters)
+export const LONG_CAPTION_RETRY_TIERS = [
+  { layout: "memeTopBottom", style: "DESIGN", strength: 2 },
+  { layout: "memeTopBottom", style: "DESIGN", strength: 3 },
+  { layout: "memeTopBottom", style: "GENERAL", strength: 3 },
+  { layout: "programmaticOverlay", style: "DESIGN", strength: 1 }
+] as const;
+
+export type LayoutType = typeof LAYOUT_PRIORITY[number] | "programmaticOverlay";
 export type StyleType = typeof STYLE_SELECTION.with_caption[number] | typeof STYLE_SELECTION.no_caption[number];
 export type RetryTier = typeof RETRY_TIERS[number];
+export type LongCaptionRetryTier = typeof LONG_CAPTION_RETRY_TIERS[number];
 
 // Helper functions for layout and style selection
 export function decideLayoutAndStyle(attempt: number): RetryTier {
   const tiers = RETRY_TIERS;
+  return tiers[Math.min(attempt, tiers.length - 1)];
+}
+
+// Long caption detection and retry logic
+export function isLongCaption(text: string): boolean {
+  const wordCount = text.trim().split(/\s+/).length;
+  const charCount = text.length;
+  return wordCount >= 12 || charCount >= 80;
+}
+
+export function decideLongCaptionLayoutAndStyle(attempt: number): LongCaptionRetryTier {
+  const tiers = LONG_CAPTION_RETRY_TIERS;
   return tiers[Math.min(attempt, tiers.length - 1)];
 }
 

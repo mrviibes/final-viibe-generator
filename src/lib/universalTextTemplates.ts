@@ -7,6 +7,10 @@ export interface TextPlacementTemplate {
   positivePrompt: string;
   negativePrompt: string;
   description: string;
+  strengthLevels?: {
+    level2: string;
+    level3: string;
+  };
 }
 
 export const universalTextPlacementTemplates: TextPlacementTemplate[] = [
@@ -24,10 +28,29 @@ Text must be fully clear, legible, and unbroken.
 
 [SCENE_DESCRIPTION]
 Composition must preserve the meme top and bottom bands for caption placement.`,
-    negativePrompt: `no multiple text boxes, no reworded text, no broken or garbled letters, 
+    strengthLevels: {
+      level2: `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "[FINAL_TEXT]".
+Placement: one single caption block only spanning the meme top/bottom band. Do not split into multiple boxes.
+Style: modern sans-serif, large, high contrast, meme-ready.
+Do not reword, shorten, paraphrase, or introduce spelling mistakes.
+The text must be fully clear, legible, and match exactly as one continuous sentence.
+
+[SCENE_DESCRIPTION]
+Composition must preserve the meme top and bottom bands for caption placement.`,
+      level3: `TEXT INSTRUCTION (CRITICAL - ABSOLUTE PRIORITY): The caption is mandatory and critical.
+Render this exact text once: "[FINAL_TEXT]".
+Placement: one single caption block only spanning the meme top/bottom band.
+Style: modern sans-serif, large, high contrast, meme-ready.
+Absolutely no splitting, duplication, paraphrasing, or spelling mistakes.
+The caption must be rendered exactly once, in one block, with perfect spelling and clarity.
+
+[SCENE_DESCRIPTION]
+Composition must preserve the meme top and bottom bands for caption placement.`
+    },
+    negativePrompt: `no multiple text boxes, no split captions, no reworded text, no broken or garbled letters,
+no paraphrased or shortened text, no spelling mistakes, no duplicated captions,
 no abstract filler shapes, no empty generic backgrounds, 
-no watermarks, no logos, no duplicate captions, 
-no ornamental or handwritten fonts, no faded or blurry text, no subject substitutions`
+no watermarks, no logos, no ornamental or handwritten fonts, no faded or blurry text, no subject substitutions`
   },
   {
     id: "negativeSpace",
@@ -127,7 +150,8 @@ no blurry captions, no duplicated text, no watermarks, no logos`
 export function buildUniversalTextPrompt(
   templateId: string, 
   finalText: string, 
-  sceneDescription: string
+  sceneDescription: string,
+  strengthLevel: number = 1
 ): { positivePrompt: string; negativePrompt: string } {
   const template = universalTextPlacementTemplates.find(t => t.id === templateId);
   
@@ -135,7 +159,16 @@ export function buildUniversalTextPrompt(
     throw new Error(`Template not found: ${templateId}`);
   }
   
-  const positivePrompt = template.positivePrompt
+  let basePrompt = template.positivePrompt;
+  
+  // Apply strength level if available
+  if (strengthLevel === 2 && template.strengthLevels?.level2) {
+    basePrompt = template.strengthLevels.level2;
+  } else if (strengthLevel === 3 && template.strengthLevels?.level3) {
+    basePrompt = template.strengthLevels.level3;
+  }
+  
+  const positivePrompt = basePrompt
     .replace('[FINAL_TEXT]', finalText)
     .replace('[SCENE_DESCRIPTION]', sceneDescription);
     
