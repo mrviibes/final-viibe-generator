@@ -18,64 +18,78 @@ export const universalTextPlacementTemplates: TextPlacementTemplate[] = [
     id: "memeTopBottom",
     label: "Meme Top/Bottom",
     description: "Bold captions in clear horizontal bands at top and/or bottom",
-    positivePrompt: `Text: "[FINAL_TEXT]". Top/bottom band, clean sans-serif, readable size.
-
-[SCENE_DESCRIPTION]`,
-    negativePrompt: `blurry text, split text, wrong spelling`
+    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
+PLACEMENT: Top/bottom band, no more than 40% of image height.
+STYLE: Modern sans-serif, bold, high contrast, fully legible.
+SCENE: [SCENE_DESCRIPTION]
+SPACE: Preserve clear top/bottom band for the caption.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
   },
   {
     id: "negativeSpace",
     label: "Negative Space",
     description: "Text integrated seamlessly into natural empty areas",
-    positivePrompt: `Text: "[FINAL_TEXT]". In empty space, clean font, readable.
-
-[SCENE_DESCRIPTION]`,
-    negativePrompt: `blurry text, overlapping subject, wrong spelling`
+    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
+PLACEMENT: Natural empty margin space, no more than 25% of image height.
+STYLE: Modern sans-serif, bold, high contrast, fully legible.
+SCENE: [SCENE_DESCRIPTION]
+SPACE: Preserve clear empty space for the caption.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
   },
   {
     id: "lowerThird",
     label: "Lower Third Banner",
     description: "Clean banner-style caption across bottom third",
-    positivePrompt: `Text: "[FINAL_TEXT]". Bottom third banner, clean font.
-
-[SCENE_DESCRIPTION]`,
-    negativePrompt: `blurry text, wrong spelling, overlapping subject`
+    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
+PLACEMENT: Clean banner across bottom third, no more than 25% of image height.
+STYLE: Modern sans-serif, bold, high contrast, fully legible.
+SCENE: [SCENE_DESCRIPTION]
+SPACE: Preserve clear bottom third for the caption.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
   },
   {
     id: "sideBarLeft",
     label: "Side Bar (Left)",
     description: "Vertical caption panel on the left side",
-    positivePrompt: `Text: "[FINAL_TEXT]". Left side panel, clean font.
-
-[SCENE_DESCRIPTION]`,
-    negativePrompt: `blurry text, wrong spelling, overlapping subject`
+    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
+PLACEMENT: Left side panel, within 25% of canvas width, aligned cleanly.
+STYLE: Modern sans-serif, bold, high contrast, fully legible.
+SCENE: [SCENE_DESCRIPTION]
+SPACE: Preserve clear left panel for the caption.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
   },
   {
     id: "sideBarRight",
     label: "Side Bar (Right)",
     description: "Vertical caption panel on the right side",
-    positivePrompt: `Text: "[FINAL_TEXT]". Right side panel, clean font.
-
-[SCENE_DESCRIPTION]`,
-    negativePrompt: `blurry text, wrong spelling, overlapping subject`
+    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
+PLACEMENT: Right side panel, within 25% of canvas width, aligned cleanly.
+STYLE: Modern sans-serif, bold, high contrast, fully legible.
+SCENE: [SCENE_DESCRIPTION]
+SPACE: Preserve clear right panel for the caption.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
   },
   {
     id: "badgeSticker",
     label: "Badge/Sticker Callout",
     description: "Text inside a clean modern badge or sticker element",
-    positivePrompt: `Text: "[FINAL_TEXT]". In small badge, clean font.
-
-[SCENE_DESCRIPTION]`,
-    negativePrompt: `blurry text, wrong spelling, oversized badge`
+    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
+PLACEMENT: Inside contained badge or sticker element, no larger than 20% of canvas area.
+STYLE: Modern sans-serif, bold, high contrast, fully legible.
+SCENE: [SCENE_DESCRIPTION]
+SPACE: Preserve clear badge area for the caption.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
   },
   {
     id: "subtleCaption",
     label: "Subtle Caption",
     description: "Minimal caption overlay, unobtrusive but legible",
-    positivePrompt: `Text: "[FINAL_TEXT]". Small corner text, clean font.
-
-[SCENE_DESCRIPTION]`,
-    negativePrompt: `blurry text, wrong spelling, oversized text`
+    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
+PLACEMENT: Small, unobtrusive, less than 10% of image height, but fully legible.
+STYLE: Modern sans-serif, bold, high contrast, fully legible.
+SCENE: [SCENE_DESCRIPTION]
+SPACE: Preserve clear corner space for the caption.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
   }
 ];
 
