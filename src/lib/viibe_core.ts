@@ -89,12 +89,17 @@ export async function generateVisualOptions(
     recommendationMode
   });
 
+  // Combine session tags with passed tags, prioritizing passed tags
+  const allTags = [...(tags || []), ...(session.tags || [])];
+  const uniqueTags = Array.from(new Set(allTags)).filter(t => t && t.trim().length > 0);
+
   const payload = {
     final_text: textContent,
     category: session.category,
     subcategory: session.subcategory,
     mode: recommendationMode || 'balanced',
     layout_token: textLayoutId,
+    tags: uniqueTags,
   };
 
   console.log('Calling generate-visuals with payload:', payload);

@@ -21,6 +21,7 @@ interface VisualInput {
   subcategory: string;
   mode: string; // balanced | cinematic | dynamic | surreal | chaos | exaggerated
   layout_token: string;
+  tags?: string[];
 }
 
 // Layout-specific text placement rules
@@ -112,13 +113,17 @@ function getVocabInsensitive(category: string, subcategory: string): { props: st
   return { props: String(match.props || ''), atmosphere: String(match.atmosphere || '') };
 }
 
-// Enhanced visual prompt template that eliminates placeholders
+// Enhanced visual prompt template that eliminates placeholders and enforces tags
 const SYSTEM_PROMPT_UNIVERSAL = (
-  { mode, layout, category, subcategory }: { mode: string; layout: string; category: string; subcategory: string }
+  { mode, layout, category, subcategory, tags = [] }: { mode: string; layout: string; category: string; subcategory: string; tags?: string[] }
 ) => {
   // Get category-specific visual vocabulary
   const vocab = getVocabInsensitive(category, subcategory);
   const layoutRule = LAYOUT_RULES[layout] || LAYOUT_RULES["negativeSpace"];
+  
+  // Process tags - separate hard (unquoted) from soft (quoted) constraints
+  const hardTags = tags.filter(tag => !tag.startsWith('"') || !tag.endsWith('"')).map(tag => tag.replace(/^["']|["']$/g, ''));
+  const softTags = tags.filter(tag => tag.startsWith('"') && tag.endsWith('"')).map(tag => tag.slice(1, -1));
   
   const modeInstructions = {
     balanced: "Polished, realistic photo style. Clear subject action + props tied to the joke. Good lighting, readable negative space.",
@@ -144,6 +149,8 @@ Return EXACTLY:
 ## Hard Rules:
 - Each concept MUST tie directly to the caption/joke text.
 - Each concept MUST include props and atmosphere relevant to Category [${category}] and Subcategory [${subcategory}].
+${hardTags.length > 0 ? `- MANDATORY HARD TAGS (must appear literally in ≥3/4 concepts): ${hardTags.join(', ')}. NO SUBSTITUTIONS.` : ''}
+${softTags.length > 0 ? `- STYLE INFLUENCE TAGS (shape mood/style only, never literal): ${softTags.join(', ')}.` : ''}
 - No filler placeholders. Never say "prop with twist," "group of people," or "abstract shapes."
 - Each option must be a cinematic **scene idea** — a moment someone could visualize as a poster or meme.
 - Always leave ${layout} clean for caption placement.
@@ -187,6 +194,7 @@ serve(async (req) => {
     const subcategory = String(inputs.subcategory || '').trim();
     const mode = String(inputs.mode || 'balanced').trim();
     const layout_token = String(inputs.layout_token || 'negativeSpace').trim();
+    const tags = Array.isArray(inputs.tags) ? inputs.tags.filter(t => typeof t === 'string' && t.trim().length > 0) : [];
 
     if (!final_text || !category || !subcategory) {
       return new Response(JSON.stringify({ success: false, error: 'Missing required fields: final_text, category, subcategory' }), {
@@ -195,14 +203,15 @@ serve(async (req) => {
       });
     }
 
-    console.log('inputs', { final_text, category, subcategory, mode, layout_token });
+    console.log('inputs', { final_text, category, subcategory, mode, layout_token, tags });
 
-    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, layout: layout_token, category, subcategory });
+    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, layout: layout_token, category, subcategory, tags });
     const user = `Text to overlay: "${final_text}"
 Category: ${category} (${subcategory})
 Mode: ${mode}
+${tags.length > 0 ? `Tags: ${tags.join(', ')}` : ''}
     
-NEGATIVE PROMPT GUIDANCE: no filler props, no empty rooms, no watermarks, no logos, no on-image text besides caption.`;
+NEGATIVE PROMPT GUIDANCE: no filler props, no empty rooms, no watermarks, no logos, no on-image text besides caption${tags.length > 0 ? ', no ignoring hard tags, no subject substitution' : ''}.`;
 
     // Try models in sequence until one succeeds
     for (const modelConfig of MODELS) {
