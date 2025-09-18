@@ -49,6 +49,7 @@ Composition must preserve the meme top and bottom bands for caption placement.`
     },
     negativePrompt: `no multiple text boxes, no split captions, no reworded text, no broken or garbled letters,
 no paraphrased or shortened text, no spelling mistakes, no duplicated captions,
+no background words, no song titles, no album names, no filler text, no poster text, no fake names, no track listings,
 no abstract filler shapes, no empty generic backgrounds, 
 no watermarks, no logos, no ornamental or handwritten fonts, no faded or blurry text, no subject substitutions`
   },
@@ -65,6 +66,7 @@ The text must be large enough to read but feel naturally part of the scene.
 Composition must include ample negative space for caption placement.`,
     negativePrompt: `no floating text boxes, no comic font, no overlapping main subject,
 no distorted text, no duplicated words, no blurry letters,
+no background words, no song titles, no album names, no filler text, no poster text, no fake names,
 no extra random captions, no watermarks, no logos`
   },
   {
@@ -81,6 +83,7 @@ TEXT MUST BE PERFECTLY LEGIBLE AND MATCH EXACTLY.
 [SCENE_DESCRIPTION]
 Composition must leave space for a lower-third banner.`,
     negativePrompt: `no thick cartoon banners, no bold comic fonts, no clashing colors,
+no background words, no song titles, no album names, no filler text, no poster text, no fake names,
 no duplicated captions, no blurry text, no watermarks, no logos`
   },
   {
@@ -96,6 +99,7 @@ Text must be clear, elegant, and cinematic.
 [SCENE_DESCRIPTION]
 Composition must leave space on left side for sidebar text.`,
     negativePrompt: `no comic book panels, no tacky colored boxes, no duplicated captions,
+no background words, no song titles, no album names, no filler text, no poster text, no fake names,
 no overlapping subject, no blurry or warped text, no watermarks`
   },
   {
@@ -111,6 +115,7 @@ Text must be clear, elegant, and cinematic.
 [SCENE_DESCRIPTION]
 Composition must leave space on right side for sidebar text.`,
     negativePrompt: `no comic book panels, no tacky colored boxes, no duplicated captions,
+no background words, no song titles, no album names, no filler text, no poster text, no fake names,
 no overlapping subject, no blurry or warped text, no watermarks`
   },
   {
@@ -127,6 +132,7 @@ Badge must feel professional, not clipart.
 Composition must include room for decorative badge caption.`,
     negativePrompt: `no tacky emoji-style stickers, no cluttered clipart,
 no distorted shapes, no comic fonts, no duplicated text,
+no background words, no song titles, no album names, no filler text, no poster text, no fake names,
 no blurry lettering, no watermarks, no logos`
   },
   {
@@ -142,6 +148,7 @@ The caption must be cinematic and refined, not oversized.
 [SCENE_DESCRIPTION]
 Composition must include unobtrusive caption area.`,
     negativePrompt: `no oversized meme text, no comic fonts, no tacky outlines,
+no background words, no song titles, no album names, no filler text, no poster text, no fake names,
 no blurry captions, no duplicated text, no watermarks, no logos`
   }
 ];

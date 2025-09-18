@@ -9,6 +9,12 @@ import {
   buildAppearanceNegatives,
   type AppearanceAttributes 
 } from './appearanceExtractor';
+import { 
+  detectPopCultureContext, 
+  getEnhancedNegativePrompt, 
+  shouldForceDesignStyle,
+  type PopCultureContext 
+} from './popCultureDetection';
 
 export interface IdeogramPrompts {
   positive_prompt: string;
@@ -206,6 +212,13 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
 export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { injectText?: boolean; strengthLevel?: number } = {}): IdeogramPrompts {
   const shouldInjectText = options.injectText !== false;
   
+  // PHASE 0: Pop culture context detection for enhanced text handling
+  const popCultureContext = handoff.key_line 
+    ? detectPopCultureContext(handoff.key_line) 
+    : { isPopCulture: false, detectedTerms: [], riskLevel: 'low' as const };
+  
+  console.log('🎯 Pop culture detection:', popCultureContext);
+  
   // PHASE 1: Extract appearance attributes from all input sources
   const appearanceExtractions: AppearanceAttributes[] = [];
   
@@ -265,11 +278,14 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
       options.strengthLevel || 1
     );
     
-    // PHASE 3: Add contextual negative prompts for appearance consistency
+    // PHASE 3: Add contextual negative prompts for appearance consistency + pop culture
     const appearanceNegatives = buildAppearanceNegatives(combinedAppearance);
-    const enhancedNegativePrompt = appearanceNegatives.length > 0 
+    let enhancedNegativePrompt = appearanceNegatives.length > 0 
       ? `${negativePrompt}, ${appearanceNegatives.join(', ')}, blurry text, missing text`
       : `${negativePrompt}, blurry text, missing text`;
+    
+    // Apply pop culture enhancements
+    enhancedNegativePrompt = getEnhancedNegativePrompt(enhancedNegativePrompt, popCultureContext);
     
     // Strengthen text rendering instructions (concise version to avoid API limits)
     const strengthenedPositive = `${positivePrompt} Text must be legible: "${handoff.key_line}"`;
@@ -316,10 +332,18 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
     handoff.chosen_visual.toLowerCase().includes('generic')
   );
   
-  // 3. Style specification
-  const styleSpec = handoff.visual_style && handoff.visual_style.toLowerCase() !== 'auto' 
-    ? `in ${handoff.visual_style} style` 
-    : 'in realistic photo style';
+  // 3. Style specification with pop culture override
+  let targetStyle = handoff.visual_style && handoff.visual_style.toLowerCase() !== 'auto' 
+    ? handoff.visual_style 
+    : 'realistic photo';
+  
+  // Override to DESIGN style for high-risk pop culture content to avoid poster layouts
+  if (shouldForceDesignStyle(popCultureContext) && targetStyle.toLowerCase() === 'realistic photo') {
+    targetStyle = 'design';
+    console.log('🎯 Pop culture override: Switching from REALISTIC to DESIGN style');
+  }
+  
+  const styleSpec = `in ${targetStyle} style`;
 
   sceneParts.push(`${handoff.tone} ${cleanSubject} ${styleSpec}.`);
   
@@ -394,15 +418,18 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const promptSanitization = sanitizePrompt(positivePrompt);
   positivePrompt = promptSanitization.cleaned;
   
-  // PHASE 3 (Legacy): Enhanced negative prompt with appearance blockers
+  // PHASE 3 (Legacy): Enhanced negative prompt with appearance blockers + pop culture
   const appearanceNegatives = buildAppearanceNegatives(combinedAppearance);
   const baseNegativePrompt = shouldInjectText 
     ? "no filler props, no empty rooms, no abstract shapes, no watermarks, no logos, no extra on image text" 
     : "no embedded text, no letters, no words, no signage, no watermarks, no logos";
   
-  const enhancedNegativePrompt = appearanceNegatives.length > 0 
+  let enhancedNegativePrompt = appearanceNegatives.length > 0 
     ? `${baseNegativePrompt}, ${appearanceNegatives.join(', ')}`
     : baseNegativePrompt;
+  
+  // Apply pop culture enhancements for legacy system too
+  enhancedNegativePrompt = getEnhancedNegativePrompt(enhancedNegativePrompt, popCultureContext);
 
   return {
     positive_prompt: positivePrompt,
