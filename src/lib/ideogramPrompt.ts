@@ -239,6 +239,25 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const combinedAppearance = combineAppearanceAttributes(appearanceExtractions);
   console.log('🎯 Appearance extraction:', combinedAppearance);
   
+  // PHASE 1.5: Extract explicit subject requirements for mandatory enforcement
+  const extractSubjectRequirements = (text: string): string[] => {
+    const requirements: string[] = [];
+    const ageMatches = text.match(/(\d+)-?year-?old|\b(adult|teenager|teen|child|elderly|senior)\b/gi);
+    const genderMatches = text.match(/\b(man|woman|male|female|boy|girl|person)\b/gi);
+    const descriptorMatches = text.match(/\b(creepy|scary|friendly|tall|short|thin|heavy)\b/gi);
+    
+    if (ageMatches) requirements.push(...ageMatches.map(m => m.toLowerCase()));
+    if (genderMatches) requirements.push(...genderMatches.map(m => m.toLowerCase()));
+    if (descriptorMatches) requirements.push(...descriptorMatches.map(m => m.toLowerCase()));
+    
+    return requirements;
+  };
+  
+  const subjectRequirements = [
+    ...extractSubjectRequirements(handoff.chosen_visual || ''),
+    ...extractSubjectRequirements(handoff.rec_subject || '')
+  ];
+  
   // Extract layout ID from design notes (format: "Layout: layoutId")
   const layoutMatch = handoff.design_notes?.match(/Layout:\s*(\w+)/);
   const layoutId = layoutMatch?.[1];
@@ -254,22 +273,37 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim() && layoutTemplate) {
     console.log('✅ Using Universal Template System:', layoutTemplate.label);
     
-    // PHASE 2: Build appearance-prioritized scene description
+    // PHASE 2: Build appearance-prioritized scene description with mandatory subject enforcement
     const subject = handoff.chosen_visual || handoff.rec_subject || `${handoff.tone} ${handoff.category} scene`;
     const cleanSubject = subject.replace(/,?\s*(clear empty area|clear top band|clear bottom band|clear lower third|clear left panel|badge space|clear narrow bottom)/gi, '').trim();
     
-    const styleSpec = handoff.visual_style && handoff.visual_style.toLowerCase() !== 'auto' 
-      ? `in ${handoff.visual_style} style` 
-      : 'in realistic photo style';
+    // Force DESIGN style for text rendering to improve caption fidelity
+    let targetStyle = handoff.visual_style && handoff.visual_style.toLowerCase() !== 'auto' 
+      ? handoff.visual_style 
+      : 'design'; // Default to DESIGN for better text rendering
     
-    // Build appearance constraints first, then scene
+    // Override REALISTIC to DESIGN when text is being injected
+    if (shouldInjectText && targetStyle.toLowerCase() === 'realistic photo') {
+      targetStyle = 'design';
+      console.log('🎯 Text injection: Switching from REALISTIC to DESIGN style for better caption rendering');
+    }
+    
+    const styleSpec = `in ${targetStyle} style`;
+    
+    // Build mandatory subject constraints first
+    let subjectBlock = '';
+    if (subjectRequirements.length > 0) {
+      subjectBlock = `SUBJECT (must match exactly): ${cleanSubject}. Must include: ${subjectRequirements.join(', ')}. No substitutions allowed.\n\n`;
+    }
+    
+    // Build appearance constraints
     const appearanceConstraints = buildAppearanceConstraints(combinedAppearance);
     const baseSceneDescription = `${handoff.tone} ${cleanSubject} ${styleSpec}`;
     
-    // Prioritize appearance in scene description
-    const sceneDescription = appearanceConstraints 
+    // Prioritize subject enforcement, then appearance, then scene
+    const sceneDescription = subjectBlock + (appearanceConstraints 
       ? `${appearanceConstraints}\n\n${baseSceneDescription}`
-      : baseSceneDescription;
+      : baseSceneDescription);
     
     const { positivePrompt, negativePrompt } = buildUniversalTextPrompt(
       layoutTemplate.id, 
@@ -278,17 +312,41 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
       options.strengthLevel || 1
     );
     
-    // PHASE 3: Add contextual negative prompts for appearance consistency + pop culture
+    // PHASE 3: Add contextual negative prompts for appearance consistency + pop culture + subject enforcement
     const appearanceNegatives = buildAppearanceNegatives(combinedAppearance);
-    let enhancedNegativePrompt = appearanceNegatives.length > 0 
-      ? `${negativePrompt}, ${appearanceNegatives.join(', ')}, blurry text, missing text`
-      : `${negativePrompt}, blurry text, missing text`;
+    
+    // Subject enforcement negatives
+    const subjectNegatives: string[] = [];
+    if (subjectRequirements.some(req => req.includes('adult') || req.includes('year-old'))) {
+      subjectNegatives.push('no children', 'no boys', 'no girls', 'no teens', 'no teenagers');
+    }
+    if (subjectRequirements.some(req => req.includes('man') || req.includes('male'))) {
+      subjectNegatives.push('no women', 'no females', 'no girls');
+    }
+    if (subjectRequirements.some(req => req.includes('woman') || req.includes('female'))) {
+      subjectNegatives.push('no men', 'no males', 'no boys');
+    }
+    subjectNegatives.push('no substitutions for the subject', 'no altering subject age or gender');
+    
+    // Enhanced text rendering negatives
+    const textNegatives = shouldInjectText 
+      ? ['blurry text', 'missing text', 'broken letters', 'garbled letters', 'extra background text', 'multiple text boxes', 'duplicate captions', 'split text', 'fragmented text']
+      : ['blurry text', 'missing text'];
+    
+    let enhancedNegativePrompt = [
+      negativePrompt,
+      ...appearanceNegatives,
+      ...subjectNegatives,
+      ...textNegatives
+    ].join(', ');
     
     // Apply pop culture enhancements
     enhancedNegativePrompt = getEnhancedNegativePrompt(enhancedNegativePrompt, popCultureContext);
     
-    // Strengthen text rendering instructions (concise version to avoid API limits)
-    const strengthenedPositive = `${positivePrompt} Text must be legible: "${handoff.key_line}"`;
+    // Strengthen text rendering instructions with mandatory directive
+    const strengthenedPositive = shouldInjectText 
+      ? `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "${handoff.key_line}". One single block only. No splitting. No duplication. No misspellings. No substitutions.\n\n${positivePrompt}`
+      : positivePrompt;
     
     console.log('🎯 Universal Template Output:', { 
       positivePrompt: positivePrompt.substring(0, 100) + '...', 
@@ -332,15 +390,15 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
     handoff.chosen_visual.toLowerCase().includes('generic')
   );
   
-  // 3. Style specification with pop culture override
+  // 3. Style specification with text injection and pop culture override
   let targetStyle = handoff.visual_style && handoff.visual_style.toLowerCase() !== 'auto' 
     ? handoff.visual_style 
-    : 'realistic photo';
+    : (shouldInjectText ? 'design' : 'realistic photo'); // Default to DESIGN for text injection
   
-  // Override to DESIGN style for high-risk pop culture content to avoid poster layouts
-  if (shouldForceDesignStyle(popCultureContext) && targetStyle.toLowerCase() === 'realistic photo') {
+  // Override to DESIGN style for text injection or high-risk pop culture content
+  if ((shouldInjectText || shouldForceDesignStyle(popCultureContext)) && targetStyle.toLowerCase() === 'realistic photo') {
     targetStyle = 'design';
-    console.log('🎯 Pop culture override: Switching from REALISTIC to DESIGN style');
+    console.log('🎯 Style override: Switching from REALISTIC to DESIGN for better text/content handling');
   }
   
   const styleSpec = `in ${targetStyle} style`;
@@ -418,15 +476,31 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const promptSanitization = sanitizePrompt(positivePrompt);
   positivePrompt = promptSanitization.cleaned;
   
-  // PHASE 3 (Legacy): Enhanced negative prompt with appearance blockers + pop culture
+  // PHASE 3 (Legacy): Enhanced negative prompt with appearance blockers + pop culture + subject enforcement
   const appearanceNegatives = buildAppearanceNegatives(combinedAppearance);
+  
+  // Subject enforcement negatives for legacy system
+  const legacySubjectNegatives: string[] = [];
+  if (subjectRequirements.some(req => req.includes('adult') || req.includes('year-old'))) {
+    legacySubjectNegatives.push('no children', 'no boys', 'no girls', 'no teens');
+  }
+  if (subjectRequirements.some(req => req.includes('man') || req.includes('male'))) {
+    legacySubjectNegatives.push('no women', 'no females');
+  }
+  if (subjectRequirements.some(req => req.includes('woman') || req.includes('female'))) {
+    legacySubjectNegatives.push('no men', 'no males');
+  }
+  legacySubjectNegatives.push('no substitutions for the subject', 'no altering subject age or gender');
+  
   const baseNegativePrompt = shouldInjectText 
-    ? "no filler props, no empty rooms, no abstract shapes, no watermarks, no logos, no extra on image text" 
+    ? "no filler props, no empty rooms, no abstract shapes, no watermarks, no logos, no extra on image text, no broken or garbled letters, no multiple text boxes, no duplicate captions" 
     : "no embedded text, no letters, no words, no signage, no watermarks, no logos";
   
-  let enhancedNegativePrompt = appearanceNegatives.length > 0 
-    ? `${baseNegativePrompt}, ${appearanceNegatives.join(', ')}`
-    : baseNegativePrompt;
+  let enhancedNegativePrompt = [
+    baseNegativePrompt,
+    ...appearanceNegatives,
+    ...legacySubjectNegatives
+  ].filter(item => item).join(', ');
   
   // Apply pop culture enhancements for legacy system too
   enhancedNegativePrompt = getEnhancedNegativePrompt(enhancedNegativePrompt, popCultureContext);

@@ -8,7 +8,7 @@ export const LAYOUT_PRIORITY = [
 ] as const;
 
 export const STYLE_SELECTION = {
-  with_caption: ["DESIGN", "GENERAL"] as const,
+  with_caption: ["DESIGN"] as const, // Force DESIGN for text to improve caption fidelity
   no_caption: ["REALISTIC"] as const
 } as const;
 
@@ -54,7 +54,8 @@ export function getPreferredLayout(hasCaption: boolean): LayoutType {
 }
 
 export function getPreferredStyle(hasCaption: boolean): StyleType {
-  return hasCaption ? STYLE_SELECTION.with_caption[0] : STYLE_SELECTION.no_caption[0];
+  // Always use DESIGN for captions to maximize text rendering success
+  return hasCaption ? "DESIGN" : STYLE_SELECTION.no_caption[0];
 }
 
 // Layout success probability mapping for intelligent validation

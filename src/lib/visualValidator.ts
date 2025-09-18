@@ -38,13 +38,17 @@ const bannedPhrases = [
   'bland filler props'
 ];
 
-// Caption validation patterns for detecting garbled text
+// Enhanced caption validation patterns for detecting garbled text
 const garblingPatterns = [
   /\b[A-Z]{3,}\s[A-Z]{3,}\b/, // "THE PHUE A DR"
   /\b[A-Z]\s[A-Z]\s[A-Z]\b/, // "T H E"
   /\b\w+\d+\w*\b/, // "word2text"
   /[^a-zA-Z0-9\s'.,!?-]/, // Non-standard characters
   /(.)\1{3,}/, // Repeated characters like "aaaa"
+  /\b[A-Z][a-z]*\s[A-Z][a-z]*\s[A-Z]\b/, // Fragmented capitalization patterns
+  /\b\w{1,2}\s\w{1,2}\s\w{1,2}\b/, // Very short fragmented words
+  /(?:\w+\s){3,}\w+.*\n.*(?:\w+\s){2,}/, // Multi-line text splits
+  /[A-Z]{2,}\s+[A-Z]{2,}/, // Multiple all-caps fragments
 ];
 
 const modeKeywords: Record<string, string[]> = {
@@ -94,22 +98,50 @@ export function validateVisualBatch(context: VisualContext, concepts: VisualConc
       pass = false;
     }
 
-    // 4) Caption compliance validation (if text is expected)
+    // 4) Enhanced caption compliance validation (if text is expected)
     if (context.final_text && context.final_text.trim()) {
-      // Check for garbling patterns
+      // Check for garbling patterns (more comprehensive)
       const hasGarbling = garblingPatterns.some(pattern => pattern.test(text));
       if (hasGarbling) {
         reasons.push('caption_text_garbled');
         pass = false;
       }
-
-      // Basic text similarity check
-      const expectedWords = context.final_text.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-      const textWords = text.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-      const commonWords = expectedWords.filter(word => textWords.some(tw => tw.includes(word) || word.includes(tw)));
       
-      // Make validation more realistic - don't fail every first attempt
-      const similarityThreshold = context.layout_token === "memeTopBottom" ? 0.2 : 0.3;
+      // Check for text splitting/fragmentation
+      const expectedWordCount = context.final_text.split(/\s+/).length;
+      const actualWordCount = text.split(/\s+/).length;
+      const isSplit = actualWordCount < expectedWordCount * 0.6; // Less than 60% of expected words
+      if (isSplit) {
+        reasons.push('caption_text_split');
+        pass = false;
+      }
+      
+      // OCR-style validation - check character-level accuracy
+      const normalizedExpected = context.final_text.toLowerCase().replace(/[^\w\s]/g, '').trim();
+      const normalizedActual = text.toLowerCase().replace(/[^\w\s]/g, '').trim();
+      
+      // Levenshtein distance threshold for exact text matching
+      const distance = levenshteinDistance(normalizedExpected, normalizedActual);
+      const maxAllowedDistance = Math.max(2, normalizedExpected.length * 0.2); // Allow 20% character differences
+      
+      if (distance > maxAllowedDistance) {
+        reasons.push('caption_ocr_mismatch');
+        pass = false;
+      }
+
+      // Word-level validation with stricter thresholds
+      const expectedWords = context.final_text.toLowerCase().split(/\s+/).filter(w => w.length > 1);
+      const textWords = text.toLowerCase().split(/\s+/).filter(w => w.length > 1);
+      const commonWords = expectedWords.filter(word => 
+        textWords.some(tw => 
+          tw.includes(word) || 
+          word.includes(tw) || 
+          levenshteinDistance(word, tw) <= 1
+        )
+      );
+      
+      // Stricter thresholds based on layout type
+      const similarityThreshold = context.layout_token === "memeTopBottom" ? 0.7 : 0.6; // Higher standards
       if (expectedWords.length > 0 && commonWords.length / expectedWords.length < similarityThreshold) {
         reasons.push('caption_text_mismatch');
         pass = false;
