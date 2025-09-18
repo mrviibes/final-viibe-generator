@@ -27,7 +27,7 @@ Composition must preserve the meme top and bottom bands for caption placement.`,
     negativePrompt: `no multiple text boxes, no reworded text, no broken or garbled letters, 
 no abstract filler shapes, no empty generic backgrounds, 
 no watermarks, no logos, no duplicate captions, 
-no ornamental or handwritten fonts, no faded or blurry text`
+no ornamental or handwritten fonts, no faded or blurry text, no subject substitutions`
   },
   {
     id: "negativeSpace",

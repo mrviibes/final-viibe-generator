@@ -32,6 +32,7 @@ import { toast as sonnerToast } from "@/components/ui/sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled, parseVisualTags } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
 import { validateVisualBatch, validateCaptionMatch, shouldRetry, type VisualContext, type VisualConcept } from "@/lib/visualValidator";
+import { validateAppearanceConsistency } from "@/lib/appearanceValidator";
 import { testNetworkConnectivity } from "@/lib/networkTest";
 import { careersList } from "@/lib/careers";
 import { LAYOUT_PRIORITY, RETRY_TIERS, decideLayoutAndStyle, getPreferredLayout, getPreferredStyle } from "@/lib/textRenderingConfig";

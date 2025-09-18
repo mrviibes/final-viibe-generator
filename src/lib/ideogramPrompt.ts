@@ -1,6 +1,13 @@
 import { IdeogramHandoff } from './ideogram';
 import { normalizeTypography } from './textUtils';
 import { buildUniversalTextPrompt, universalTextPlacementTemplates } from './universalTextTemplates';
+import { 
+  extractAppearanceAttributes, 
+  combineAppearanceAttributes, 
+  buildAppearanceConstraints, 
+  buildAppearanceNegatives,
+  type AppearanceAttributes 
+} from './appearanceExtractor';
 
 export interface IdeogramPrompts {
   positive_prompt: string;
@@ -198,6 +205,26 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
 export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { injectText?: boolean } = {}): IdeogramPrompts {
   const shouldInjectText = options.injectText !== false;
   
+  // PHASE 1: Extract appearance attributes from all input sources
+  const appearanceExtractions: AppearanceAttributes[] = [];
+  
+  if (handoff.chosen_visual) {
+    appearanceExtractions.push(extractAppearanceAttributes(handoff.chosen_visual, 'chosen_visual'));
+  }
+  if (handoff.rec_subject) {
+    appearanceExtractions.push(extractAppearanceAttributes(handoff.rec_subject, 'rec_subject'));
+  }
+  if (handoff.key_line) {
+    appearanceExtractions.push(extractAppearanceAttributes(handoff.key_line, 'final_line'));
+  }
+  if (handoff.reference_tags) {
+    appearanceExtractions.push(extractAppearanceAttributes(handoff.reference_tags, 'tags'));
+  }
+  
+  // Combine with priority: chosen_visual > rec_subject > final_line > tags
+  const combinedAppearance = combineAppearanceAttributes(appearanceExtractions);
+  console.log('🎯 Appearance extraction:', combinedAppearance);
+  
   // Extract layout ID from design notes (format: "Layout: layoutId")
   const layoutMatch = handoff.design_notes?.match(/Layout:\s*(\w+)/);
   const layoutId = layoutMatch?.[1];
@@ -213,7 +240,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim() && layoutTemplate) {
     console.log('✅ Using Universal Template System:', layoutTemplate.label);
     
-    // Use the universal template system for modern, cinematic text placement
+    // PHASE 2: Build appearance-prioritized scene description
     const subject = handoff.chosen_visual || handoff.rec_subject || `${handoff.tone} ${handoff.category} scene`;
     const cleanSubject = subject.replace(/,?\s*(clear empty area|clear top band|clear bottom band|clear lower third|clear left panel|badge space|clear narrow bottom)/gi, '').trim();
     
@@ -221,7 +248,14 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
       ? `in ${handoff.visual_style} style` 
       : 'in realistic photo style';
     
-    const sceneDescription = `${handoff.tone} ${cleanSubject} ${styleSpec}`;
+    // Build appearance constraints first, then scene
+    const appearanceConstraints = buildAppearanceConstraints(combinedAppearance);
+    const baseSceneDescription = `${handoff.tone} ${cleanSubject} ${styleSpec}`;
+    
+    // Prioritize appearance in scene description
+    const sceneDescription = appearanceConstraints 
+      ? `${appearanceConstraints}\n\n${baseSceneDescription}`
+      : baseSceneDescription;
     
     const { positivePrompt, negativePrompt } = buildUniversalTextPrompt(
       layoutTemplate.id, 
@@ -229,15 +263,25 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
       sceneDescription
     );
     
+    // PHASE 3: Add contextual negative prompts for appearance consistency
+    const appearanceNegatives = buildAppearanceNegatives(combinedAppearance);
+    const enhancedNegativePrompt = appearanceNegatives.length > 0 
+      ? `${negativePrompt}, ${appearanceNegatives.join(', ')}, blurry text, missing text`
+      : `${negativePrompt}, blurry text, missing text`;
+    
     // Strengthen text rendering instructions (concise version to avoid API limits)
     const strengthenedPositive = `${positivePrompt} Text must be legible: "${handoff.key_line}"`;
-    const strengthenedNegative = `${negativePrompt}, blurry text, missing text`;
     
-    console.log('🎯 Universal Template Output:', { positivePrompt: positivePrompt.substring(0, 100) + '...', negativePrompt });
+    console.log('🎯 Universal Template Output:', { 
+      positivePrompt: positivePrompt.substring(0, 100) + '...', 
+      negativePrompt: enhancedNegativePrompt.substring(0, 100) + '...',
+      appearanceConstraints: !!appearanceConstraints,
+      appearanceNegatives: appearanceNegatives.length
+    });
     
     return {
       positive_prompt: strengthenedPositive,
-      negative_prompt: strengthenedNegative,
+      negative_prompt: enhancedNegativePrompt,
       safety_modifications: {
         prompt_modified: false,
         tags_modified: []
@@ -251,6 +295,12 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   
   // Get layout configuration first
   const layout = getLayoutInstruction(handoff);
+  
+  // PHASE 2 (Legacy): Add appearance constraints FIRST before scene description
+  const appearanceConstraints = buildAppearanceConstraints(combinedAppearance);
+  if (appearanceConstraints) {
+    sceneParts.push(appearanceConstraints);
+  }
   
   // 2. SCENE DESCRIPTION: Core subject with tone + SUBCATEGORY LOCK
   const subject = handoff.chosen_visual || handoff.rec_subject || `${handoff.tone} ${handoff.category} scene`;
@@ -342,14 +392,19 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const promptSanitization = sanitizePrompt(positivePrompt);
   positivePrompt = promptSanitization.cleaned;
   
-  // Streamlined negative prompt as per plan
-  const negativePrompt = shouldInjectText 
+  // PHASE 3 (Legacy): Enhanced negative prompt with appearance blockers
+  const appearanceNegatives = buildAppearanceNegatives(combinedAppearance);
+  const baseNegativePrompt = shouldInjectText 
     ? "no filler props, no empty rooms, no abstract shapes, no watermarks, no logos, no extra on image text" 
     : "no embedded text, no letters, no words, no signage, no watermarks, no logos";
+  
+  const enhancedNegativePrompt = appearanceNegatives.length > 0 
+    ? `${baseNegativePrompt}, ${appearanceNegatives.join(', ')}`
+    : baseNegativePrompt;
 
   return {
     positive_prompt: positivePrompt,
-    negative_prompt: negativePrompt,
+    negative_prompt: enhancedNegativePrompt,
     safety_modifications: {
       prompt_modified: promptSanitization.wasModified,
       tags_modified: modifiedTags
