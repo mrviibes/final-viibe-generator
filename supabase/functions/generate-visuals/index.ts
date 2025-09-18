@@ -155,13 +155,13 @@ ${modeInstructions[mode] || modeInstructions.balanced}
 ${vocab.props ? `Props: ${vocab.props}` : ""}
 ${vocab.atmosphere ? `Atmosphere: ${vocab.atmosphere}` : ""}
 
-## TEXT INSTRUCTION (MANDATORY): 
-Render the provided text clearly integrated into the scene.
+## TEXT INSTRUCTION (MANDATORY):
+The image must include the provided caption, but in your JSON you must NOT write or quote the caption words. Describe the scene only.
 Placement: ${layoutRule.placement}
 Style: ${layoutRule.style}
-The text must appear clearly and be legible, never omitted.
+In JSON, refer to it generically as 'caption' if needed (e.g., "caption placed along sideline"). Never quote or restate the caption text.
 
-Rules: 12-20 words per concept. Connect to joke directly. NO generic placeholders.`;
+Rules: 12-18 words per concept in concept.text. Describe the scene only. NO generic placeholders.`;
 };
 
 serve(async (req) => {
@@ -298,15 +298,43 @@ NEGATIVE PROMPT GUIDANCE: no filler props, no empty rooms, no watermarks, no log
           continue;
         }
 
-        // Success!
+        // Success! Sanitize concepts to remove caption quotes and cap word count
         console.log(`${modelConfig.name} succeeded with ${out.concepts.length} concepts`);
-        console.log('Final concepts:', JSON.stringify(out.concepts, null, 2));
+        
+        const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const captionRe = new RegExp(escapeRegex(final_text), 'gi');
+        const quotedCaptionRe = new RegExp(`["'“”]?${escapeRegex(final_text)}["'“”]?`, 'gi');
+        const captionLabelRe = /caption[^:]{0,80}:\s*["'“”][^"'“”]+["'“”]/gi;
+        
+        const sanitize = (t: string) => {
+          let s = String(t || '');
+          const before = s;
+          // Remove explicit caption quotes and labeled fragments
+          s = s.replace(captionLabelRe, 'caption');
+          s = s.replace(quotedCaptionRe, '');
+          s = s.replace(captionRe, '');
+          // Collapse punctuation and spaces
+          s = s.replace(/\s{2,}/g, ' ').replace(/\s*([,:;.!?])\s*/g, '$1 ');
+          s = s.replace(/\s+/g, ' ').trim();
+          // Enforce 18-word cap
+          const words = s.split(/\s+/);
+          if (words.length > 18) s = words.slice(0, 18).join(' ') + '...';
+          console.log('🧼 Sanitized concept', { before, after: s, words: s ? s.split(/\s+/).length : 0 });
+          return s;
+        };
+        
+        const sanitizedConcepts = out.concepts.map((c: any, idx: number) => ({
+          lane: c?.lane || `option${idx + 1}`,
+          text: sanitize(String(c?.text || '')),
+        })).filter((c: any) => c.text && c.text.trim().length > 0);
+        
+        console.log('Final sanitized concepts:', JSON.stringify(sanitizedConcepts, null, 2));
         
         return new Response(
           JSON.stringify({ 
             success: true, 
             model: modelConfig.name, 
-            concepts: out.concepts,
+            concepts: sanitizedConcepts,
             generated_at: new Date().toISOString()
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

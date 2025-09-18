@@ -138,12 +138,33 @@ export async function generateVisualOptions(
     }
 
     console.log(`Generated ${validConcepts.length}/${concepts.length} valid concepts`);
+    
+    // Client-side safety net: strip any leaked caption text and cap word count
+    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const captionRe = new RegExp(escapeRegex(textContent), 'gi');
+    const quotedCaptionRe = new RegExp(`["'“”]?${escapeRegex(textContent)}["'“”]?`, 'gi');
+    const captionLabelRe = /caption[^:]{0,80}:\s*["'“”][^"'“”]+["'“”]/gi;
+
+    const sanitizeClient = (t: string) => {
+      let s = String(t || '');
+      const before = s;
+      s = s.replace(captionLabelRe, 'caption');
+      s = s.replace(quotedCaptionRe, '');
+      s = s.replace(captionRe, '');
+      s = s.replace(/\s{2,}/g, ' ').replace(/\s*([,:;.!?])\s*/g, '$1 ').replace(/\s+/g, ' ').trim();
+      const words = s.split(/\s+/);
+      if (words.length > 20) s = words.slice(0, 20).join(' ') + '...';
+      console.log('🧼 [client] Sanitized concept', { before, after: s, words: s ? s.split(/\s+/).length : 0 });
+      return s;
+    };
+
+    const sanitizedOptions = validConcepts.map((concept: any, index: number) => ({
+      lane: concept.lane || `option${index + 1}`,
+      prompt: sanitizeClient(concept.text.trim())
+    })).filter((o: any) => o.prompt && o.prompt.length > 0);
 
     return {
-      visualOptions: validConcepts.map((concept: any, index: number) => ({
-        lane: concept.lane || `option${index + 1}`,
-        prompt: concept.text.trim()
-      })),
+      visualOptions: sanitizedOptions,
       negativePrompt: 'blurry, low quality, text overlay, watermark, generic stock photo',
       model: data.model || 'unknown'
     };
