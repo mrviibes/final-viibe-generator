@@ -7196,28 +7196,7 @@ const Index = () => {
                           </div>}
                       </div>}
 
-                    {/* Show confirmed subject description when saved */}
-                    {selectedSubjectOption === "design-myself" && isSubjectDescriptionConfirmed && <div className="mb-8 selected-card animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                              Custom Visual Description ✓
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <CardDescription className="text-sm text-muted-foreground text-center">
-                              "{subjectDescription}"
-                            </CardDescription>
-                            <div className="text-center mt-3">
-                              <button onClick={() => {
-                      setIsSubjectDescriptionConfirmed(false);
-                    }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                                Change description
-                              </button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>}
+                    {/* Removed duplicate Custom Visual Description card - now handled by StackedSelectionCard */}
 
                     {/* Subject description form for Design Myself */}
                     {selectedSubjectOption === "design-myself" && !isSubjectDescriptionConfirmed && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -7271,30 +7250,7 @@ const Index = () => {
                                 </CardContent>
                               </Card>)}
                           </div> : <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="mb-8 selected-card">
-                              <Card className="w-full border-[#0db0de] bg-[#0db0de]/5 shadow-md">
-                                <CardHeader className="pb-3">
-                                  <CardTitle className="text-lg font-semibold text-[#0db0de] text-center flex items-center justify-center gap-2">
-                                    {dimensionOptions.find(d => d.id === selectedDimension)?.name}
-                                    <span className="text-sm">✓</span>
-                                  </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                  <CardDescription className="text-sm text-muted-foreground text-center">
-                                    {dimensionOptions.find(d => d.id === selectedDimension)?.description}
-                                  </CardDescription>
-                                  <div className="text-center mt-3">
-                                    <button onClick={() => {
-                          setSelectedDimension(null);
-                          setCustomWidth("");
-                          setCustomHeight("");
-                        }} className="text-xs text-primary hover:text-primary/80 underline transition-colors">
-                                      Change selection
-                                    </button>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </div>
+                            {/* Removed duplicate Dimension card - now handled by StackedSelectionCard */}
 
                             {/* Custom dimension inputs */}
                             {selectedDimension === "custom" && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
