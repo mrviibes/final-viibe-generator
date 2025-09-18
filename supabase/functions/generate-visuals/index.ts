@@ -113,62 +113,38 @@ function getVocabInsensitive(category: string, subcategory: string): { props: st
   return { props: String(match.props || ''), atmosphere: String(match.atmosphere || '') };
 }
 
-// Enhanced visual prompt template that eliminates placeholders and enforces tags
+// Simplified visual scene generation - focus on core concepts only
 const SYSTEM_PROMPT_UNIVERSAL = (
-  { mode, layout, category, subcategory, tags = [] }: { mode: string; layout: string; category: string; subcategory: string; tags?: string[] }
+  { mode, category, subcategory, tags = [] }: { mode: string; category: string; subcategory: string; tags?: string[] }
 ) => {
   // Get category-specific visual vocabulary
   const vocab = getVocabInsensitive(category, subcategory);
-  const layoutRule = LAYOUT_RULES[layout] || LAYOUT_RULES["negativeSpace"];
   
   // Process tags - separate hard (unquoted) from soft (quoted) constraints
   const hardTags = tags.filter(tag => !tag.startsWith('"') || !tag.endsWith('"')).map(tag => tag.replace(/^["']|["']$/g, ''));
   const softTags = tags.filter(tag => tag.startsWith('"') && tag.endsWith('"')).map(tag => tag.slice(1, -1));
   
-  const modeInstructions = {
-    balanced: "Polished, realistic photo style. Clear subject action + props tied to the joke. Good lighting, readable negative space.",
-    cinematic: "Movie-poster energy. Spotlights, glitter, smoke, lasers, confetti, dramatic poses. Scene feels like a big stage or blockbuster moment.",
-    dynamic: "Peak mid-motion chaos. Candles blowing out, balloons bursting, cake flying, confetti mid-air. Subject caught mid-action.",
-    surreal: "Impossible but funny. Cake as a disco ball, subject singing to a floating mic, giant candles. Dreamlike lighting, fog, neon.",
-    chaos: "Unexpected mashup. Joke + Subcategory + absurd element (e.g., singing into a giant candle, cake as a concert stage). Bright palettes, unpredictable energy.",
-    exaggerated: "Cartoonish caricature. Big head, tiny body, oversized props (mic, candles, cake). Meme-friendly humor."
-  };
-  
-  return `You generate 4 vivid, cinematic, and funny scene concepts as JSON only.
+  return `Generate 4 visual scene concepts for ${category}/${subcategory}.
 
-Return EXACTLY:
+Style: ${mode}
+${vocab.props ? `Props: ${vocab.props}` : ''}
+${vocab.atmosphere ? `Mood: ${vocab.atmosphere}` : ''}
+
+Rules:
+${hardTags.length > 0 ? `- Include: ${hardTags.join(', ')}` : ''}
+${softTags.length > 0 ? `- Style: ${softTags.join(', ')}` : ''}
+- Scene description only
+- No text/words in scene
+
+Return JSON:
 {
-  "concepts":[
-    {"lane":"option1","text":"..."},
-    {"lane":"option2","text":"..."},
-    {"lane":"option3","text":"..."},
-    {"lane":"option4","text":"..."}
+  "concepts": [
+    {"lane": "option1", "text": "scene description"},
+    {"lane": "option2", "text": "scene description"}, 
+    {"lane": "option3", "text": "scene description"},
+    {"lane": "option4", "text": "scene description"}
   ]
-}
-
-## Hard Rules:
-- Each concept MUST tie directly to the caption/joke text.
-- Each concept MUST include props and atmosphere relevant to Category [${category}] and Subcategory [${subcategory}].
-${hardTags.length > 0 ? `- MANDATORY HARD TAGS (must appear literally in ≥3/4 concepts): ${hardTags.join(', ')}. NO SUBSTITUTIONS.` : ''}
-${softTags.length > 0 ? `- STYLE INFLUENCE TAGS (shape mood/style only, never literal): ${softTags.join(', ')}.` : ''}
-- No filler placeholders. Never say "prop with twist," "group of people," or "abstract shapes."
-- Each option must be a cinematic **scene idea** — a moment someone could visualize as a poster or meme.
-- Always leave ${layout} clean for caption placement.
-
-## Mode Enforcement:
-${modeInstructions[mode] || modeInstructions.balanced}
-
-## Required Elements:
-${vocab.props ? `Props: ${vocab.props}` : ""}
-${vocab.atmosphere ? `Atmosphere: ${vocab.atmosphere}` : ""}
-
-## TEXT INSTRUCTION (MANDATORY):
-The image must include the provided caption, but in your JSON you must NOT write or quote the caption words. Describe the scene only.
-Placement: ${layoutRule.placement}
-Style: ${layoutRule.style}
-In JSON, refer to it generically as 'caption' if needed (e.g., "caption placed along sideline"). Never quote or restate the caption text.
-
-Rules: 12-18 words per concept in concept.text. Describe the scene only. NO generic placeholders.`;
+}`;
 };
 
 serve(async (req) => {
@@ -205,13 +181,11 @@ serve(async (req) => {
 
     console.log('inputs', { final_text, category, subcategory, mode, layout_token, tags });
 
-    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, layout: layout_token, category, subcategory, tags });
-    const user = `Text to overlay: "${final_text}"
-Category: ${category} (${subcategory})
-Mode: ${mode}
+    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, category, subcategory, tags });
+    const user = `Caption: "${final_text}"
 ${tags.length > 0 ? `Tags: ${tags.join(', ')}` : ''}
-    
-NEGATIVE PROMPT GUIDANCE: no filler props, no empty rooms, no watermarks, no logos, no on-image text besides caption${tags.length > 0 ? ', no ignoring hard tags, no subject substitution' : ''}.`;
+
+Generate 4 scene concepts that work with this caption.`;
 
     // Try models in sequence until one succeeds
     for (const modelConfig of MODELS) {
