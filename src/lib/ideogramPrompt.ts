@@ -311,11 +311,11 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
     console.log('🎯 Skipping category-specific visual tags for generic choice');
   }
   
-  // CRITICAL: Text instructions FIRST with maximum priority
+  // CRITICAL: Text instructions FIRST with maximum priority - New text-first structure
   if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
     const fonts = getToneFonts(handoff.tone);
     const selectedFont = getRandomElement(fonts);
-    const textInstruction = `TEXT INSTRUCTION (CRITICAL - MANDATORY): Render this exact text once: "${handoff.key_line}". ${layout.textPlacement}. Use ${selectedFont} with high contrast against background. Text must appear clearly, fully legible, not distorted, not garbled. No misspellings, no duplicated words, no missing letters.`;
+    const textInstruction = `TEXT INSTRUCTION (MANDATORY): Render this exact text once: "${handoff.key_line}". Placement: ${layout.textPlacement}. Style: large clean sans serif, high contrast, subtle glow or stroke, fully legible. The caption must appear clearly and be readable.`;
     textParts.unshift(textInstruction);
   }
   
@@ -341,10 +341,10 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const promptSanitization = sanitizePrompt(positivePrompt);
   positivePrompt = promptSanitization.cleaned;
   
-  // Choose negative prompt based on text injection mode - focus on text quality, less constraints
+  // Streamlined negative prompt as per plan
   const negativePrompt = shouldInjectText 
-    ? "no misspelled text, no duplicated words, no blurry letters, no distorted text, no missing captions, no random extra text, no garbled typography, no invisible text, no cut-off text, no unreadable font, no text artifacts" // Enhanced for text mode
-    : "no embedded text, no letters, no words, no signage, no watermarks, no logos"; // Simplified for overlay mode - allow creative poses
+    ? "no filler props, no empty rooms, no abstract shapes, no watermarks, no logos, no extra on image text" 
+    : "no embedded text, no letters, no words, no signage, no watermarks, no logos";
 
   return {
     positive_prompt: positivePrompt,
@@ -408,7 +408,7 @@ export function getAspectRatioForIdeogram(aspectRatio: string): 'ASPECT_10_16' |
 
 export function getStyleTypeForIdeogram(visualStyle: string, hasTextInjection?: boolean): 'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME' {
   const styleMap: Record<string, 'AUTO' | 'GENERAL' | 'REALISTIC' | 'DESIGN' | 'RENDER_3D' | 'ANIME'> = {
-    'auto': hasTextInjection ? 'REALISTIC' : 'AUTO', // Prefer REALISTIC for text injection
+    'auto': hasTextInjection ? 'DESIGN' : 'AUTO', // Prefer DESIGN for text injection (better text rendering)
     'general': 'GENERAL', 
     'realistic': 'REALISTIC',
     'design': 'DESIGN',

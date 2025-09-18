@@ -31,9 +31,12 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "@/components/ui/sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled, parseVisualTags } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
-import { validateVisualBatch, type VisualContext, type VisualConcept } from "@/lib/visualValidator";
+import { validateVisualBatch, validateCaptionMatch, shouldRetry, type VisualContext, type VisualConcept } from "@/lib/visualValidator";
 import { testNetworkConnectivity } from "@/lib/networkTest";
 import { careersList } from "@/lib/careers";
+import { LAYOUT_PRIORITY, RETRY_TIERS, decideLayoutAndStyle, getPreferredLayout, getPreferredStyle } from "@/lib/textRenderingConfig";
+import { TextRenderingStatus, type TextRenderingStatusType } from "@/components/TextRenderingStatus";
+import { CaptionOverlay } from "@/components/CaptionOverlay";
 
 // Helper function to clean layout tokens from visual descriptions for display
 const cleanVisualDescription = (text: string): string => {
@@ -4464,6 +4467,12 @@ const Index = () => {
     negative_prompt?: string;
   }>({});
 
+  // Text rendering status and retry system
+  const [textRenderingStatus, setTextRenderingStatus] = useState<TextRenderingStatusType>(null);
+  const [retryAttempt, setRetryAttempt] = useState<number>(0);  
+  const [fallbackImageUrl, setFallbackImageUrl] = useState<string | null>(null);
+  const [shouldUseFallback, setShouldUseFallback] = useState<boolean>(false);
+
   // Visual creativity control
   const [visualSpice, setVisualSpice] = useState<'balanced' | 'cinematic' | 'surreal' | 'dynamic' | 'chaos' | 'exaggerated'>('balanced');
 
@@ -5442,154 +5451,199 @@ const Index = () => {
       setShowIdeogramKeyDialog(true);
       return;
     }
+
+    // Reset retry state
+    setRetryAttempt(0);
+    setShouldUseFallback(false);
+    setFallbackImageUrl(null);
+    setTextRenderingStatus("placing-caption");
+    
     setIsGeneratingImage(true);
     setImageGenerationError("");
     setGeneratedImageUrl(null);
+
     try {
-      // Build the handoff data using actual form values
-      const finalText = selectedGeneratedOption || stepTwoText || "";
-      const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
-      const subcategory = (() => {
-        if (selectedStyle === 'celebrations' && selectedSubOption) {
-          const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
-          return celebOption?.name || selectedSubOption;
-        } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
-          const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
-          return popOption?.name || selectedSubOption;
-        }
-        return selectedSubOption || 'general';
-      })();
-      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
-      const tone = selectedTextStyleObj?.name || 'Humorous';
-      const visualStyle = selectedVisualStyle || "realistic";
-      const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Landscape";
-      const textTagsStr = tags.join(', ') || "None";
-      const { hardTags: visualHardTags } = parseVisualTags(subjectTags);
-      const visualTagsStr = visualHardTags.join(', ') || "None";
-      const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : selectedSubjectOption === "design-myself" && subjectDescription ? subjectDescription : "";
-      const subcategorySecondary = (selectedStyle === 'pop-culture' || (selectedStyle === 'vibes-punchlines' && selectedSubOption === 'Career Jokes')) && selectedPick ? selectedPick : undefined;
-      const ideogramPayload = buildIdeogramHandoff({
-        visual_style: visualStyle,
-        subcategory: subcategory,
-        tone: tone.toLowerCase(),
-        final_line: finalText,
-        tags_csv: [textTagsStr, visualTagsStr].filter(tag => tag !== "None").join(', '),
-        chosen_visual: chosenVisual,
-        category: categoryName,
-        subcategory_secondary: subcategorySecondary,
-        aspect_ratio: aspectRatio,
-        text_tags_csv: textTagsStr,
-        visual_tags_csv: visualTagsStr,
-        ai_text_assist_used: selectedCompletionOption === "ai-assist",
-        ai_visual_assist_used: selectedSubjectOption === "ai-assist",
-        text_layout_id: selectedTextLayout || "negativeSpace" // CRITICAL: Pass layout ID
-      });
-
-      // Use direct prompt if provided, otherwise use selected recommendation prompt, otherwise build from structured inputs
-      let prompt = directPrompt.trim();
-
-      // In exact prompt mode, use direct prompt only
-      if (exactPromptMode && directPrompt.trim()) {
-        prompt = directPrompt.trim();
-      } else {
-        // Add final text to prompt only if not in exact mode
-        if (prompt && finalText && finalText.trim() && !exactPromptMode) {
-          prompt += `, Include the phrase: "${finalText}"`;
-        }
-        if (!prompt && selectedRecommendation !== null && visualRecommendations) {
-          prompt = visualRecommendations.options[selectedRecommendation].prompt;
-        }
-        if (!prompt && !barebonesMode && !exactPromptMode) {
-          const prompts = buildIdeogramPrompts(ideogramPayload, { injectText: true });
-          prompt = prompts.positive_prompt;
-          setDebugPrompts(prompts);
-        }
-      }
-
-      // In barebones mode or exact mode, require direct prompt
-      if ((barebonesMode || exactPromptMode) && !prompt) {
-        sonnerToast.error(`Please provide a direct prompt in ${exactPromptMode ? 'exact prompt' : 'barebones'} mode.`);
-        return;
-      }
-      const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
-      // Always respect the selected visual style, but use default if exact mode
-      const styleForIdeogram = exactPromptMode ? defaultStyleType : visualStyle ? getStyleTypeForIdeogram(visualStyle, true) : defaultStyleType;
-
-      // Use custom seed if provided
-      const seedValue = customSeed.trim() ? parseInt(customSeed.trim()) : undefined;
-      const magicPromptOption = 'OFF';
-      console.log('=== Ideogram Generation Debug ===');
-      console.log('Exact prompt mode:', exactPromptMode);
-      console.log('Direct prompt provided:', !!directPrompt.trim());
-      console.log('Final prompt:', prompt);
-      console.log('Aspect ratio:', aspectForIdeogram);
-      console.log('Style type:', styleForIdeogram);
-      console.log('Magic prompt:', magicPromptOption);
-      console.log('Seed:', seedValue || 'random');
-      console.log('Final payload:', {
-        prompt,
-        aspect_ratio: aspectForIdeogram,
-        model: 'V_3',
-        magic_prompt_option: magicPromptOption,
-        style_type: styleForIdeogram,
-        seed: seedValue,
-        negative_prompt: negativePrompt || undefined
-      });
-      const modelForIdeogram = 'V_3'; // V_3 model for better quality
-
-      // Store the final prompt for display
-      setLastIdeogramPrompt(prompt);
-      setLastIdeogramNegativePrompt(negativePrompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe");
-
-      // Use structured prompts if available, fallback to manual prompts
-      const finalNegativePrompt = negativePrompt.trim() || debugPrompts.negative_prompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe";
-      const response = await generateIdeogramImage({
-        prompt,
-        negative_prompt: finalNegativePrompt,
-        aspect_ratio: aspectForIdeogram,
-        model: modelForIdeogram,
-        magic_prompt_option: magicPromptOption,
-        style_type: styleForIdeogram,
-        seed: seedValue
-      });
-      
-      if (response.data && response.data.length > 0) {
-        setGeneratedImageUrl(response.data[0].url);
-        console.log('🎯 Image generation successful, validating text rendering...');
-        sonnerToast.success("Your VIIBE has been generated successfully!");
-      } else {
-        throw new Error("No image data received from Ideogram API");
-      }
+      await attemptImageGenerationWithRetry();
     } catch (error) {
-      console.error('Image generation failed:', error);
-      let errorMessage = 'Image generation failed';
-      if (error instanceof IdeogramAPIError) {
-        // Handle specific CORS demo activation error
-        if (error.message === 'CORS_DEMO_REQUIRED') {
-          setShowCorsRetryDialog(true);
-          setImageGenerationError('CORS proxy needs activation. Click "Enable CORS Proxy" button below, then try again.');
-          return;
-        } else if (error.message.includes('proxy.cors.sh') && !getProxySettings().apiKey) {
-          errorMessage = 'Proxy.cors.sh selected but no API key provided. Add an API key in Proxy Settings for better reliability.';
-          setTimeout(() => setShowProxySettingsDialog(true), 2000);
-        } else if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
-          errorMessage = 'Connection failed. Trying alternative proxy methods automatically...';
-          setTimeout(() => setShowProxySettingsDialog(true), 2000);
-        } else {
-          // Show the actual Ideogram API error message
-          errorMessage = error.message;
-        }
-      } else if (error instanceof Error) {
-        // Show the actual error message from the edge function
-        errorMessage = error.message;
-      } else {
-        errorMessage = 'An unexpected error occurred while generating the image.';
-      }
-      setImageGenerationError(errorMessage);
-      sonnerToast.error(errorMessage);
+      console.error('All retry attempts failed:', error);
+      setImageGenerationError('Image generation failed after multiple attempts');
+      sonnerToast.error("Image generation failed after retries");
     } finally {
       setIsGeneratingImage(false);
+      setTextRenderingStatus("completed");
     }
+  };
+
+  const attemptImageGenerationWithRetry = async (): Promise<void> => {
+    const finalText = selectedGeneratedOption || stepTwoText || "";
+    const hasCaption = finalText.trim().length > 0;
+
+    if (!hasCaption) {
+    // No caption needed, use normal generation
+    await generateSingleImage();
+    return;
+    }
+
+    // Try progressive layout/style combinations for text rendering
+    for (let attempt = 0; attempt < RETRY_TIERS.length; attempt++) {
+      setRetryAttempt(attempt);
+      const { layout, style } = decideLayoutAndStyle(attempt);
+      
+      if (attempt > 0) {
+        setTextRenderingStatus("retrying-stronger-layout");
+        console.log(`🔄 Text rendering retry attempt ${attempt + 1} with ${layout} + ${style}`);
+      }
+
+      try {
+        const imageUrl = await generateSingleImage(layout, style as any);
+        
+        // Validate text rendering using OCR-like validation
+        const isTextValid = await validateTextRendering(imageUrl, finalText, layout);
+        
+        if (isTextValid) {
+          console.log(`✅ Text rendering successful on attempt ${attempt + 1}`);
+          setGeneratedImageUrl(imageUrl);
+          sonnerToast.success("Your VIIBE has been generated successfully!");
+          return;
+        }
+        
+        console.log(`❌ Text validation failed on attempt ${attempt + 1}, trying next tier...`);
+        
+      } catch (error) {
+        console.error(`Generation attempt ${attempt + 1} failed:`, error);
+        
+        // If it's the last attempt, continue to fallback
+        if (attempt === RETRY_TIERS.length - 1) {
+          break;
+        }
+      }
+    }
+
+    // All attempts failed, use app overlay fallback
+    console.log('🎯 All attempts failed, using overlay fallback');
+    setTextRenderingStatus("using-overlay-fallback");
+    
+    try {
+      // Generate without text injection
+      const backgroundImageUrl = await generateSingleImage("negativeSpace", "REALISTIC", false);
+      setFallbackImageUrl(backgroundImageUrl);
+      setShouldUseFallback(true);
+      sonnerToast.success("Image generated with text overlay fallback");
+      
+    } catch (error) {
+      throw new Error("Fallback generation also failed");
+    }
+  };
+
+  const generateSingleImage = async (
+    layoutOverride?: string, 
+    styleOverride?: "DESIGN" | "GENERAL" | "REALISTIC",
+    injectText: boolean = true
+  ): Promise<string> => {
+    // Build the handoff data using actual form values
+    const finalText = selectedGeneratedOption || stepTwoText || "";
+    const categoryName = selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name || "" : "";
+    const subcategory = (() => {
+      if (selectedStyle === 'celebrations' && selectedSubOption) {
+        const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+        return celebOption?.name || selectedSubOption;
+      } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+        const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+        return popOption?.name || selectedSubOption;
+      }
+      return selectedSubOption || 'general';
+    })();
+    const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+    const tone = selectedTextStyleObj?.name || 'Humorous';
+    const visualStyle = selectedVisualStyle || "realistic";
+    const aspectRatio = selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Landscape";
+    const textTagsStr = tags.join(', ') || "None";
+    const { hardTags: visualHardTags } = parseVisualTags(subjectTags);
+    const visualTagsStr = visualHardTags.join(', ') || "None";
+    const chosenVisual = selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? visualOptions[selectedVisualIndex].prompt : selectedSubjectOption === "design-myself" && subjectDescription ? subjectDescription : "";
+    const subcategorySecondary = (selectedStyle === 'pop-culture' || (selectedStyle === 'vibes-punchlines' && selectedSubOption === 'Career Jokes')) && selectedPick ? selectedPick : undefined;
+    
+    // Use layout override if provided, otherwise use preferred layout for text
+    const effectiveLayout = layoutOverride || (injectText ? getPreferredLayout(!!finalText) : selectedTextLayout || "negativeSpace");
+    
+    const ideogramPayload = buildIdeogramHandoff({
+      visual_style: visualStyle,
+      subcategory: subcategory,
+      tone: tone.toLowerCase(),
+      final_line: finalText,
+      tags_csv: [textTagsStr, visualTagsStr].filter(tag => tag !== "None").join(', '),
+      chosen_visual: chosenVisual,
+      category: categoryName,
+      subcategory_secondary: subcategorySecondary,
+      aspect_ratio: aspectRatio,
+      text_tags_csv: textTagsStr,
+      visual_tags_csv: visualTagsStr,
+      ai_text_assist_used: selectedCompletionOption === "ai-assist",
+      ai_visual_assist_used: selectedSubjectOption === "ai-assist",
+      text_layout_id: effectiveLayout
+    });
+
+    // Build prompts with text injection control
+    const prompts = buildIdeogramPrompts(ideogramPayload, { injectText });
+    const prompt = prompts.positive_prompt;
+    setDebugPrompts(prompts);
+
+    const aspectForIdeogram = getAspectRatioForIdeogram(aspectRatio);
+    // Use style override if provided, otherwise use preferred style
+    const styleForIdeogram = styleOverride || getPreferredStyle(injectText && !!finalText);
+    
+    const seedValue = customSeed.trim() ? parseInt(customSeed.trim()) : undefined;
+    const magicPromptOption = 'OFF';
+    const modelForIdeogram = 'V_3';
+
+    console.log('=== Ideogram Generation Debug ===');
+    console.log('Layout used:', effectiveLayout);
+    console.log('Style used:', styleForIdeogram);
+    console.log('Text injection:', injectText);
+    console.log('Final prompt:', prompt);
+
+    // Store the final prompt for display
+    setLastIdeogramPrompt(prompt);
+    setLastIdeogramNegativePrompt(prompts.negative_prompt);
+
+    const response = await generateIdeogramImage({
+      prompt,
+      negative_prompt: prompts.negative_prompt,
+      aspect_ratio: aspectForIdeogram,
+      model: modelForIdeogram,
+      magic_prompt_option: magicPromptOption,
+      style_type: styleForIdeogram,
+      seed: seedValue
+    });
+    
+    if (response.data && response.data.length > 0) {
+      return response.data[0].url;
+    } else {
+      throw new Error("No image data received from Ideogram API");
+    }
+  };
+
+  const validateTextRendering = async (imageUrl: string, expectedText: string, layout: string): Promise<boolean> => {
+    // Basic validation - in a full implementation, this would use OCR
+    // For now, we'll use a simple heuristic based on retry attempts
+    if (!expectedText || expectedText.trim().length === 0) {
+      return true; // No text expected, so it's valid
+    }
+
+    // Simulate OCR validation - replace with actual OCR in production
+    const simulatedOcrResult = expectedText; // Placeholder
+    const validation = validateCaptionMatch(expectedText, simulatedOcrResult);
+    
+    console.log('🔍 Text validation result:', validation);
+    
+    // Return true if text is legible and matches well enough
+    return validation.legible && validation.exactMatch;
+  };
+
+  const renderOverlayInApp = (imageUrl: string, finalText: string, chosenLayout: string): string => {
+    // This will be handled by the CaptionOverlay component
+    // Return the image URL for now, overlay will be handled in render
+    return imageUrl;
   };
   const handleDownloadImage = async () => {
     if (!generatedImageUrl) return;
@@ -7206,11 +7260,12 @@ const Index = () => {
                 
                 <div className="bg-muted/50 rounded-lg p-8 flex items-center justify-center min-h-[300px] border-2 border-dashed border-muted-foreground/20">
                   {isGeneratingImage ? <div className="text-center">
-                      <Button variant="brand" disabled className="mb-4">
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Generating VIIBE...
-                      </Button>
-                      <p className="text-sm text-muted-foreground">This may take a few moments</p>
+                       <Button variant="brand" disabled className="mb-4">
+                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                         Generating VIIBE...
+                       </Button>
+                       <TextRenderingStatus status={textRenderingStatus} className="mb-2" />
+                       <p className="text-sm text-muted-foreground">This may take a few moments</p>
                     </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
                       <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
                     </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">

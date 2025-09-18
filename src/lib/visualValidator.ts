@@ -18,6 +18,9 @@ export type VisualValidation = {
     expected_text: string;
     detected_issues: Array<{ lane: string; issue: string; confidence: number }>;
   };
+  text_rendering_failed?: boolean;
+  should_retry_with_stronger_layout?: boolean;
+  suggested_retry_layout?: string;
 };
 
 const bannedPhrases = [
@@ -142,5 +145,94 @@ export function validateVisualBatch(context: VisualContext, concepts: VisualConc
   }
 
   const overall_pass = per_concept.every(p => p.pass) && batch_reasons.length === 0;
-  return { overall_pass, per_concept, regenerate_mask, batch_reasons };
+  
+  // Check if text rendering specifically failed
+  const textRenderingFailed = per_concept.some(p => 
+    p.reasons.includes('caption_text_garbled') || 
+    p.reasons.includes('caption_text_mismatch')
+  );
+  
+  return { 
+    overall_pass, 
+    per_concept, 
+    regenerate_mask, 
+    batch_reasons,
+    text_rendering_failed: textRenderingFailed,
+    should_retry_with_stronger_layout: textRenderingFailed,
+    suggested_retry_layout: textRenderingFailed ? 'memeTopBottom' : undefined
+  };
+}
+
+// Enhanced caption validation functions
+export function shouldRetry(validation: VisualValidation): boolean {
+  return validation.text_rendering_failed || !validation.overall_pass;
+}
+
+export function validateCaptionMatch(expectedText: string, actualText: string): { exactMatch: boolean; legible: boolean; confidence: number } {
+  if (!expectedText || !actualText) {
+    return { exactMatch: false, legible: false, confidence: 0 };
+  }
+
+  // Normalize both texts for comparison
+  const normalizeText = (text: string) => 
+    text.toLowerCase()
+        .replace(/[^\w\s]/g, '') // Remove punctuation
+        .replace(/\s+/g, ' ')    // Normalize whitespace
+        .trim();
+
+  const normalizedExpected = normalizeText(expectedText);
+  const normalizedActual = normalizeText(actualText);
+
+  // Check for garbling patterns
+  const hasGarbling = garblingPatterns.some(pattern => pattern.test(actualText));
+  if (hasGarbling) {
+    return { exactMatch: false, legible: false, confidence: 0 };
+  }
+
+  // Calculate similarity
+  const expectedWords = normalizedExpected.split(' ').filter(w => w.length > 0);
+  const actualWords = normalizedActual.split(' ').filter(w => w.length > 0);
+  
+  if (expectedWords.length === 0) {
+    return { exactMatch: true, legible: true, confidence: 1 };
+  }
+
+  // Count matching words
+  let matchingWords = 0;
+  expectedWords.forEach(expectedWord => {
+    if (actualWords.some(actualWord => 
+      actualWord.includes(expectedWord) || 
+      expectedWord.includes(actualWord) ||
+      levenshteinDistance(expectedWord, actualWord) <= 1
+    )) {
+      matchingWords++;
+    }
+  });
+
+  const confidence = matchingWords / expectedWords.length;
+  const exactMatch = confidence >= 0.8; // 80% word match threshold
+  const legible = confidence >= 0.5 && !hasGarbling; // 50% threshold for legibility
+
+  return { exactMatch, legible, confidence };
+}
+
+// Simple Levenshtein distance for fuzzy matching
+function levenshteinDistance(str1: string, str2: string): number {
+  const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+
+  for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
+  for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+
+  for (let j = 1; j <= str2.length; j++) {
+    for (let i = 1; i <= str1.length; i++) {
+      const substitutionCost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+      matrix[j][i] = Math.min(
+        matrix[j][i - 1] + 1, // insertion
+        matrix[j - 1][i] + 1, // deletion
+        matrix[j - 1][i - 1] + substitutionCost // substitution
+      );
+    }
+  }
+
+  return matrix[str2.length][str1.length];
 }
