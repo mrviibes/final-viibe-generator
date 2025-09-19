@@ -8,6 +8,39 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
+// Comedian Voice Banks Configuration
+const COMEDIAN_STYLE_BANKS = {
+  "Humorous": ["kevin_hart", "ali_wong", "bill_burr", "taylor_tomlinson", "chris_rock"],
+  "Savage": ["joan_rivers", "ricky_gervais", "dave_chappelle", "wanda_sykes", "anthony_jeselnik"], 
+  "Playful": ["jim_gaffigan", "hasan_minhaj", "nate_bargatze", "james_acaster", "john_early"],
+  "Romantic": ["john_mulaney", "hasan_minhaj", "nate_bargatze", "taylor_tomlinson", "bo_burnham_clean"],
+  "Sentimental": ["mike_birbiglia", "demetri_martin", "ellen", "trevor_noah_clean", "hannah_gadsby_clean"]
+};
+
+const TONE_VOICE_MAP = {
+  "Romantic": "Romantic",
+  "Sentimental": "Sentimental", 
+  "Playful": "Playful",
+  "Savage": "Savage",
+  "Humorous": "Humorous",
+  "Wildcard": "inherit_current_tone"
+};
+
+// Global Blacklist System
+const GLOBAL_BLACKLIST = {
+  people: ["louis ck"],
+  entities: [],
+  enforce_everywhere: true,
+  log_if_matched: true
+};
+
+// Sport Context Words for Clean Tones
+const SPORT_CONTEXT_POOLS = {
+  basketball: ["court", "hoop", "net", "dribble", "assist", "rebound", "buzzer", "tipoff", "timeout", "fast break"],
+  baseball: ["field", "diamond", "bat", "pitch", "swing", "catch", "home run", "dugout", "stadium", "glove"],
+  football: ["touchdown", "huddle", "snap", "kickoff", "fumble", "helmet", "line", "end zone", "pass"]
+};
+
 // Words to specifically avoid in generated content - reduced list
 const AVOID_WORDS = [
   'literally', 'honestly', 'obviously', 'basically', 'actually', 'seriously',
@@ -312,15 +345,117 @@ function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
   return { hardTags, softTags };
 }
 
+// Check global blacklist
+function checkBlacklist(text: string): { blocked: boolean; matches: string[] } {
+  const matches: string[] = [];
+  const lowerText = text.toLowerCase();
+  
+  for (const person of GLOBAL_BLACKLIST.people) {
+    if (lowerText.includes(person.toLowerCase())) {
+      matches.push(person);
+    }
+  }
+  
+  for (const entity of GLOBAL_BLACKLIST.entities) {
+    if (lowerText.includes(entity.toLowerCase())) {
+      matches.push(entity);
+    }
+  }
+  
+  if (matches.length > 0 && GLOBAL_BLACKLIST.log_if_matched) {
+    console.log(`🚫 Blacklist violation: ${matches.join(', ')}`);
+  }
+  
+  return {
+    blocked: matches.length > 0,
+    matches
+  };
+}
+
+// Select comedian voice for tone
+function selectComedianVoice(tone: string, rating: string): string | null {
+  const voiceType = TONE_VOICE_MAP[tone];
+  if (!voiceType || voiceType === "inherit_current_tone") {
+    return null;
+  }
+  
+  const voices = COMEDIAN_STYLE_BANKS[voiceType];
+  if (!voices || voices.length === 0) {
+    return null;
+  }
+  
+  // Select random voice from appropriate bank
+  const randomIndex = Math.floor(Math.random() * voices.length);
+  return voices[randomIndex];
+}
+
+// Get tone overrides for clean tones
+function getToneOverrides(tone: string): any {
+  const toneOverrides: Record<string, any> = {
+    "Sentimental": {
+      disable_force_funny: true,
+      disable_rating_quotas: true, 
+      allow_clean_language: true,
+      require_positive_or_supportive: true,
+      sport_context_words_required: 2,
+      sport_context_pool: [...SPORT_CONTEXT_POOLS.basketball, ...SPORT_CONTEXT_POOLS.baseball, ...SPORT_CONTEXT_POOLS.football]
+    },
+    "Romantic": {
+      disable_force_funny: true,
+      disable_rating_quotas: true,
+      allow_clean_language: true,
+      require_positive_or_affectionate: true, 
+      sport_context_words_required: 2,
+      sport_context_pool: [...SPORT_CONTEXT_POOLS.basketball, ...SPORT_CONTEXT_POOLS.baseball, ...SPORT_CONTEXT_POOLS.football]
+    }
+  };
+  
+  return toneOverrides[tone] || null;
+}
+
+// Apply input precedence and auto-remap logic
+function applyInputPrecedence(inputs: any): any {
+  const processed = { ...inputs };
+  
+  // Auto-remap conflicting tone/rating combinations
+  const autoRemaps = [
+    { if: { tone: "Sentimental", rating: "R" }, then: { rating: "PG" } },
+    { if: { tone: "Sentimental", rating: "Explicit" }, then: { rating: "PG-13" } },
+    { if: { tone: "Romantic", rating: "R" }, then: { rating: "PG" } },
+    { if: { tone: "Romantic", rating: "Explicit" }, then: { rating: "PG-13" } }
+  ];
+  
+  for (const remap of autoRemaps) {
+    if (processed.tone === remap.if.tone && processed.rating === remap.if.rating) {
+      console.log(`🔄 Auto-remapping: ${remap.if.tone} + ${remap.if.rating} → ${remap.then.rating}`);
+      processed.rating = remap.then.rating;
+      break;
+    }
+  }
+  
+  // Style inheritance - Wildcard uses current tone rules
+  if (processed.style === "wildcard") {
+    processed.style = "standard"; // Use standard with current tone rules
+  }
+  
+  return processed;
+}
+
 function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[], style?: string, rating?: string): string {
   const { hardTags, softTags } = parseTags(tags);
+  
+  // Get tone overrides
+  const toneOverride = getToneOverrides(tone);
+  
+  // Select comedian voice
+  const comedianVoice = selectComedianVoice(tone, rating || 'PG-13');
   
   const styleDefinitions = {
     'standard': 'Balanced one-liners (40-80 chars)',
     'story': 'Mini-narratives with setup → payoff (60-100 chars)',
     'pop-culture': 'Include celebrities, movies, TV, music, apps (40-80 chars)',
     'punchline-first': 'Hit joke early, then tag-back (40-80 chars)',
-    'wildcard': 'Experimental humor (40-80 chars)'
+    'wildcard': 'Use current tone rules with creative approach (40-80 chars)'
   };
   
   const ratingDefs = {
@@ -332,13 +467,35 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
   
   const lengthReq = style === 'story' ? "60-100 characters" : "40-80 characters";
   const styleDesc = styleDefinitions[style || 'standard'] || styleDefinitions['standard'];
-  const ratingDesc = ratingDefs[rating || 'PG-13'] || ratingDefs['PG-13'];
+  let ratingDesc = ratingDefs[rating || 'PG-13'] || ratingDefs['PG-13'];
   
-  return `Generate 4 ${tone.toLowerCase()} lines for ${subcategory}. 
+  // Override rating description for clean tones
+  if (toneOverride?.disable_rating_quotas) {
+    ratingDesc = `Keep language clean and ${toneOverride.require_positive_or_supportive ? 'supportive' : 'affectionate'}`;
+  }
+  
+  let systemPrompt = `Generate 4 ${tone.toLowerCase()} lines for ${subcategory}. 
 
 JSON: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}, {"lane": "option3", "text": "..."}, {"lane": "option4", "text": "..."}]}
 
 ${lengthReq}. ${ratingDesc}.`;
+
+  // Add comedian voice instruction
+  if (comedianVoice) {
+    systemPrompt += `\n\nCOMEDIAN VOICE: Channel ${comedianVoice} style - vary voice per line for diversity.`;
+  }
+  
+  // Add sport context requirement for clean tones
+  if (toneOverride?.sport_context_words_required) {
+    systemPrompt += `\n\nSPORT CONTEXT: Include ${toneOverride.sport_context_words_required}+ sport words in total: ${toneOverride.sport_context_pool.slice(0, 10).join(', ')}, etc.`;
+  }
+  
+  // Add hard tag requirements
+  if (hardTags.length > 0) {
+    systemPrompt += `\n\nHARD TAGS: Must literally include these in 3 of 4 lines: ${hardTags.map(t => `"${t}"`).join(', ')}`;
+  }
+  
+  return systemPrompt;
 }
 
 function buildUserMessage(inputs: any, previousErrors: string[] = []): string {
@@ -505,8 +662,14 @@ function checkStyleCompliance(lines: Array<{lane: string, text: string}>, style:
   };
 }
 
-function checkRatingCompliance(lines: Array<{lane: string, text: string}>, rating: string): { compliant: boolean; issues: string[] } {
+function checkRatingCompliance(lines: Array<{lane: string, text: string}>, rating: string, tone?: string): { compliant: boolean; issues: string[] } {
   const issues: string[] = [];
+  
+  // Skip rating checks if tone overrides disable them
+  const toneOverride = getToneOverrides(tone || '');
+  if (toneOverride?.disable_rating_quotas) {
+    return { compliant: true, issues: [] };
+  }
   
   switch (rating) {
     case 'R':
@@ -554,6 +717,14 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: {
 }): { isValid: boolean; errors: string[]; warnings: string[]; lengths: number[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
+  
+  // Check blacklist first
+  for (const line of lines) {
+    const blacklistCheck = checkBlacklist(line.text);
+    if (blacklistCheck.blocked) {
+      errors.push(`Blacklist violation: ${blacklistCheck.matches.join(', ')}`);
+    }
+  }
   
   // Structure validation (errors = must fix)
   if (!lines || !Array.isArray(lines)) {
@@ -603,24 +774,44 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: {
   }
   
   if (inputs.rating) {
-    const ratingCheck = checkRatingCompliance(lines, inputs.rating);
+    const ratingCheck = checkRatingCompliance(lines, inputs.rating, inputs.tone);
     if (!ratingCheck.compliant) {
       warnings.push(...ratingCheck.issues);
     }
   }
   
-  // Tag coverage (relaxed - only warn if major issues)
+  // Sport context validation for clean tones
+  const toneOverride = getToneOverrides(inputs.tone);
+  if (toneOverride?.sport_context_words_required) {
+    let sportWordCount = 0;
+    const sportWords = toneOverride.sport_context_pool;
+    
+    lines.forEach(line => {
+      const text = line.text.toLowerCase();
+      sportWords.forEach(word => {
+        if (text.includes(word.toLowerCase())) {
+          sportWordCount++;
+        }
+      });
+    });
+    
+    if (sportWordCount < toneOverride.sport_context_words_required) {
+      warnings.push(`Sport context: ${sportWordCount}/${toneOverride.sport_context_words_required} required sport words found`);
+    }
+  }
+  
+  // Enhanced hard tag validation - require 3 of 4 lines
   if (inputs.hardTags.length > 0) {
-    let hardTagCoverage = 0;
-    for (const tag of inputs.hardTags) {
-      const linesWithTag = lines.filter(line => 
+    let linesWithHardTags = 0;
+    for (const line of lines) {
+      const hasAllTags = inputs.hardTags.every(tag => 
         line.text.toLowerCase().includes(tag.toLowerCase())
-      ).length;
-      if (linesWithTag > 0) hardTagCoverage++;
+      );
+      if (hasAllTags) linesWithHardTags++;
     }
     
-    if (hardTagCoverage < Math.max(1, Math.floor(inputs.hardTags.length * 0.5))) {
-      warnings.push(`Hard tags: ${hardTagCoverage}/${inputs.hardTags.length} included`);
+    if (linesWithHardTags < 3) {
+      errors.push(`Hard tags: Only ${linesWithHardTags}/4 lines contain ALL required tags. Need 3+ lines with all tags: ${inputs.hardTags.join(', ')}`);
     }
   }
   
@@ -677,46 +868,99 @@ function ensureTagCoverage(lines: Array<{lane: string, text: string}>, tags: str
 }
 
 function getToneAwareFallback(inputs: any): Array<{lane: string, text: string}> {
+  const { tone, subcategory, rating } = inputs;
+  const toneOverride = getToneOverrides(tone);
+  
+  // Sport-aware fallbacks for clean tones
+  if (toneOverride?.sport_context_words_required && subcategory) {
+    const sportFallbacks: Record<string, Record<string, string[]>> = {
+      "Basketball": {
+        "Sentimental": [
+          "Every rebound teaches patience and our hearts listen closely",
+          "The court is loud but your calm finds the net perfectly",
+          "We miss a shot and hope sets the next screen beautifully",
+          "Your effort writes music and the buzzer hums along softly"
+        ],
+        "Romantic": [
+          "Your cut to the hoop felt like a promise kept sweetly",
+          "The net sighs softly when your shot finds home again",
+          "Heart sets a screen and we glide to open space together",
+          "We miss once then your smile beats the buzzer every time"
+        ]
+      },
+      "Baseball": {
+        "Sentimental": [
+          "The diamond glows when effort turns into pure grace",
+          "A quiet pitch and the crowd learns to breathe together",
+          "We jog the bases and hope keeps the steady pace",
+          "The glove closes and the moment stays warm forever"
+        ],
+        "Romantic": [
+          "Your swing connects and my heart rounds all the bases",
+          "The diamond sparkles but your eyes catch more light somehow",
+          "Home run distance but you still steal my breath completely",
+          "Stadium lights dim but we glow in the dugout together"
+        ]
+      }
+    };
+    
+    const sportCategory = subcategory?.includes("Basketball") ? "Basketball" : "Baseball";
+    const sportLines = sportFallbacks[sportCategory]?.[tone];
+    if (sportLines) {
+      return sportLines.map((text, index) => ({
+        lane: `option${index + 1}`,
+        text
+      }));
+    }
+  }
+  
+  // Regular tone-based fallbacks
   const fallbacksByTone: Record<string, string[]> = {
     "Savage": [
-      "Your life choices make reality TV look classy",
-      "Even GPS suggests alternate routes around your problems", 
-      "You're proof participation trophies were a mistake",
-      "Your decisions have their own disaster relief fund"
+      "Your life choices make reality TV look classy somehow",
+      "Even GPS suggests alternate routes around your problems daily", 
+      "You're proof participation trophies were a serious mistake entirely",
+      "Your decisions have their own disaster relief fund already"
     ],
     "Humorous": [
-      "Adulting is just Googling how to do things",
-      "My life runs on caffeine and good intentions",
-      "Reality called but I sent it to voicemail", 
-      "I'm not lazy I'm on energy saving mode"
+      "Adulting is just Googling how to do things properly",
+      "My life runs on caffeine and good intentions mostly",
+      "Reality called but I sent it to voicemail again", 
+      "I'm not lazy I'm on energy saving mode currently"
     ],
     "Playful": [
-      "You collect hobbies like other people collect dust",
-      "Your cooking skills are charmingly experimental",
-      "You're like a human golden retriever with anxiety",
+      "You collect hobbies like other people collect dust bunnies",
+      "Your cooking skills are charmingly experimental and dangerous",
+      "You're like a human golden retriever with anxiety issues",
       "Your life is basically a sitcom without the laugh track"
     ],
     "Sentimental": [
-      "Still can't believe we've made it this far",
-      "Thanks for being weird with me all these years",
+      "Still can't believe we've made it this far together",
+      "Thanks for being weird with me all these wonderful years",
       "We've survived worse and lived to laugh about it",
-      "Some friendships just make sense no matter what"
+      "Some friendships just make sense no matter what happens"
+    ],
+    "Romantic": [
+      "You make ordinary moments feel like movie scenes",
+      "My heart does backflips when you laugh like that",
+      "You're the plot twist my story always needed desperately",
+      "Every day with you writes itself into my favorite chapter"
     ],
     "Serious": [
-      "Growth happens between plans and reality",
-      "Some chapters are harder to write than others", 
-      "The best lessons come disguised as inconveniences",
-      "Every experience teaches us something about ourselves"
+      "Growth happens between plans and reality meeting each other",
+      "Some chapters are harder to write than others completely", 
+      "The best lessons come disguised as inconveniences usually",
+      "Every experience teaches us something about ourselves ultimately"
     ],
     "Inspirational": [
       "You're writing a story no one else could tell",
       "Your weird is exactly what the world needs more of",
-      "Every stumble forward still counts as progress",
-      "The journey shapes us more than the destination"
+      "Every stumble forward still counts as progress definitely",
+      "The journey shapes us more than the destination ever could"
     ]
   };
   
-  const baseLines = fallbacksByTone[inputs.tone] || fallbacksByTone["Humorous"];
+  const baseLines = fallbacksByTone[tone] || fallbacksByTone["Humorous"];
   
   return baseLines.map((text, index) => ({
     lane: `option${index + 1}`,
@@ -877,9 +1121,13 @@ serve(async (req) => {
   }
 
   try {
-    const inputs = await req.json();
+    const rawInputs = await req.json();
     console.log("Generate Step 2 function called");
-    console.log("Request data:", inputs);
+    console.log("Raw request data:", rawInputs);
+    
+    // Apply input precedence and auto-remap logic
+    const inputs = applyInputPrecedence(rawInputs);
+    console.log("Processed inputs:", inputs);
 
     if (!openAIApiKey) {
       console.log("API completely failed, using tone-aware fallback:", []);
