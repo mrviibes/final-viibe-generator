@@ -102,6 +102,41 @@ const VISUAL_VOCABULARY = {
   }
 };
 
+// Extract meaningful keywords from caption text
+function extractKeywords(text: string): string[] {
+  if (!text || typeof text !== 'string') return [];
+  
+  // Common stop words to filter out
+  const stopWords = new Set([
+    'the', 'is', 'at', 'which', 'on', 'and', 'a', 'to', 'are', 'as', 'was', 'were',
+    'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+    'should', 'may', 'might', 'can', 'shall', 'must', 'ought', 'i', 'you', 'he', 'she',
+    'it', 'we', 'they', 'them', 'their', 'what', 'where', 'when', 'why', 'how', 'all',
+    'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor',
+    'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'but', 'like',
+    'me', 'my', 'myself', 'this', 'that', 'these', 'those', 'am', 'an', 'for', 'in',
+    'of', 'or', 'with', 'from', 'up', 'about', 'into', 'through', 'during', 'before',
+    'after', 'above', 'below', 'between', 'again', 'further', 'then', 'once'
+  ]);
+
+  // Extract words, clean them up, and filter
+  const words = text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
+    .split(/\s+/)
+    .filter(word => 
+      word.length > 2 && // At least 3 characters
+      !stopWords.has(word) && // Not a stop word
+      !word.match(/^\d+$/) // Not just numbers
+    );
+
+  // Get unique words and prioritize longer, more meaningful ones
+  const uniqueWords = Array.from(new Set(words));
+  return uniqueWords
+    .sort((a, b) => b.length - a.length) // Longer words first
+    .slice(0, 5); // Top 5 keywords
+}
+
 // Case-insensitive lookup for visual vocabulary
 function getVocabInsensitive(category: string, subcategory: string): { props: string; atmosphere: string } {
   const catKey = Object.keys(VISUAL_VOCABULARY).find(k => k.toLowerCase() === String(category).toLowerCase());
@@ -113,9 +148,15 @@ function getVocabInsensitive(category: string, subcategory: string): { props: st
   return { props: String(match.props || ''), atmosphere: String(match.atmosphere || '') };
 }
 
-// Simplified visual scene generation - focus on core concepts only
+// Enhanced visual scene generation with keyword integration
 const SYSTEM_PROMPT_UNIVERSAL = (
-  { mode, category, subcategory, tags = [] }: { mode: string; category: string; subcategory: string; tags?: string[] }
+  { mode, category, subcategory, tags = [], keywords = [] }: { 
+    mode: string; 
+    category: string; 
+    subcategory: string; 
+    tags?: string[]; 
+    keywords?: string[] 
+  }
 ) => {
   // Get category-specific visual vocabulary
   const vocab = getVocabInsensitive(category, subcategory);
@@ -124,17 +165,25 @@ const SYSTEM_PROMPT_UNIVERSAL = (
   const hardTags = tags.filter(tag => !tag.startsWith('"') || !tag.endsWith('"')).map(tag => tag.replace(/^["']|["']$/g, ''));
   const softTags = tags.filter(tag => tag.startsWith('"') && tag.endsWith('"')).map(tag => tag.slice(1, -1));
   
+  const keywordSection = keywords.length > 0 ? `
+Caption Keywords: ${keywords.join(', ')}` : '';
+  
   return `Generate 4 visual scene concepts for ${category}/${subcategory}.
 
 Style: ${mode}
 ${vocab.props ? `Props: ${vocab.props}` : ''}
-${vocab.atmosphere ? `Mood: ${vocab.atmosphere}` : ''}
+${vocab.atmosphere ? `Mood: ${vocab.atmosphere}` : ''}${keywordSection}
 
 Rules:
+- Option 1 MUST directly incorporate at least one caption keyword visually (${keywords.slice(0, 3).join(', ')})
+- Option 2 should focus on category/subcategory elements
+- Option 3 should be a creative twist connecting keywords and category
+- Option 4 should be an alternative approach
 ${hardTags.length > 0 ? `- Include: ${hardTags.join(', ')}` : ''}
 ${softTags.length > 0 ? `- Style: ${softTags.join(', ')}` : ''}
-- Scene description only
-- No text/words in scene
+- Scene description only, complete sentences
+- No text/words visible in scene
+- No ellipses or fragments
 
 Return JSON:
 {
@@ -179,9 +228,12 @@ serve(async (req) => {
       });
     }
 
-    console.log('inputs', { final_text, category, subcategory, mode, layout_token, tags });
+    // Extract keywords from caption for better targeting
+    const keywords = extractKeywords(final_text);
+    
+    console.log('inputs', { final_text, category, subcategory, mode, layout_token, tags, keywords });
 
-    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, category, subcategory, tags });
+    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, category, subcategory, tags, keywords });
     const user = `Caption: "${final_text}"
 ${tags.length > 0 ? `Tags: ${tags.join(', ')}` : ''}
 
@@ -286,8 +338,8 @@ Generate 4 scene concepts that work with this caption.`;
         
         const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const captionRe = new RegExp(escapeRegex(final_text), 'gi');
-        const quotedCaptionRe = new RegExp(`["'“”]?${escapeRegex(final_text)}["'“”]?`, 'gi');
-        const captionLabelRe = /caption[^:]{0,80}:\s*["'“”][^"'“”]+["'“”]/gi;
+        const quotedCaptionRe = new RegExp(`["'""]?${escapeRegex(final_text)}["'""]?`, 'gi');
+        const captionLabelRe = /caption[^:]{0,80}:\s*["'""][^"'""]+["'""]/gi;
         
         const sanitize = (t: string) => {
           let s = String(t || '');
@@ -296,12 +348,20 @@ Generate 4 scene concepts that work with this caption.`;
           s = s.replace(captionLabelRe, 'caption');
           s = s.replace(quotedCaptionRe, '');
           s = s.replace(captionRe, '');
+          // Remove context fragments like "- Context: Birthday"
+          s = s.replace(/\s*-\s*Context:\s*[^.!?]*[.!?]?/gi, '');
           // Collapse punctuation and spaces
           s = s.replace(/\s{2,}/g, ' ').replace(/\s*([,:;.!?])\s*/g, '$1 ');
           s = s.replace(/\s+/g, ' ').trim();
-          // Enforce 18-word cap
+          // Enforce 18-word cap WITHOUT adding ellipses
           const words = s.split(/\s+/);
-          if (words.length > 18) s = words.slice(0, 18).join(' ') + '...';
+          if (words.length > 18) {
+            s = words.slice(0, 18).join(' ');
+            // Ensure it ends with proper punctuation
+            if (!s.match(/[.!?]$/)) s += '.';
+          }
+          // Remove any trailing ellipses or multiple dots
+          s = s.replace(/\.{2,}|…/g, '.');
           console.log('🧼 Sanitized concept', { before, after: s, words: s ? s.split(/\s+/).length : 0 });
           return s;
         };
