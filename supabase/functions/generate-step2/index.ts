@@ -1,6 +1,103 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Entity Management System for Pop Culture References
+const ENTITY_BUCKETS = {
+  '1980s_2000s': [
+    'Blockbuster', 'MySpace', 'AOL', 'New Coke', 'Beanie Babies', 
+    'Tamagotchi', 'Napster', 'Dial-up internet', 'Nokia brick phones',
+    'VHS vs Betamax', 'Y2K panic', 'Pogs', 'Geocities'
+  ],
+  '2010s': [
+    'Game of Thrones finale', 'Fyre Festival', 'Vine', 'Fortnite dances',
+    'John Wick', 'Tiger King', 'Avengers Endgame', 'Ice Bucket Challenge',
+    'Pokémon GO', 'Fidget spinners', 'Snapchat filters', 'Netflix binge-watching'
+  ],
+  '2020s': [
+    'Barbie movie', 'Oppenheimer', 'GTA VI delays', 'MrBeast videos',
+    'UFC hype', 'TikTok trends', 'Threads launch', 'NFT crashes',
+    'Zoom fatigue', 'Among Us', 'Wordle obsession', 'ChatGPT panic'
+  ]
+};
+
+const PROTECTED_IDENTITY_TRAITS = [
+  'race', 'ethnicity', 'gender', 'sexual orientation', 'religion', 
+  'disability', 'mental health', 'physical appearance', 'body type',
+  'age discrimination', 'nationality', 'accent', 'family structure'
+];
+
+let currentPopCultureEntity: string | null = null;
+let entityHistory: string[] = [];
+
+function selectPopCultureEntity(): string | null {
+  if (currentPopCultureEntity) return null; // One per batch max
+  
+  const allEntities = [
+    ...ENTITY_BUCKETS['1980s_2000s'],
+    ...ENTITY_BUCKETS['2010s'], 
+    ...ENTITY_BUCKETS['2020s']
+  ];
+
+  const availableEntities = allEntities.filter(entity => 
+    !entityHistory.includes(entity)
+  );
+
+  if (availableEntities.length === 0) {
+    entityHistory = entityHistory.slice(-5);
+    const resetAvailable = allEntities.filter(entity => 
+      !entityHistory.includes(entity)
+    );
+    if (resetAvailable.length === 0) return null;
+  }
+
+  const finalPool = availableEntities.length > 0 ? availableEntities : 
+    allEntities.filter(entity => !entityHistory.includes(entity));
+  
+  const selected = finalPool[Math.floor(Math.random() * finalPool.length)];
+  currentPopCultureEntity = selected;
+  entityHistory.push(selected);
+  
+  if (entityHistory.length > 5) {
+    entityHistory = entityHistory.slice(-5);
+  }
+
+  return selected;
+}
+
+function getCurrentPopCultureEntity(): string | null {
+  return currentPopCultureEntity;
+}
+
+function resetPopCultureBatch(): void {
+  currentPopCultureEntity = null;
+}
+
+function validateIdentityViolations(text: string): string[] {
+  const violations: string[] = [];
+  const lowerText = text.toLowerCase();
+
+  const identityViolations = PROTECTED_IDENTITY_TRAITS.filter(trait => {
+    switch (trait) {
+      case 'physical appearance':
+        return /\b(ugly|fat|thin|short|tall|bald|hairy)\b/.test(lowerText);
+      case 'age discrimination':
+        return /\b(too old|too young|ancient|geriatric|child)\b/.test(lowerText);
+      case 'gender':
+        return /\b(like a man|like a woman|masculine|feminine|act like)\b/.test(lowerText);
+      case 'mental health':
+        return /\b(crazy|insane|psycho|mental|nuts|psychotic)\b/.test(lowerText);
+      default:
+        return lowerText.includes(trait);
+    }
+  });
+
+  if (identityViolations.length > 0) {
+    violations.push(`Protected identity targeting: ${identityViolations.join(', ')}`);
+  }
+
+  return violations;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -315,30 +412,46 @@ function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
 function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[], style?: string, rating?: string): string {
   const { hardTags, softTags } = parseTags(tags);
   
+  // Entity management for pop-culture style
+  let selectedEntity: string | null = null;
+  if (style === 'pop-culture') {
+    selectedEntity = selectPopCultureEntity();
+    console.log('🎭 Selected entity for pop-culture style:', selectedEntity);
+  }
+  
   const styleDefinitions = {
     'standard': 'Balanced one-liners (40-80 chars)',
     'story': 'Mini-narratives with setup → payoff (60-100 chars)',
-    'pop-culture': 'Include celebrities, movies, TV, music, apps (40-80 chars)',
+    'pop-culture': `MUST include the approved entity: ${selectedEntity || 'none available'} (40-80 chars)`,
     'punchline-first': 'Hit joke early, then tag-back (40-80 chars)',
     'wildcard': 'Experimental humor (40-80 chars)'
   };
   
   const ratingDefs = {
     'PG': 'Clean playful humor, no profanity',
-    'PG-13': 'Mild edge with damn/hell allowed', 
-    'R': 'Strong profanity (shit, fuck, ass), brutal roasts',
-    'Explicit': 'Full NSFW mode, explicit sexual content'
+    'PG-13': 'MUST include aggressive sarcasm with mild profanity (damn, hell, ass). Sharp innuendo and brutal roasts required.',
+    'R': 'MANDATORY strong profanity (fuck, shit, bitch) and brutal personal attacks. Savage roasts required.',
+    'Explicit': 'ZERO tame lines allowed. Every line must be raunchy sexual humor, explicit content, or savage personal destruction.'
   };
   
   const lengthReq = style === 'story' ? "60-100 characters" : "40-80 characters";
   const styleDesc = styleDefinitions[style || 'standard'] || styleDefinitions['standard'];
   const ratingDesc = ratingDefs[rating || 'PG-13'] || ratingDefs['PG-13'];
   
+  const identityProtection = `
+CRITICAL IDENTITY PROTECTION RULES:
+- NEVER target protected traits: ${PROTECTED_IDENTITY_TRAITS.join(', ')}
+- Focus on ACTIONS, BEHAVIORS, EVENTS, BRANDS - not personal characteristics
+- Target what people DO, not who they ARE
+- Roast choices, moments, fails - never identity`;
+
   return `Generate 4 ${tone.toLowerCase()} lines for ${subcategory}. 
 
 JSON: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}, {"lane": "option3", "text": "..."}, {"lane": "option4", "text": "..."}]}
 
-${lengthReq}. ${ratingDesc}. Use names naturally without quotation marks.`;
+${lengthReq}. ${ratingDesc}. Use names naturally without quotation marks.
+
+${identityProtection}`;
 }
 
 function buildUserMessage(inputs: any, previousErrors: string[] = []): string {

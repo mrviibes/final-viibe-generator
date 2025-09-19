@@ -215,7 +215,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   // PHASE 0: Pop culture context detection for enhanced text handling
   const popCultureContext = handoff.key_line 
     ? detectPopCultureContext(handoff.key_line) 
-    : { isPopCulture: false, detectedTerms: [], riskLevel: 'low' as const };
+    : { isPopCulture: false, detectedTerms: [], riskLevel: 'low' as const, selectedEntity: null, identityViolations: [] };
   
   console.log('🎯 Pop culture detection:', popCultureContext);
   

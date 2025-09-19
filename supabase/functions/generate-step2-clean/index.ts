@@ -1,6 +1,114 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Entity Management System for Pop Culture References
+interface EntityPool {
+  '1980s_2000s': string[];
+  '2010s': string[];
+  '2020s': string[];
+}
+
+const ENTITY_BUCKETS: EntityPool = {
+  '1980s_2000s': [
+    'Blockbuster', 'MySpace', 'AOL', 'New Coke', 'Beanie Babies', 
+    'Tamagotchi', 'Napster', 'Dial-up internet', 'Nokia brick phones',
+    'VHS vs Betamax', 'Y2K panic', 'Pogs', 'Geocities'
+  ],
+  '2010s': [
+    'Game of Thrones finale', 'Fyre Festival', 'Vine', 'Fortnite dances',
+    'John Wick', 'Tiger King', 'Avengers Endgame', 'Ice Bucket Challenge',
+    'Pokémon GO', 'Fidget spinners', 'Snapchat filters', 'Netflix binge-watching'
+  ],
+  '2020s': [
+    'Barbie movie', 'Oppenheimer', 'GTA VI delays', 'MrBeast videos',
+    'UFC hype', 'TikTok trends', 'Threads launch', 'NFT crashes',
+    'Zoom fatigue', 'Among Us', 'Wordle obsession', 'ChatGPT panic'
+  ]
+};
+
+const PROTECTED_IDENTITY_TRAITS = [
+  'race', 'ethnicity', 'gender', 'sexual orientation', 'religion', 
+  'disability', 'mental health', 'physical appearance', 'body type',
+  'age discrimination', 'nationality', 'accent', 'family structure'
+];
+
+let currentBatchEntity: string | null = null;
+let recentlyUsed: string[] = [];
+
+function selectPopCultureEntity(): string | null {
+  if (currentBatchEntity) return null; // One per batch max
+  
+  const allEntities = [
+    ...ENTITY_BUCKETS['1980s_2000s'],
+    ...ENTITY_BUCKETS['2010s'], 
+    ...ENTITY_BUCKETS['2020s']
+  ];
+
+  const availableEntities = allEntities.filter(entity => 
+    !recentlyUsed.includes(entity)
+  );
+
+  if (availableEntities.length === 0) {
+    recentlyUsed = recentlyUsed.slice(-5);
+    const resetAvailable = allEntities.filter(entity => 
+      !recentlyUsed.includes(entity)
+    );
+    if (resetAvailable.length === 0) return null;
+  }
+
+  const finalPool = availableEntities.length > 0 ? availableEntities : 
+    allEntities.filter(entity => !recentlyUsed.includes(entity));
+  
+  const selected = finalPool[Math.floor(Math.random() * finalPool.length)];
+  currentBatchEntity = selected;
+  recentlyUsed.push(selected);
+  
+  if (recentlyUsed.length > 5) {
+    recentlyUsed = recentlyUsed.slice(-5);
+  }
+
+  return selected;
+}
+
+function resetEntityBatch(): void {
+  currentBatchEntity = null;
+}
+
+function getIdentityProtectionRules(): string {
+  return `CRITICAL IDENTITY PROTECTION RULES:
+- NEVER target protected traits: ${PROTECTED_IDENTITY_TRAITS.join(', ')}
+- Focus on ACTIONS, BEHAVIORS, EVENTS, BRANDS - not personal characteristics
+- Target what people DO, not who they ARE
+- Roast choices, moments, fails - never identity
+- Use approved entities only: ${currentBatchEntity || 'none selected'}`;
+}
+
+function validateContentForIdentityViolations(text: string): string[] {
+  const violations: string[] = [];
+  const lowerText = text.toLowerCase();
+
+  const identityViolations = PROTECTED_IDENTITY_TRAITS.filter(trait => {
+    switch (trait) {
+      case 'physical appearance':
+        return /\b(ugly|fat|thin|short|tall|bald|hairy)\b/.test(lowerText);
+      case 'age discrimination':
+        return /\b(too old|too young|ancient|geriatric|child)\b/.test(lowerText);
+      case 'gender':
+        return /\b(like a man|like a woman|masculine|feminine|act like)\b/.test(lowerText);
+      case 'mental health':
+        return /\b(crazy|insane|psycho|mental|nuts|psychotic)\b/.test(lowerText);
+      default:
+        return lowerText.includes(trait);
+    }
+  });
+
+  if (identityViolations.length > 0) {
+    violations.push(`Protected identity targeting: ${identityViolations.join(', ')}`);
+  }
+
+  return violations;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -39,6 +147,13 @@ async function generateWithGPT5(inputs: any): Promise<any> {
   const hardTags = tagsArray.filter((tag: string) => tag.startsWith('"') && tag.endsWith('"'))
     .map((tag: string) => tag.slice(1, -1));
   const softTags = tagsArray.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"'));
+
+  // ENTITY MANAGEMENT - Select single entity for pop-culture style
+  let selectedEntity: string | null = null;
+  if (inputs.style === 'pop-culture') {
+    selectedEntity = selectPopCultureEntity();
+    console.log('🎭 Selected entity for pop-culture style:', selectedEntity);
+  }
 
   // Generate 4 random comedian voices for this batch
   const comedianVoices = [
@@ -116,8 +231,11 @@ Return ONLY valid JSON in this exact structure:
 - Standard = balanced one-liners.
 - Story Mode = narrative mini-story with setup → payoff, 80–100 chars.
 - Punchline First = gag lands in the first half.
-- Pop Culture = MUST include a celebrity, meme, or trend.
+- Pop Culture = MUST include the approved entity: ${selectedEntity || 'none available'}.
 - Wildcard = unpredictable, but still a valid joke.
+
+## IDENTITY PROTECTION RULES (CRITICAL):
+${getIdentityProtectionRules()}
 
 ## Rating Map - MINIMUM HARSHNESS REQUIREMENTS
 - G = wholesome but clever, sharp burns allowed. Family-friendly with bite.
@@ -386,15 +504,45 @@ Return ONLY valid JSON in this exact structure:
       });
     }
     
-    // Pop culture validation
-    if (inputs.style === 'pop_culture') {
-      const popCultureWords = ['taylor', 'swift', 'drake', 'kanye', 'netflix', 'tiktok', 'marvel', 'disney', 'meme', 'viral'];
-      const hasPopCulture = allTexts.some(text => {
-        return popCultureWords.some(word => text.includes(word));
+    // Pop culture validation - must use selected entity
+    if (inputs.style === 'pop-culture') {
+      if (selectedEntity) {
+        const hasSelectedEntity = allTexts.some(text => text.includes(selectedEntity.toLowerCase()));
+        if (!hasSelectedEntity) {
+          validationErrors.push('missing_required_entity');
+        }
+        
+        // Check for multiple entity usage (violation)
+        const entityCount = allTexts.filter(text => text.includes(selectedEntity.toLowerCase())).length;
+        if (entityCount > 1) {
+          validationErrors.push('entity_overuse');
+        }
+    // Identity protection validation
+    const identityViolations: string[] = [];
+    originalTexts.forEach((text, index) => {
+      const violations = validateContentForIdentityViolations(text);
+      violations.forEach(violation => {
+        identityViolations.push(`Line ${index + 1}: ${violation}`);
       });
-      if (!hasPopCulture) {
-        validationErrors.push('style_noncompliant');
-      }
+    });
+    
+    if (identityViolations.length > 0) {
+      criticalErrors.push('identity_protection_violation');
+      console.log('🚫 Identity violations detected:', identityViolations);
+    }
+
+    // Identity protection validation
+    const identityViolations: string[] = [];
+    originalTexts.forEach((text, index) => {
+      const violations = validateContentForIdentityViolations(text);
+      violations.forEach(violation => {
+        identityViolations.push(`Line ${index + 1}: ${violation}`);
+      });
+    });
+    
+    if (identityViolations.length > 0) {
+      criticalErrors.push('identity_protection_violation');
+      console.log('🚫 Identity violations detected:', identityViolations);
     }
     
     // Voice variety check
