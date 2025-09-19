@@ -1,4 +1,6 @@
 // Visual Validator - prevents filler outputs and enforces mode compliance
+import { LAYOUT_CONFIG, SIZE_VALIDATION_CONFIG } from './textRenderingConfig';
+
 export type VisualContext = {
   final_text: string;
   category: string;
@@ -75,8 +77,7 @@ export function validateVisualBatch(context: VisualContext, concepts: VisualConc
   const per_concept: Array<{ lane: string; pass: boolean; reasons: string[] }> = [];
   const regenerate_mask: boolean[] = [];
 
-  // Import layout configuration for size validation
-  const { LAYOUT_CONFIG, SIZE_VALIDATION_CONFIG } = require('./textRenderingConfig');
+  // Layout configuration imported at top of file
 
   // Per concept checks
   for (const c of concepts) {
