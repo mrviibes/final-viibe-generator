@@ -6964,11 +6964,11 @@ const Index = () => {
                                {/* Display tags - moved above toggle */}
                                 {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
                                    {subjectTags.map((tag, index) => {
-                       return <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
+                      return <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
                                          {tag}
                                          <X className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeSubjectTag(tag)} />
                                        </Badge>;
-                     })}
+                    })}
                                  </div>}
                               
                               
@@ -6984,9 +6984,7 @@ const Index = () => {
                                  </div>
                                </div>
                                <div className="text-center">
-                                 <p className="text-xs text-muted-foreground mb-1">
-                                   <strong>Tip:</strong> Caption Match = closest to your joke. Gag Factory = 2 funny recs guaranteed.
-                                 </p>
+                                 
                                </div>
                       </div>}
 
