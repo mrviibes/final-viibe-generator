@@ -412,6 +412,11 @@ function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
 function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[], style?: string, rating?: string): string {
   const { hardTags, softTags } = parseTags(tags);
   
+  // Get tone overrides for enhanced rules
+  const toneOverrides = getToneOverrides(tone);
+  const shouldDisableFunny = toneOverrides?.disable_force_funny;
+  const shouldDisableRatingQuotas = toneOverrides?.disable_rating_quotas;
+  
   // Entity management for pop-culture style
   let selectedEntity: string | null = null;
   if (style === 'pop-culture') {
@@ -429,14 +434,29 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
   
   const ratingDefs = {
     'PG': 'Clean playful humor, no profanity',
-    'PG-13': 'MUST include aggressive sarcasm with mild profanity (damn, hell, ass). Sharp innuendo and brutal roasts required.',
-    'R': 'MANDATORY strong profanity (fuck, shit, bitch) and brutal personal attacks. Savage roasts required.',
-    'Explicit': 'ZERO tame lines allowed. Every line must be raunchy sexual humor, explicit content, or savage personal destruction.'
+    'PG-13': shouldDisableRatingQuotas ? 'Clever humor with optional mild language' : 'MUST include aggressive sarcasm with mild profanity (damn, hell, ass). Sharp innuendo and brutal roasts required.',
+    'R': shouldDisableRatingQuotas ? 'Sharp humor with stronger language allowed' : 'MANDATORY strong profanity (fuck, shit, bitch) and brutal personal attacks. Savage roasts required.',
+    'Explicit': shouldDisableRatingQuotas ? 'Edgy humor without explicit requirements' : 'ZERO tame lines allowed. Every line must be raunchy sexual humor, explicit content, or savage personal destruction.'
   };
   
   const lengthReq = style === 'story' ? "60-100 characters" : "40-80 characters";
   const styleDesc = styleDefinitions[style || 'standard'] || styleDefinitions['standard'];
   const ratingDesc = ratingDefs[rating || 'PG-13'] || ratingDefs['PG-13'];
+  
+  // Enhanced tone-specific requirements
+  let toneEnhancements = '';
+  if (toneOverrides) {
+    if (toneOverrides.require_positive_or_supportive) {
+      toneEnhancements += '\n- Lines must be positive, supportive, and emotionally warm';
+    }
+    if (toneOverrides.require_positive_or_affectionate) {
+      toneEnhancements += '\n- Lines must be positive, affectionate, and romantically sweet';
+    }
+    if (toneOverrides.sport_context_words_required > 0) {
+      const poolStr = toneOverrides.sport_context_pool.join(', ');
+      toneEnhancements += `\n- REQUIRED: Include ${toneOverrides.sport_context_words_required}+ sport terms from: ${poolStr}`;
+    }
+  }
   
   const identityProtection = `
 CRITICAL IDENTITY PROTECTION RULES:
@@ -449,7 +469,7 @@ CRITICAL IDENTITY PROTECTION RULES:
 
 JSON: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}, {"lane": "option3", "text": "..."}, {"lane": "option4", "text": "..."}]}
 
-${lengthReq}. ${ratingDesc}. Use names naturally without quotation marks.
+${lengthReq}. ${ratingDesc}. Use names naturally without quotation marks.${toneEnhancements}
 
 ${identityProtection}`;
 }
@@ -618,8 +638,17 @@ function checkStyleCompliance(lines: Array<{lane: string, text: string}>, style:
   };
 }
 
-function checkRatingCompliance(lines: Array<{lane: string, text: string}>, rating: string): { compliant: boolean; issues: string[] } {
+function checkRatingCompliance(lines: Array<{lane: string, text: string}>, rating: string, tone?: string): { compliant: boolean; issues: string[] } {
   const issues: string[] = [];
+  
+  // Check if rating quotas should be disabled for this tone
+  const toneOverrides = getToneOverrides(tone || '');
+  const shouldDisableRatingQuotas = toneOverrides?.disable_rating_quotas;
+  
+  if (shouldDisableRatingQuotas) {
+    console.log(`🔄 Rating quotas disabled for ${tone} tone - skipping rating compliance checks`);
+    return { compliant: true, issues: [] };
+  }
   
   switch (rating) {
     case 'PG-13':
@@ -735,9 +764,25 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: {
   }
   
   if (inputs.rating) {
-    const ratingCheck = checkRatingCompliance(lines, inputs.rating);
+    const ratingCheck = checkRatingCompliance(lines, inputs.rating, inputs.tone);
     if (!ratingCheck.compliant) {
       warnings.push(...ratingCheck.issues);
+    }
+  }
+  
+  // Sport context validation for enhanced tones
+  const toneOverrides = getToneOverrides(inputs.tone);
+  if (toneOverrides?.sport_context_words_required > 0) {
+    const contextWords = toneOverrides.sport_context_pool;
+    const requiredCount = toneOverrides.sport_context_words_required;
+    
+    const linesWithContext = lines.filter(line => {
+      const text = line.text.toLowerCase();
+      return contextWords.some(word => text.includes(word.toLowerCase()));
+    }).length;
+    
+    if (linesWithContext < requiredCount) {
+      warnings.push(`Sport context: ${linesWithContext}/${requiredCount} lines contain required context words`);
     }
   }
   
@@ -1002,6 +1047,80 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
   }
 }
 
+// STEP 2 PRECEDENCE SYSTEM - Implements tone/rating/style hierarchy 
+function applyInputPrecedence(inputs: any): any {
+  const processed = { ...inputs };
+  
+  // Step 1: Invalid combo detection and auto-remap
+  const invalidCombos = [
+    { tone: "Sentimental", blocked_ratings: ["R", "Explicit"] },
+    { tone: "Romantic", blocked_ratings: ["R", "Explicit"] }
+  ];
+  
+  // Auto-remap conflicting combinations
+  const autoRemaps = [
+    { if: { tone: "Sentimental", rating: "Explicit" }, then: { rating: "PG-13" } },
+    { if: { tone: "Sentimental", rating: "R" }, then: { rating: "PG" } },
+    { if: { tone: "Romantic", rating: "Explicit" }, then: { rating: "PG-13" } },
+    { if: { tone: "Romantic", rating: "R" }, then: { rating: "PG" } }
+  ];
+  
+  // Check for invalid combos and apply auto-remap
+  for (const remap of autoRemaps) {
+    if (processed.tone === remap.if.tone && processed.rating === remap.if.rating) {
+      console.log(`🔄 Auto-remap: ${processed.tone} + ${processed.rating} → ${processed.tone} + ${remap.then.rating}`);
+      processed.rating = remap.then.rating;
+    }
+  }
+  
+  // Log if invalid combo detected
+  for (const combo of invalidCombos) {
+    if (processed.tone === combo.tone && combo.blocked_ratings.includes(processed.rating)) {
+      console.log(`⚠️ Invalid combo detected: ${processed.tone} + ${processed.rating}`);
+    }
+  }
+  
+  // Step 2: Apply style inheritance 
+  if (processed.style === "Wildcard") {
+    processed.style = "standard"; // Use current tone rules instead of random experimental
+    console.log("🔄 Wildcard style → standard (using tone rules)");
+  }
+  
+  return processed;
+}
+
+// Enhanced tone override definitions with sport context
+function getToneOverrides(tone: string): any {
+  const overrides = {
+    "Sentimental": {
+      disable_force_funny: true,
+      disable_rating_quotas: true,
+      allow_clean_language: true,
+      require_positive_or_supportive: true,
+      sport_context_words_required: 2,
+      sport_context_pool: [
+        "court", "hoop", "net", "dribble", "assist", "rebound", "buzzer", "tipoff", "timeout", "fast break",
+        "field", "diamond", "bat", "pitch", "swing", "catch", "home run", "dugout", "stadium", "glove",
+        "touchdown", "huddle", "snap", "kickoff", "fumble", "helmet", "line", "end zone", "pass"
+      ]
+    },
+    "Romantic": {
+      disable_force_funny: true,
+      disable_rating_quotas: true,  
+      allow_clean_language: true,
+      require_positive_or_affectionate: true,
+      sport_context_words_required: 2,
+      sport_context_pool: [
+        "court", "hoop", "net", "assist", "dribble", "buzzer", "tipoff", "rebound", "timeout", "fast break",
+        "field", "diamond", "bat", "pitch", "swing", "catch", "home run", "dugout", "stadium", "glove",
+        "touchdown", "huddle", "snap", "kickoff", "fumble", "helmet", "line", "end zone", "pass"
+      ]
+    }
+  };
+  
+  return overrides[tone] || null;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -1009,9 +1128,13 @@ serve(async (req) => {
   }
 
   try {
-    const inputs = await req.json();
+    const rawInputs = await req.json();
     console.log("Generate Step 2 function called");
-    console.log("Request data:", inputs);
+    console.log("Request data:", rawInputs);
+
+    // STEP 2 PRECEDENCE SYSTEM: Tone overrides > Rating > Style
+    const inputs = applyInputPrecedence(rawInputs);
+    console.log("After precedence processing:", inputs);
 
     if (!openAIApiKey) {
       console.log("API completely failed, using tone-aware fallback:", []);
