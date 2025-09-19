@@ -15,9 +15,10 @@ export function getStyleDefinition(style: string): string {
 export function getRatingDefinition(rating: string): string {
   const definitions = {
     'G': 'Family-friendly humor only. No swearing, innuendo, or targeting individuals. Wholesome and light.',
-    'PG': 'Light sarcasm and playful roasting allowed. Keep it gentle and fun. Mild teasing only.',
-    'PG-13': 'Sharper roasts, cultural digs, mild innuendo. MUST include at least one edgy element per batch.',
-    'R': 'MUST include explicit profanity (shit, fuck, ass, etc), savage roasts, sexual references, or boundary-pushing content.'
+    'PG': 'Light sarcasm and playful roasting allowed. Add some sass and attitude but keep it clean.',
+    'PG-13': 'Sharp roasts with real bite. MUST include mild profanity (damn, hell, crap) OR clever innuendo OR savage attitude. Get edgy.',
+    'R': 'Go hard. MUST include strong profanity (fuck, shit, ass, bitch), brutal roasts, sexual references, or nasty commentary. No holding back.',
+    'XXX': 'Full NSFW mode. Explicit sexual content, brutal profanity, savage personal attacks, dark humor. Absolutely ruthless and dirty.'
   };
   
   return definitions[rating] || definitions['PG-13'];

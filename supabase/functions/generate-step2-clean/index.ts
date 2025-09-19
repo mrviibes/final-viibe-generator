@@ -40,7 +40,35 @@ async function generateWithGPT5(inputs: any): Promise<any> {
   const softTags = tagsArray.filter((tag: string) => tag.startsWith('"') && tag.endsWith('"'))
     .map((tag: string) => tag.slice(1, -1));
 
-  // FINALIZED SYSTEM PROMPT
+  // Generate 4 random comedian voices for this batch
+  const comedianVoices = [
+    "Kevin Hart (energetic, self-deprecating, physical comedy)",
+    "Ali Wong (raw, raunchy, family humor)", 
+    "Dave Chappelle (sharp cultural commentary)",
+    "Taylor Tomlinson (millennial anxiety, dating disasters)",
+    "Ricky Gervais (edgy, mocking, zero filter)",
+    "Trevor Noah (global perspective, pointed observations)",
+    "Sebastian Maniscalco (exasperated family dysfunction)",
+    "Bill Burr (angry, brutal honesty, no apologies)",
+    "Hasan Minhaj (storytelling with political undertones)",
+    "Nate Bargatze (deadpan innocent observations)",
+    "Sarah Silverman (dark humor with childlike delivery)",
+    "Louis CK (uncomfortable confessions)",
+    "Wanda Sykes (sassy social commentary)",
+    "Chris Rock (loud relationship observations)",
+    "Jo Koy (family dynamics and mom impressions)",
+    "Norm MacDonald (bizarre deadpan with weird twists)",
+    "Mitch Hedberg (surreal one-liners with misdirection)",
+    "Amy Schumer (unapologetically dirty and self-aware)",
+    "George Carlin (cynical philosophical rants)",
+    "Joan Rivers (savage celebrity and fashion roasts)"
+  ];
+  
+  // Randomly select 4 different comedian voices for this generation
+  const shuffled = [...comedianVoices].sort(() => 0.5 - Math.random());
+  const selectedVoices = shuffled.slice(0, 4);
+
+  // FINALIZED SYSTEM PROMPT WITH COMEDIAN VOICES
   const systemPrompt = `You generate exactly 4 unique one-liner jokes or captions.  
 Return ONLY valid JSON in this exact structure:
 
@@ -65,8 +93,14 @@ Return ONLY valid JSON in this exact structure:
 - Tags:  
   * Unquoted tags ${hardTags.length > 0 ? `(${hardTags.join(', ')})` : ''} MUST appear literally in 3 of 4 lines.  
   * Quoted tags ${softTags.length > 0 ? `(${softTags.join(', ')})` : ''} must NOT appear literally, but must guide style, mood, or POV.  
-- Voice variety: each line should sound like a different comedian style (absurdist, deadpan, blunt, playful, motivational, etc.).
-- Must read like natural spoken jokes, not templates.
+
+## COMEDIAN VOICE ASSIGNMENTS (CRITICAL - Each line MUST channel these specific voices):
+- Option 1: Channel ${selectedVoices[0]} style and delivery
+- Option 2: Channel ${selectedVoices[1]} style and delivery  
+- Option 3: Channel ${selectedVoices[2]} style and delivery
+- Option 4: Channel ${selectedVoices[3]} style and delivery
+
+- Must read like natural spoken jokes from these specific comedians, not generic templates.
 
 ## Tone Map
 - Humorous = observational, witty, punny.
@@ -86,10 +120,11 @@ Return ONLY valid JSON in this exact structure:
 - Wildcard = unpredictable, but still a valid joke.
 
 ## Rating Map
-- G = wholesome, no profanity, no innuendo.
-- PG = mild sarcasm, no profanity.
-- PG-13 = sharper, cheeky. At least one line MUST include mild profanity (damn, hell) or innuendo. Strong profanity blocked.
-- R = edgy, explicit. At least one line MUST include strong profanity (fuck, shit, ass) or explicit innuendo. No slurs or hate.`;
+- G = wholesome, no profanity, no innuendo. Family-friendly only.
+- PG = light sass and attitude but stay clean. Add some bite but no profanity.
+- PG-13 = sharp roasts with real bite. MUST include mild profanity (damn, hell, crap) OR clever innuendo OR savage attitude. Get edgy.
+- R = go hard. MUST include strong profanity (fuck, shit, ass, bitch), brutal roasts, sexual references, or nasty commentary. No holding back.
+- XXX = full NSFW mode. Explicit sexual content, brutal profanity, savage personal attacks, dark humor. Absolutely ruthless and dirty.`;
   
   const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG-13'}`;
   
@@ -202,20 +237,23 @@ Return ONLY valid JSON in this exact structure:
     console.log('🏷️ Soft tags:', softTags);
     
     // Rating content validation - more flexible
-    const mildProfanity = ['damn', 'hell', 'crap'];
-    const strongProfanity = ['fuck', 'shit', 'ass', 'bitch'];
-    const innuendoWords = ['bed', 'naked', 'sexy', 'hot', 'hard', 'wet', 'thick', 'deep', 'score', 'play'];
+    const mildProfanity = ['damn', 'hell', 'crap', 'suck', 'sucks'];
+    const strongProfanity = ['fuck', 'shit', 'ass', 'bitch', 'bastard', 'asshole'];
+    const innuendoWords = ['bed', 'naked', 'sexy', 'hot', 'hard', 'wet', 'thick', 'deep', 'score', 'play', 'come', 'blow', 'suck'];
+    const xxxContent = ['cock', 'pussy', 'tits', 'dick', 'horny', 'orgasm', 'masturbate'];
     
     let hasMildProfanity = false;
     let hasStrongProfanity = false;
     let hasInnuendo = false;
     let hasAttitude = false; // For PG-13 - sarcasm, edge
+    let hasXXXContent = false;
     
     allTexts.forEach(text => {
       if (mildProfanity.some(word => text.includes(word))) hasMildProfanity = true;
       if (strongProfanity.some(word => text.includes(word))) hasStrongProfanity = true;
       if (innuendoWords.some(word => text.includes(word))) hasInnuendo = true;
-      if (/terrible|awful|worst|suck|fail|pathetic/.test(text)) hasAttitude = true;
+      if (xxxContent.some(word => text.includes(word))) hasXXXContent = true;
+      if (/terrible|awful|worst|fail|pathetic|stupid|idiot|moron|loser|trash|garbage/.test(text)) hasAttitude = true;
     });
 
     // Perspective validation - strict requirements for finalized spec
@@ -278,23 +316,27 @@ Return ONLY valid JSON in this exact structure:
       }
     });
 
-    // RELAXED Rating enforcement - allow graceful degradation
+    // STRONGER Rating enforcement 
     const rating = inputs.rating || 'PG-13';
-    console.log('🎬 Rating check:', { rating, hasMildProfanity, hasStrongProfanity, hasInnuendo, hasAttitude });
+    console.log('🎬 Rating check:', { rating, hasMildProfanity, hasStrongProfanity, hasInnuendo, hasAttitude, hasXXXContent });
     
-    if (rating === 'G' && (hasMildProfanity || hasStrongProfanity)) {
+    if (rating === 'G' && (hasMildProfanity || hasStrongProfanity || hasXXXContent)) {
       validationErrors.push('rating_violation_g');
     }
-    if (rating === 'PG' && (hasStrongProfanity)) {
+    if (rating === 'PG' && (hasStrongProfanity || hasXXXContent)) {
       validationErrors.push('rating_violation_pg');
     }
-    // PG-13: Prefer mild profanity OR innuendo but don't fail completely
+    // PG-13: REQUIRE edge - must have mild profanity OR innuendo OR savage attitude
     if (rating === 'PG-13' && !hasMildProfanity && !hasInnuendo && !hasAttitude) {
-      warnings.push('missing_pg13_edge');
+      validationErrors.push('missing_required_pg13_edge');
     }
-    // R: Prefer strong content but don't fail completely  
+    // R: REQUIRE strong content - must have strong profanity OR explicit innuendo  
     if (rating === 'R' && !hasStrongProfanity && !hasInnuendo) {
-      warnings.push('missing_required_r_content');
+      validationErrors.push('missing_required_r_content');
+    }
+    // XXX: REQUIRE explicit content
+    if (rating === 'XXX' && !hasXXXContent && !hasStrongProfanity) {
+      validationErrors.push('missing_required_xxx_content');
     }
 
     // RELAXED Perspective enforcement - nice to have, not critical
