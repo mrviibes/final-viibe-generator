@@ -135,479 +135,126 @@ async function retryWithBackoff(fn: () => Promise<any>, maxRetries = 2): Promise
 }
 
 async function generateWithGPT5(inputs: any): Promise<any> {
-  const startTime = Date.now();
-  console.log('🎯 Starting strict GPT-5 generation');
-  
-  // ROBUST INPUT COERCION
-  const tagsArray = Array.isArray(inputs.tags) ? inputs.tags : 
-                   (typeof inputs.tags === 'string' ? [inputs.tags] : []);
-  const tagsStr = tagsArray.length > 0 ? tagsArray.join(',') : 'none';
-  
-  // Parse tags (hard vs soft) - CORRECTED LOGIC
-  const hardTags = tagsArray.filter((tag: string) => tag.startsWith('"') && tag.endsWith('"'))
-    .map((tag: string) => tag.slice(1, -1));
-  const softTags = tagsArray.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"'));
+  const { category, subcategory, tone, rating, tags, wordLimit } = inputs;
 
-  // ENTITY MANAGEMENT - Select single entity for pop-culture style
-  let selectedEntity: string | null = null;
-  if (inputs.style === 'pop-culture') {
-    selectedEntity = selectPopCultureEntity();
-    console.log('🎭 Selected entity for pop-culture style:', selectedEntity);
+  const popCultureEntity = selectPopCultureEntity();
+  const identityRules = getIdentityProtectionRules();
+
+  const prompt = `
+  You are the ultimate creative comedy writer. Your goal is to generate edgy, hilarious, and viral-worthy content based on user inputs. You MUST follow all rules.
+
+  Category: ${category}
+  Subcategory: ${subcategory}
+  Overall Tone: ${tone}
+  Content Rating: ${rating || 'PG-13'}
+  Keywords/Tags: ${tags?.join(', ') || 'none'}
+  Word Limit: ${wordLimit || '25'} words
+
+  ADDITIONAL CONTEXT:
+  - Incorporate current pop culture trends and references to maximize shareability.
+  - Use slang, abbreviations, and internet humor where appropriate to appeal to a younger audience.
+  - Be concise and to-the-point; every word counts.
+  - Inject unexpected twists and dark humor to stand out.
+  - Use emojis sparingly but effectively to enhance the message.
+  - Include a relevant and funny image prompt for DALL-E 3 to generate a visual.
+
+  MANDATORY RULES:
+  - The content MUST be extremely edgy and funny.
+  - The content MUST be short, attention-grabbing, and optimized for social media.
+  - The content MUST include a DALL-E 3 image prompt.
+  - The content MUST be appropriate for the specified content rating.
+  - The content MUST incorporate the specified keywords/tags.
+  - The content MUST be within the specified word limit.
+  - The content MUST follow all identity protection rules.
+  - The content MUST use the specified tone.
+  - The content MUST be in the specified category and subcategory.
+  - The content MUST incorporate a pop culture reference.
+
+  ${identityRules}
+
+  OUTPUT FORMAT:
+  {
+    "content": "Your generated content here",
+    "imagePrompt": "DALL-E 3 image prompt here",
+    "identityViolations": ["list any violations here"],
+    "entityUsed": "the pop culture entity used"
   }
+  `;
 
-  // Generate 4 random comedian voices for this batch
-  const comedianVoices = [
-    "Kevin Hart (energetic, self-deprecating, physical comedy)",
-    "Ali Wong (raw, raunchy, family humor)", 
-    "Dave Chappelle (sharp cultural commentary)",
-    "Taylor Tomlinson (millennial anxiety, dating disasters)",
-    "Ricky Gervais (edgy, mocking, zero filter)",
-    "Trevor Noah (global perspective, pointed observations)",
-    "Sebastian Maniscalco (exasperated family dysfunction)",
-    "Bill Burr (angry, brutal honesty, no apologies)",
-    "Hasan Minhaj (storytelling with political undertones)",
-    "Nate Bargatze (deadpan innocent observations)",
-    "Sarah Silverman (dark humor with childlike delivery)",
-    "Louis CK (uncomfortable confessions)",
-    "Wanda Sykes (sassy social commentary)",
-    "Chris Rock (loud relationship observations)",
-    "Jo Koy (family dynamics and mom impressions)",
-    "Norm MacDonald (bizarre deadpan with weird twists)",
-    "Mitch Hedberg (surreal one-liners with misdirection)",
-    "Amy Schumer (unapologetically dirty and self-aware)",
-    "George Carlin (cynical philosophical rants)",
-    "Joan Rivers (savage celebrity and fashion roasts)"
-  ];
-  
-  // Randomly select 4 different comedian voices for this generation
-  const shuffled = [...comedianVoices].sort(() => 0.5 - Math.random());
-  const selectedVoices = shuffled.slice(0, 4);
+  console.log('📝 Prompt:', prompt);
 
-  // FINALIZED SYSTEM PROMPT WITH COMEDIAN VOICES
-  const systemPrompt = `You generate exactly 4 unique one-liner jokes or captions.  
-Return ONLY valid JSON in this exact structure:
-
-{
-  "lines": [
-    {"lane":"option1","text":"..."},
-    {"lane":"option2","text":"..."},
-    {"lane":"option3","text":"..."},
-    {"lane":"option4","text":"..."}
-  ]
-}
-
-## Hard Rules
-- Output exactly 4 unique lines.
-- Each line must end with a single period. No commas, colons, semicolons, exclamations, or question marks. No em dashes. No ellipses.
-- Length: option1 = 40–50 chars, option2 = 50–60, option3 = 60–70, option4 = 70–80.  
-  ${inputs.style === 'story' ? '(Story Mode: all 4 must be 80–100 with setup → payoff.)' : ''}
-- Perspectives per batch: one general truth, one past-tense memory, one present-tense roast/flirt, one third-person tagged line (if a name tag exists).
-- Tone must match ${inputs.tone} selection.
-- Style must match ${inputs.style || 'standard'} selection.
-- Rating must match ${inputs.rating || 'PG-13'} selection.
-- Tags:  
-  * Name tags ${hardTags.length > 0 ? `(${hardTags.join(', ')})` : ''} MUST be used naturally as names in 3 of 4 lines (no quotation marks around names).  
-  * Style tags ${softTags.length > 0 ? `(${softTags.join(', ')})` : ''} must NOT appear as words, but must guide style, mood, or POV.
-
-## COMEDIAN VOICE ASSIGNMENTS (CRITICAL - Each line MUST channel these specific voices):
-- Option 1: Channel ${selectedVoices[0]} style and delivery
-- Option 2: Channel ${selectedVoices[1]} style and delivery  
-- Option 3: Channel ${selectedVoices[2]} style and delivery
-- Option 4: Channel ${selectedVoices[3]} style and delivery
-
-- Must read like natural spoken jokes from these specific comedians, not generic templates.
-
-## Tone Map
-- Humorous = observational, witty, punny.
-- Savage = sharp roast, unapologetic.
-- Romantic = flirty, affectionate.
-- Sentimental = heartfelt, sincere.
-- Nostalgic = wistful, memory-driven.
-- Inspirational = uplifting, motivational.
-- Playful = mischievous, cheeky.
-- Serious = plain, formal.
-
-## Style Map
-- Standard = balanced one-liners.
-- Story Mode = narrative mini-story with setup → payoff, 80–100 chars.
-- Punchline First = gag lands in the first half.
-- Pop Culture = MUST include the approved entity: ${selectedEntity || 'none available'}.
-- Wildcard = unpredictable, but still a valid joke.
-
-## IDENTITY PROTECTION RULES (CRITICAL):
-${getIdentityProtectionRules()}
-
-## Rating Map - MINIMUM HARSHNESS REQUIREMENTS
-- G = wholesome but clever, sharp burns allowed. Family-friendly with bite.
-- PG-13 = MUST include aggressive sarcasm, mild profanity (damn, hell, ass), and brutal roasts. Sharp innuendo required.
-- R = MANDATORY strong profanity (fuck, shit, bitch), savage personal attacks, sexual references. Brutal roasts required. No soft lines.
-- Explicit = ZERO tame lines allowed. Every line must be raunchy sexual humor, explicit content, or savage personal destruction. Maximum filth mode.`;
-  
-  const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG-13'}`;
-  
-  console.log('📝 Prompts - System:', systemPrompt.length, 'User:', userPrompt.length);
-  
-  const requestBody = {
-    model: MODEL,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ],
-    response_format: { type: "json_object" },
-    max_completion_tokens: 350
-  };
-  
-  return retryWithBackoff(async () => {
+  try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openAIApiKey}`
       },
-      body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(12000), // Extended timeout
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        max_completion_tokens: 250,
+        response_format: { type: "json_object" }
+      })
     });
-    
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ API Error:', response.status, errorText);
-      throw new Error(`API ${response.status}: ${errorText}`);
+      resetEntityBatch();
+      console.error('OpenAI API Error:', response.status, response.statusText);
+      throw new Error(`OpenAI API Error: ${response.status} - ${response.statusText}`);
     }
-    
+
     const data = await response.json();
-    const latencyMs = Date.now() - startTime;
-    const finishReason = data.choices?.[0]?.finish_reason;
-    
-    // TELEMETRY
-    console.log('📊 TELEMETRY:', JSON.stringify({
-      model_used: data.model,
-      latency_ms: latencyMs,
-      tokens_in: data.usage?.prompt_tokens,
-      tokens_out: data.usage?.completion_tokens,
-      style: inputs.style,
-      rating: inputs.rating,
-      finish_reason: finishReason
-    }));
-    
-    // STRICT MODEL VALIDATION - FAIL FAST
-    if (data.model !== MODEL) {
-      throw new Error(`Model mismatch: expected ${MODEL}, got ${data.model}`);
+    console.log('🤖 Raw OpenAI Response:', JSON.stringify(data, null, 2));
+
+    if (!data.choices || data.choices.length === 0) {
+      resetEntityBatch();
+      throw new Error('No choices returned from OpenAI API');
     }
-    
-    const content = data.choices?.[0]?.message?.content?.trim() || "";
-    if (content.length === 0) {
-      throw new Error(`Empty content (finish: ${finishReason})`);
-    }
-    
-    // LOG RAW GENERATION BEFORE VALIDATION
-    console.log('🎭 Raw generated content:', content);
-    
-    // PARSE JSON CONTENT
-    let parsed;
+
+    const rawContent = data.choices[0].message.content.trim();
+    console.log('Raw Content:', rawContent);
+
     try {
-      parsed = JSON.parse(content);
-    } catch (error) {
-      console.error('❌ JSON parsing failed:', error.message);
-      throw new Error(`Invalid JSON response: ${error.message}`);
-    }
-    
-    // VALIDATE STRUCTURE
-    if (!parsed.lines || !Array.isArray(parsed.lines) || parsed.lines.length < 4) {
-      console.error('❌ Structure validation failed:', parsed);
-      throw new Error(`Invalid structure: expected 4 lines, got ${parsed.lines?.length || 0}`);
-    }
-    
-    console.log('📝 Generated lines before validation:', JSON.stringify(parsed.lines, null, 2));
+      const parsedContent = JSON.parse(rawContent);
+      console.log('Parsed Content:', parsedContent);
 
-    // SANITIZE lines to minimize punctuation violations
-    parsed.lines = parsed.lines.map((line: any) => {
-      const t = (line.text || '').toString();
-      let s = t.replace(/—/g, ' ').replace(/[!?]/g, '.').replace(/\.{2,}/g, '.').trim();
-      if (!s.endsWith('.')) {
-        s = s.replace(/[.]+$/,'') + '.';
+      const identityViolations = validateContentForIdentityViolations(parsedContent.content);
+      if (identityViolations.length > 0) {
+        resetEntityBatch();
+        console.warn('Identity Violations:', identityViolations);
+        return {
+          error: `Identity violations found: ${identityViolations.join(', ')}`,
+          success: false,
+          model: MODEL,
+          validated: false,
+          identityViolations,
+          entityUsed: popCultureEntity || 'none'
+        };
       }
-      return { ...line, text: s };
-    });
-    console.log('🧼 Lines after sanitation:', JSON.stringify(parsed.lines, null, 2));
 
-    // STRICT VALIDATION - Enforce finalized rules
-    const validationErrors = [];
-    const criticalErrors = [];
-    const warnings = [];
-    const isStoryMode = inputs.style === 'story';
-    
-    // Parse tags into hard (quoted) and soft (unquoted) - CORRECTED LOGIC
-    const hardTags = tagsArray.filter((tag: string) => tag.startsWith('"') && tag.endsWith('"'))
-      .map((tag: string) => tag.slice(1, -1));
-    const softTags = tagsArray.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"'));
-    
-    // Length validation - exact character ranges
-    const expectedLengths = isStoryMode 
-      ? [[80, 100], [80, 100], [80, 100], [80, 100]] // Story mode: all 80-100 chars
-      : [[40, 50], [50, 60], [60, 70], [70, 80]]; // Standard: exact bands
-    
-    const allTexts = parsed.lines.map((line: any) => line.text?.toLowerCase() || '');
-    const originalTexts = parsed.lines.map((line: any) => line.text || '');
-    
-    console.log('🔍 Validating texts:', originalTexts);
-    console.log('🏷️ Hard tags:', hardTags);
-    console.log('🏷️ Soft tags:', softTags);
-    
-    // Rating content validation - more flexible
-    const mildProfanity = ['damn', 'hell', 'crap', 'suck', 'sucks'];
-    const strongProfanity = ['fuck', 'shit', 'ass', 'bitch', 'bastard', 'asshole'];
-    const innuendoWords = ['bed', 'naked', 'sexy', 'hot', 'hard', 'wet', 'thick', 'deep', 'score', 'play', 'come', 'blow', 'suck'];
-    const xxxContent = ['cock', 'pussy', 'tits', 'dick', 'horny', 'orgasm', 'masturbate'];
-    
-    let hasMildProfanity = false;
-    let hasStrongProfanity = false;
-    let hasInnuendo = false;
-    let hasAttitude = false; // For PG-13 - sarcasm, edge
-    let hasXXXContent = false;
-    
-    allTexts.forEach(text => {
-      if (mildProfanity.some(word => text.includes(word))) hasMildProfanity = true;
-      if (strongProfanity.some(word => text.includes(word))) hasStrongProfanity = true;
-      if (innuendoWords.some(word => text.includes(word))) hasInnuendo = true;
-      if (xxxContent.some(word => text.includes(word))) hasXXXContent = true;
-      if (/terrible|awful|worst|fail|pathetic|stupid|idiot|moron|loser|trash|garbage/.test(text)) hasAttitude = true;
-    });
-
-    // Perspective validation - strict requirements for finalized spec
-    const hasGeneralTruth = allTexts.some(text => 
-      !text.includes('you') && !text.includes('your') && 
-      !hardTags.some(tag => text.includes(tag.toLowerCase()))
-    );
-    const hasPastTense = allTexts.some(text => 
-      /last |remember |used to|back |yesterday|ago|was |were /.test(text)
-    );
-    const hasPresentRoast = allTexts.some(text => 
-      /you're|you |your |you'll/.test(text) || 
-      hardTags.some(tag => text.includes(tag.toLowerCase()))
-    );
-    const hasThirdPerson = hardTags.length > 0 ? 
-      allTexts.some(text => hardTags.some(tag => text.includes(tag.toLowerCase()))) : true;
-    
-    console.log('👁️ Perspective check:', { hasGeneralTruth, hasPastTense, hasPresentRoast, hasThirdPerson });
-    
-    // Validate each line with strict punctuation rules
-    parsed.lines.forEach((line, index) => {
-      const text = line.text || '';
-      const length = text.length;
-      const [minLength, maxLength] = expectedLengths[index];
-      
-      console.log(`📏 Line ${index + 1}: "${text}" (${length} chars, expected ${minLength}-${maxLength})`);
-      
-      // Length validation - soft tolerance
-      if (length < (minLength - 10) || length > (maxLength + 20)) {
-        criticalErrors.push(`len_out_of_range_${index + 1}`);
-      } else if (length < minLength || length > maxLength) {
-        validationErrors.push(`len_soft_out_of_range_${index + 1}`);
-      }
-      
-      // PUNCTUATION VALIDATION - allow commas
-      const forbiddenPunctuation = /[;:!?]/g;
-      if (forbiddenPunctuation.test(text)) {
-        validationErrors.push(`forbidden_punctuation_${index + 1}`);
-      }
-      
-      // Em dash validation - CRITICAL ERROR
-      if (text.includes('—')) {
-        criticalErrors.push(`emdash_forbidden_${index + 1}`);
-      }
-      
-      // Ellipsis validation - CRITICAL ERROR
-      if (text.includes('...') || text.includes('..')) {
-        criticalErrors.push(`ellipsis_forbidden_${index + 1}`);
-      }
-      
-      // Must end with single period
-      if (!text.endsWith('.') || text.match(/\.$/) === null) {
-        criticalErrors.push(`must_end_with_period_${index + 1}`);
-      }
-      
-      // Count total punctuation marks (ignore commas) - max 1 allowed
-      const totalPunctuation = (text.match(/[.;:!?—]/g) || []).length;
-      if (totalPunctuation > 1) {
-        criticalErrors.push(`multiple_punctuation_${index + 1}`);
-      }
-    });
-
-    // HARSHER Rating enforcement - minimum harshness requirements
-    const rating = inputs.rating || 'PG-13';
-    console.log('🎬 Rating check:', { rating, hasMildProfanity, hasStrongProfanity, hasInnuendo, hasAttitude, hasXXXContent });
-    
-    // Rating enforcement - MINIMUM HARSHNESS REQUIREMENTS
-    if (rating === 'G' && (hasMildProfanity || hasStrongProfanity || hasXXXContent)) {
-      validationErrors.push('rating_violation_g');
-    }
-    // PG-13: REQUIRE aggressive sarcasm and bite - at least 2 lines must have mild profanity OR savage attitude
-    if (rating === 'PG-13' && !(hasMildProfanity || hasAttitude)) {
-      validationErrors.push('missing_required_pg13_bite');
-    }
-    // R: REQUIRE strong content - must have strong profanity AND brutal attitude 
-    if (rating === 'R' && !(hasStrongProfanity && hasAttitude)) {
-      validationErrors.push('missing_required_r_content');
-    }
-    // Explicit: ZERO tame lines - require BOTH explicit content AND strong profanity
-    if (rating === 'Explicit' && !(hasXXXContent && hasStrongProfanity)) {
-      validationErrors.push('missing_required_explicit_content');
+      resetEntityBatch();
+      return {
+        ...parsedContent,
+        success: true,
+        model: MODEL,
+        validated: true,
+        identityViolations: [],
+        entityUsed: popCultureEntity || 'none'
+      };
+    } catch (parseError) {
+      resetEntityBatch();
+      console.error('JSON Parse Error:', parseError);
+      console.error('Failed to parse:', rawContent);
+      throw new Error(`Failed to parse OpenAI response: ${parseError.message}`);
     }
 
-    // RELAXED Perspective enforcement - nice to have, not critical
-    if (!hasGeneralTruth) {
-      warnings.push('missing_general_truth');
-    }
-    if (!hasPastTense) {
-      warnings.push('missing_past_tense');
-    }
-    if (!hasPresentRoast) {
-      warnings.push('missing_present_roast');
-    }
-    if (!hasThirdPerson && hardTags.length > 0) {
-      warnings.push('missing_third_person');
-    }
-    
-    // RELAXED Tag enforcement - require at least 2/4 lines for flexibility
-    if (hardTags.length > 0) {
-      hardTags.forEach(tag => {
-        const count = allTexts.filter(text => text.includes(tag.toLowerCase())).length;
-        if (count < 2) {
-          validationErrors.push('insufficient_hard_tags');
-        } else if (count < 3) {
-          warnings.push('could_use_more_hard_tags');
-        }
-      });
-    }
-    
-    // Soft tags must NOT appear literally (still critical)
-    softTags.forEach(tag => {
-      const count = allTexts.filter(text => text.includes(tag.toLowerCase())).length;
-      if (count > 0) {
-        validationErrors.push('soft_tag_leaked');
-      }
-    });
-    
-    // Style compliance
-    if (isStoryMode) {
-      const pivotWords = ['then', 'after', 'when', 'finally', 'last year', 'so'];
-      const payoffWords = ['but', 'so', 'which', 'still', 'yet'];
-      
-      parsed.lines.forEach((line, index) => {
-        const text = (line.text || '').toLowerCase();
-        const hasPivot = pivotWords.some(word => text.includes(word));
-        const hasPayoff = payoffWords.some(word => text.includes(word));
-        
-        if (!hasPivot || !hasPayoff) {
-          validationErrors.push('style_noncompliant');
-        }
-      });
-    }
-    
-    // Pop culture validation - must use selected entity
-    if (inputs.style === 'pop-culture') {
-      if (selectedEntity) {
-        const hasSelectedEntity = allTexts.some(text => text.includes(selectedEntity.toLowerCase()));
-        if (!hasSelectedEntity) {
-          validationErrors.push('missing_required_entity');
-        }
-        
-        // Check for multiple entity usage (violation)
-        const entityCount = allTexts.filter(text => text.includes(selectedEntity.toLowerCase())).length;
-        if (entityCount > 1) {
-          validationErrors.push('entity_overuse');
-        }
-    // Identity protection validation
-    const identityViolations: string[] = [];
-    originalTexts.forEach((text, index) => {
-      const violations = validateContentForIdentityViolations(text);
-      violations.forEach(violation => {
-        identityViolations.push(`Line ${index + 1}: ${violation}`);
-      });
-    });
-    
-    if (identityViolations.length > 0) {
-      criticalErrors.push('identity_protection_violation');
-      console.log('🚫 Identity violations detected:', identityViolations);
-    }
-
-    // Identity protection validation
-    const identityViolations: string[] = [];
-    originalTexts.forEach((text, index) => {
-      const violations = validateContentForIdentityViolations(text);
-      violations.forEach(violation => {
-        identityViolations.push(`Line ${index + 1}: ${violation}`);
-      });
-    });
-    
-    if (identityViolations.length > 0) {
-      criticalErrors.push('identity_protection_violation');
-      console.log('🚫 Identity violations detected:', identityViolations);
-    }
-    
-    // Voice variety check
-    const firstWords = parsed.lines.map((line: any) => {
-      const words = (line.text || '').split(/\s+/).slice(0, 2).join(' ').toLowerCase();
-      return words;
-    });
-    const uniqueStarts = new Set(firstWords);
-    if (uniqueStarts.size < 4) {
-      validationErrors.push('robotic_pattern');
-    }
-    
-    // Premise variety - no duplicate themes
-    const clicheWords = ['cake', 'candles', 'party', 'birthday', 'years old'];
-    clicheWords.forEach(word => {
-      const count = allTexts.filter(text => text.includes(word)).length;
-      if (count > 1) {
-        validationErrors.push('duplicate_premise');
-      }
-    });
-    
-    // BALANCED ERROR HANDLING - allow graceful degradation
-    const allErrors = [...criticalErrors, ...validationErrors];
-    const allIssues = [...allErrors, ...warnings];
-    
-    console.log('🔍 Validation summary:', {
-      criticalErrors: criticalErrors.length,
-      validationErrors: validationErrors.length, 
-      warnings: warnings.length,
-      allIssues
-    });
-    
-    // Only fail on truly critical errors - allow other issues
-    if (criticalErrors.length > 6) {
-      console.error('❌ STRICT FAIL: Too many critical validation failures:', criticalErrors.join('; '));
-      throw new Error(`Strict validation failure: ${criticalErrors.join('; ')}`);
-    }
-    
-    // Success only if no critical errors (per finalized spec)
-    console.log('✅ STRICT GENERATION SUCCESS: all critical validations passed');
-    console.log('✅ GPT-4.1 SUCCESS:', MODEL);
-    
-    // Reset entity batch after successful generation
+  } catch (apiError) {
     resetEntityBatch();
-
-    // Calculate quality score (penalize any issues)
-    const qualityScore = Math.max(0, 100 - (criticalErrors.length * 100) - (validationErrors.length * 20) - (warnings.length * 5));
-    
-    return {
-      success: true,
-      model: MODEL,
-      lines: parsed.lines.map(line => ({ lane: line.lane, text: line.text })),
-      validationDetails: {
-        criticalErrors: criticalErrors.length,
-        validationErrors: validationErrors.length,
-        warnings: warnings.length,
-        allIssues,
-        selectedEntity,
-        identityViolations
-      },
-      qualityScore
-    };
+    console.error('Full API Error:', apiError);
+    throw apiError;
+  }
 }
-
-// No fallbacks in strict mode - GPT-5 succeeds or fails
 
 serve(async (req) => {
   // Handle CORS
