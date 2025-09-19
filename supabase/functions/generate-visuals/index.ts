@@ -161,9 +161,9 @@ const SYSTEM_PROMPT_UNIVERSAL = (
   // Get category-specific visual vocabulary
   const vocab = getVocabInsensitive(category, subcategory);
   
-  // Process tags - separate hard (unquoted) from soft (quoted) constraints
-  const hardTags = tags.filter(tag => !tag.startsWith('"') || !tag.endsWith('"')).map(tag => tag.replace(/^["']|["']$/g, ''));
-  const softTags = tags.filter(tag => tag.startsWith('"') && tag.endsWith('"')).map(tag => tag.slice(1, -1));
+  // Process tags - separate hard (quoted) from soft (unquoted) constraints
+  const hardTags = tags.filter(tag => tag.startsWith('"') && tag.endsWith('"')).map(tag => tag.slice(1, -1));
+  const softTags = tags.filter(tag => !tag.startsWith('"') && !tag.endsWith('"')).map(tag => tag.replace(/^["']|["']$/g, ''));
   
   const keywordSection = keywords.length > 0 ? `
 Caption Keywords: ${keywords.join(', ')}` : '';

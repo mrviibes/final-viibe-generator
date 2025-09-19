@@ -67,14 +67,14 @@ function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
     // Check if starts and ends with quotes
     if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
         (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-      // Soft tag - remove quotes and store lowercased
+      // Hard tag - remove quotes and store for literal inclusion
       const unquoted = trimmed.slice(1, -1).trim();
       if (unquoted) {
-        softTags.push(unquoted.toLowerCase());
+        hardTags.push(unquoted);
       }
     } else {
-      // Hard tag - keep original case for printing, but store for checks
-      hardTags.push(trimmed);
+      // Soft tag - store lowercased for style influence only
+      softTags.push(trimmed.toLowerCase());
     }
   }
   

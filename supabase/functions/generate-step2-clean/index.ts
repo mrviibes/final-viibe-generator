@@ -35,10 +35,10 @@ async function generateWithGPT5(inputs: any): Promise<any> {
                    (typeof inputs.tags === 'string' ? [inputs.tags] : []);
   const tagsStr = tagsArray.length > 0 ? tagsArray.join(',') : 'none';
   
-  // Parse tags (hard vs soft) - FIXED BUG
-  const hardTags = tagsArray.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"'));
-  const softTags = tagsArray.filter((tag: string) => tag.startsWith('"') && tag.endsWith('"'))
+  // Parse tags (hard vs soft) - CORRECTED LOGIC
+  const hardTags = tagsArray.filter((tag: string) => tag.startsWith('"') && tag.endsWith('"'))
     .map((tag: string) => tag.slice(1, -1));
+  const softTags = tagsArray.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"'));
 
   // Generate 4 random comedian voices for this batch
   const comedianVoices = [
@@ -91,8 +91,8 @@ Return ONLY valid JSON in this exact structure:
 - Style must match ${inputs.style || 'standard'} selection.
 - Rating must match ${inputs.rating || 'PG-13'} selection.
 - Tags:  
-  * Unquoted tags ${hardTags.length > 0 ? `(${hardTags.join(', ')})` : ''} MUST appear literally in 3 of 4 lines.  
-  * Quoted tags ${softTags.length > 0 ? `(${softTags.join(', ')})` : ''} must NOT appear literally, but must guide style, mood, or POV.  
+  * Quoted tags ${hardTags.length > 0 ? `(${hardTags.join(', ')})` : ''} MUST appear literally in 3 of 4 lines.  
+  * Unquoted tags ${softTags.length > 0 ? `(${softTags.join(', ')})` : ''} must NOT appear literally, but must guide style, mood, or POV.
 
 ## COMEDIAN VOICE ASSIGNMENTS (CRITICAL - Each line MUST channel these specific voices):
 - Option 1: Channel ${selectedVoices[0]} style and delivery
@@ -219,10 +219,10 @@ Return ONLY valid JSON in this exact structure:
     const warnings = [];
     const isStoryMode = inputs.style === 'story';
     
-    // Parse tags into hard (unquoted) and soft (quoted) - FIXED BUG
-    const hardTags = tagsArray.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"'));
-    const softTags = tagsArray.filter((tag: string) => tag.startsWith('"') && tag.endsWith('"'))
+    // Parse tags into hard (quoted) and soft (unquoted) - CORRECTED LOGIC
+    const hardTags = tagsArray.filter((tag: string) => tag.startsWith('"') && tag.endsWith('"'))
       .map((tag: string) => tag.slice(1, -1));
+    const softTags = tagsArray.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"'));
     
     // Length validation - exact character ranges
     const expectedLengths = isStoryMode 
