@@ -1,21 +1,19 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const SYSTEM_PROMPT = `You are a text line generator for memes and image overlays. Your job is to create exactly 4 one-liners based on the given category, subcategory, tone, and tags.
+const SYSTEM_PROMPT = `You are a text line generator for memes and image overlays. Your job is to create exactly 2 one-liners based on the given category, subcategory, tone, and tags.
 
 STRICT RULES:
 1. Output ONLY valid JSON in this exact format:
 {
   "lines": [
     {"lane":"option1","text":"..."},
-    {"lane":"option2","text":"..."},
-    {"lane":"option3","text":"..."},
-    {"lane":"option4","text":"..."}
+    {"lane":"option2","text":"..."}
   ]
 }
 
 2. CONTENT RULES:
 - Each line must be ≤ 80 characters
-- All 4 lines must be completely different
+- Both lines must be completely different
 - Use simple punctuation: commas, periods, colons
 - NO em-dashes (—) or double dashes (--)
 - Ban clichés like "timing is everything", "truth hurts", "laughter is the best medicine"
@@ -30,12 +28,12 @@ STRICT RULES:
 
 5. TAG RULES (STRICTLY ENFORCED):
 - If no tags → generate normally
-- If tags exist: At least 3 out of 4 lines must include ALL tags literally (not synonyms)
+- If tags exist: At least 1 of 2 lines must include ALL tags literally (not synonyms)
 - Tags must appear in different spots in the line
 - Do not skip tags in more than 1 line
 
 6. VARIETY:
-- Create 4 distinct options with varied approaches
+- Create 2 distinct options with varied approaches
 - Conversational, natural, human-sounding`;
 
 interface TextGenInput {
@@ -175,7 +173,7 @@ function buildUserMessage(inputs: TextGenInput): string {
     }
   }
   
-  return `Generate 4 one-liners for:
+  return `Generate 2 one-liners for:
 Category: ${inputs.category}
 Subcategory: ${inputs.subcategory}
 Tone: ${inputs.tone}${tagsStr}${modeInstruction}`;
@@ -211,9 +209,7 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
     return {
       lines: [
         { lane: "option1", text: "Netflix couldn't script this level of chaos." },
-        { lane: "option2", text: "This moment deserves its own TikTok trend honestly." },
-        { lane: "option3", text: "Marvel writers could never create a plot twist this unexpected." },
-        { lane: "option4", text: "Even Taylor Swift wouldn't write a song about this level of drama happening." }
+        { lane: "option2", text: "This moment deserves its own TikTok trend honestly." }
       ]
     };
   }
@@ -222,9 +218,7 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
     return {
       lines: [
         { lane: "option1", text: `This ${ctx[0]} is absolutely fucking ${adj[0]}.` },
-        { lane: "option2", text: `Reality just ${adj[1]} me harder than I deserved honestly.` },
-        { lane: "option3", text: `Plot twist: ${ctx[1]} decided to be a ${adj[2]} ass situation today.` },
-        { lane: "option4", text: `Based on a true ${ctx[2]} that nobody asked for but damn here we are anyway.` }
+        { lane: "option2", text: `Reality just ${adj[1]} me harder than I deserved honestly.` }
       ]
     };
   }
@@ -232,9 +226,7 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
   return {
     lines: [
       { lane: "option1", text: `When ${ctx[0]} gives you ${adj[0]} moments, make memes.` },
-      { lane: "option2", text: `Plot twist: this ${adj[1]} ${ctx[1]} actually happened to me.` },
-      { lane: "option3", text: `Based on a ${adj[2]} ${ctx[2]} story that nobody asked for but here we are.` },
-      { lane: "option4", text: `${ctx[3]} called and left a ${adj[3]} voicemail but I'm too busy to listen.` }
+      { lane: "option2", text: `Plot twist: this ${adj[1]} ${ctx[1]} actually happened to me.` }
     ]
   };
 }
@@ -323,9 +315,9 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
       throw new Error('Invalid response: missing or invalid lines array');
     }
 
-    if (result.lines.length < 4) {
+    if (result.lines.length < 2) {
       console.error('❌ Insufficient lines returned:', result.lines.length);
-      throw new Error(`Only ${result.lines.length} lines returned, need 4`);
+      throw new Error(`Only ${result.lines.length} lines returned, need 2`);
     }
 
     console.log('✅ Validation passed, returning lines');
