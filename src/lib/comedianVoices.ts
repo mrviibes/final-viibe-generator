@@ -193,18 +193,35 @@ export function generateVoicePrompt(voice: ComedianVoice, rating: string): strin
   return `Channel ${voice.name}'s ${voice.signature}. ${voice.beats.join(', ')}. ${ratingModifier}`;
 }
 
+// Rating-specific comedian pools
+export const RATING_COMEDIAN_POOLS = {
+  'PG': ['nate_bargatze', 'kevin_hart', 'jo_koy', 'sebastian_maniscalco'],
+  'PG-13': ['ali_wong', 'trevor_noah', 'taylor_tomlinson', 'ricky_gervais'],
+  'R': ['bill_burr', 'george_carlin', 'chris_rock', 'wanda_sykes'],
+  'Explicit': ['amy_schumer', 'joan_rivers', 'louis_ck', 'sarah_silverman']
+};
+
+export function getComediansByRating(rating: string): ComedianVoice[] {
+  const poolIds = RATING_COMEDIAN_POOLS[rating] || RATING_COMEDIAN_POOLS['PG-13'];
+  return poolIds.map(id => COMEDIAN_VOICES.find(voice => voice.id === id)).filter(Boolean) as ComedianVoice[];
+}
+
+export function getRandomComediansByRating(rating: string, count: number = 4): ComedianVoice[] {
+  const pool = getComediansByRating(rating);
+  const shuffled = [...pool].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, Math.min(count, pool.length));
+}
+
 function getRatingModifier(rating: string): string {
   switch (rating) {
-    case 'G':
-      return 'Keep it wholesome and family-friendly.';
     case 'PG':
-      return 'Add light sass but stay clean.';
+      return 'Keep it wholesome and family-friendly with playful energy.';
     case 'PG-13':
-      return 'Include mild profanity (damn, hell) or sharp attitude.';
+      return 'Include mild profanity (damn, hell) or sharp sarcastic attitude.';
     case 'R':
-      return 'Use strong profanity (fuck, shit, ass) and savage roasts.';
+      return 'Use strong profanity (fuck, shit, ass) and savage brutal roasts.';
     case 'Explicit':
-      return 'Go full NSFW with explicit language and brutal content.';
+      return 'Go full NSFW with explicit sexual language and ruthlessly dirty content.';
     default:
       return 'Include some edge and attitude.';
   }

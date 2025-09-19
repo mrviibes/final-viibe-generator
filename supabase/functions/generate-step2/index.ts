@@ -229,10 +229,10 @@ function getStyleDefinition(style: string): string {
 
 function getRatingDefinition(rating: string): string {
   const definitions = {
-    'G': 'Family-friendly humor only. No swearing, innuendo, or targeting individuals. Wholesome and light.',
-    'PG-13': 'Good humor with optional mild edge. Can include light roasting and mild profanity (damn, hell) but not required.',
-    'R': 'Strong roast content. MUST include strong profanity (fuck, shit, ass, bitch), brutal roasts, sexual references, or nasty commentary. No holding back.',
-    'Explicit': 'Full NSFW mode. Explicit sexual content, brutal profanity, savage personal attacks, dark humor. Absolutely ruthless and dirty.'
+    'PG': 'Clean, safe, playful humor. Light roasts and dad joke energy. Think Jimmy Fallon style. No profanity or innuendo.',
+    'PG-13': 'Snappy, sarcastic with mild profanity (damn, hell). Light innuendo allowed. Think Kevin Hart/Ali Wong style.',
+    'R': 'Strong profanity (fuck, shit, ass, bitch), brutal roasts, alcohol/drug jokes, sexual references. More savage than PG-13. Think Bill Burr/George Carlin style.',
+    'Explicit': 'Full NSFW with raunchy sexual humor, brutal profanity, savage personal attacks. Unapologetically dirty and ruthless. Think Amy Schumer/Joan Rivers XXX mode.'
   };
   
   return definitions[rating] || definitions['PG-13'];
@@ -324,10 +324,10 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
   };
   
   const ratingDefs = {
-    'G': 'Family-friendly only',
-    'PG-13': 'Good humor with optional mild edge', 
-    'R': 'Strong profanity (shit, fuck, ass), savage roasts',
-    'Explicit': 'Full NSFW mode, explicit content'
+    'PG': 'Clean playful humor, no profanity',
+    'PG-13': 'Mild edge with damn/hell allowed', 
+    'R': 'Strong profanity (shit, fuck, ass), brutal roasts',
+    'Explicit': 'Full NSFW mode, explicit sexual content'
   };
   
   const lengthReq = style === 'story' ? "60-100 characters" : "40-80 characters";

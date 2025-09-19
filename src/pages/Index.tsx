@@ -4367,7 +4367,7 @@ const Index = () => {
   } | null>(null);
   const [textMode, setTextMode] = useState<string>("standard");
   const [textStyle, setTextStyle] = useState<'standard' | 'story' | 'punchline-first' | 'pop-culture' | 'wildcard'>("standard");
-  const [textRating, setTextRating] = useState<'G' | 'PG' | 'PG-13' | 'R'>("PG-13");
+  const [textRating, setTextRating] = useState<'PG' | 'PG-13' | 'R' | 'Explicit'>("PG-13");
 
   // Text editing state - simplified
   const [isEditingSelectedText, setIsEditingSelectedText] = useState(false);
@@ -6783,17 +6783,17 @@ const Index = () => {
                          {/* Rating Slider */}
                          <div className="flex flex-col items-center gap-2">
                            <label className="text-sm font-medium text-muted-foreground">Rating</label>
-                            <Select value={textRating} onValueChange={value => {
-                    setTextRating(value as 'G' | 'PG' | 'PG-13' | 'R');
-                  }}>
+                             <Select value={textRating} onValueChange={value => {
+                     setTextRating(value as 'PG' | 'PG-13' | 'R' | 'Explicit');
+                   }}>
                              <SelectTrigger className="w-20">
                                <SelectValue />
                              </SelectTrigger>
-                             <SelectContent className="bg-background border border-border shadow-lg z-50">
-                               <SelectItem value="G">G</SelectItem>
-                               <SelectItem value="PG">PG</SelectItem>
-                               <SelectItem value="PG-13">PG-13</SelectItem>
-                               <SelectItem value="R">R</SelectItem>
+                              <SelectContent className="bg-background border border-border shadow-lg z-50">
+                                <SelectItem value="PG">PG</SelectItem>
+                                <SelectItem value="PG-13">PG-13</SelectItem>
+                                <SelectItem value="R">R</SelectItem>
+                                <SelectItem value="Explicit">Explicit</SelectItem>
                              </SelectContent>
                            </Select>
                          </div>

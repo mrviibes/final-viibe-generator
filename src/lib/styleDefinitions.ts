@@ -14,10 +14,10 @@ export function getStyleDefinition(style: string): string {
 
 export function getRatingDefinition(rating: string): string {
   const definitions = {
-    'G': 'Family-friendly humor only. No swearing, innuendo, or targeting individuals. Wholesome and light.',
-    'PG-13': 'Good humor with optional mild edge. Can include light roasting and mild profanity (damn, hell) but not required.',
-    'R': 'Strong roast content. MUST include strong profanity (fuck, shit, ass, bitch), brutal roasts, sexual references, or nasty commentary. No holding back.',
-    'Explicit': 'Full NSFW mode. Explicit sexual content, brutal profanity, savage personal attacks, dark humor. Absolutely ruthless and dirty.'
+    'PG': 'Clean, safe, playful humor. Light roasts and dad joke energy. Think Jimmy Fallon style.',
+    'PG-13': 'Snappy, sarcastic with mild profanity (damn, hell). Light innuendo allowed. Think Kevin Hart/Ali Wong style.',
+    'R': 'Strong profanity (fuck, shit), brutal roasts, alcohol/drug jokes. More savage than PG-13. Think Bill Burr/George Carlin style.',
+    'Explicit': 'Full NSFW with raunchy sexual humor. Unapologetically dirty and savage. Think Amy Schumer/Joan Rivers XXX mode.'
   };
   
   return definitions[rating] || definitions['PG-13'];
