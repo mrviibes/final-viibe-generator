@@ -6951,26 +6951,25 @@ const Index = () => {
                             <div className="space-y-4">
                                <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                                
-                               {/* Smart tagging instructions - same as text generation */}
-                               <div className="text-center space-y-1">
-                                 <p className="text-xs text-muted-foreground">
-                                   <span className="font-medium">cake</span> = literally appears in image
-                                 </p>
-                                 <p className="text-xs text-muted-foreground">
-                                   <span className="font-medium">"romantic"</span> = influences style but not literal
-                                 </p>
-                               </div>
+                                {/* Visual tagging instructions */}
+                                <div className="text-center space-y-1">
+                                  <p className="text-xs text-muted-foreground">
+                                    Add tags for what you want in the image
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Props, people, mood, style. Example: cake, balloons, stadium, neon lights, vintage
+                                  </p>
+                                </div>
                                
                                {/* Display tags - moved above toggle */}
-                               {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
-                                  {subjectTags.map((tag, index) => {
-                      const isQuoted = tag.startsWith('"') && tag.endsWith('"') || tag.startsWith("'") && tag.endsWith("'");
-                      return <Badge key={index} variant={isQuoted ? "outline" : "secondary"} className={`text-sm px-3 py-1 ${isQuoted ? 'border-dashed border-2' : ''}`}>
-                                        {tag}
-                                        <X className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeSubjectTag(tag)} />
-                                      </Badge>;
-                    })}
-                                </div>}
+                                {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
+                                   {subjectTags.map((tag, index) => {
+                       return <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
+                                         {tag}
+                                         <X className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeSubjectTag(tag)} />
+                                       </Badge>;
+                     })}
+                                 </div>}
                               
                               
                               {/* Generate Button - Below the toggle */}

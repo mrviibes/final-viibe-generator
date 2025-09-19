@@ -1,4 +1,4 @@
-// Tag parsing utility for visual tags (same system as text generation)
+// Tag parsing utility for visual tags (simplified - no quotation logic)
 export function parseVisualTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
   const hardTags: string[] = [];
   const softTags: string[] = [];
@@ -7,18 +7,13 @@ export function parseVisualTags(tags: string[]): { hardTags: string[]; softTags:
     const trimmed = tag.trim();
     if (!trimmed) continue;
     
-    // Check if starts and ends with quotes
-    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-        (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-      // Hard tag - remove quotes and store for literal inclusion
-      const unquoted = trimmed.slice(1, -1).trim();
-      if (unquoted) {
-        hardTags.push(unquoted);
-      }
-    } else {
-      // Soft tag - store lowercased for style influence only
-      softTags.push(trimmed.toLowerCase());
-    }
+    // Remove quotes if present (but don't treat them specially)
+    const cleanTag = trimmed.replace(/^["']|["']$/g, '');
+    
+    // Simple heuristic: nouns/objects go to hardTags, adjectives/moods go to softTags
+    // For now, put everything in hardTags to be included literally when possible
+    // The visual generation system will handle style vs literal interpretation
+    hardTags.push(cleanTag);
   }
   
   return { hardTags, softTags };
