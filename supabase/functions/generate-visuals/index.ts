@@ -209,7 +209,7 @@ function getVocabInsensitive(category: string, subcategory: string): { props: st
   return { props: String(match.props || ''), atmosphere: String(match.atmosphere || '') };
 }
 
-// Enhanced visual scene generation with keyword integration and comedian humor
+// Enhanced visual scene generation with caption-first approach
 const SYSTEM_PROMPT_UNIVERSAL = (
   { mode, category, subcategory, tags = [], keywords = [] }: { 
     mode: string; 
@@ -222,44 +222,59 @@ const SYSTEM_PROMPT_UNIVERSAL = (
   // Get category-specific visual vocabulary
   const vocab = getVocabInsensitive(category, subcategory);
   
-  // Process tags - quoted tags appear literally, unquoted tags influence style only
-  const hardTags = tags.filter(tag => tag.startsWith('"') && tag.endsWith('"')).map(tag => tag.slice(1, -1));
-  const softTags = tags.filter(tag => !(tag.startsWith('"') && tag.endsWith('"'))).map(tag => tag.toLowerCase());
+  // Process tags - all tags are used literally when possible, or as style influence
+  const allTags = tags.map(tag => tag.replace(/^["']|["']$/g, ''));
   
   // Get random comedian styles for funny options
   const comedians = getRandomComedians();
   
+  // Define mode weights for caption vs category emphasis
+  const modeConfig = {
+    caption_match: { captionWeight: 0.8, categoryWeight: 0.2, funnyExactly: 0 },
+    balanced: { captionWeight: 0.5, categoryWeight: 0.5, funnyExactly: 1 },
+    category_first: { captionWeight: 0.25, categoryWeight: 0.75, funnyExactly: 0 },
+    gag_factory: { captionWeight: 0.6, categoryWeight: 0.4, funnyExactly: 2 },
+    cinematic: { captionWeight: 0.6, categoryWeight: 0.4, funnyExactly: 0 },
+    surreal: { captionWeight: 0.7, categoryWeight: 0.3, funnyExactly: 2 },
+    full_random: { captionWeight: 0.1, categoryWeight: 0.2, funnyExactly: 0 }
+  };
+  
+  const config = modeConfig[mode as keyof typeof modeConfig] || modeConfig.caption_match;
+  
   const keywordSection = keywords.length > 0 ? `
 Caption Keywords: ${keywords.join(', ')}` : '';
   
-  return `Generate 4 visual scene concepts for ${category}/${subcategory}.
+  const captionPriority = config.captionWeight > 0.5 ? 'CAPTION-FIRST' : 'CATEGORY-FIRST';
+  const funnyCount = config.funnyExactly;
+  
+  return `Generate 4 scene ideas as JSON (${captionPriority} approach):
 
-Style: ${mode}
+Category: ${category}/${subcategory}
+Mode: ${mode}
 ${vocab.props ? `Props: ${vocab.props}` : ''}
 ${vocab.atmosphere ? `Mood: ${vocab.atmosphere}` : ''}${keywordSection}
 
-CRITICAL REQUIREMENTS:
-- Option 1: Literal scene showing caption keywords (${keywords.slice(0, 3).join(', ')}). If caption mentions dreams, show dream bubbles/thought clouds. If animals/objects mentioned, they MUST be prominently featured.
-- Option 2: Safe category/subcategory focus - serious, cinematic, professional approach.
+ROLE REQUIREMENTS:
+- Option 1: ${captionPriority === 'CAPTION-FIRST' ? 'Serious scene directly tied to caption keywords' : 'Professional category focus with caption nod'}
+- Option 2: ${captionPriority === 'CAPTION-FIRST' ? 'Serious category context with caption elements' : 'Caption-influenced category scene'}
+- Option 3: ${funnyCount >= 2 ? 'FUNNY GAG tied to caption (exaggeration/irony)' : captionPriority === 'CAPTION-FIRST' ? 'Caption-influenced scene' : 'Category scene with caption hint'}
+- Option 4: ${funnyCount >= 2 ? 'FUNNY ABSURD/SURREAL take on caption' : captionPriority === 'CAPTION-FIRST' ? 'Creative caption interpretation' : 'Category scene variation'}
 
-⚠️ OPTIONS 3 & 4 MUST BE OBVIOUSLY FUNNY - NO SERIOUS/DRAMATIC SCENES ALLOWED ⚠️
+${funnyCount >= 2 ? `
+⚠️ OPTIONS 3 & 4 MUST BE OBVIOUSLY FUNNY ⚠️
+- Option 3: ${comedians.option3.name} style gag with oversized props, visual punchlines, slapstick
+- Option 4: ${comedians.option4.name} style absurd/surreal with impossible physics, dream logic
+` : ''}
 
-- Option 3: FUNNY GAG in ${comedians.option3.name} style (${comedians.option3.visual_style}): ${comedians.option3.scenario_approach}
-  * MUST include: oversized props, ridiculous situations, visual punchlines, slapstick elements
-  * FORBIDDEN: realistic sports photography, dramatic lighting, cinematic poses, standard compositions
-  * Examples: gigantic sneakers towering over person, equipment behaving like pets, absurdly oversized everyday objects
+CAPTION TIE REQUIREMENTS:
+- Option 1 MUST include ≥1 keyword from: ${keywords.slice(0, 3).join(', ')}
+- ${captionPriority === 'CAPTION-FIRST' ? 'All options should reference caption theme' : 'At least 2 options should hint at caption'}
 
-- Option 4: ABSURD/SURREAL in ${comedians.option4.name} style (${comedians.option4.visual_style}): ${comedians.option4.scenario_approach}
-  * MUST include: impossible physics, bizarre transformations, dream-logic scenarios, Dali-esque weirdness
-  * FORBIDDEN: normal-sized objects, realistic scenarios, standard sports/category setups
-  * Examples: objects turning into other objects, gravity-defying scenes, impossible architectural spaces
-
-${hardTags.length > 0 ? `- Include: ${hardTags.join(', ')}` : ''}
-${softTags.length > 0 ? `- Style influence: ${softTags.join(', ')}` : ''}
+${allTags.length > 0 ? `- Include tags: ${allTags.join(', ')}` : ''}
 - Complete sentences only, no ellipses or fragments
 - No visible text/words in scenes
 
-Return JSON:
+Generate 4 scene concepts as JSON:
 {
   "concepts": [
     {"lane": "option1", "text": "scene description"},

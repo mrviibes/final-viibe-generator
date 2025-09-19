@@ -4425,7 +4425,7 @@ const Index = () => {
   const [shouldUseFallback, setShouldUseFallback] = useState<boolean>(false);
 
   // Visual creativity control
-  const [visualSpice, setVisualSpice] = useState<'balanced' | 'cinematic' | 'surreal' | 'dynamic' | 'chaos' | 'exaggerated'>('balanced');
+  const [visualSpice, setVisualSpice] = useState<'caption_match' | 'balanced' | 'category_first' | 'gag_factory' | 'cinematic' | 'surreal' | 'full_random'>('caption_match');
 
   // Visual AI recommendations state
   const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
@@ -5729,7 +5729,7 @@ const Index = () => {
     setExactPromptMode(false);
     setCustomSeed("");
     setDefaultStyleType('GENERAL');
-    setVisualSpice('balanced');
+    setVisualSpice('caption_match');
 
     // Clear overlay/text modes
     setSpellingGuaranteeMode(false);
@@ -6981,8 +6981,13 @@ const Index = () => {
                                    </> : "Generate Visual Now"}
                                </Button>
                              </div>
-                          </div>
-                        </div>
+                                 </div>
+                               </div>
+                               <div className="text-center">
+                                 <p className="text-xs text-muted-foreground mb-1">
+                                   <strong>Tip:</strong> Caption Match = closest to your joke. Gag Factory = 2 funny recs guaranteed.
+                                 </p>
+                               </div>
                       </div>}
 
                      {/* Visual AI recommendations - always show if available */}
@@ -6991,17 +6996,18 @@ const Index = () => {
                               <div className="flex items-center justify-center gap-3 mb-2">
                                 <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
                                 <div className="flex items-center gap-2">
-                                   <Select value={visualSpice} onValueChange={(value: 'balanced' | 'cinematic' | 'surreal' | 'dynamic' | 'chaos' | 'exaggerated') => setVisualSpice(value)}>
-                                     <SelectTrigger className="w-40 h-8 text-xs">
+                                   <Select value={visualSpice} onValueChange={(value: 'caption_match' | 'balanced' | 'category_first' | 'gag_factory' | 'cinematic' | 'surreal' | 'full_random') => setVisualSpice(value)}>
+                                     <SelectTrigger className="w-48 h-8 text-xs">
                                        <SelectValue />
                                      </SelectTrigger>
                                      <SelectContent>
+                                       <SelectItem value="caption_match">Caption Match</SelectItem>
                                        <SelectItem value="balanced">Balanced</SelectItem>
+                                       <SelectItem value="category_first">Category-First</SelectItem>
+                                       <SelectItem value="gag_factory">Gag Factory</SelectItem>
                                        <SelectItem value="cinematic">Cinematic Action</SelectItem>
-                                       <SelectItem value="surreal">Surreal/Dreamlike</SelectItem>
-                                       <SelectItem value="dynamic">Dynamic Action</SelectItem>
-                                       <SelectItem value="chaos">Randomized Chaos</SelectItem>
-                                       <SelectItem value="exaggerated">Exaggerated Proportions</SelectItem>
+                                       <SelectItem value="surreal">Surreal/Absurd</SelectItem>
+                                       <SelectItem value="full_random">Full Random</SelectItem>
                                     </SelectContent>
                                   </Select>
                                   <Button variant="outline" size="sm" onClick={handleGenerateSubject} disabled={isGeneratingSubject} className="text-xs">
