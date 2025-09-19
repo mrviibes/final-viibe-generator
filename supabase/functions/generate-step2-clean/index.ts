@@ -583,23 +583,27 @@ ${getIdentityProtectionRules()}
     
     // Success only if no critical errors (per finalized spec)
     console.log('✅ STRICT GENERATION SUCCESS: all critical validations passed');
+    console.log('✅ GPT-4.1 SUCCESS:', MODEL);
     
+    // Reset entity batch after successful generation
+    resetEntityBatch();
+
     // Calculate quality score (penalize any issues)
     const qualityScore = Math.max(0, 100 - (criticalErrors.length * 100) - (validationErrors.length * 20) - (warnings.length * 5));
     
     return {
-      lines: parsed.lines.slice(0, 4),
-      model: data.model,
-      validated: criticalErrors.length === 0,
       success: true,
-      qualityScore,
-      issues: {
-        critical: criticalErrors,
-        errors: validationErrors,
-        warnings: warnings
+      model: MODEL,
+      lines: parsed.lines.map(line => ({ lane: line.lane, text: line.text })),
+      validationDetails: {
+        criticalErrors: criticalErrors.length,
+        validationErrors: validationErrors.length,
+        warnings: warnings.length,
+        allIssues,
+        selectedEntity,
+        identityViolations
       },
-      generatedWith: 'GPT-4.1 Strict Mode',
-      telemetry: { latencyMs, finishReason, tokensIn: data.usage?.prompt_tokens, tokensOut: data.usage?.completion_tokens }
+      qualityScore
     };
   });
 }
