@@ -6712,8 +6712,9 @@ const Index = () => {
 
                 {/* Show AI Assist form when selected and no options generated yet */}
                 {selectedCompletionOption === "ai-assist" && generatedOptions.length === 0 && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="text-center mb-6">
-                      <p className="text-xl text-muted-foreground">Add tags (use "quotes" to put words in text, leave unquoted to guide style)</p>
+                  <div className="text-center mb-6">
+                      <p className="text-xl text-muted-foreground">Add tags for what you want in the image</p>
+                      <p className="text-sm text-muted-foreground/70">Props, people, mood, style. Example: cake, balloons, stadium, neon lights, vintage</p>
                     </div>
 
                     <div className="max-w-md mx-auto space-y-6">
@@ -6942,24 +6943,15 @@ const Index = () => {
 
                     {/* Subject generation form for AI Assist - show only if no visual is selected yet */}
                     {selectedSubjectOption === "ai-assist" && selectedVisualIndex === null && showSubjectTagEditor && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="text-center mb-8">
-                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for visual generation</h2>
-                        </div>
-
                          <div className="max-w-lg mx-auto space-y-6">
                             {/* Tag Input */}
                             <div className="space-y-4">
-                               <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
-                               
-                                {/* Visual tagging instructions */}
-                                <div className="text-center space-y-1">
-                                  <p className="text-xs text-muted-foreground">
-                                    Add tags for what you want in the image
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Props, people, mood, style. Example: cake, balloons, stadium, neon lights, vintage
+                               <div className="text-center mb-4">
+                                  <p className="text-sm text-muted-foreground">
+                                    Add tags for props, people, or style (e.g. bald man, balloons, neon, vintage).
                                   </p>
                                 </div>
+                               <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                                
                                {/* Display tags - moved above toggle */}
                                 {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
