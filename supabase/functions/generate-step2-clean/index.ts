@@ -32,6 +32,28 @@ const PROTECTED_IDENTITY_TRAITS = [
   'age discrimination', 'nationality', 'accent', 'family structure'
 ];
 
+// Tone Override System
+const TONE_OVERRIDES = {
+  'Sentimental': {
+    disable_force_funny: true,
+    disable_rating_quotas: true,
+    allow_clean_language: true,
+    require_positive_or_supportive: true,
+    hard_tags_required_in: 2
+  }
+};
+
+// Grace Fallback Configuration
+const GRACE_FALLBACK = {
+  max_retry: 2,
+  degrade_order: [
+    { drop_pop_culture_cooldown: true },
+    { disable_rating_quotas: true },
+    { disable_force_funny: true }
+  ],
+  emit_anyway_after_degrade: true
+};
+
 let currentBatchEntity: string | null = null;
 let recentlyUsed: string[] = [];
 
@@ -135,51 +157,73 @@ async function retryWithBackoff(fn: () => Promise<any>, maxRetries = 2): Promise
 }
 
 async function generateWithGPT5(inputs: any): Promise<any> {
-  const { category, subcategory, tone, rating, tags, wordLimit } = inputs;
+  const { category, subcategory, tone, rating, tags } = inputs;
+  
+  // Check tone overrides
+  const toneOverride = TONE_OVERRIDES[tone as keyof typeof TONE_OVERRIDES];
+  const isSentimental = tone === 'Sentimental';
+  
+  // Pop culture entity management (skip for sentimental)
+  const popCultureEntity = !isSentimental ? selectPopCultureEntity() : null;
+  
+  // Build dynamic prompt based on tone
+  let prompt = '';
+  
+  if (isSentimental) {
+    prompt = `Generate exactly 4 heartfelt, supportive text lines for a ${category} - ${subcategory} meme.
+    
+Tone: ${tone} (positive, supportive, uplifting)
+Tags to include: ${tags?.join(', ') || 'none'}
+Length: 40-80 characters per line
 
-  const popCultureEntity = selectPopCultureEntity();
-  const identityRules = getIdentityProtectionRules();
+Requirements:
+- Each line should be warm and encouraging
+- Include the provided tags naturally
+- Focus on positive emotions and support
+- Use simple, heartfelt language
+- Make it about the moment, not attacking anyone
 
-  const prompt = `
-  You are the ultimate creative comedy writer. Your goal is to generate edgy, hilarious, and viral-worthy content based on user inputs. You MUST follow all rules.
+Output exactly 4 lines in this JSON format:
+{
+  "lines": [
+    {"lane": "option1", "text": "Your first supportive line here"},
+    {"lane": "option2", "text": "Your second supportive line here"}, 
+    {"lane": "option3", "text": "Your third supportive line here"},
+    {"lane": "option4", "text": "Your fourth supportive line here"}
+  ]
+}`;
+  } else {
+    // Standard comedy generation with potential overrides
+    const forceComedy = !toneOverride?.disable_force_funny;
+    const requireRating = !toneOverride?.disable_rating_quotas;
+    
+    prompt = `Generate exactly 4 different ${tone.toLowerCase()} text lines for a ${category} - ${subcategory} meme.
+    
+Tone: ${tone}
+Rating: ${rating || 'PG-13'}
+Tags to include: ${tags?.join(', ') || 'none'}
+Length: 40-80 characters per line
+${popCultureEntity ? `Pop culture reference: ${popCultureEntity}` : ''}
 
-  Category: ${category}
-  Subcategory: ${subcategory}
-  Overall Tone: ${tone}
-  Content Rating: ${rating || 'PG-13'}
-  Keywords/Tags: ${tags?.join(', ') || 'none'}
-  Word Limit: ${wordLimit || '25'} words
+Requirements:
+${forceComedy ? '- Must be funny and engaging' : '- Should match the specified tone'}
+${requireRating ? `- Must match ${rating || 'PG-13'} content rating` : '- Use appropriate language'}
+- Include provided tags naturally in at least 2 lines
+- Each line should be different and unique
+- Focus on behaviors, actions, or situations - not personal traits
 
-  ADDITIONAL CONTEXT:
-  - Incorporate current pop culture trends and references to maximize shareability.
-  - Use slang, abbreviations, and internet humor where appropriate to appeal to a younger audience.
-  - Be concise and to-the-point; every word counts.
-  - Inject unexpected twists and dark humor to stand out.
-  - Use emojis sparingly but effectively to enhance the message.
-  - Include a relevant and funny image prompt for DALL-E 3 to generate a visual.
+${getIdentityProtectionRules()}
 
-  MANDATORY RULES:
-  - The content MUST be extremely edgy and funny.
-  - The content MUST be short, attention-grabbing, and optimized for social media.
-  - The content MUST include a DALL-E 3 image prompt.
-  - The content MUST be appropriate for the specified content rating.
-  - The content MUST incorporate the specified keywords/tags.
-  - The content MUST be within the specified word limit.
-  - The content MUST follow all identity protection rules.
-  - The content MUST use the specified tone.
-  - The content MUST be in the specified category and subcategory.
-  - The content MUST incorporate a pop culture reference.
-
-  ${identityRules}
-
-  OUTPUT FORMAT:
-  {
-    "content": "Your generated content here",
-    "imagePrompt": "DALL-E 3 image prompt here",
-    "identityViolations": ["list any violations here"],
-    "entityUsed": "the pop culture entity used"
+Output exactly 4 lines in this JSON format:
+{
+  "lines": [
+    {"lane": "option1", "text": "Your first line here"},
+    {"lane": "option2", "text": "Your second line here"}, 
+    {"lane": "option3", "text": "Your third line here"},
+    {"lane": "option4", "text": "Your fourth line here"}
+  ]
+}`;
   }
-  `;
 
   console.log('📝 Prompt:', prompt);
 
@@ -193,7 +237,7 @@ async function generateWithGPT5(inputs: any): Promise<any> {
       body: JSON.stringify({
         model: MODEL,
         messages: [{ role: 'user', content: prompt }],
-        max_completion_tokens: 250,
+        max_completion_tokens: 300,
         response_format: { type: "json_object" }
       })
     });
@@ -205,41 +249,46 @@ async function generateWithGPT5(inputs: any): Promise<any> {
     }
 
     const data = await response.json();
-    console.log('🤖 Raw OpenAI Response:', JSON.stringify(data, null, 2));
-
+    
     if (!data.choices || data.choices.length === 0) {
       resetEntityBatch();
       throw new Error('No choices returned from OpenAI API');
     }
 
     const rawContent = data.choices[0].message.content.trim();
-    console.log('Raw Content:', rawContent);
-
+    
     try {
       const parsedContent = JSON.parse(rawContent);
-      console.log('Parsed Content:', parsedContent);
+      
+      // Validate that we got lines in the expected format
+      if (!parsedContent.lines || !Array.isArray(parsedContent.lines) || parsedContent.lines.length !== 4) {
+        throw new Error('Invalid response format: expected 4 lines');
+      }
 
-      const identityViolations = validateContentForIdentityViolations(parsedContent.content);
-      if (identityViolations.length > 0) {
-        resetEntityBatch();
-        console.warn('Identity Violations:', identityViolations);
-        return {
-          error: `Identity violations found: ${identityViolations.join(', ')}`,
-          success: false,
-          model: MODEL,
-          validated: false,
-          identityViolations,
-          entityUsed: popCultureEntity || 'none'
-        };
+      // Validate each line has required properties
+      for (const line of parsedContent.lines) {
+        if (!line.lane || !line.text) {
+          throw new Error('Invalid line format: missing lane or text');
+        }
+      }
+
+      // Check for identity violations (skip for sentimental)
+      if (!isSentimental) {
+        const allTexts = parsedContent.lines.map((l: any) => l.text).join(' ');
+        const identityViolations = validateContentForIdentityViolations(allTexts);
+        if (identityViolations.length > 0) {
+          resetEntityBatch();
+          throw new Error(`Identity violations: ${identityViolations.join(', ')}`);
+        }
       }
 
       resetEntityBatch();
       return {
-        ...parsedContent,
         success: true,
+        lines: parsedContent.lines,
         model: MODEL,
         validated: true,
-        identityViolations: [],
+        tone: tone,
         entityUsed: popCultureEntity || 'none'
       };
     } catch (parseError) {
