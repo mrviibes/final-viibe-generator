@@ -605,7 +605,6 @@ ${getIdentityProtectionRules()}
       },
       qualityScore
     };
-  });
 }
 
 // No fallbacks in strict mode - GPT-5 succeeds or fails
