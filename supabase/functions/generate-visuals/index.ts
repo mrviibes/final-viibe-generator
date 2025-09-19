@@ -52,6 +52,67 @@ const LAYOUT_RULES = {
   }
 };
 
+// Comedian styles for funny visual scenarios
+const COMEDIAN_STYLES = [
+  {
+    id: "bill_burr",
+    name: "Bill Burr",
+    visual_style: "exaggerated rage and physical comedy",
+    scenario_approach: "over-the-top angry reactions, equipment failures, dramatic meltdowns"
+  },
+  {
+    id: "mitch_hedberg", 
+    name: "Mitch Hedberg",
+    visual_style: "surreal object transformations",
+    scenario_approach: "unexpected item mutations, absurd logic made visual, dreamy weirdness"
+  },
+  {
+    id: "kevin_hart",
+    name: "Kevin Hart", 
+    visual_style: "extreme size/scale comedy",
+    scenario_approach: "comically oversized props, height-based sight gags, physical exaggeration"
+  },
+  {
+    id: "norm_macdonald",
+    name: "Norm MacDonald",
+    visual_style: "bizarrely unexpected anti-climactic scenes", 
+    scenario_approach: "setup for epic moment that becomes mundane, weird left-turn visuals"
+  },
+  {
+    id: "ali_wong",
+    name: "Ali Wong",
+    visual_style: "raw family chaos", 
+    scenario_approach: "inappropriate family scenarios, brutally honest domestic scenes"
+  },
+  {
+    id: "sebastian_maniscalco",
+    name: "Sebastian Maniscalco",
+    visual_style: "exasperated gestures and family dysfunction",
+    scenario_approach: "animated frustrated reactions, over-dramatic family scenarios"
+  },
+  {
+    id: "sarah_silverman", 
+    name: "Sarah Silverman",
+    visual_style: "innocently twisted scenarios",
+    scenario_approach: "cute but dark situations, deceptively sweet chaos"
+  },
+  {
+    id: "joan_rivers",
+    name: "Joan Rivers", 
+    visual_style: "glamorous cruelty and over-the-top fashion",
+    scenario_approach: "savage elegance, fashion disasters, celebrity mockery scenarios"
+  }
+];
+
+// Random comedian selection for funny options
+function getRandomComedians(): { option3: typeof COMEDIAN_STYLES[0], option4: typeof COMEDIAN_STYLES[0] } {
+  const shuffled = [...COMEDIAN_STYLES].sort(() => 0.5 - Math.random());
+  return {
+    option3: shuffled[0],
+    option4: shuffled[1] || shuffled[0] // Fallback if somehow empty
+  };
+}
+
 // Visual vocabulary for category-specific props
 const VISUAL_VOCABULARY = {
   "Celebrations": {
@@ -148,7 +209,7 @@ function getVocabInsensitive(category: string, subcategory: string): { props: st
   return { props: String(match.props || ''), atmosphere: String(match.atmosphere || '') };
 }
 
-// Enhanced visual scene generation with keyword integration
+// Enhanced visual scene generation with keyword integration and comedian humor
 const SYSTEM_PROMPT_UNIVERSAL = (
   { mode, category, subcategory, tags = [], keywords = [] }: { 
     mode: string; 
@@ -165,6 +226,9 @@ const SYSTEM_PROMPT_UNIVERSAL = (
   const hardTags = tags.filter(tag => tag.startsWith('"') && tag.endsWith('"')).map(tag => tag.slice(1, -1));
   const softTags = tags.filter(tag => !(tag.startsWith('"') && tag.endsWith('"'))).map(tag => tag.toLowerCase());
   
+  // Get random comedian styles for funny options
+  const comedians = getRandomComedians();
+  
   const keywordSection = keywords.length > 0 ? `
 Caption Keywords: ${keywords.join(', ')}` : '';
   
@@ -177,8 +241,8 @@ ${vocab.atmosphere ? `Mood: ${vocab.atmosphere}` : ''}${keywordSection}
 Rules:
 - Option 1 MUST show the literal scene/action described by the caption keywords (${keywords.slice(0, 3).join(', ')}). If caption mentions dreams, show dream bubbles/thought clouds with the dream content visible. If caption mentions specific animals/objects (squirrels, dogs, etc.), they must be prominently featured in the scene.
 - Option 2 should focus on category/subcategory elements (safe, neutral approach)
-- Option 3 MUST be a funny gag visual (exaggerated or ironic). Think over-the-top scenarios, unexpected juxtapositions, or ironic twists. Example: If caption mentions "rebooting like a Kardashian marriage" show a wedding altar mid-glitch with bride/groom frozen like a buffering video.
-- Option 4 MUST be a funny gag visual (absurdist or satirical). Think completely unexpected scenarios or satirical takes. Example: A judge holding a giant "Divorce Approved" stamp with paparazzi flashing cameras in background.
+- Option 3 MUST be a funny gag visual in ${comedians.option3.name} style: ${comedians.option3.scenario_approach}. Think exaggerated scenarios, unexpected juxtapositions, or ironic twists with ${comedians.option3.visual_style}.
+- Option 4 MUST be a funny absurdist visual in ${comedians.option4.name} style: ${comedians.option4.scenario_approach}. Think completely unexpected scenarios or satirical takes with ${comedians.option4.visual_style}.
 ${hardTags.length > 0 ? `- Include: ${hardTags.join(', ')}` : ''}
 ${softTags.length > 0 ? `- Style: ${softTags.join(', ')}` : ''}
 - Scene description only, complete sentences
