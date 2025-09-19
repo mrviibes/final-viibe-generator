@@ -45,7 +45,7 @@ interface TextGenInput {
   tags: string[];
   mode?: string; // Backward compatibility
   style?: 'standard' | 'story' | 'punchline-first' | 'pop-culture' | 'wildcard';
-  rating?: 'PG' | 'PG-13' | 'R' | 'Explicit';
+  rating?: 'G' | 'PG' | 'PG-13' | 'R';
 }
 
 interface TextGenOutput {

@@ -4367,7 +4367,7 @@ const Index = () => {
   } | null>(null);
   const [textMode, setTextMode] = useState<string>("standard");
   const [textStyle, setTextStyle] = useState<'standard' | 'story' | 'punchline-first' | 'pop-culture' | 'wildcard'>("standard");
-  const [textRating, setTextRating] = useState<'PG' | 'PG-13' | 'R' | 'Explicit'>("PG-13");
+  const [textRating, setTextRating] = useState<'G' | 'PG' | 'PG-13' | 'R'>("PG-13");
 
   // Text editing state - simplified
   const [isEditingSelectedText, setIsEditingSelectedText] = useState(false);
@@ -4425,7 +4425,7 @@ const Index = () => {
   const [shouldUseFallback, setShouldUseFallback] = useState<boolean>(false);
 
   // Visual creativity control
-  const [visualSpice, setVisualSpice] = useState<'caption_match' | 'balanced' | 'category_first' | 'gag_factory' | 'cinematic' | 'surreal' | 'full_random'>('caption_match');
+  const [visualSpice, setVisualSpice] = useState<'balanced' | 'cinematic' | 'surreal' | 'dynamic' | 'chaos' | 'exaggerated'>('balanced');
 
   // Visual AI recommendations state
   const [visualRecommendations, setVisualRecommendations] = useState<any>(null);
@@ -4623,18 +4623,7 @@ const Index = () => {
 
   // Auto-start image generation when reaching step 4
   useEffect(() => {
-    console.log('🔍 Step progression debug:', {
-      currentStep,
-      autoStartImageGen,
-      isGeneratingImage,
-      generatedImageUrl,
-      selectedTextLayout,
-      hasText: !!(selectedGeneratedOption || stepTwoText),
-    });
-    
     if (currentStep === 4 && autoStartImageGen && !isGeneratingImage && !generatedImageUrl) {
-      console.log('🚀 Auto-starting image generation...');
-      
       // Guard for barebones mode without prompt
       if (barebonesMode && !directPrompt.trim()) {
         sonnerToast.error("Please provide a direct prompt in barebones mode.");
@@ -5396,17 +5385,12 @@ const Index = () => {
     });
   };
   const handleGenerateImage = async () => {
-    console.log('🎯 handleGenerateImage called');
     const apiKey = getIdeogramApiKey();
-    console.log('🔑 API key exists:', !!apiKey);
-    
     if (!apiKey) {
-      console.log('❌ No API key, showing dialog');
       setShowIdeogramKeyDialog(true);
       return;
     }
 
-    console.log('✅ Starting image generation process');
     // Reset retry state
     setRetryAttempt(0);
     setShouldUseFallback(false);
@@ -5745,7 +5729,7 @@ const Index = () => {
     setExactPromptMode(false);
     setCustomSeed("");
     setDefaultStyleType('GENERAL');
-    setVisualSpice('caption_match');
+    setVisualSpice('balanced');
 
     // Clear overlay/text modes
     setSpellingGuaranteeMode(false);
@@ -6728,12 +6712,16 @@ const Index = () => {
 
                 {/* Show AI Assist form when selected and no options generated yet */}
                 {selectedCompletionOption === "ai-assist" && generatedOptions.length === 0 && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="text-center mb-6">
+                      <p className="text-xl text-muted-foreground">Add tags (use "quotes" to put words in text, leave unquoted to guide style)</p>
+                    </div>
+
                     <div className="max-w-md mx-auto space-y-6">
                       {/* Tags Input */}
                       <div className="space-y-3">
-                          <p className="text-xs text-muted-foreground text-left">
-                            <span className="font-bold">"quoted tag" →</span> will appear literally in the text.<br />
-                            <span className="font-bold">unquoted tag →</span> just influences the vibe/style, won't appear in the text.
+                          <p className="text-xs text-muted-foreground text-center">
+                            "quoted tag" → will appear literally in the text.<br />
+                            unquoted tag → just influences the vibe/style, won't appear in the text.
                           </p>
                         <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder="Add tags (optional)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                         
@@ -6795,17 +6783,17 @@ const Index = () => {
                          {/* Rating Slider */}
                          <div className="flex flex-col items-center gap-2">
                            <label className="text-sm font-medium text-muted-foreground">Rating</label>
-                             <Select value={textRating} onValueChange={value => {
-                     setTextRating(value as 'PG' | 'PG-13' | 'R' | 'Explicit');
-                   }}>
+                            <Select value={textRating} onValueChange={value => {
+                    setTextRating(value as 'G' | 'PG' | 'PG-13' | 'R');
+                  }}>
                              <SelectTrigger className="w-20">
                                <SelectValue />
                              </SelectTrigger>
-                              <SelectContent className="bg-background border border-border shadow-lg z-50">
-                                <SelectItem value="PG">PG</SelectItem>
-                                <SelectItem value="PG-13">PG-13</SelectItem>
-                                <SelectItem value="R">R</SelectItem>
-                                <SelectItem value="Explicit">Explicit</SelectItem>
+                             <SelectContent className="bg-background border border-border shadow-lg z-50">
+                               <SelectItem value="G">G</SelectItem>
+                               <SelectItem value="PG">PG</SelectItem>
+                               <SelectItem value="PG-13">PG-13</SelectItem>
+                               <SelectItem value="R">R</SelectItem>
                              </SelectContent>
                            </Select>
                          </div>
@@ -6885,34 +6873,6 @@ const Index = () => {
                       <TextLayoutSelector selectedLayout={selectedTextLayout} onLayoutSelect={setSelectedTextLayout} />
                     </div>}
 
-                {/* Manual Generate Images Button - Show after layout is selected */}
-                {selectedTextLayout && currentStep === 2 && <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="mb-6">
-                      <p className="text-lg text-muted-foreground mb-2">Layout selected: <span className="font-semibold">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.label}</span></p>
-                      <p className="text-sm text-muted-foreground">Ready to generate your image!</p>
-                    </div>
-                    <Button 
-                      variant="brand" 
-                      size="lg"
-                      className="px-8 py-3"
-                      onClick={() => {
-                        console.log('🎯 Manual generate button clicked');
-                        setCurrentStep(4);
-                        setAutoStartImageGen(true);
-                      }}
-                      disabled={isGeneratingImage}
-                    >
-                      {isGeneratingImage ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Generating Images...
-                        </>
-                      ) : (
-                        'Generate Images'
-                      )}
-                    </Button>
-                  </div>}
-
 
 
                 {/* TODO: Add additional sub-options here after text style is selected */}
@@ -6982,24 +6942,35 @@ const Index = () => {
 
                     {/* Subject generation form for AI Assist - show only if no visual is selected yet */}
                     {selectedSubjectOption === "ai-assist" && selectedVisualIndex === null && showSubjectTagEditor && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="text-center mb-8">
+                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for visual generation</h2>
+                        </div>
+
                          <div className="max-w-lg mx-auto space-y-6">
                             {/* Tag Input */}
                             <div className="space-y-4">
-                                <div className="text-center mb-4">
-                                   <p className="text-xl text-muted-foreground">Add tags for what you want in the image</p>
-                                   <p className="text-sm text-muted-foreground/70">Props, people, mood, style. Example: cake, balloons, stadium, neon lights, vintage</p>
-                                 </div>
                                <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                                
+                               {/* Smart tagging instructions - same as text generation */}
+                               <div className="text-center space-y-1">
+                                 <p className="text-xs text-muted-foreground">
+                                   <span className="font-medium">cake</span> = literally appears in image
+                                 </p>
+                                 <p className="text-xs text-muted-foreground">
+                                   <span className="font-medium">"romantic"</span> = influences style but not literal
+                                 </p>
+                               </div>
+                               
                                {/* Display tags - moved above toggle */}
-                                {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
-                                   {subjectTags.map((tag, index) => {
-                      return <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
-                                         {tag}
-                                         <X className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeSubjectTag(tag)} />
-                                       </Badge>;
+                               {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
+                                  {subjectTags.map((tag, index) => {
+                      const isQuoted = tag.startsWith('"') && tag.endsWith('"') || tag.startsWith("'") && tag.endsWith("'");
+                      return <Badge key={index} variant={isQuoted ? "outline" : "secondary"} className={`text-sm px-3 py-1 ${isQuoted ? 'border-dashed border-2' : ''}`}>
+                                        {tag}
+                                        <X className="h-3 w-3 ml-2 cursor-pointer hover:text-destructive transition-colors" onClick={() => removeSubjectTag(tag)} />
+                                      </Badge>;
                     })}
-                                 </div>}
+                                </div>}
                               
                               
                               {/* Generate Button - Below the toggle */}
@@ -7011,11 +6982,8 @@ const Index = () => {
                                    </> : "Generate Visual Now"}
                                </Button>
                              </div>
-                                 </div>
-                               </div>
-                               <div className="text-center">
-                                 
-                               </div>
+                          </div>
+                        </div>
                       </div>}
 
                      {/* Visual AI recommendations - always show if available */}
@@ -7024,18 +6992,17 @@ const Index = () => {
                               <div className="flex items-center justify-center gap-3 mb-2">
                                 <h3 className="text-xl font-semibold text-foreground">Visual AI recommendations</h3>
                                 <div className="flex items-center gap-2">
-                                   <Select value={visualSpice} onValueChange={(value: 'caption_match' | 'balanced' | 'category_first' | 'gag_factory' | 'cinematic' | 'surreal' | 'full_random') => setVisualSpice(value)}>
-                                     <SelectTrigger className="w-48 h-8 text-xs">
+                                   <Select value={visualSpice} onValueChange={(value: 'balanced' | 'cinematic' | 'surreal' | 'dynamic' | 'chaos' | 'exaggerated') => setVisualSpice(value)}>
+                                     <SelectTrigger className="w-40 h-8 text-xs">
                                        <SelectValue />
                                      </SelectTrigger>
                                      <SelectContent>
-                                       <SelectItem value="caption_match">Caption Match</SelectItem>
                                        <SelectItem value="balanced">Balanced</SelectItem>
-                                       <SelectItem value="category_first">Category-First</SelectItem>
-                                       <SelectItem value="gag_factory">Gag Factory</SelectItem>
                                        <SelectItem value="cinematic">Cinematic Action</SelectItem>
-                                       <SelectItem value="surreal">Surreal/Absurd</SelectItem>
-                                       <SelectItem value="full_random">Full Random</SelectItem>
+                                       <SelectItem value="surreal">Surreal/Dreamlike</SelectItem>
+                                       <SelectItem value="dynamic">Dynamic Action</SelectItem>
+                                       <SelectItem value="chaos">Randomized Chaos</SelectItem>
+                                       <SelectItem value="exaggerated">Exaggerated Proportions</SelectItem>
                                     </SelectContent>
                                   </Select>
                                   <Button variant="outline" size="sm" onClick={handleGenerateSubject} disabled={isGeneratingSubject} className="text-xs">

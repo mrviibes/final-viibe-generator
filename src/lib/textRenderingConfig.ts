@@ -59,96 +59,15 @@ export function getPreferredStyle(hasCaption: boolean): StyleType {
 }
 
 // Layout success probability mapping for intelligent validation
-// Layout configuration with explicit size constraints
-export const LAYOUT_CONFIG = {
-  memeTopBottom: { 
-    description: "bold caption top/bottom band", 
-    token: "top_bottom_band", 
-    max_height_pct: 25,
-    success_rate: 0.95
-  },
-  lowerThird: { 
-    description: "banner caption bottom third", 
-    token: "lower_third_band", 
-    max_height_pct: 20,
-    success_rate: 0.90
-  },
-  negativeSpace: { 
-    description: "caption in natural margin", 
-    token: "negative_space_margin", 
-    max_height_pct: 20,
-    success_rate: 0.75
-  },
-  sideBarLeft: { 
-    description: "left 25% text panel", 
-    token: "left_sidebar", 
-    max_height_pct: 25,
-    success_rate: 0.85
-  },
-  sideBarRight: { 
-    description: "right 25% text panel", 
-    token: "right_sidebar", 
-    max_height_pct: 25,
-    success_rate: 0.85
-  },
-  badgeSticker: { 
-    description: "caption inside badge/sticker", 
-    token: "badge_element", 
-    max_height_pct: 15,
-    success_rate: 0.90
-  },
-  subtleCaption: { 
-    description: "small unobtrusive caption", 
-    token: "subtle_overlay", 
-    max_height_pct: 10,
-    success_rate: 0.80
-  },
-  programmaticOverlay: {
-    description: "fallback programmatic overlay",
-    token: "programmatic_overlay",
-    max_height_pct: 100, // No constraint for programmatic overlay
-    success_rate: 1.0
-  }
-} as const;
-
-// Legacy support
 export const LAYOUT_SUCCESS_RATES = {
-  memeTopBottom: LAYOUT_CONFIG.memeTopBottom.success_rate,
-  lowerThird: LAYOUT_CONFIG.lowerThird.success_rate,
-  sideBarLeft: LAYOUT_CONFIG.sideBarLeft.success_rate,
-  badgeSticker: LAYOUT_CONFIG.badgeSticker.success_rate,
-  negativeSpace: LAYOUT_CONFIG.negativeSpace.success_rate,
-  subtleCaption: LAYOUT_CONFIG.subtleCaption.success_rate
+  memeTopBottom: 0.95,   // 95% success rate (most reliable)
+  lowerThird: 0.90,      // 90% success rate
+  sideBarLeft: 0.85,     // 85% success rate  
+  badgeSticker: 0.90,    // 90% success rate
+  negativeSpace: 0.75,   // 75% success rate (improved from 20%)
+  subtleCaption: 0.80    // 80% success rate (improved from 30%)
 } as const;
 
 export function getLayoutSuccessRate(layout: LayoutType): number {
-  return LAYOUT_CONFIG[layout]?.success_rate || 0.5;
-}
-
-export function getLayoutMaxHeight(layout: LayoutType): number {
-  return LAYOUT_CONFIG[layout]?.max_height_pct || 25;
-}
-
-// Size-aware validation configuration
-export const SIZE_VALIDATION_CONFIG = {
-  check_caption_size: true,
-  max_height_pct_tolerance: 1.05, // Allow 5% tolerance
-  min_font_size_threshold: 0.8, // Minimum relative font size before considering it too small
-  text_density_threshold: 0.3 // Maximum text density (characters per layout area)
-} as const;
-
-// Enhanced retry tiers with size-specific constraints
-export const SIZE_RETRY_TIERS = [
-  { layout: "memeTopBottom", style: "DESIGN", strength: 1, size_emphasis: "NORMAL" },
-  { layout: "memeTopBottom", style: "DESIGN", strength: 2, size_emphasis: "STRICT" },
-  { layout: "memeTopBottom", style: "DESIGN", strength: 3, size_emphasis: "MAXIMUM" },
-  { layout: "lowerThird", style: "DESIGN", strength: 2, size_emphasis: "STRICT" },
-  { layout: "programmaticOverlay", style: "DESIGN", strength: 1, size_emphasis: "FALLBACK" }
-] as const;
-
-export type SizeRetryTier = typeof SIZE_RETRY_TIERS[number];
-
-export function decideSizeAwareLayoutAndStyle(attempt: number): SizeRetryTier {
-  const tiers = SIZE_RETRY_TIERS;
-  return tiers[Math.min(attempt, tiers.length - 1)];
+  return LAYOUT_SUCCESS_RATES[layout] || 0.5;
 }

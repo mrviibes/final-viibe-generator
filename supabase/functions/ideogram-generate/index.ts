@@ -2,152 +2,6 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 
-// Universal Text Placement Templates with STRICT Size Constraints (inline for edge function) 
-const universalTextPlacementTemplates = [
-  {
-    id: "memeTopBottom",
-    label: "Meme Top/Bottom", 
-    description: "Bold captions in clear horizontal bands at top and/or bottom",
-    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Top/bottom band - ABSOLUTE MAXIMUM: Caption must occupy ≤25% of image height.
-STYLE: Modern sans-serif, bold, high contrast, fully legible. MANDATORY: Scale font DOWN to fit constraint.
-SCENE: [SCENE_DESCRIPTION]
-SIZE ENFORCEMENT: VIOLATION = IMMEDIATE REJECTION. Shrink font to stay inside band. NON-NEGOTIABLE HEIGHT LIMIT.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill canvas, NEVER exceed 25% height, REJECT if oversized`
-  },
-  {
-    id: "negativeSpace",
-    label: "Negative Space",
-    description: "Text integrated seamlessly into natural empty areas", 
-    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Natural empty margin space - ABSOLUTE MAXIMUM: ≤20% of image height.
-STYLE: Modern sans-serif, bold, high contrast, fully legible. MANDATORY: Shrink to fit inside margin.
-SCENE: [SCENE_DESCRIPTION]
-SIZE ENFORCEMENT: VIOLATION = IMMEDIATE REJECTION. Size limit is NON-NEGOTIABLE.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill space, NEVER exceed 20% height, REJECT if oversized`
-  },
-  {
-    id: "lowerThird",
-    label: "Lower Third Banner",
-    description: "Clean banner-style caption across bottom third",
-    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Clean banner across bottom third - ABSOLUTE MAXIMUM: ≤20% of image height.
-STYLE: Modern sans-serif, bold, high contrast, fully legible. MANDATORY: Use smallest readable font if needed.
-SCENE: [SCENE_DESCRIPTION]
-SIZE ENFORCEMENT: VIOLATION = IMMEDIATE REJECTION. Font size must respect height limit. NON-NEGOTIABLE.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill banner, NEVER exceed 20% height, REJECT if oversized`
-  },
-  {
-    id: "subtleCaption", 
-    label: "Subtle Caption",
-    description: "Minimal caption overlay, unobtrusive but legible",
-    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Small, unobtrusive - ABSOLUTE MAXIMUM: ≤10% of image height, but fully legible.
-STYLE: Modern sans-serif, bold, high contrast, fully legible. MANDATORY: Minimize size while maintaining readability.
-SCENE: [SCENE_DESCRIPTION]
-SIZE ENFORCEMENT: VIOLATION = IMMEDIATE REJECTION. Use smallest readable font. NON-NEGOTIABLE 10% LIMIT.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER exceed 10% height, keep minimal but readable, REJECT if oversized`
-  }
-];
-
-// Action binding system for visual-caption matching
-const ACTION_LEXICON = {
-  clumsy: {
-    required: ["fumble", "trip", "stumble", "miss", "bobble", "awkward", "loses grip", "drops"],
-    forbidden: ["dunk", "posterize", "swish", "soar", "glide", "slam", "nothing but net", "perfect", "score"]
-  },
-  bad_performance: {
-    required: ["airball", "brick", "whiff", "shank", "fails", "misses", "botches"],
-    forbidden: ["success", "wins", "victory", "champion", "perfect"]
-  },
-  timing_issues: {
-    required: ["too early", "too late", "before", "after", "wrong time"],
-    forbidden: ["perfect timing", "right moment", "exactly when"]
-  }
-};
-
-// Extract action requirements from caption
-function bindCaptionActions(caption: string): { required: string[], forbidden: string[] } {
-  const text = caption.toLowerCase();
-  const required: string[] = [];
-  const forbidden: string[] = [];
-  
-  // Detect clumsy/awkward performance
-  if (/clumsy|fumble|awkward|needs patience|drops|loses|trips|stumble/i.test(text)) {
-    required.push(...ACTION_LEXICON.clumsy.required);
-    forbidden.push(...ACTION_LEXICON.clumsy.forbidden);
-  }
-  
-  // Detect bad performance indicators  
-  if (/bad|terrible|awful|fails|misses|can't|unable|struggles/i.test(text)) {
-    required.push(...ACTION_LEXICON.bad_performance.required);
-    forbidden.push(...ACTION_LEXICON.bad_performance.forbidden);
-  }
-  
-  // Detect timing-based actions
-  if (/before|after|too early|too late|wrong time|premature/i.test(text)) {
-    required.push(...ACTION_LEXICON.timing_issues.required);  
-    forbidden.push(...ACTION_LEXICON.timing_issues.forbidden);
-  }
-  
-  return {
-    required: [...new Set(required)],
-    forbidden: [...new Set(forbidden)]
-  };
-}
-
-// Build size-aware prompt with text, scene, and action binding
-function buildSizeAwareTextPrompt(templateId: string, finalText: string, sceneDescription: string, strengthLevel: number = 1) {
-  const template = universalTextPlacementTemplates.find(t => t.id === templateId);
-  
-  if (!template) {
-    // Default to memeTopBottom if template not found
-    const defaultTemplate = universalTextPlacementTemplates[0];
-    const positivePrompt = defaultTemplate.positivePrompt
-      .replace('[FINAL_TEXT]', finalText)
-      .replace('[SCENE_DESCRIPTION]', sceneDescription);
-    return {
-      positivePrompt,
-      negativePrompt: defaultTemplate.negativePrompt
-    };
-  }
-  
-  // Get action binding for this caption
-  const actionBinding = bindCaptionActions(finalText);
-  
-  let basePrompt = template.positivePrompt;
-  let baseNegative = template.negativePrompt;
-  
-  // Add action requirements to scene description
-  let enhancedScene = sceneDescription;
-  if (actionBinding.required.length > 0) {
-    enhancedScene += ` REQUIRED ACTIONS: Show ${actionBinding.required.slice(0, 3).join(' OR ')} - do NOT show successful actions.`;
-  }
-  if (actionBinding.forbidden.length > 0) {
-    enhancedScene += ` FORBIDDEN: Never show ${actionBinding.forbidden.slice(0, 3).join(', ')}.`;
-  }
-  
-  // Progressive size constraint strengthening
-  if (strengthLevel >= 2) {
-    basePrompt = basePrompt.replace('ABSOLUTE MAXIMUM:', 'CRITICAL SIZE VIOLATION ALERT:');
-    baseNegative += ', font too large, oversized text';
-  }
-  
-  if (strengthLevel >= 3) {
-    basePrompt = basePrompt + ' EMERGENCY SIZE REDUCTION: Use smallest readable font. Scale down aggressively.';
-    baseNegative += ', size violation detected, text overflow';
-  }
-  
-  const positivePrompt = basePrompt
-    .replace('[FINAL_TEXT]', finalText)
-    .replace('[SCENE_DESCRIPTION]', enhancedScene);
-    
-  return {
-    positivePrompt,
-    negativePrompt: baseNegative
-  };
-}
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -207,49 +61,24 @@ serve(async (req) => {
     const body = await req.json();
     console.log('Request body received:', JSON.stringify(body, null, 2));
 
-    const { prompt, aspect_ratio, style_type, model, negative_prompt, layout_token, final_text, scene_description, strength_level } = body;
+    const { prompt, aspect_ratio, style_type, model, negative_prompt } = body;
 
     if (!prompt) {
       console.error('Missing prompt in request');
       return new Response('Missing prompt', { status: 400, headers: corsHeaders });
     }
 
-    console.log('Parsed request params:', { prompt, aspect_ratio, style_type, model, negative_prompt, layout_token, final_text, scene_description, strength_level });
-
-    // SIZE-AWARE PROMPT ENHANCEMENT: If we have layout and text info, enhance the prompt
-    let enhancedPrompt = prompt;
-    let enhancedNegativePrompt = negative_prompt || '';
-    
-    if (layout_token && final_text && scene_description) {
-      console.log('🎯 Enhancing prompt with size-aware template...');
-      const sizeAwarePrompts = buildSizeAwareTextPrompt(
-        layout_token, 
-        final_text, 
-        scene_description, 
-        strength_level || 1
-      );
-      
-      // Replace the basic prompt with the size-aware enhanced version
-      enhancedPrompt = sizeAwarePrompts.positivePrompt;
-      enhancedNegativePrompt = sizeAwarePrompts.negativePrompt;
-      
-      console.log('📏 Size-aware prompt generated:', {
-        layout: layout_token,
-        strength: strength_level || 1,
-        promptLength: enhancedPrompt.length,
-        negativePromptLength: enhancedNegativePrompt.length
-      });
-    }
+    console.log('Parsed request params:', { prompt, aspect_ratio, style_type, model, negative_prompt });
 
     // Insert job record
-    console.log('Creating job record with:', { userId, guestId, prompt: enhancedPrompt, negative_prompt: enhancedNegativePrompt, style_type, aspect_ratio });
+    console.log('Creating job record with:', { userId, guestId, prompt, negative_prompt, style_type, aspect_ratio });
     const { data: job, error: jobError } = await serviceRoleClient
       .from('gen_jobs')
       .insert({
         user_id: userId,
         guest_id: guestId,
-        prompt: enhancedPrompt,
-        negative_prompt: enhancedNegativePrompt || '',
+        prompt,
+        negative_prompt: negative_prompt || '',
         style: style_type || 'DESIGN',
         aspect: aspect_ratio || 'ASPECT_1_1',
         status: 'running'
@@ -290,9 +119,9 @@ serve(async (req) => {
       
       // V3 API expects JSON with image_request wrapper
       // Handle negative prompt separately if provided, otherwise combine with positive prompt
-      const finalPrompt = enhancedNegativePrompt && enhancedNegativePrompt.trim() 
-        ? `${enhancedPrompt}. Avoid: ${enhancedNegativePrompt}` 
-        : enhancedPrompt;
+      const finalPrompt = negative_prompt && negative_prompt.trim() 
+        ? `${prompt}. Avoid: ${negative_prompt}` 
+        : prompt;
       
       const requestPayload = {
         image_request: {

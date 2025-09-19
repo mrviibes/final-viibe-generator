@@ -1,35 +1,41 @@
-// Pop Culture Context Detection with Entity Management
-import { getCurrentBatchEntity, validateContentForIdentityViolations } from './entityManager';
+// Pop Culture Context Detection for Enhanced Text Rendering
 
-// Dynamic pop culture detection using managed entities
+// Common artist names and music terms that trigger poster-like layouts
+const ARTIST_NAMES = [
+  'the weeknd', 'drake', 'taylor swift', 'beyonce', 'kanye west', 'kanye', 'eminem', 
+  'rihanna', 'justin bieber', 'ariana grande', 'ed sheeran', 'billie eilish',
+  'post malone', 'travis scott', 'dua lipa', 'bruno mars', 'lady gaga', 'jay-z',
+  'kendrick lamar', 'j cole', 'nicki minaj', 'cardi b', 'bad bunny', 'olivia rodrigo',
+  'doja cat', 'lil nas x', 'harry styles', 'adele', 'shawn mendes', 'selena gomez'
+];
+
 const MUSIC_TERMS = [
   'hits', 'songs', 'albums', 'tracks', 'singles', 'ep', 'mixtape', 'playlist',
   'discography', 'bangers', 'chart', 'billboard', 'grammy', 'tour', 'concert',
   'studio', 'record', 'music', 'beat', 'lyrics', 'verse', 'chorus', 'hook'
 ];
 
-const GENERAL_POP_TERMS = [
-  'viral', 'trending', 'meme', 'tiktok', 'instagram', 'twitter', 'social media',
-  'netflix', 'streaming', 'binge', 'app', 'platform'
+const CELEBRITY_TERMS = [
+  'celebrity', 'famous', 'star', 'icon', 'legend', 'influencer', 'tiktok',
+  'instagram', 'twitter', 'social media', 'viral', 'trending', 'meme'
 ];
 
 export interface PopCultureContext {
   isPopCulture: boolean;
   detectedTerms: string[];
   riskLevel: 'low' | 'medium' | 'high';
-  selectedEntity: string | null;
-  identityViolations: string[];
 }
 
 export function detectPopCultureContext(text: string): PopCultureContext {
   const lowerText = text.toLowerCase();
   const detectedTerms: string[] = [];
   
-  // Check for current batch entity
-  const selectedEntity = getCurrentBatchEntity();
-  if (selectedEntity && lowerText.includes(selectedEntity.toLowerCase())) {
-    detectedTerms.push(selectedEntity);
-  }
+  // Check for artist names
+  ARTIST_NAMES.forEach(artist => {
+    if (lowerText.includes(artist)) {
+      detectedTerms.push(artist);
+    }
+  });
   
   // Check for music terms
   MUSIC_TERMS.forEach(term => {
@@ -38,34 +44,27 @@ export function detectPopCultureContext(text: string): PopCultureContext {
     }
   });
   
-  // Check for general pop culture terms
-  GENERAL_POP_TERMS.forEach(term => {
+  // Check for celebrity terms
+  CELEBRITY_TERMS.forEach(term => {
     if (lowerText.includes(term)) {
       detectedTerms.push(term);
     }
   });
   
-  // Check for identity protection violations
-  const identityViolations = validateContentForIdentityViolations(text);
-  
-  const isPopCulture = detectedTerms.length > 0 || selectedEntity !== null;
+  const isPopCulture = detectedTerms.length > 0;
   
   // Determine risk level based on number and type of terms
   let riskLevel: 'low' | 'medium' | 'high' = 'low';
-  if (identityViolations.length > 0) {
-    riskLevel = 'high'; // Identity violations are high risk
-  } else if (detectedTerms.length >= 3) {
+  if (detectedTerms.length >= 3) {
     riskLevel = 'high';
-  } else if (detectedTerms.length >= 2 || selectedEntity !== null) {
+  } else if (detectedTerms.length >= 2 || ARTIST_NAMES.some(artist => lowerText.includes(artist))) {
     riskLevel = 'medium';
   }
   
   return {
     isPopCulture,
     detectedTerms,
-    riskLevel,
-    selectedEntity,
-    identityViolations
+    riskLevel
   };
 }
 
@@ -81,11 +80,9 @@ export function getEnhancedNegativePrompt(baseNegativePrompt: string, context: P
     'no concert posters', 'no tour dates', 'no record labels'
   ];
   
-  // Add identity protection blockers
-  if (context.identityViolations.length > 0 || context.riskLevel === 'high') {
+  // Add stronger blockers for higher risk levels
+  if (context.riskLevel === 'high') {
     popCultureBlockers.push(
-      'no personal identity targeting', 'no physical appearance jokes',
-      'no identity-based discrimination', 'focus on behaviors not traits',
       'no entertainment industry text', 'no celebrity gossip text', 
       'no magazine headlines', 'no tabloid layouts'
     );

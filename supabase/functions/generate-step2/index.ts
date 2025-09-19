@@ -1,103 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Entity Management System for Pop Culture References
-const ENTITY_BUCKETS = {
-  '1980s_2000s': [
-    'Blockbuster', 'MySpace', 'AOL', 'New Coke', 'Beanie Babies', 
-    'Tamagotchi', 'Napster', 'Dial-up internet', 'Nokia brick phones',
-    'VHS vs Betamax', 'Y2K panic', 'Pogs', 'Geocities'
-  ],
-  '2010s': [
-    'Game of Thrones finale', 'Fyre Festival', 'Vine', 'Fortnite dances',
-    'John Wick', 'Tiger King', 'Avengers Endgame', 'Ice Bucket Challenge',
-    'Pokémon GO', 'Fidget spinners', 'Snapchat filters', 'Netflix binge-watching'
-  ],
-  '2020s': [
-    'Barbie movie', 'Oppenheimer', 'GTA VI delays', 'MrBeast videos',
-    'UFC hype', 'TikTok trends', 'Threads launch', 'NFT crashes',
-    'Zoom fatigue', 'Among Us', 'Wordle obsession', 'ChatGPT panic'
-  ]
-};
-
-const PROTECTED_IDENTITY_TRAITS = [
-  'race', 'ethnicity', 'gender', 'sexual orientation', 'religion', 
-  'disability', 'mental health', 'physical appearance', 'body type',
-  'age discrimination', 'nationality', 'accent', 'family structure'
-];
-
-let currentPopCultureEntity: string | null = null;
-let entityHistory: string[] = [];
-
-function selectPopCultureEntity(): string | null {
-  if (currentPopCultureEntity) return null; // One per batch max
-  
-  const allEntities = [
-    ...ENTITY_BUCKETS['1980s_2000s'],
-    ...ENTITY_BUCKETS['2010s'], 
-    ...ENTITY_BUCKETS['2020s']
-  ];
-
-  const availableEntities = allEntities.filter(entity => 
-    !entityHistory.includes(entity)
-  );
-
-  if (availableEntities.length === 0) {
-    entityHistory = entityHistory.slice(-5);
-    const resetAvailable = allEntities.filter(entity => 
-      !entityHistory.includes(entity)
-    );
-    if (resetAvailable.length === 0) return null;
-  }
-
-  const finalPool = availableEntities.length > 0 ? availableEntities : 
-    allEntities.filter(entity => !entityHistory.includes(entity));
-  
-  const selected = finalPool[Math.floor(Math.random() * finalPool.length)];
-  currentPopCultureEntity = selected;
-  entityHistory.push(selected);
-  
-  if (entityHistory.length > 5) {
-    entityHistory = entityHistory.slice(-5);
-  }
-
-  return selected;
-}
-
-function getCurrentPopCultureEntity(): string | null {
-  return currentPopCultureEntity;
-}
-
-function resetPopCultureBatch(): void {
-  currentPopCultureEntity = null;
-}
-
-function validateIdentityViolations(text: string): string[] {
-  const violations: string[] = [];
-  const lowerText = text.toLowerCase();
-
-  const identityViolations = PROTECTED_IDENTITY_TRAITS.filter(trait => {
-    switch (trait) {
-      case 'physical appearance':
-        return /\b(ugly|fat|thin|short|tall|bald|hairy)\b/.test(lowerText);
-      case 'age discrimination':
-        return /\b(too old|too young|ancient|geriatric|child)\b/.test(lowerText);
-      case 'gender':
-        return /\b(like a man|like a woman|masculine|feminine|act like)\b/.test(lowerText);
-      case 'mental health':
-        return /\b(crazy|insane|psycho|mental|nuts|psychotic)\b/.test(lowerText);
-      default:
-        return lowerText.includes(trait);
-    }
-  });
-
-  if (identityViolations.length > 0) {
-    violations.push(`Protected identity targeting: ${identityViolations.join(', ')}`);
-  }
-
-  return violations;
-}
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -326,10 +229,10 @@ function getStyleDefinition(style: string): string {
 
 function getRatingDefinition(rating: string): string {
   const definitions = {
-    'PG': 'Clean but sharp humor with clever burns. Light roasts with bite but family-friendly. Think prime Jimmy Fallon but with more edge.',
-    'PG-13': 'MUST include aggressive sarcasm with mild profanity (damn, hell, ass). Sharp innuendo and brutal roasts required. Think Kevin Hart/Ali Wong at their meanest.',
-    'R': 'MANDATORY strong profanity (fuck, shit, bitch) and brutal personal attacks. Savage roasts, alcohol/drug jokes, sexual references required. Think Bill Burr unleashed.',
-    'Explicit': 'ZERO tame lines allowed. Every line must be raunchy sexual humor, explicit content, or savage personal destruction. Think Amy Schumer/Joan Rivers at absolute maximum filth.'
+    'G': 'Family-friendly humor only. No swearing, innuendo, or targeting individuals. Wholesome and light.',
+    'PG': 'Light sarcasm and playful roasting allowed. Keep it gentle and fun. Mild teasing only.',
+    'PG-13': 'Sharper roasts, cultural digs, mild innuendo. MUST include at least one edgy element per batch. Mild profanity (damn, hell) allowed.',
+    'R': 'MUST include explicit profanity (shit, fuck, ass, etc), savage roasts, sexual references, or boundary-pushing content. Be brutal and edgy.'
   };
   
   return definitions[rating] || definitions['PG-13'];
@@ -412,66 +315,30 @@ function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
 function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[], style?: string, rating?: string): string {
   const { hardTags, softTags } = parseTags(tags);
   
-  // Get tone overrides for enhanced rules
-  const toneOverrides = getToneOverrides(tone);
-  const shouldDisableFunny = toneOverrides?.disable_force_funny;
-  const shouldDisableRatingQuotas = toneOverrides?.disable_rating_quotas;
-  
-  // Entity management for pop-culture style
-  let selectedEntity: string | null = null;
-  if (style === 'pop-culture') {
-    selectedEntity = selectPopCultureEntity();
-    console.log('🎭 Selected entity for pop-culture style:', selectedEntity);
-  }
-  
   const styleDefinitions = {
     'standard': 'Balanced one-liners (40-80 chars)',
     'story': 'Mini-narratives with setup → payoff (60-100 chars)',
-    'pop-culture': `MUST include the approved entity: ${selectedEntity || 'none available'} (40-80 chars)`,
+    'pop-culture': 'Include celebrities, movies, TV, music, apps (40-80 chars)',
     'punchline-first': 'Hit joke early, then tag-back (40-80 chars)',
     'wildcard': 'Experimental humor (40-80 chars)'
   };
   
   const ratingDefs = {
-    'PG': 'Clean playful humor, no profanity',
-    'PG-13': shouldDisableRatingQuotas ? 'Clever humor with optional mild language' : 'MUST include aggressive sarcasm with mild profanity (damn, hell, ass). Sharp innuendo and brutal roasts required.',
-    'R': shouldDisableRatingQuotas ? 'Sharp humor with stronger language allowed' : 'MANDATORY strong profanity (fuck, shit, bitch) and brutal personal attacks. Savage roasts required.',
-    'Explicit': shouldDisableRatingQuotas ? 'Edgy humor without explicit requirements' : 'ZERO tame lines allowed. Every line must be raunchy sexual humor, explicit content, or savage personal destruction.'
+    'G': 'Family-friendly only',
+    'PG': 'Light sarcasm allowed', 
+    'PG-13': 'Sharper roasts, mild profanity (damn, hell)',
+    'R': 'Explicit profanity (shit, fuck, ass), savage roasts'
   };
   
   const lengthReq = style === 'story' ? "60-100 characters" : "40-80 characters";
   const styleDesc = styleDefinitions[style || 'standard'] || styleDefinitions['standard'];
   const ratingDesc = ratingDefs[rating || 'PG-13'] || ratingDefs['PG-13'];
   
-  // Enhanced tone-specific requirements
-  let toneEnhancements = '';
-  if (toneOverrides) {
-    if (toneOverrides.require_positive_or_supportive) {
-      toneEnhancements += '\n- Lines must be positive, supportive, and emotionally warm';
-    }
-    if (toneOverrides.require_positive_or_affectionate) {
-      toneEnhancements += '\n- Lines must be positive, affectionate, and romantically sweet';
-    }
-    if (toneOverrides.sport_context_words_required > 0) {
-      const poolStr = toneOverrides.sport_context_pool.join(', ');
-      toneEnhancements += `\n- REQUIRED: Include ${toneOverrides.sport_context_words_required}+ sport terms from: ${poolStr}`;
-    }
-  }
-  
-  const identityProtection = `
-CRITICAL IDENTITY PROTECTION RULES:
-- NEVER target protected traits: ${PROTECTED_IDENTITY_TRAITS.join(', ')}
-- Focus on ACTIONS, BEHAVIORS, EVENTS, BRANDS - not personal characteristics
-- Target what people DO, not who they ARE
-- Roast choices, moments, fails - never identity`;
-
   return `Generate 4 ${tone.toLowerCase()} lines for ${subcategory}. 
 
 JSON: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}, {"lane": "option3", "text": "..."}, {"lane": "option4", "text": "..."}]}
 
-${lengthReq}. ${ratingDesc}. Use names naturally without quotation marks.${toneEnhancements}
-
-${identityProtection}`;
+${lengthReq}. ${ratingDesc}.`;
 }
 
 function buildUserMessage(inputs: any, previousErrors: string[] = []): string {
@@ -638,63 +505,35 @@ function checkStyleCompliance(lines: Array<{lane: string, text: string}>, style:
   };
 }
 
-function checkRatingCompliance(lines: Array<{lane: string, text: string}>, rating: string, tone?: string): { compliant: boolean; issues: string[] } {
+function checkRatingCompliance(lines: Array<{lane: string, text: string}>, rating: string): { compliant: boolean; issues: string[] } {
   const issues: string[] = [];
   
-  // Check if rating quotas should be disabled for this tone
-  const toneOverrides = getToneOverrides(tone || '');
-  const shouldDisableRatingQuotas = toneOverrides?.disable_rating_quotas;
-  
-  if (shouldDisableRatingQuotas) {
-    console.log(`🔄 Rating quotas disabled for ${tone} tone - skipping rating compliance checks`);
-    return { compliant: true, issues: [] };
-  }
-  
   switch (rating) {
-    case 'PG-13':
-      // REQUIRE minimum bite - at least 2 lines must have aggressive sarcasm or mild profanity
-      const hasBite = lines.filter(line => {
-        const text = line.text.toLowerCase();
-        return /\b(damn|hell|ass|suck|crap)\b/.test(text) || 
-               /\b(loser|pathetic|disaster|fail|terrible|awful)\b/.test(text);
-      }).length >= 2;
-      
-      if (!hasBite) {
-        issues.push(`PG-13 rating requires aggressive sarcasm and bite in at least 2 lines. Must include mild profanity or savage attitude.`);
-      }
-      break;
-      
     case 'R':
-      // REQUIRE strong profanity AND brutal attitude in multiple lines
-      const hasStrongContent = lines.filter(line => {
+      const hasExplicitContent = lines.some(line => {
         const text = line.text.toLowerCase();
-        return /\b(fuck|shit|bitch|asshole|bastard)\b/.test(text);
-      }).length >= 2;
-      
-      const hasBrutalAttitude = lines.some(line => {
-        const text = line.text.toLowerCase();
-        return /\b(pathetic|worthless|disaster|failure|joke|embarrass|humiliat)\b/.test(text);
+        return /\b(fuck|shit|ass|damn|hell|bitch|crap)\b/.test(text) ||
+               /\b(sex|sexual|nude|naked|horny|kinky)\b/.test(text) ||
+               /\b(suck|blow|screw|bang|hard|wet|tight)\b/.test(text);
       });
       
-      if (!hasStrongContent || !hasBrutalAttitude) {
-        issues.push(`R-rating requires strong profanity in multiple lines AND brutal personal attacks. No soft lines allowed.`);
+      if (!hasExplicitContent) {
+        issues.push(`R-rating requires explicit content. Must include profanity (fuck, shit, ass) or sexual references.`);
       }
       break;
       
-    case 'Explicit':
-      // ZERO tame lines - every line must be raunchy or savage
-      const explicitLines = lines.filter(line => {
+    case 'PG-13':
+      const hasEdgyContent = lines.some(line => {
         const text = line.text.toLowerCase();
-        return /\b(cock|pussy|dick|tits|orgasm|masturbate|horny|cum|sex|naked|strip|blow|suck|hard|wet)\b/.test(text) ||
-               /\b(fuck|shit|bitch|asshole|bastard)\b/.test(text);
+        return /\b(damn|hell|crap|sucks|stupid|idiot)\b/.test(text) ||
+               /\b(drunk|wasted|party|wild|crazy)\b/.test(text) ||
+               text.includes('innuendo') || text.includes('suggestive');
       });
       
-      if (explicitLines.length < lines.length) {
-        issues.push(`Explicit rating: ZERO tame lines allowed. Every line must contain explicit sexual content or maximum profanity.`);
+      if (!hasEdgyContent) {
+        issues.push(`PG-13 rating requires at least one edgy element. Add mild profanity (damn, hell) or suggestive content.`);
       }
       break;
-      
-    // PG and G have no strict requirements - they're permissive rather than restrictive
   }
   
   return {
@@ -764,25 +603,9 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: {
   }
   
   if (inputs.rating) {
-    const ratingCheck = checkRatingCompliance(lines, inputs.rating, inputs.tone);
+    const ratingCheck = checkRatingCompliance(lines, inputs.rating);
     if (!ratingCheck.compliant) {
       warnings.push(...ratingCheck.issues);
-    }
-  }
-  
-  // Sport context validation for enhanced tones
-  const toneOverrides = getToneOverrides(inputs.tone);
-  if (toneOverrides?.sport_context_words_required > 0) {
-    const contextWords = toneOverrides.sport_context_pool;
-    const requiredCount = toneOverrides.sport_context_words_required;
-    
-    const linesWithContext = lines.filter(line => {
-      const text = line.text.toLowerCase();
-      return contextWords.some(word => text.includes(word.toLowerCase()));
-    }).length;
-    
-    if (linesWithContext < requiredCount) {
-      warnings.push(`Sport context: ${linesWithContext}/${requiredCount} lines contain required context words`);
     }
   }
   
@@ -1047,80 +870,6 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
   }
 }
 
-// STEP 2 PRECEDENCE SYSTEM - Implements tone/rating/style hierarchy 
-function applyInputPrecedence(inputs: any): any {
-  const processed = { ...inputs };
-  
-  // Step 1: Invalid combo detection and auto-remap
-  const invalidCombos = [
-    { tone: "Sentimental", blocked_ratings: ["R", "Explicit"] },
-    { tone: "Romantic", blocked_ratings: ["R", "Explicit"] }
-  ];
-  
-  // Auto-remap conflicting combinations
-  const autoRemaps = [
-    { if: { tone: "Sentimental", rating: "Explicit" }, then: { rating: "PG-13" } },
-    { if: { tone: "Sentimental", rating: "R" }, then: { rating: "PG" } },
-    { if: { tone: "Romantic", rating: "Explicit" }, then: { rating: "PG-13" } },
-    { if: { tone: "Romantic", rating: "R" }, then: { rating: "PG" } }
-  ];
-  
-  // Check for invalid combos and apply auto-remap
-  for (const remap of autoRemaps) {
-    if (processed.tone === remap.if.tone && processed.rating === remap.if.rating) {
-      console.log(`🔄 Auto-remap: ${processed.tone} + ${processed.rating} → ${processed.tone} + ${remap.then.rating}`);
-      processed.rating = remap.then.rating;
-    }
-  }
-  
-  // Log if invalid combo detected
-  for (const combo of invalidCombos) {
-    if (processed.tone === combo.tone && combo.blocked_ratings.includes(processed.rating)) {
-      console.log(`⚠️ Invalid combo detected: ${processed.tone} + ${processed.rating}`);
-    }
-  }
-  
-  // Step 2: Apply style inheritance 
-  if (processed.style === "Wildcard") {
-    processed.style = "standard"; // Use current tone rules instead of random experimental
-    console.log("🔄 Wildcard style → standard (using tone rules)");
-  }
-  
-  return processed;
-}
-
-// Enhanced tone override definitions with sport context
-function getToneOverrides(tone: string): any {
-  const overrides = {
-    "Sentimental": {
-      disable_force_funny: true,
-      disable_rating_quotas: true,
-      allow_clean_language: true,
-      require_positive_or_supportive: true,
-      sport_context_words_required: 2,
-      sport_context_pool: [
-        "court", "hoop", "net", "dribble", "assist", "rebound", "buzzer", "tipoff", "timeout", "fast break",
-        "field", "diamond", "bat", "pitch", "swing", "catch", "home run", "dugout", "stadium", "glove",
-        "touchdown", "huddle", "snap", "kickoff", "fumble", "helmet", "line", "end zone", "pass"
-      ]
-    },
-    "Romantic": {
-      disable_force_funny: true,
-      disable_rating_quotas: true,  
-      allow_clean_language: true,
-      require_positive_or_affectionate: true,
-      sport_context_words_required: 2,
-      sport_context_pool: [
-        "court", "hoop", "net", "assist", "dribble", "buzzer", "tipoff", "rebound", "timeout", "fast break",
-        "field", "diamond", "bat", "pitch", "swing", "catch", "home run", "dugout", "stadium", "glove",
-        "touchdown", "huddle", "snap", "kickoff", "fumble", "helmet", "line", "end zone", "pass"
-      ]
-    }
-  };
-  
-  return overrides[tone] || null;
-}
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -1128,13 +877,9 @@ serve(async (req) => {
   }
 
   try {
-    const rawInputs = await req.json();
+    const inputs = await req.json();
     console.log("Generate Step 2 function called");
-    console.log("Request data:", rawInputs);
-
-    // STEP 2 PRECEDENCE SYSTEM: Tone overrides > Rating > Style
-    const inputs = applyInputPrecedence(rawInputs);
-    console.log("After precedence processing:", inputs);
+    console.log("Request data:", inputs);
 
     if (!openAIApiKey) {
       console.log("API completely failed, using tone-aware fallback:", []);
