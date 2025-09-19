@@ -230,9 +230,9 @@ function getStyleDefinition(style: string): string {
 function getRatingDefinition(rating: string): string {
   const definitions = {
     'G': 'Family-friendly humor only. No swearing, innuendo, or targeting individuals. Wholesome and light.',
-    'PG': 'Light sarcasm and playful roasting allowed. Keep it gentle and fun. Mild teasing only.',
-    'PG-13': 'Sharper roasts, cultural digs, mild innuendo. MUST include at least one edgy element per batch. Mild profanity (damn, hell) allowed.',
-    'R': 'MUST include explicit profanity (shit, fuck, ass, etc), savage roasts, sexual references, or boundary-pushing content. Be brutal and edgy.'
+    'PG-13': 'Good humor with optional mild edge. Can include light roasting and mild profanity (damn, hell) but not required.',
+    'R': 'Strong roast content. MUST include strong profanity (fuck, shit, ass, bitch), brutal roasts, sexual references, or nasty commentary. No holding back.',
+    'Explicit': 'Full NSFW mode. Explicit sexual content, brutal profanity, savage personal attacks, dark humor. Absolutely ruthless and dirty.'
   };
   
   return definitions[rating] || definitions['PG-13'];
@@ -325,9 +325,9 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
   
   const ratingDefs = {
     'G': 'Family-friendly only',
-    'PG': 'Light sarcasm allowed', 
-    'PG-13': 'Sharper roasts, mild profanity (damn, hell)',
-    'R': 'Explicit profanity (shit, fuck, ass), savage roasts'
+    'PG-13': 'Good humor with optional mild edge', 
+    'R': 'Strong profanity (shit, fuck, ass), savage roasts',
+    'Explicit': 'Full NSFW mode, explicit content'
   };
   
   const lengthReq = style === 'story' ? "60-100 characters" : "40-80 characters";
@@ -512,28 +512,29 @@ function checkRatingCompliance(lines: Array<{lane: string, text: string}>, ratin
     case 'R':
       const hasExplicitContent = lines.some(line => {
         const text = line.text.toLowerCase();
-        return /\b(fuck|shit|ass|damn|hell|bitch|crap)\b/.test(text) ||
+        return /\b(fuck|shit|ass|bitch)\b/.test(text) ||
                /\b(sex|sexual|nude|naked|horny|kinky)\b/.test(text) ||
                /\b(suck|blow|screw|bang|hard|wet|tight)\b/.test(text);
       });
       
       if (!hasExplicitContent) {
-        issues.push(`R-rating requires explicit content. Must include profanity (fuck, shit, ass) or sexual references.`);
+        issues.push(`R-rating requires explicit content. Must include strong profanity (fuck, shit, ass, bitch) or sexual references.`);
       }
       break;
       
-    case 'PG-13':
-      const hasEdgyContent = lines.some(line => {
+    case 'Explicit':
+      const hasNSFWContent = lines.some(line => {
         const text = line.text.toLowerCase();
-        return /\b(damn|hell|crap|sucks|stupid|idiot)\b/.test(text) ||
-               /\b(drunk|wasted|party|wild|crazy)\b/.test(text) ||
-               text.includes('innuendo') || text.includes('suggestive');
+        return /\b(cock|pussy|dick|tits|orgasm|masturbate|horny)\b/.test(text) ||
+               /\b(fuck|shit|ass|bitch|bastard|asshole)\b/.test(text);
       });
       
-      if (!hasEdgyContent) {
-        issues.push(`PG-13 rating requires at least one edgy element. Add mild profanity (damn, hell) or suggestive content.`);
+      if (!hasNSFWContent) {
+        issues.push(`Explicit rating requires NSFW content. Must include explicit sexual content or strong profanity.`);
       }
       break;
+      
+    // PG-13 and G have no strict requirements - they're permissive rather than restrictive
   }
   
   return {

@@ -121,10 +121,9 @@ Return ONLY valid JSON in this exact structure:
 
 ## Rating Map
 - G = wholesome, no profanity, no innuendo. Family-friendly only.
-- PG = light sass and attitude but stay clean. Add some bite but no profanity.
-- PG-13 = sharp roasts with real bite. MUST include mild profanity (damn, hell, crap) OR clever innuendo OR savage attitude. Get edgy.
-- R = go hard. MUST include strong profanity (fuck, shit, ass, bitch), brutal roasts, sexual references, or nasty commentary. No holding back.
-- XXX = full NSFW mode. Explicit sexual content, brutal profanity, savage personal attacks, dark humor. Absolutely ruthless and dirty.`;
+- PG-13 = good humor with optional mild edge. Can include light roasting and mild profanity (damn, hell) but not required.
+- R = strong roast content. MUST include strong profanity (fuck, shit, ass, bitch), brutal roasts, sexual references, or nasty commentary. No holding back.
+- Explicit = full NSFW mode. Explicit sexual content, brutal profanity, savage personal attacks, dark humor. Absolutely ruthless and dirty.`;
   
   const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG-13'}`;
   
@@ -320,23 +319,18 @@ Return ONLY valid JSON in this exact structure:
     const rating = inputs.rating || 'PG-13';
     console.log('🎬 Rating check:', { rating, hasMildProfanity, hasStrongProfanity, hasInnuendo, hasAttitude, hasXXXContent });
     
+    // Rating enforcement - updated for G/PG-13/R/Explicit system
     if (rating === 'G' && (hasMildProfanity || hasStrongProfanity || hasXXXContent)) {
       validationErrors.push('rating_violation_g');
     }
-    if (rating === 'PG' && (hasStrongProfanity || hasXXXContent)) {
-      validationErrors.push('rating_violation_pg');
-    }
-    // PG-13: REQUIRE edge - must have mild profanity OR innuendo OR savage attitude
-    if (rating === 'PG-13' && !hasMildProfanity && !hasInnuendo && !hasAttitude) {
-      validationErrors.push('missing_required_pg13_edge');
-    }
+    // PG-13: Optional edge - can have mild profanity OR innuendo OR savage attitude but not required
     // R: REQUIRE strong content - must have strong profanity OR explicit innuendo  
     if (rating === 'R' && !hasStrongProfanity && !hasInnuendo) {
       validationErrors.push('missing_required_r_content');
     }
-    // XXX: REQUIRE explicit content
-    if (rating === 'XXX' && !hasXXXContent && !hasStrongProfanity) {
-      validationErrors.push('missing_required_xxx_content');
+    // Explicit: REQUIRE explicit content
+    if (rating === 'Explicit' && !hasXXXContent && !hasStrongProfanity) {
+      validationErrors.push('missing_required_explicit_content');
     }
 
     // RELAXED Perspective enforcement - nice to have, not critical
