@@ -283,14 +283,17 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
     tags: Array.isArray(inputs.tags) ? inputs.tags : 
           (typeof inputs.tags === 'string' ? [inputs.tags] : []),
     style: inputs.style || 'standard',
-    rating: inputs.rating || 'PG-13'
+    // Auto-set PG rating for romantic/sentimental tones to avoid conflicts
+    rating: (inputs.tone === 'Romantic' || inputs.tone === 'Sentimental') 
+      ? 'PG' 
+      : (inputs.rating || 'PG-13')
   };
   
   try {
     const result = await retryWithBackoff(async () => {
       console.log('📡 Attempting Edge Function call...');
       
-      const { data, error } = await supabase.functions.invoke('generate-step2-clean', {
+      const { data, error } = await supabase.functions.invoke('generate-step2', {
         body: coercedInputs
       });
 
