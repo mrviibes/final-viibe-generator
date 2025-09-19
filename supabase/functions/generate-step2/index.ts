@@ -338,7 +338,7 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
 
 JSON: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}, {"lane": "option3", "text": "..."}, {"lane": "option4", "text": "..."}]}
 
-${lengthReq}. ${ratingDesc}.`;
+${lengthReq}. ${ratingDesc}. Use names naturally without quotation marks.`;
 }
 
 function buildUserMessage(inputs: any, previousErrors: string[] = []): string {

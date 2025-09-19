@@ -91,8 +91,8 @@ Return ONLY valid JSON in this exact structure:
 - Style must match ${inputs.style || 'standard'} selection.
 - Rating must match ${inputs.rating || 'PG-13'} selection.
 - Tags:  
-  * Quoted tags ${hardTags.length > 0 ? `(${hardTags.join(', ')})` : ''} MUST appear literally in 3 of 4 lines.  
-  * Unquoted tags ${softTags.length > 0 ? `(${softTags.join(', ')})` : ''} must NOT appear literally, but must guide style, mood, or POV.
+  * Name tags ${hardTags.length > 0 ? `(${hardTags.join(', ')})` : ''} MUST be used naturally as names in 3 of 4 lines (no quotation marks around names).  
+  * Style tags ${softTags.length > 0 ? `(${softTags.join(', ')})` : ''} must NOT appear as words, but must guide style, mood, or POV.
 
 ## COMEDIAN VOICE ASSIGNMENTS (CRITICAL - Each line MUST channel these specific voices):
 - Option 1: Channel ${selectedVoices[0]} style and delivery
