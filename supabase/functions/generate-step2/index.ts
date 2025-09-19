@@ -292,12 +292,20 @@ function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
   const softTags: string[] = [];
   
   for (const tag of tags) {
-    if (tag.startsWith('"') && tag.endsWith('"')) {
-      // Soft tag (exact phrase match)
-      softTags.push(tag.slice(1, -1));
+    const trimmed = tag.trim();
+    if (!trimmed) continue;
+    
+    // Check if starts and ends with quotes
+    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+        (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+      // Hard tag - remove quotes and store for literal inclusion
+      const unquoted = trimmed.slice(1, -1).trim();
+      if (unquoted) {
+        hardTags.push(unquoted);
+      }
     } else {
-      // Hard tag (keyword presence)
-      hardTags.push(tag);
+      // Soft tag - store lowercased for style influence only
+      softTags.push(trimmed.toLowerCase());
     }
   }
   
