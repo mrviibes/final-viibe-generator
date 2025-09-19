@@ -229,10 +229,10 @@ function getStyleDefinition(style: string): string {
 
 function getRatingDefinition(rating: string): string {
   const definitions = {
-    'PG': 'Clean, safe, playful humor. Light roasts and dad joke energy. Think Jimmy Fallon style. No profanity or innuendo.',
-    'PG-13': 'Snappy, sarcastic with mild profanity (damn, hell). Light innuendo allowed. Think Kevin Hart/Ali Wong style.',
-    'R': 'Strong profanity (fuck, shit, ass, bitch), brutal roasts, alcohol/drug jokes, sexual references. More savage than PG-13. Think Bill Burr/George Carlin style.',
-    'Explicit': 'Full NSFW with raunchy sexual humor, brutal profanity, savage personal attacks. Unapologetically dirty and ruthless. Think Amy Schumer/Joan Rivers XXX mode.'
+    'PG': 'Clean but sharp humor with clever burns. Light roasts with bite but family-friendly. Think prime Jimmy Fallon but with more edge.',
+    'PG-13': 'MUST include aggressive sarcasm with mild profanity (damn, hell, ass). Sharp innuendo and brutal roasts required. Think Kevin Hart/Ali Wong at their meanest.',
+    'R': 'MANDATORY strong profanity (fuck, shit, bitch) and brutal personal attacks. Savage roasts, alcohol/drug jokes, sexual references required. Think Bill Burr unleashed.',
+    'Explicit': 'ZERO tame lines allowed. Every line must be raunchy sexual humor, explicit content, or savage personal destruction. Think Amy Schumer/Joan Rivers at absolute maximum filth.'
   };
   
   return definitions[rating] || definitions['PG-13'];
@@ -509,32 +509,50 @@ function checkRatingCompliance(lines: Array<{lane: string, text: string}>, ratin
   const issues: string[] = [];
   
   switch (rating) {
-    case 'R':
-      const hasExplicitContent = lines.some(line => {
+    case 'PG-13':
+      // REQUIRE minimum bite - at least 2 lines must have aggressive sarcasm or mild profanity
+      const hasBite = lines.filter(line => {
         const text = line.text.toLowerCase();
-        return /\b(fuck|shit|ass|bitch)\b/.test(text) ||
-               /\b(sex|sexual|nude|naked|horny|kinky)\b/.test(text) ||
-               /\b(suck|blow|screw|bang|hard|wet|tight)\b/.test(text);
+        return /\b(damn|hell|ass|suck|crap)\b/.test(text) || 
+               /\b(loser|pathetic|disaster|fail|terrible|awful)\b/.test(text);
+      }).length >= 2;
+      
+      if (!hasBite) {
+        issues.push(`PG-13 rating requires aggressive sarcasm and bite in at least 2 lines. Must include mild profanity or savage attitude.`);
+      }
+      break;
+      
+    case 'R':
+      // REQUIRE strong profanity AND brutal attitude in multiple lines
+      const hasStrongContent = lines.filter(line => {
+        const text = line.text.toLowerCase();
+        return /\b(fuck|shit|bitch|asshole|bastard)\b/.test(text);
+      }).length >= 2;
+      
+      const hasBrutalAttitude = lines.some(line => {
+        const text = line.text.toLowerCase();
+        return /\b(pathetic|worthless|disaster|failure|joke|embarrass|humiliat)\b/.test(text);
       });
       
-      if (!hasExplicitContent) {
-        issues.push(`R-rating requires explicit content. Must include strong profanity (fuck, shit, ass, bitch) or sexual references.`);
+      if (!hasStrongContent || !hasBrutalAttitude) {
+        issues.push(`R-rating requires strong profanity in multiple lines AND brutal personal attacks. No soft lines allowed.`);
       }
       break;
       
     case 'Explicit':
-      const hasNSFWContent = lines.some(line => {
+      // ZERO tame lines - every line must be raunchy or savage
+      const explicitLines = lines.filter(line => {
         const text = line.text.toLowerCase();
-        return /\b(cock|pussy|dick|tits|orgasm|masturbate|horny)\b/.test(text) ||
-               /\b(fuck|shit|ass|bitch|bastard|asshole)\b/.test(text);
+        return /\b(cock|pussy|dick|tits|orgasm|masturbate|horny|cum|sex|naked|strip|blow|suck|hard|wet)\b/.test(text) ||
+               /\b(fuck|shit|bitch|asshole|bastard)\b/.test(text);
       });
       
-      if (!hasNSFWContent) {
-        issues.push(`Explicit rating requires NSFW content. Must include explicit sexual content or strong profanity.`);
+      if (explicitLines.length < lines.length) {
+        issues.push(`Explicit rating: ZERO tame lines allowed. Every line must contain explicit sexual content or maximum profanity.`);
       }
       break;
       
-    // PG-13 and G have no strict requirements - they're permissive rather than restrictive
+    // PG and G have no strict requirements - they're permissive rather than restrictive
   }
   
   return {

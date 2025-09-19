@@ -119,11 +119,11 @@ Return ONLY valid JSON in this exact structure:
 - Pop Culture = MUST include a celebrity, meme, or trend.
 - Wildcard = unpredictable, but still a valid joke.
 
-## Rating Map
-- G = wholesome, no profanity, no innuendo. Family-friendly only.
-- PG-13 = good humor with optional mild edge. Can include light roasting and mild profanity (damn, hell) but not required.
-- R = strong roast content. MUST include strong profanity (fuck, shit, ass, bitch), brutal roasts, sexual references, or nasty commentary. No holding back.
-- Explicit = full NSFW mode. Explicit sexual content, brutal profanity, savage personal attacks, dark humor. Absolutely ruthless and dirty.`;
+## Rating Map - MINIMUM HARSHNESS REQUIREMENTS
+- G = wholesome but clever, sharp burns allowed. Family-friendly with bite.
+- PG-13 = MUST include aggressive sarcasm, mild profanity (damn, hell, ass), and brutal roasts. Sharp innuendo required.
+- R = MANDATORY strong profanity (fuck, shit, bitch), savage personal attacks, sexual references. Brutal roasts required. No soft lines.
+- Explicit = ZERO tame lines allowed. Every line must be raunchy sexual humor, explicit content, or savage personal destruction. Maximum filth mode.`;
   
   const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG-13'}`;
   
@@ -315,21 +315,24 @@ Return ONLY valid JSON in this exact structure:
       }
     });
 
-    // STRONGER Rating enforcement 
+    // HARSHER Rating enforcement - minimum harshness requirements
     const rating = inputs.rating || 'PG-13';
     console.log('🎬 Rating check:', { rating, hasMildProfanity, hasStrongProfanity, hasInnuendo, hasAttitude, hasXXXContent });
     
-    // Rating enforcement - updated for G/PG-13/R/Explicit system
+    // Rating enforcement - MINIMUM HARSHNESS REQUIREMENTS
     if (rating === 'G' && (hasMildProfanity || hasStrongProfanity || hasXXXContent)) {
       validationErrors.push('rating_violation_g');
     }
-    // PG-13: Optional edge - can have mild profanity OR innuendo OR savage attitude but not required
-    // R: REQUIRE strong content - must have strong profanity OR explicit innuendo  
-    if (rating === 'R' && !hasStrongProfanity && !hasInnuendo) {
+    // PG-13: REQUIRE aggressive sarcasm and bite - at least 2 lines must have mild profanity OR savage attitude
+    if (rating === 'PG-13' && !(hasMildProfanity || hasAttitude)) {
+      validationErrors.push('missing_required_pg13_bite');
+    }
+    // R: REQUIRE strong content - must have strong profanity AND brutal attitude 
+    if (rating === 'R' && !(hasStrongProfanity && hasAttitude)) {
       validationErrors.push('missing_required_r_content');
     }
-    // Explicit: REQUIRE explicit content
-    if (rating === 'Explicit' && !hasXXXContent && !hasStrongProfanity) {
+    // Explicit: ZERO tame lines - require BOTH explicit content AND strong profanity
+    if (rating === 'Explicit' && !(hasXXXContent && hasStrongProfanity)) {
       validationErrors.push('missing_required_explicit_content');
     }
 
