@@ -261,11 +261,54 @@ const VISUAL_VOCABULARY = {
   }
 };
 
-// Extract action phrases and keywords from caption text with enhanced phrase detection
-function extractActionElements(text: string): { keywords: string[], actions: string[], timing: string[], actionPhrases: string[] } {
-  if (!text || typeof text !== 'string') return { keywords: [], actions: [], timing: [], actionPhrases: [] };
+// Action binding system for visual-caption matching  
+const ACTION_LEXICON = {
+  clumsy: {
+    required: ["fumble", "trip", "stumble", "miss", "bobble", "awkward", "loses grip", "drops", "clumsily"],
+    forbidden: ["dunk", "posterize", "swish", "soar", "glide", "slam", "nothing but net", "perfect", "score", "successful"]
+  },
+  bad_performance: {
+    required: ["airball", "brick", "whiff", "shank", "fails", "misses", "botches", "struggles with"],
+    forbidden: ["success", "wins", "victory", "champion", "perfect", "nails it", "crushes it"]  
+  },
+  timing_issues: {
+    required: ["too early", "too late", "before", "after", "wrong time", "premature", "patience"],
+    forbidden: ["perfect timing", "right moment", "exactly when", "flawless timing"]
+  }
+};
+
+// Enhanced action extraction with explicit binding
+function extractActionElements(text: string): { keywords: string[], actions: string[], timing: string[], actionPhrases: string[], actionBinding: { required: string[], forbidden: string[] } } {
+  if (!text || typeof text !== 'string') return { keywords: [], actions: [], timing: [], actionPhrases: [], actionBinding: { required: [], forbidden: [] } };
   
   const lowerText = text.toLowerCase();
+  
+  // Action binding analysis
+  const required: string[] = [];
+  const forbidden: string[] = [];
+  
+  // Detect clumsy/awkward performance
+  if (/clumsy|fumble|awkward|needs patience|drops|loses|trips|stumble|clumsily/i.test(text)) {
+    required.push(...ACTION_LEXICON.clumsy.required);
+    forbidden.push(...ACTION_LEXICON.clumsy.forbidden);
+  }
+  
+  // Detect bad performance indicators  
+  if (/bad|terrible|awful|fails|misses|can't|unable|struggles/i.test(text)) {
+    required.push(...ACTION_LEXICON.bad_performance.required);
+    forbidden.push(...ACTION_LEXICON.bad_performance.forbidden);
+  }
+  
+  // Detect timing-based actions
+  if (/before|after|too early|too late|wrong time|premature|patience/i.test(text)) {
+    required.push(...ACTION_LEXICON.timing_issues.required);  
+    forbidden.push(...ACTION_LEXICON.timing_issues.forbidden);
+  }
+  
+  const actionBinding = {
+    required: [...new Set(required)],
+    forbidden: [...new Set(forbidden)]
+  };
   
   // Extract timing/sequence words with context
   const timingWords = ['before', 'after', 'during', 'while', 'when', 'then', 'until', 'since', 'as'];
@@ -350,10 +393,11 @@ function extractActionElements(text: string): { keywords: string[], actions: str
     actionPhrases, 
     actions: actions.slice(0, 3), 
     timing, 
-    keywords: keywords.slice(0, 3) 
+    keywords: keywords.slice(0, 3),
+    actionBinding: { required: actionBinding.required.slice(0, 3), forbidden: actionBinding.forbidden.slice(0, 3) }
   });
   
-  return { keywords, actions, timing, actionPhrases };
+  return { keywords, actions, timing, actionPhrases, actionBinding };
 }
 
 // Case-insensitive lookup for visual vocabulary
@@ -367,9 +411,9 @@ function getVocabInsensitive(category: string, subcategory: string): { props: st
   return { props: String(match.props || ''), atmosphere: String(match.atmosphere || '') };
 }
 
-// Enhanced visual scene generation with caption-first approach
+// Enhanced visual scene generation with caption-first approach + action binding
 const SYSTEM_PROMPT_UNIVERSAL = (
-  { mode, category, subcategory, tags = [], keywords = [], actions = [], timing = [], actionPhrases = [] }: { 
+  { mode, category, subcategory, tags = [], keywords = [], actions = [], timing = [], actionPhrases = [], actionBinding = { required: [], forbidden: [] } }: { 
     mode: string; 
     category: string; 
     subcategory: string; 
@@ -378,6 +422,7 @@ const SYSTEM_PROMPT_UNIVERSAL = (
     actions?: string[];
     timing?: string[];
     actionPhrases?: string[];
+    actionBinding?: { required: string[], forbidden: string[] };
   }
 ) => {
   // Get category-specific visual vocabulary
@@ -441,10 +486,21 @@ ${actionPhrases.length > 0 ? `- EVERY option MUST visually show this COMPLETE ac
 - DO NOT default to generic ${category.toLowerCase()} scenes unless they serve the SPECIFIC joke action
 - AVOID filler like "buzzing arena, dramatic spotlights" unless they amplify the caption action
 
+${actionBinding.required.length > 0 ? `
+🎯 REQUIRED ACTION ELEMENTS (MUST INCLUDE):
+- Show these actions: ${actionBinding.required.slice(0, 4).join(', ')}
+- EVERY visual must demonstrate failure/clumsiness, NOT success` : ''}
+
+${actionBinding.forbidden.length > 0 ? `
+❌ FORBIDDEN ACTION ELEMENTS (NEVER SHOW):
+- NEVER show: ${actionBinding.forbidden.slice(0, 4).join(', ')}
+- DO NOT show successful performance when caption implies failure` : ''}
+
 ANTI-GENERIC RULES:
 - Reject generic scenes that ignore the caption's specific action
 - Every scene must visually represent what happens in the caption
 - Timing words (before/after/during) must be shown visually
+- For clumsy captions: Show FUMBLING/STRUGGLING, never dunking/succeeding
 
 ${allTags.length > 0 ? `- Include tags: ${allTags.join(', ')}` : ''}
 - Complete sentences only, no ellipses or fragments  
@@ -494,9 +550,9 @@ serve(async (req) => {
     }
 
     // Extract action elements and keywords from caption for better targeting
-    const { keywords, actions, timing, actionPhrases } = extractActionElements(final_text);
+    const { keywords, actions, timing, actionPhrases, actionBinding } = extractActionElements(final_text);
     
-    console.log('inputs', { final_text, category, subcategory, mode, layout_token, tags, keywords, actions, timing, actionPhrases });
+    console.log('inputs', { final_text, category, subcategory, mode, layout_token, tags, keywords, actions, timing, actionPhrases, actionBinding });
 
     // SIZE VALIDATION: Check if caption is likely to violate size constraints
     const sizeValidation = validateCaptionSize(final_text, layout_token);
@@ -511,7 +567,7 @@ serve(async (req) => {
       });
     }
 
-    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, category, subcategory, tags, keywords, actions, timing, actionPhrases });
+    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, category, subcategory, tags, keywords, actions, timing, actionPhrases, actionBinding });
     
     // Enhanced user prompt with explicit action requirements
     const primaryActionPhrase = actionPhrases[0] || actions[0] || '';

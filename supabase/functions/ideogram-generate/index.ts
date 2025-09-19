@@ -2,55 +2,101 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 
-// Universal Text Placement Templates with Size Constraints (inline for edge function)
+// Universal Text Placement Templates with STRICT Size Constraints (inline for edge function) 
 const universalTextPlacementTemplates = [
   {
     id: "memeTopBottom",
-    label: "Meme Top/Bottom",
+    label: "Meme Top/Bottom", 
     description: "Bold captions in clear horizontal bands at top and/or bottom",
     positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Top/bottom band - CRITICAL: Caption must occupy no more than 25% of image height.
-STYLE: Modern sans-serif, bold, high contrast, fully legible. Scale font DOWN to stay within height limit.
+PLACEMENT: Top/bottom band - ABSOLUTE MAXIMUM: Caption must occupy ≤25% of image height.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. MANDATORY: Scale font DOWN to fit constraint.
 SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear top/bottom band for the caption. DO NOT EXCEED 25% HEIGHT.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill canvas, NEVER exceed size limits`
+SIZE ENFORCEMENT: VIOLATION = IMMEDIATE REJECTION. Shrink font to stay inside band. NON-NEGOTIABLE HEIGHT LIMIT.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill canvas, NEVER exceed 25% height, REJECT if oversized`
   },
   {
     id: "negativeSpace",
     label: "Negative Space",
-    description: "Text integrated seamlessly into natural empty areas",
+    description: "Text integrated seamlessly into natural empty areas", 
     positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Natural empty margin space - CRITICAL: No more than 20% of image height.
-STYLE: Modern sans-serif, bold, high contrast, fully legible. Scale font to stay within limits.
+PLACEMENT: Natural empty margin space - ABSOLUTE MAXIMUM: ≤20% of image height.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. MANDATORY: Shrink to fit inside margin.
 SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear empty space for caption. DO NOT EXCEED 20% HEIGHT.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill space, NEVER exceed size limits`
+SIZE ENFORCEMENT: VIOLATION = IMMEDIATE REJECTION. Size limit is NON-NEGOTIABLE.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill space, NEVER exceed 20% height, REJECT if oversized`
   },
   {
     id: "lowerThird",
     label: "Lower Third Banner",
     description: "Clean banner-style caption across bottom third",
     positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Clean banner across bottom third - CRITICAL: Maximum 20% of image height.
-STYLE: Modern sans-serif, bold, high contrast, fully legible. Font size must respect height limit.
+PLACEMENT: Clean banner across bottom third - ABSOLUTE MAXIMUM: ≤20% of image height.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. MANDATORY: Use smallest readable font if needed.
 SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear bottom third within 20% height constraint.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill banner, NEVER exceed 20% height`
+SIZE ENFORCEMENT: VIOLATION = IMMEDIATE REJECTION. Font size must respect height limit. NON-NEGOTIABLE.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill banner, NEVER exceed 20% height, REJECT if oversized`
   },
   {
-    id: "subtleCaption",
+    id: "subtleCaption", 
     label: "Subtle Caption",
     description: "Minimal caption overlay, unobtrusive but legible",
     positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Small, unobtrusive - CRITICAL: Maximum 10% of image height, but fully legible.
-STYLE: Modern sans-serif, bold, high contrast, fully legible. Minimize size while maintaining readability.
+PLACEMENT: Small, unobtrusive - ABSOLUTE MAXIMUM: ≤10% of image height, but fully legible.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. MANDATORY: Minimize size while maintaining readability.
 SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear corner space within 10% height constraint.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER exceed 10% height, keep minimal but readable`
+SIZE ENFORCEMENT: VIOLATION = IMMEDIATE REJECTION. Use smallest readable font. NON-NEGOTIABLE 10% LIMIT.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER exceed 10% height, keep minimal but readable, REJECT if oversized`
   }
 ];
 
-// Build size-aware prompt with text and scene
+// Action binding system for visual-caption matching
+const ACTION_LEXICON = {
+  clumsy: {
+    required: ["fumble", "trip", "stumble", "miss", "bobble", "awkward", "loses grip", "drops"],
+    forbidden: ["dunk", "posterize", "swish", "soar", "glide", "slam", "nothing but net", "perfect", "score"]
+  },
+  bad_performance: {
+    required: ["airball", "brick", "whiff", "shank", "fails", "misses", "botches"],
+    forbidden: ["success", "wins", "victory", "champion", "perfect"]
+  },
+  timing_issues: {
+    required: ["too early", "too late", "before", "after", "wrong time"],
+    forbidden: ["perfect timing", "right moment", "exactly when"]
+  }
+};
+
+// Extract action requirements from caption
+function bindCaptionActions(caption: string): { required: string[], forbidden: string[] } {
+  const text = caption.toLowerCase();
+  const required: string[] = [];
+  const forbidden: string[] = [];
+  
+  // Detect clumsy/awkward performance
+  if (/clumsy|fumble|awkward|needs patience|drops|loses|trips|stumble/i.test(text)) {
+    required.push(...ACTION_LEXICON.clumsy.required);
+    forbidden.push(...ACTION_LEXICON.clumsy.forbidden);
+  }
+  
+  // Detect bad performance indicators  
+  if (/bad|terrible|awful|fails|misses|can't|unable|struggles/i.test(text)) {
+    required.push(...ACTION_LEXICON.bad_performance.required);
+    forbidden.push(...ACTION_LEXICON.bad_performance.forbidden);
+  }
+  
+  // Detect timing-based actions
+  if (/before|after|too early|too late|wrong time|premature/i.test(text)) {
+    required.push(...ACTION_LEXICON.timing_issues.required);  
+    forbidden.push(...ACTION_LEXICON.timing_issues.forbidden);
+  }
+  
+  return {
+    required: [...new Set(required)],
+    forbidden: [...new Set(forbidden)]
+  };
+}
+
+// Build size-aware prompt with text, scene, and action binding
 function buildSizeAwareTextPrompt(templateId: string, finalText: string, sceneDescription: string, strengthLevel: number = 1) {
   const template = universalTextPlacementTemplates.find(t => t.id === templateId);
   
@@ -66,25 +112,39 @@ function buildSizeAwareTextPrompt(templateId: string, finalText: string, sceneDe
     };
   }
   
-  let basePrompt = template.positivePrompt;
+  // Get action binding for this caption
+  const actionBinding = bindCaptionActions(finalText);
   
-  // For higher strength levels, add more emphatic size constraints
+  let basePrompt = template.positivePrompt;
+  let baseNegative = template.negativePrompt;
+  
+  // Add action requirements to scene description
+  let enhancedScene = sceneDescription;
+  if (actionBinding.required.length > 0) {
+    enhancedScene += ` REQUIRED ACTIONS: Show ${actionBinding.required.slice(0, 3).join(' OR ')} - do NOT show successful actions.`;
+  }
+  if (actionBinding.forbidden.length > 0) {
+    enhancedScene += ` FORBIDDEN: Never show ${actionBinding.forbidden.slice(0, 3).join(', ')}.`;
+  }
+  
+  // Progressive size constraint strengthening
   if (strengthLevel >= 2) {
-    basePrompt = basePrompt.replace('CRITICAL:', 'ABSOLUTE MAXIMUM:');
-    basePrompt = basePrompt.replace('DO NOT EXCEED', 'NEVER EXCEED');
+    basePrompt = basePrompt.replace('ABSOLUTE MAXIMUM:', 'CRITICAL SIZE VIOLATION ALERT:');
+    baseNegative += ', font too large, oversized text';
   }
   
   if (strengthLevel >= 3) {
-    basePrompt = basePrompt + ' MANDATORY: Use smallest readable font if necessary to stay within constraint.';
+    basePrompt = basePrompt + ' EMERGENCY SIZE REDUCTION: Use smallest readable font. Scale down aggressively.';
+    baseNegative += ', size violation detected, text overflow';
   }
   
   const positivePrompt = basePrompt
     .replace('[FINAL_TEXT]', finalText)
-    .replace('[SCENE_DESCRIPTION]', sceneDescription);
+    .replace('[SCENE_DESCRIPTION]', enhancedScene);
     
   return {
     positivePrompt,
-    negativePrompt: template.negativePrompt
+    negativePrompt: baseNegative
   };
 }
 
