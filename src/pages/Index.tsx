@@ -4623,7 +4623,18 @@ const Index = () => {
 
   // Auto-start image generation when reaching step 4
   useEffect(() => {
+    console.log('🔍 Step progression debug:', {
+      currentStep,
+      autoStartImageGen,
+      isGeneratingImage,
+      generatedImageUrl,
+      selectedTextLayout,
+      hasText: !!(selectedGeneratedOption || stepTwoText),
+    });
+    
     if (currentStep === 4 && autoStartImageGen && !isGeneratingImage && !generatedImageUrl) {
+      console.log('🚀 Auto-starting image generation...');
+      
       // Guard for barebones mode without prompt
       if (barebonesMode && !directPrompt.trim()) {
         sonnerToast.error("Please provide a direct prompt in barebones mode.");
@@ -5385,12 +5396,17 @@ const Index = () => {
     });
   };
   const handleGenerateImage = async () => {
+    console.log('🎯 handleGenerateImage called');
     const apiKey = getIdeogramApiKey();
+    console.log('🔑 API key exists:', !!apiKey);
+    
     if (!apiKey) {
+      console.log('❌ No API key, showing dialog');
       setShowIdeogramKeyDialog(true);
       return;
     }
 
+    console.log('✅ Starting image generation process');
     // Reset retry state
     setRetryAttempt(0);
     setShouldUseFallback(false);
@@ -6868,6 +6884,34 @@ const Index = () => {
                 {selectedCompletionOption !== "no-text" && (selectedCompletionOption === "ai-assist" && selectedGeneratedOption || selectedCompletionOption === "write-myself" && isCustomTextConfirmed) && !selectedTextLayout && <div className="mt-8">
                       <TextLayoutSelector selectedLayout={selectedTextLayout} onLayoutSelect={setSelectedTextLayout} />
                     </div>}
+
+                {/* Manual Generate Images Button - Show after layout is selected */}
+                {selectedTextLayout && currentStep === 2 && <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="mb-6">
+                      <p className="text-lg text-muted-foreground mb-2">Layout selected: <span className="font-semibold">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.label}</span></p>
+                      <p className="text-sm text-muted-foreground">Ready to generate your image!</p>
+                    </div>
+                    <Button 
+                      variant="brand" 
+                      size="lg"
+                      className="px-8 py-3"
+                      onClick={() => {
+                        console.log('🎯 Manual generate button clicked');
+                        setCurrentStep(4);
+                        setAutoStartImageGen(true);
+                      }}
+                      disabled={isGeneratingImage}
+                    >
+                      {isGeneratingImage ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Generating Images...
+                        </>
+                      ) : (
+                        'Generate Images'
+                      )}
+                    </Button>
+                  </div>}
 
 
 
