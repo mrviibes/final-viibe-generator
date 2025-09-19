@@ -19,33 +19,45 @@ export const universalTextPlacementTemplates: TextPlacementTemplate[] = [
     label: "Meme Top/Bottom",
     description: "Bold captions in clear horizontal bands at top and/or bottom",
     positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Top/bottom band, no more than 40% of image height.
-STYLE: Modern sans-serif, bold, high contrast, fully legible.
+PLACEMENT: Top/bottom band - CRITICAL: Caption must occupy no more than 25% of image height.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. Scale font DOWN to stay within height limit.
 SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear top/bottom band for the caption.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
+SPACE: Preserve clear top/bottom band for the caption. DO NOT EXCEED 25% HEIGHT.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill canvas, NEVER exceed size limits`,
+    strengthLevels: {
+      level2: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
+PLACEMENT: Top/bottom band - MAXIMUM 25% height constraint. Scale font smaller if needed.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. Font size must stay within bounds.
+SCENE: [SCENE_DESCRIPTION]
+SPACE: STRICTLY preserve top/bottom band within 25% height limit. NEVER overflow.`,
+      level3: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
+PLACEMENT: Top/bottom band - ABSOLUTE 25% height limit. Use smallest readable font if necessary.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. Prioritize constraint compliance over size.
+SCENE: [SCENE_DESCRIPTION]
+SPACE: MANDATORY 25% height limit. Reduce font size before breaking constraint.`
+    }
   },
   {
     id: "negativeSpace",
     label: "Negative Space",
     description: "Text integrated seamlessly into natural empty areas",
     positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Natural empty margin space, no more than 25% of image height.
-STYLE: Modern sans-serif, bold, high contrast, fully legible.
+PLACEMENT: Natural empty margin space - CRITICAL: No more than 20% of image height.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. Scale font to stay within limits.
 SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear empty space for the caption.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
+SPACE: Preserve clear empty space for caption. DO NOT EXCEED 20% HEIGHT.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill space, NEVER exceed size limits`
   },
   {
     id: "lowerThird",
     label: "Lower Third Banner",
     description: "Clean banner-style caption across bottom third",
     positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Clean banner across bottom third, no more than 25% of image height.
-STYLE: Modern sans-serif, bold, high contrast, fully legible.
+PLACEMENT: Clean banner across bottom third - CRITICAL: Maximum 20% of image height.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. Font size must respect height limit.
 SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear bottom third for the caption.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
+SPACE: Preserve clear bottom third within 20% height constraint.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill banner, NEVER exceed 20% height`
   },
   {
     id: "sideBarLeft",
@@ -74,22 +86,22 @@ SPACE: Preserve clear right panel for the caption.`,
     label: "Badge/Sticker Callout",
     description: "Text inside a clean modern badge or sticker element",
     positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Inside contained badge or sticker element, no larger than 20% of canvas area.
-STYLE: Modern sans-serif, bold, high contrast, fully legible.
+PLACEMENT: Inside contained badge or sticker element - CRITICAL: Maximum 15% of canvas area.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. Scale down to fit badge constraints.
 SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear badge area for the caption.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
+SPACE: Preserve clear badge area within 15% size limit.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER overflow badge bounds, NEVER exceed 15% area`
   },
   {
     id: "subtleCaption",
     label: "Subtle Caption",
     description: "Minimal caption overlay, unobtrusive but legible",
     positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Small, unobtrusive, less than 10% of image height, but fully legible.
-STYLE: Modern sans-serif, bold, high contrast, fully legible.
+PLACEMENT: Small, unobtrusive - CRITICAL: Maximum 10% of image height, but fully legible.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. Minimize size while maintaining readability.
 SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear corner space for the caption.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
+SPACE: Preserve clear corner space within 10% height constraint.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER exceed 10% height, keep minimal but readable`
   }
 ];
 

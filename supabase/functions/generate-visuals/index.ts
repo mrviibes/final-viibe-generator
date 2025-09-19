@@ -1,6 +1,104 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Import size validation utilities (inline for edge function)
+const LAYOUT_CONFIG = {
+  memeTopBottom: { 
+    description: "bold caption top/bottom band", 
+    token: "top_bottom_band", 
+    max_height_pct: 25,
+    success_rate: 0.95
+  },
+  lowerThird: { 
+    description: "banner caption bottom third", 
+    token: "lower_third_band", 
+    max_height_pct: 20,
+    success_rate: 0.90
+  },
+  negativeSpace: { 
+    description: "caption in natural margin", 
+    token: "negative_space_margin", 
+    max_height_pct: 20,
+    success_rate: 0.75
+  },
+  sideBarLeft: { 
+    description: "left 25% text panel", 
+    token: "left_sidebar", 
+    max_height_pct: 25,
+    success_rate: 0.85
+  },
+  badgeSticker: { 
+    description: "caption inside badge/sticker", 
+    token: "badge_element", 
+    max_height_pct: 15,
+    success_rate: 0.90
+  },
+  subtleCaption: { 
+    description: "small unobtrusive caption", 
+    token: "subtle_overlay", 
+    max_height_pct: 10,
+    success_rate: 0.80
+  }
+};
+
+// Size validation function (inline)
+function validateCaptionSize(caption: string, layoutId: string) {
+  const layoutConfig = LAYOUT_CONFIG[layoutId] || LAYOUT_CONFIG.memeTopBottom;
+  const maxHeightPct = layoutConfig.max_height_pct;
+  
+  const wordCount = caption.trim().split(/\s+/).length;
+  const charCount = caption.length;
+  const sizeIssues = [];
+  
+  // Calculate text density metrics
+  const textDensity = charCount / maxHeightPct;
+  const wordDensity = wordCount / maxHeightPct;
+  
+  let violationProbability = 0;
+  
+  // Base probability from text density
+  if (textDensity > 8) {
+    violationProbability += 0.3;
+    sizeIssues.push('high_character_density');
+  }
+  
+  if (wordDensity > 2) {
+    violationProbability += 0.3;
+    sizeIssues.push('high_word_density');
+  }
+  
+  // Penalties for very long captions
+  if (wordCount > 15) {
+    violationProbability += 0.2;
+    sizeIssues.push('excessive_word_count');
+  }
+  
+  // Layout-specific penalties
+  switch (layoutId) {
+    case 'subtleCaption':
+      if (wordCount > 8) {
+        violationProbability += 0.4;
+        sizeIssues.push('too_long_for_subtle');
+      }
+      break;
+    case 'badgeSticker':
+      if (wordCount > 6) {
+        violationProbability += 0.3;
+        sizeIssues.push('too_long_for_badge');
+      }
+      break;
+  }
+  
+  violationProbability = Math.min(1.0, violationProbability);
+  
+  return {
+    isValid: violationProbability <= 0.3,
+    violationProbability,
+    sizeIssues,
+    recommendedFontScale: violationProbability > 0.3 ? Math.max(0.6, 1.0 - (violationProbability * 0.4)) : 1.0
+  };
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -24,31 +122,31 @@ interface VisualInput {
   tags?: string[];
 }
 
-// Layout-specific text placement rules
+// Layout-specific text placement rules with size constraints
 const LAYOUT_RULES = {
   "negativeSpace": {
-    placement: "integrated into natural empty/negative space near largest margin",
-    style: "clean modern sans-serif, elegant alignment, subtle glow for readability"
+    placement: "integrated into natural empty/negative space near largest margin - MAXIMUM 20% height",
+    style: "clean modern sans-serif, elegant alignment, subtle glow for readability, SCALE DOWN to fit constraint"
   },
   "memeTopBottom": {
-    placement: "bold caption at top and/or bottom in clear bands",
-    style: "large modern sans-serif, centered, high contrast, clean stroke"
+    placement: "bold caption at top and/or bottom in clear bands - CRITICAL: Maximum 25% of image height",
+    style: "large modern sans-serif, centered, high contrast, clean stroke, REDUCE FONT SIZE to stay within 25% height limit"
   },
   "lowerThird": {
-    placement: "clean banner across bottom third",
-    style: "modern sans-serif, centered, semi-transparent band ok"
+    placement: "clean banner across bottom third - MAXIMUM 20% height constraint",
+    style: "modern sans-serif, centered, semi-transparent band ok, FONT SIZE must respect height limit"
   },
   "sideBarLeft": {
-    placement: "vertical side caption panel on left side",
-    style: "modern sans-serif, stacked/vertical layout, subtle strip"
+    placement: "vertical side caption panel on left side - MAXIMUM 25% height",
+    style: "modern sans-serif, stacked/vertical layout, subtle strip, SCALE DOWN if needed"
   },
   "badgeSticker": {
-    placement: "inside a minimal badge/sticker overlay",
-    style: "modern sans-serif, simple shape (circle/ribbon/starburst)"
+    placement: "inside a minimal badge/sticker overlay - CRITICAL: Maximum 15% of canvas area",
+    style: "modern sans-serif, simple shape (circle/ribbon/starburst), NEVER overflow badge bounds"
   },
   "subtleCaption": {
-    placement: "small caption near bottom or corner",
-    style: "elegant modern sans-serif, high contrast, subtle glow"
+    placement: "small caption near bottom or corner - MAXIMUM 10% height",
+    style: "elegant modern sans-serif, high contrast, subtle glow, MINIMIZE size while maintaining readability"
   }
 };
 
@@ -399,6 +497,19 @@ serve(async (req) => {
     const { keywords, actions, timing, actionPhrases } = extractActionElements(final_text);
     
     console.log('inputs', { final_text, category, subcategory, mode, layout_token, tags, keywords, actions, timing, actionPhrases });
+
+    // SIZE VALIDATION: Check if caption is likely to violate size constraints
+    const sizeValidation = validateCaptionSize(final_text, layout_token);
+    console.log('📏 Size validation result:', sizeValidation);
+    
+    if (!sizeValidation.isValid && sizeValidation.violationProbability > 0.5) {
+      console.warn('⚠️ High size violation probability detected:', {
+        layout: layout_token,
+        violationProbability: sizeValidation.violationProbability,
+        issues: sizeValidation.sizeIssues,
+        recommendedFontScale: sizeValidation.recommendedFontScale
+      });
+    }
 
     const system = SYSTEM_PROMPT_UNIVERSAL({ mode, category, subcategory, tags, keywords, actions, timing, actionPhrases });
     

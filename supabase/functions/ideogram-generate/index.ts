@@ -2,6 +2,92 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 
+// Universal Text Placement Templates with Size Constraints (inline for edge function)
+const universalTextPlacementTemplates = [
+  {
+    id: "memeTopBottom",
+    label: "Meme Top/Bottom",
+    description: "Bold captions in clear horizontal bands at top and/or bottom",
+    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
+PLACEMENT: Top/bottom band - CRITICAL: Caption must occupy no more than 25% of image height.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. Scale font DOWN to stay within height limit.
+SCENE: [SCENE_DESCRIPTION]
+SPACE: Preserve clear top/bottom band for the caption. DO NOT EXCEED 25% HEIGHT.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill canvas, NEVER exceed size limits`
+  },
+  {
+    id: "negativeSpace",
+    label: "Negative Space",
+    description: "Text integrated seamlessly into natural empty areas",
+    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
+PLACEMENT: Natural empty margin space - CRITICAL: No more than 20% of image height.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. Scale font to stay within limits.
+SCENE: [SCENE_DESCRIPTION]
+SPACE: Preserve clear empty space for caption. DO NOT EXCEED 20% HEIGHT.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill space, NEVER exceed size limits`
+  },
+  {
+    id: "lowerThird",
+    label: "Lower Third Banner",
+    description: "Clean banner-style caption across bottom third",
+    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
+PLACEMENT: Clean banner across bottom third - CRITICAL: Maximum 20% of image height.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. Font size must respect height limit.
+SCENE: [SCENE_DESCRIPTION]
+SPACE: Preserve clear bottom third within 20% height constraint.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER stretch text to fill banner, NEVER exceed 20% height`
+  },
+  {
+    id: "subtleCaption",
+    label: "Subtle Caption",
+    description: "Minimal caption overlay, unobtrusive but legible",
+    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
+PLACEMENT: Small, unobtrusive - CRITICAL: Maximum 10% of image height, but fully legible.
+STYLE: Modern sans-serif, bold, high contrast, fully legible. Minimize size while maintaining readability.
+SCENE: [SCENE_DESCRIPTION]
+SPACE: Preserve clear corner space within 10% height constraint.`,
+    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos, NEVER exceed 10% height, keep minimal but readable`
+  }
+];
+
+// Build size-aware prompt with text and scene
+function buildSizeAwareTextPrompt(templateId: string, finalText: string, sceneDescription: string, strengthLevel: number = 1) {
+  const template = universalTextPlacementTemplates.find(t => t.id === templateId);
+  
+  if (!template) {
+    // Default to memeTopBottom if template not found
+    const defaultTemplate = universalTextPlacementTemplates[0];
+    const positivePrompt = defaultTemplate.positivePrompt
+      .replace('[FINAL_TEXT]', finalText)
+      .replace('[SCENE_DESCRIPTION]', sceneDescription);
+    return {
+      positivePrompt,
+      negativePrompt: defaultTemplate.negativePrompt
+    };
+  }
+  
+  let basePrompt = template.positivePrompt;
+  
+  // For higher strength levels, add more emphatic size constraints
+  if (strengthLevel >= 2) {
+    basePrompt = basePrompt.replace('CRITICAL:', 'ABSOLUTE MAXIMUM:');
+    basePrompt = basePrompt.replace('DO NOT EXCEED', 'NEVER EXCEED');
+  }
+  
+  if (strengthLevel >= 3) {
+    basePrompt = basePrompt + ' MANDATORY: Use smallest readable font if necessary to stay within constraint.';
+  }
+  
+  const positivePrompt = basePrompt
+    .replace('[FINAL_TEXT]', finalText)
+    .replace('[SCENE_DESCRIPTION]', sceneDescription);
+    
+  return {
+    positivePrompt,
+    negativePrompt: template.negativePrompt
+  };
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -61,24 +147,49 @@ serve(async (req) => {
     const body = await req.json();
     console.log('Request body received:', JSON.stringify(body, null, 2));
 
-    const { prompt, aspect_ratio, style_type, model, negative_prompt } = body;
+    const { prompt, aspect_ratio, style_type, model, negative_prompt, layout_token, final_text, scene_description, strength_level } = body;
 
     if (!prompt) {
       console.error('Missing prompt in request');
       return new Response('Missing prompt', { status: 400, headers: corsHeaders });
     }
 
-    console.log('Parsed request params:', { prompt, aspect_ratio, style_type, model, negative_prompt });
+    console.log('Parsed request params:', { prompt, aspect_ratio, style_type, model, negative_prompt, layout_token, final_text, scene_description, strength_level });
+
+    // SIZE-AWARE PROMPT ENHANCEMENT: If we have layout and text info, enhance the prompt
+    let enhancedPrompt = prompt;
+    let enhancedNegativePrompt = negative_prompt || '';
+    
+    if (layout_token && final_text && scene_description) {
+      console.log('🎯 Enhancing prompt with size-aware template...');
+      const sizeAwarePrompts = buildSizeAwareTextPrompt(
+        layout_token, 
+        final_text, 
+        scene_description, 
+        strength_level || 1
+      );
+      
+      // Replace the basic prompt with the size-aware enhanced version
+      enhancedPrompt = sizeAwarePrompts.positivePrompt;
+      enhancedNegativePrompt = sizeAwarePrompts.negativePrompt;
+      
+      console.log('📏 Size-aware prompt generated:', {
+        layout: layout_token,
+        strength: strength_level || 1,
+        promptLength: enhancedPrompt.length,
+        negativePromptLength: enhancedNegativePrompt.length
+      });
+    }
 
     // Insert job record
-    console.log('Creating job record with:', { userId, guestId, prompt, negative_prompt, style_type, aspect_ratio });
+    console.log('Creating job record with:', { userId, guestId, prompt: enhancedPrompt, negative_prompt: enhancedNegativePrompt, style_type, aspect_ratio });
     const { data: job, error: jobError } = await serviceRoleClient
       .from('gen_jobs')
       .insert({
         user_id: userId,
         guest_id: guestId,
-        prompt,
-        negative_prompt: negative_prompt || '',
+        prompt: enhancedPrompt,
+        negative_prompt: enhancedNegativePrompt || '',
         style: style_type || 'DESIGN',
         aspect: aspect_ratio || 'ASPECT_1_1',
         status: 'running'
@@ -119,9 +230,9 @@ serve(async (req) => {
       
       // V3 API expects JSON with image_request wrapper
       // Handle negative prompt separately if provided, otherwise combine with positive prompt
-      const finalPrompt = negative_prompt && negative_prompt.trim() 
-        ? `${prompt}. Avoid: ${negative_prompt}` 
-        : prompt;
+      const finalPrompt = enhancedNegativePrompt && enhancedNegativePrompt.trim() 
+        ? `${enhancedPrompt}. Avoid: ${enhancedNegativePrompt}` 
+        : enhancedPrompt;
       
       const requestPayload = {
         image_request: {

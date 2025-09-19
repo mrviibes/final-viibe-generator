@@ -21,6 +21,13 @@ export type VisualValidation = {
   text_rendering_failed?: boolean;
   should_retry_with_stronger_layout?: boolean;
   suggested_retry_layout?: string;
+  size_violation_detected?: boolean;
+  caption_size_compliance?: {
+    layout: string;
+    max_height_pct: number;
+    estimated_violation_probability: number;
+    suggested_font_reduction: number;
+  };
 };
 
 const bannedPhrases = [
@@ -67,6 +74,9 @@ function normalize(s: string): string {
 export function validateVisualBatch(context: VisualContext, concepts: VisualConcept[]): VisualValidation {
   const per_concept: Array<{ lane: string; pass: boolean; reasons: string[] }> = [];
   const regenerate_mask: boolean[] = [];
+
+  // Import layout configuration for size validation
+  const { LAYOUT_CONFIG, SIZE_VALIDATION_CONFIG } = require('./textRenderingConfig');
 
   // Per concept checks
   for (const c of concepts) {
@@ -148,7 +158,42 @@ export function validateVisualBatch(context: VisualContext, concepts: VisualConc
       }
     }
 
-    // 5) Forbidden content
+    // 5) Size violation detection (heuristic-based)
+    if (context.final_text && context.final_text.trim() && context.layout_token) {
+      const layoutInfo = LAYOUT_CONFIG[context.layout_token] || LAYOUT_CONFIG.memeTopBottom;
+      const maxHeightPct = layoutInfo.max_height_pct;
+      
+      // Heuristic: Estimate size violation probability based on text length vs layout constraints
+      const textLength = context.final_text.length;
+      const wordCount = context.final_text.split(/\s+/).length;
+      
+      // Calculate text density (characters per layout area percentage)
+      const textDensity = textLength / maxHeightPct;
+      const wordDensity = wordCount / maxHeightPct;
+      
+      // Size violation probability increases with text density
+      let sizeViolationProbability = 0;
+      if (textDensity > 8) sizeViolationProbability += 0.3; // High character density
+      if (wordDensity > 2) sizeViolationProbability += 0.3; // High word density
+      if (wordCount > 15) sizeViolationProbability += 0.2; // Very long caption
+      if (maxHeightPct < 15) sizeViolationProbability += 0.2; // Small layout constraint
+      
+      // For layouts with strict size constraints, be more aggressive
+      if (context.layout_token === 'subtleCaption' && wordCount > 8) {
+        sizeViolationProbability += 0.4;
+      }
+      if (context.layout_token === 'badgeSticker' && wordCount > 6) {
+        sizeViolationProbability += 0.3;
+      }
+      
+      // Detect likely size violations
+      if (sizeViolationProbability > SIZE_VALIDATION_CONFIG.text_density_threshold) {
+        reasons.push('caption_size_violation');
+        pass = false;
+      }
+    }
+
+    // 6) Forbidden content
     if (/watermark|logo|on-image text/i.test(text)) {
       reasons.push('forbidden_content');
       pass = false;
@@ -186,14 +231,46 @@ export function validateVisualBatch(context: VisualContext, concepts: VisualConc
     p.reasons.includes('caption_text_mismatch')
   );
   
+  // Check if size violations were detected
+  const sizeViolationDetected = per_concept.some(p => 
+    p.reasons.includes('caption_size_violation')
+  );
+  
+  // Calculate size compliance details
+  let captionSizeCompliance = undefined;
+  if (context.final_text && context.layout_token) {
+    const layoutInfo = LAYOUT_CONFIG[context.layout_token] || LAYOUT_CONFIG.memeTopBottom;
+    const textLength = context.final_text.length;
+    const wordCount = context.final_text.split(/\s+/).length;
+    const textDensity = textLength / layoutInfo.max_height_pct;
+    
+    // Estimate violation probability
+    let violationProbability = Math.min(1.0, textDensity / 10); // Scale appropriately
+    if (wordCount > 15) violationProbability += 0.2;
+    if (layoutInfo.max_height_pct < 15) violationProbability += 0.1;
+    
+    // Suggest font size reduction if needed
+    const suggestedFontReduction = violationProbability > 0.3 ? 
+      Math.min(0.5, violationProbability) : 0;
+    
+    captionSizeCompliance = {
+      layout: context.layout_token,
+      max_height_pct: layoutInfo.max_height_pct,
+      estimated_violation_probability: violationProbability,
+      suggested_font_reduction: suggestedFontReduction
+    };
+  }
+  
   return { 
     overall_pass, 
     per_concept, 
     regenerate_mask, 
     batch_reasons,
     text_rendering_failed: textRenderingFailed,
-    should_retry_with_stronger_layout: textRenderingFailed,
-    suggested_retry_layout: textRenderingFailed ? 'memeTopBottom' : undefined
+    should_retry_with_stronger_layout: textRenderingFailed || sizeViolationDetected,
+    suggested_retry_layout: (textRenderingFailed || sizeViolationDetected) ? 'memeTopBottom' : undefined,
+    size_violation_detected: sizeViolationDetected,
+    caption_size_compliance: captionSizeCompliance
   };
 }
 
