@@ -32,14 +32,32 @@ const PROTECTED_IDENTITY_TRAITS = [
   'age discrimination', 'nationality', 'accent', 'family structure'
 ];
 
-// Tone Override System
-const TONE_OVERRIDES = {
-  'Sentimental': {
-    disable_force_funny: true,
-    disable_rating_quotas: true,
-    allow_clean_language: true,
-    require_positive_or_supportive: true,
-    hard_tags_required_in: 2
+// Enhanced Rule System
+const GENERATION_RULES = {
+  pop_culture: {
+    cooldown_per_batch: 1,
+    rolling_ban_last_n: 5,
+    entity_repeat_in_batch: false
+  },
+  tags: {
+    quoted_literal_in_text: true,
+    hard_tags_required_in: 3,
+    strict_enforcement: true
+  },
+  tone_overrides: {
+    'Sentimental': {
+      disable_force_funny: true,
+      disable_rating_quotas: true,
+      allow_clean_language: true,
+      require_positive_or_supportive: true,
+      hard_tags_required_in: 2
+    },
+    'Playful': {
+      disable_force_funny: true,
+      require_wordplay_or_silly: true,
+      ban_repeated_entity: true,
+      hard_tags_required_in: 3
+    }
   }
 };
 
@@ -56,9 +74,13 @@ const GRACE_FALLBACK = {
 
 let currentBatchEntity: string | null = null;
 let recentlyUsed: string[] = [];
+let batchEntityCount = 0;
 
-function selectPopCultureEntity(): string | null {
-  if (currentBatchEntity) return null; // One per batch max
+function selectPopCultureEntity(allowMultiple = false): string | null {
+  // Enforce one entity per batch rule unless explicitly allowing multiple
+  if (!allowMultiple && batchEntityCount >= GENERATION_RULES.pop_culture.cooldown_per_batch) {
+    return null;
+  }
   
   const allEntities = [
     ...ENTITY_BUCKETS['1980s_2000s'],
@@ -66,12 +88,15 @@ function selectPopCultureEntity(): string | null {
     ...ENTITY_BUCKETS['2020s']
   ];
 
+  // Rolling ban implementation
+  const maxBanLength = GENERATION_RULES.pop_culture.rolling_ban_last_n;
   const availableEntities = allEntities.filter(entity => 
-    !recentlyUsed.includes(entity)
+    !recentlyUsed.slice(-maxBanLength).includes(entity)
   );
 
   if (availableEntities.length === 0) {
-    recentlyUsed = recentlyUsed.slice(-5);
+    // Reset rolling ban if we run out of options
+    recentlyUsed = recentlyUsed.slice(-Math.floor(maxBanLength / 2));
     const resetAvailable = allEntities.filter(entity => 
       !recentlyUsed.includes(entity)
     );
@@ -82,11 +107,40 @@ function selectPopCultureEntity(): string | null {
     allEntities.filter(entity => !recentlyUsed.includes(entity));
   
   const selected = finalPool[Math.floor(Math.random() * finalPool.length)];
+  
+  // Track usage for batch and rolling ban
   currentBatchEntity = selected;
+  batchEntityCount++;
   recentlyUsed.push(selected);
   
-  if (recentlyUsed.length > 5) {
-    recentlyUsed = recentlyUsed.slice(-5);
+  // Maintain rolling ban size
+  if (recentlyUsed.length > maxBanLength) {
+    recentlyUsed = recentlyUsed.slice(-maxBanLength);
+  }
+
+  console.log('🎭 Selected entity:', selected, 'Batch count:', batchEntityCount);
+  return selected;
+}
+
+function selectDifferentEntity(): string | null {
+  const allEntities = [
+    ...ENTITY_BUCKETS['1980s_2000s'],
+    ...ENTITY_BUCKETS['2010s'], 
+    ...ENTITY_BUCKETS['2020s']
+  ];
+
+  const availableEntities = allEntities.filter(entity => 
+    entity !== currentBatchEntity && 
+    !recentlyUsed.slice(-GENERATION_RULES.pop_culture.rolling_ban_last_n).includes(entity)
+  );
+
+  if (availableEntities.length === 0) return currentBatchEntity; // Fallback
+  
+  const selected = availableEntities[Math.floor(Math.random() * availableEntities.length)];
+  recentlyUsed.push(selected);
+  
+  if (recentlyUsed.length > GENERATION_RULES.pop_culture.rolling_ban_last_n) {
+    recentlyUsed = recentlyUsed.slice(-GENERATION_RULES.pop_culture.rolling_ban_last_n);
   }
 
   return selected;
@@ -94,6 +148,7 @@ function selectPopCultureEntity(): string | null {
 
 function resetEntityBatch(): void {
   currentBatchEntity = null;
+  batchEntityCount = 0;
 }
 
 function getIdentityProtectionRules(): string {
@@ -131,6 +186,29 @@ function validateContentForIdentityViolations(text: string): string[] {
   return violations;
 }
 
+function validateTagEnforcement(lines: any[], tags: string[], tone: string): string[] {
+  const violations: string[] = [];
+  
+  if (!tags || tags.length === 0) return violations;
+  
+  const toneConfig = GENERATION_RULES.tone_overrides[tone];
+  const requiredTagLines = toneConfig?.hard_tags_required_in || GENERATION_RULES.tags.hard_tags_required_in;
+  
+  let linesWithTags = 0;
+  
+  for (const line of lines) {
+    const lineText = line.text.toLowerCase();
+    const hasTag = tags.some(tag => lineText.includes(tag.toLowerCase()));
+    if (hasTag) linesWithTags++;
+  }
+  
+  if (GENERATION_RULES.tags.strict_enforcement && linesWithTags < requiredTagLines) {
+    violations.push(`Tag enforcement failed: ${linesWithTags}/${lines.length} lines contain tags, required: ${requiredTagLines}`);
+  }
+  
+  return violations;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -160,11 +238,22 @@ async function generateWithGPT5(inputs: any): Promise<any> {
   const { category, subcategory, tone, rating, tags } = inputs;
   
   // Check tone overrides
-  const toneOverride = TONE_OVERRIDES[tone as keyof typeof TONE_OVERRIDES];
+  const toneConfig = GENERATION_RULES.tone_overrides[tone as keyof typeof GENERATION_RULES.tone_overrides];
   const isSentimental = tone === 'Sentimental';
+  const isPlayful = tone === 'Playful';
   
-  // Pop culture entity management (skip for sentimental)
-  const popCultureEntity = !isSentimental ? selectPopCultureEntity() : null;
+  // Pop culture entity management
+  let popCultureEntity = null;
+  let secondaryEntity = null;
+  
+  if (!isSentimental) {
+    popCultureEntity = selectPopCultureEntity();
+    
+    // For Playful tone or when we need variety, get a different entity for variety
+    if (isPlayful && toneConfig?.ban_repeated_entity && popCultureEntity) {
+      secondaryEntity = selectDifferentEntity();
+    }
+  }
   
   // Build dynamic prompt based on tone
   let prompt = '';
@@ -193,9 +282,16 @@ Output exactly 4 lines in this JSON format:
   ]
 }`;
   } else {
-    // Standard comedy generation with potential overrides
-    const forceComedy = !toneOverride?.disable_force_funny;
-    const requireRating = !toneOverride?.disable_rating_quotas;
+    // Standard comedy generation with enhanced controls
+    const forceComedy = !toneConfig?.disable_force_funny;
+    const requireRating = !toneConfig?.disable_rating_quotas;
+    const requiredTagLines = toneConfig?.hard_tags_required_in || GENERATION_RULES.tags.hard_tags_required_in;
+    const needsWordplay = toneConfig?.require_wordplay_or_silly;
+    
+    // Build entity references
+    const entityRefs = [];
+    if (popCultureEntity) entityRefs.push(popCultureEntity);
+    if (secondaryEntity && secondaryEntity !== popCultureEntity) entityRefs.push(secondaryEntity);
     
     prompt = `Generate exactly 4 different ${tone.toLowerCase()} text lines for a ${category} - ${subcategory} meme.
     
@@ -203,14 +299,16 @@ Tone: ${tone}
 Rating: ${rating || 'PG-13'}
 Tags to include: ${tags?.join(', ') || 'none'}
 Length: 40-80 characters per line
-${popCultureEntity ? `Pop culture reference: ${popCultureEntity}` : ''}
+${entityRefs.length > 0 ? `Pop culture references: ${entityRefs.join(', ')} (use variety, don't repeat the same reference)` : ''}
 
-Requirements:
-${forceComedy ? '- Must be funny and engaging' : '- Should match the specified tone'}
+CRITICAL REQUIREMENTS:
+${forceComedy ? '- Must be funny and engaging' : needsWordplay ? '- Use wordplay, puns, or silly comparisons' : '- Should match the specified tone'}
 ${requireRating ? `- Must match ${rating || 'PG-13'} content rating` : '- Use appropriate language'}
-- Include provided tags naturally in at least 2 lines
-- Each line should be different and unique
+- Include provided tags naturally in EXACTLY ${requiredTagLines} out of 4 lines (STRICT ENFORCEMENT)
+- Each line must be completely different and unique
+- Use DIFFERENT pop culture references if multiple are provided
 - Focus on behaviors, actions, or situations - not personal traits
+${isPlayful ? '- Prioritize wordplay and silly comparisons over harsh roasting' : ''}
 
 ${getIdentityProtectionRules()}
 
@@ -282,6 +380,13 @@ Output exactly 4 lines in this JSON format:
         }
       }
 
+      // Validate tag enforcement
+      const tagViolations = validateTagEnforcement(parsedContent.lines, tags, tone);
+      if (tagViolations.length > 0) {
+        resetEntityBatch();
+        throw new Error(`Tag enforcement failed: ${tagViolations.join(', ')}`);
+      }
+
       resetEntityBatch();
       return {
         success: true,
@@ -289,7 +394,9 @@ Output exactly 4 lines in this JSON format:
         model: MODEL,
         validated: true,
         tone: tone,
-        entityUsed: popCultureEntity || 'none'
+        entityUsed: popCultureEntity || 'none',
+        secondaryEntity: secondaryEntity || 'none',
+        tagEnforcement: `${tags?.length || 0} tags, required in ${toneConfig?.hard_tags_required_in || GENERATION_RULES.tags.hard_tags_required_in} lines`
       };
     } catch (parseError) {
       resetEntityBatch();
