@@ -782,24 +782,79 @@ Generate 4 scene concepts that work with this caption.`;
         const sanitize = (t: string) => {
           let s = String(t || '');
           const before = s;
+          
           // Remove explicit caption quotes and labeled fragments
           s = s.replace(captionLabelRe, 'caption');
           s = s.replace(quotedCaptionRe, '');
           s = s.replace(captionRe, '');
+          
           // Remove context fragments like "- Context: Birthday"
           s = s.replace(/\s*-\s*Context:\s*[^.!?]*[.!?]?/gi, '');
+          
+          // Remove any ellipses or incomplete fragments
+          s = s.replace(/\.{2,}|…/g, '');
+          s = s.replace(/\s*\.\.\.\s*/g, ' ');
+          
           // Collapse punctuation and spaces
           s = s.replace(/\s{2,}/g, ' ').replace(/\s*([,:;.!?])\s*/g, '$1 ');
           s = s.replace(/\s+/g, ' ').trim();
-          // Enforce 25-word cap for complete sentences
-          const words = s.split(/\s+/);
-          if (words.length > 25) {
-            s = words.slice(0, 25).join(' ');
-            // Ensure it ends with proper punctuation
-            if (!s.match(/[.!?]$/)) s += '.';
+          
+          // Smart sentence-aware truncation
+          if (s.length > 0) {
+            // Split into sentences
+            const sentences = s.split(/(?<=[.!?])\s+/);
+            let result = '';
+            let wordCount = 0;
+            
+            for (const sentence of sentences) {
+              const sentenceWords = sentence.trim().split(/\s+/).length;
+              
+              // If adding this sentence keeps us under 20 words, add it
+              if (wordCount + sentenceWords <= 20) {
+                result += (result ? ' ' : '') + sentence.trim();
+                wordCount += sentenceWords;
+              } else {
+                // If we have no result yet and this sentence is too long, take first part
+                if (!result && sentenceWords > 20) {
+                  const words = sentence.trim().split(/\s+/);
+                  result = words.slice(0, 18).join(' ');
+                  // Find the last good break point (comma, preposition, etc.)
+                  const lastComma = result.lastIndexOf(',');
+                  const lastPrep = Math.max(
+                    result.lastIndexOf(' in '),
+                    result.lastIndexOf(' at '),
+                    result.lastIndexOf(' with '),
+                    result.lastIndexOf(' on '),
+                    result.lastIndexOf(' around ')
+                  );
+                  
+                  if (lastComma > result.length * 0.6) {
+                    result = result.substring(0, lastComma);
+                  } else if (lastPrep > result.length * 0.6) {
+                    result = result.substring(0, lastPrep);
+                  }
+                  
+                  // Ensure proper ending
+                  if (!result.match(/[.!?]$/)) {
+                    result += '.';
+                  }
+                }
+                break;
+              }
+            }
+            
+            s = result.trim();
+            
+            // Final cleanup - ensure proper sentence ending
+            if (s && !s.match(/[.!?]$/)) {
+              s += '.';
+            }
+            
+            // Remove any remaining fragments or incomplete words
+            s = s.replace(/\s+\w{1,2}$/, ''); // Remove trailing 1-2 letter words
+            s = s.replace(/\s*,\s*$/, '.'); // Replace trailing comma with period
           }
-          // Remove any trailing ellipses or multiple dots
-          s = s.replace(/\.{2,}|…/g, '.');
+          
           console.log('🧼 Sanitized concept', { before, after: s, words: s ? s.split(/\s+/).length : 0 });
           return s;
         };
