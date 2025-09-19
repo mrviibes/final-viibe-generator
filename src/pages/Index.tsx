@@ -6712,11 +6712,6 @@ const Index = () => {
 
                 {/* Show AI Assist form when selected and no options generated yet */}
                 {selectedCompletionOption === "ai-assist" && generatedOptions.length === 0 && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="text-center mb-6">
-                      <p className="text-xl text-muted-foreground">Add tags for what you want in the image</p>
-                      <p className="text-sm text-muted-foreground/70">Props, people, mood, style. Example: cake, balloons, stadium, neon lights, vintage</p>
-                    </div>
-
                     <div className="max-w-md mx-auto space-y-6">
                       {/* Tags Input */}
                       <div className="space-y-3">
@@ -6946,11 +6941,10 @@ const Index = () => {
                          <div className="max-w-lg mx-auto space-y-6">
                             {/* Tag Input */}
                             <div className="space-y-4">
-                               <div className="text-center mb-4">
-                                  <p className="text-sm text-muted-foreground">
-                                    Add tags for props, people, or style (e.g. bald man, balloons, neon, vintage).
-                                  </p>
-                                </div>
+                                <div className="text-center mb-4">
+                                   <p className="text-xl text-muted-foreground">Add tags for what you want in the image</p>
+                                   <p className="text-sm text-muted-foreground/70">Props, people, mood, style. Example: cake, balloons, stadium, neon lights, vintage</p>
+                                 </div>
                                <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                                
                                {/* Display tags - moved above toggle */}
