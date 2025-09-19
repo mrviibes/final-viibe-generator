@@ -19,6 +19,71 @@ export function parseVisualTags(tags: string[]): { hardTags: string[]; softTags:
   return { hardTags, softTags };
 }
 
+// Extract action elements from text for better visual generation
+export function extractActionElements(text: string): { keywords: string[], actions: string[], timing: string[] } {
+  if (!text || typeof text !== 'string') return { keywords: [], actions: [], timing: [] };
+  
+  const lowerText = text.toLowerCase();
+  
+  // Extract timing/sequence words
+  const timingWords = ['before', 'after', 'during', 'while', 'when', 'then', 'until', 'since', 'as'];
+  const timing = timingWords.filter(word => lowerText.includes(word));
+  
+  // Extract action verbs and verb phrases
+  const actionPatterns = [
+    /\b(calls?|calling|called)\s+[a-z\s]{1,20}/g,
+    /\b(gets?|getting|got)\s+[a-z\s]{1,20}/g,
+    /\b(throws?|throwing|threw)\s+[a-z\s]{1,20}/g,
+    /\b(jumps?|jumping|jumped)\s+[a-z\s]{1,20}/g,
+    /\b(runs?|running|ran)\s+[a-z\s]{1,20}/g,
+    /\b(plays?|playing|played)\s+[a-z\s]{1,20}/g,
+    /\b(sits?|sitting|sat)\s+[a-z\s]{1,20}/g,
+    /\b(stands?|standing|stood)\s+[a-z\s]{1,20}/g,
+    /\b(walks?|walking|walked)\s+[a-z\s]{1,20}/g,
+    /\b(says?|saying|said)\s+[a-z\s]{1,20}/g,
+    /\b(does|doing|did)\s+[a-z\s]{1,20}/g,
+    /\b(makes?|making|made)\s+[a-z\s]{1,20}/g
+  ];
+  
+  const actions: string[] = [];
+  for (const pattern of actionPatterns) {
+    const matches = lowerText.match(pattern);
+    if (matches) {
+      actions.push(...matches.map(m => m.trim()));
+    }
+  }
+  
+  // Extract keywords (keep existing logic)
+  const stopWords = new Set([
+    'the', 'is', 'at', 'which', 'on', 'and', 'a', 'to', 'are', 'as', 'was', 'were',
+    'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+    'should', 'may', 'might', 'can', 'shall', 'must', 'ought', 'i', 'you', 'he', 'she',
+    'it', 'we', 'they', 'them', 'their', 'what', 'where', 'when', 'why', 'how', 'all',
+    'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor',
+    'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'but', 'like',
+    'me', 'my', 'myself', 'this', 'that', 'these', 'those', 'am', 'an', 'for', 'in',
+    'of', 'or', 'with', 'from', 'up', 'about', 'into', 'through', 'during', 'before',
+    'after', 'above', 'below', 'between', 'again', 'further', 'then', 'once'
+  ]);
+
+  const words = text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => 
+      word.length > 2 && 
+      !stopWords.has(word) && 
+      !word.match(/^\d+$/)
+    );
+
+  const uniqueWords = Array.from(new Set(words));
+  const keywords = uniqueWords
+    .sort((a, b) => b.length - a.length)
+    .slice(0, 5);
+
+  return { keywords, actions, timing };
+}
+
 export function normalizeTypography(text: string): string {
   return text
     // Convert curly quotes to straight quotes

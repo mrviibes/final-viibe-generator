@@ -163,11 +163,41 @@ const VISUAL_VOCABULARY = {
   }
 };
 
-// Extract meaningful keywords from caption text
-function extractKeywords(text: string): string[] {
-  if (!text || typeof text !== 'string') return [];
+// Extract action phrases and keywords from caption text
+function extractActionElements(text: string): { keywords: string[], actions: string[], timing: string[] } {
+  if (!text || typeof text !== 'string') return { keywords: [], actions: [], timing: [] };
   
-  // Common stop words to filter out
+  const lowerText = text.toLowerCase();
+  
+  // Extract timing/sequence words
+  const timingWords = ['before', 'after', 'during', 'while', 'when', 'then', 'until', 'since', 'as'];
+  const timing = timingWords.filter(word => lowerText.includes(word));
+  
+  // Extract action verbs and verb phrases
+  const actionPatterns = [
+    /\b(calls?|calling|called)\s+[a-z\s]{1,20}/g,
+    /\b(gets?|getting|got)\s+[a-z\s]{1,20}/g,
+    /\b(throws?|throwing|threw)\s+[a-z\s]{1,20}/g,
+    /\b(jumps?|jumping|jumped)\s+[a-z\s]{1,20}/g,
+    /\b(runs?|running|ran)\s+[a-z\s]{1,20}/g,
+    /\b(plays?|playing|played)\s+[a-z\s]{1,20}/g,
+    /\b(sits?|sitting|sat)\s+[a-z\s]{1,20}/g,
+    /\b(stands?|standing|stood)\s+[a-z\s]{1,20}/g,
+    /\b(walks?|walking|walked)\s+[a-z\s]{1,20}/g,
+    /\b(says?|saying|said)\s+[a-z\s]{1,20}/g,
+    /\b(does|doing|did)\s+[a-z\s]{1,20}/g,
+    /\b(makes?|making|made)\s+[a-z\s]{1,20}/g
+  ];
+  
+  const actions: string[] = [];
+  for (const pattern of actionPatterns) {
+    const matches = lowerText.match(pattern);
+    if (matches) {
+      actions.push(...matches.map(m => m.trim()));
+    }
+  }
+  
+  // Common stop words to filter out from keywords
   const stopWords = new Set([
     'the', 'is', 'at', 'which', 'on', 'and', 'a', 'to', 'are', 'as', 'was', 'were',
     'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
@@ -180,22 +210,23 @@ function extractKeywords(text: string): string[] {
     'after', 'above', 'below', 'between', 'again', 'further', 'then', 'once'
   ]);
 
-  // Extract words, clean them up, and filter
+  // Extract keywords (nouns and meaningful words)
   const words = text
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
+    .replace(/[^\w\s]/g, ' ')
     .split(/\s+/)
     .filter(word => 
-      word.length > 2 && // At least 3 characters
-      !stopWords.has(word) && // Not a stop word
-      !word.match(/^\d+$/) // Not just numbers
+      word.length > 2 && 
+      !stopWords.has(word) && 
+      !word.match(/^\d+$/)
     );
 
-  // Get unique words and prioritize longer, more meaningful ones
   const uniqueWords = Array.from(new Set(words));
-  return uniqueWords
-    .sort((a, b) => b.length - a.length) // Longer words first
-    .slice(0, 5); // Top 5 keywords
+  const keywords = uniqueWords
+    .sort((a, b) => b.length - a.length)
+    .slice(0, 5);
+
+  return { keywords, actions, timing };
 }
 
 // Case-insensitive lookup for visual vocabulary
@@ -211,12 +242,14 @@ function getVocabInsensitive(category: string, subcategory: string): { props: st
 
 // Enhanced visual scene generation with caption-first approach
 const SYSTEM_PROMPT_UNIVERSAL = (
-  { mode, category, subcategory, tags = [], keywords = [] }: { 
+  { mode, category, subcategory, tags = [], keywords = [], actions = [], timing = [] }: { 
     mode: string; 
     category: string; 
     subcategory: string; 
     tags?: string[]; 
-    keywords?: string[] 
+    keywords?: string[];
+    actions?: string[];
+    timing?: string[];
   }
 ) => {
   // Get category-specific visual vocabulary
@@ -243,6 +276,10 @@ const SYSTEM_PROMPT_UNIVERSAL = (
   
   const keywordSection = keywords.length > 0 ? `
 Caption Keywords: ${keywords.join(', ')}` : '';
+  const actionSection = actions.length > 0 ? `
+Action Elements: ${actions.join(', ')}` : '';
+  const timingSection = timing.length > 0 ? `
+Timing Words: ${timing.join(', ')}` : '';
   
   const captionPriority = config.captionWeight > 0.5 ? 'CAPTION-FIRST' : 'CATEGORY-FIRST';
   const funnyCount = config.funnyExactly;
@@ -252,13 +289,13 @@ Caption Keywords: ${keywords.join(', ')}` : '';
 Category: ${category}/${subcategory}
 Mode: ${mode}
 ${vocab.props ? `Props: ${vocab.props}` : ''}
-${vocab.atmosphere ? `Mood: ${vocab.atmosphere}` : ''}${keywordSection}
+${vocab.atmosphere ? `Mood: ${vocab.atmosphere}` : ''}${keywordSection}${actionSection}${timingSection}
 
 ROLE REQUIREMENTS:
-- Option 1: ${captionPriority === 'CAPTION-FIRST' ? 'Serious scene directly tied to caption keywords' : 'Professional category focus with caption nod'}
-- Option 2: ${captionPriority === 'CAPTION-FIRST' ? 'Serious category context with caption elements' : 'Caption-influenced category scene'}
-- Option 3: ${funnyCount >= 2 ? 'FUNNY GAG tied to caption (exaggeration/irony)' : captionPriority === 'CAPTION-FIRST' ? 'Caption-influenced scene' : 'Category scene with caption hint'}
-- Option 4: ${funnyCount >= 2 ? 'FUNNY ABSURD/SURREAL take on caption' : captionPriority === 'CAPTION-FIRST' ? 'Creative caption interpretation' : 'Category scene variation'}
+- Option 1: Serious scene SHOWING the specific action/timing from caption
+- Option 2: Serious category context but MUST include the caption's action
+- Option 3: FUNNY GAG exaggerating the caption's action (oversized props, slapstick timing)
+- Option 4: FUNNY ABSURD/SURREAL version of the caption's action (impossible physics, dream logic)
 
 ${funnyCount >= 2 ? `
 ⚠️ OPTIONS 3 & 4 MUST BE OBVIOUSLY FUNNY ⚠️
@@ -266,12 +303,20 @@ ${funnyCount >= 2 ? `
 - Option 4: ${comedians.option4.name} style absurd/surreal with impossible physics, dream logic
 ` : ''}
 
-CAPTION TIE REQUIREMENTS:
-- Option 1 MUST include ≥1 keyword from: ${keywords.slice(0, 3).join(', ')}
-- ${captionPriority === 'CAPTION-FIRST' ? 'All options should reference caption theme' : 'At least 2 options should hint at caption'}
+CAPTION ACTION REQUIREMENTS (CRITICAL):
+- EVERY option MUST show the specific action/sequence from the caption
+- Option 1 MUST include ≥1 action element: ${actions.slice(0, 2).join(' OR ')}
+- ALL options must preserve timing/sequence: ${timing.join(', ') || 'the order of events'}
+- DO NOT default to generic ${category.toLowerCase()} props unless they serve the joke action
+- AVOID filler like "buzzing arena, dramatic spotlights" unless they amplify the caption action
+
+ANTI-GENERIC RULES:
+- Reject generic scenes that ignore the caption's specific action
+- Every scene must visually represent what happens in the caption
+- Timing words (before/after/during) must be shown visually
 
 ${allTags.length > 0 ? `- Include tags: ${allTags.join(', ')}` : ''}
-- Complete sentences only, no ellipses or fragments
+- Complete sentences only, no ellipses or fragments  
 - No visible text/words in scenes
 
 Generate 4 scene concepts as JSON:
@@ -317,12 +362,12 @@ serve(async (req) => {
       });
     }
 
-    // Extract keywords from caption for better targeting
-    const keywords = extractKeywords(final_text);
+    // Extract action elements and keywords from caption for better targeting
+    const { keywords, actions, timing } = extractActionElements(final_text);
     
-    console.log('inputs', { final_text, category, subcategory, mode, layout_token, tags, keywords });
+    console.log('inputs', { final_text, category, subcategory, mode, layout_token, tags, keywords, actions, timing });
 
-    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, category, subcategory, tags, keywords });
+    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, category, subcategory, tags, keywords, actions, timing });
     const user = `Caption: "${final_text}"
 ${tags.length > 0 ? `Tags: ${tags.join(', ')}` : ''}
 
@@ -407,7 +452,7 @@ Generate 4 scene concepts that work with this caption.`;
           continue;
         }
 
-        // Validate that Options 3 & 4 contain funny elements
+        // Enhanced validation: check for action elements and funny content
         const funnyKeywords = [
           'gigantic', 'enormous', 'oversized', 'massive', 'towering', 'giant',
           'ridiculous', 'absurd', 'bizarre', 'weird', 'strange', 'impossible',
@@ -423,8 +468,34 @@ Generate 4 scene concepts that work with this caption.`;
                  /\b(impossible|defying|floating|flying|morphing)\b/i.test(text);
         };
         
+        // Check if concepts contain action elements from caption
+        const hasActionElements = (text: string) => {
+          if (actions.length === 0) return true; // No specific actions to check
+          const lowerText = text.toLowerCase();
+          return actions.some(action => {
+            const actionWords = action.split(/\s+/);
+            return actionWords.some(word => lowerText.includes(word));
+          });
+        };
+        
+        // Check timing preservation
+        const hasTimingElements = (text: string) => {
+          if (timing.length === 0) return true; // No timing to check
+          const lowerText = text.toLowerCase();
+          return timing.some(timeWord => lowerText.includes(timeWord)) ||
+                 /\b(before|after|during|while|then|first|next|suddenly)\b/i.test(text);
+        };
+        
+        const option1HasAction = hasActionElements(out.concepts[0]?.text || '');
         const option3Funny = out.concepts[2] && isFunny(out.concepts[2].text || '');
         const option4Funny = out.concepts[3] && isFunny(out.concepts[3].text || '');
+        
+        if (!option1HasAction) {
+          console.log(`${modelConfig.name} Option 1 missing action elements, trying next model`);
+          console.log('Option 1 text:', out.concepts[0]?.text);
+          console.log('Expected actions:', actions);
+          continue;
+        }
         
         if (!option3Funny || !option4Funny) {
           console.log(`${modelConfig.name} Options 3 & 4 not funny enough (3: ${option3Funny}, 4: ${option4Funny}), trying next model`);
@@ -468,10 +539,10 @@ Generate 4 scene concepts that work with this caption.`;
           // Collapse punctuation and spaces
           s = s.replace(/\s{2,}/g, ' ').replace(/\s*([,:;.!?])\s*/g, '$1 ');
           s = s.replace(/\s+/g, ' ').trim();
-          // Enforce 18-word cap WITHOUT adding ellipses
+          // Enforce 25-word cap for complete sentences
           const words = s.split(/\s+/);
-          if (words.length > 18) {
-            s = words.slice(0, 18).join(' ');
+          if (words.length > 25) {
+            s = words.slice(0, 25).join(' ');
             // Ensure it ends with proper punctuation
             if (!s.match(/[.!?]$/)) s += '.';
           }
