@@ -176,9 +176,9 @@ ${vocab.atmosphere ? `Mood: ${vocab.atmosphere}` : ''}${keywordSection}
 
 Rules:
 - Option 1 MUST show the literal scene/action described by the caption keywords (${keywords.slice(0, 3).join(', ')}). If caption mentions dreams, show dream bubbles/thought clouds with the dream content visible. If caption mentions specific animals/objects (squirrels, dogs, etc.), they must be prominently featured in the scene.
-- Option 2 should focus on category/subcategory elements
-- Option 3 should be a creative twist connecting keywords and category
-- Option 4 should be an alternative approach
+- Option 2 should focus on category/subcategory elements (safe, neutral approach)
+- Option 3 MUST be a funny gag visual (exaggerated or ironic). Think over-the-top scenarios, unexpected juxtapositions, or ironic twists. Example: If caption mentions "rebooting like a Kardashian marriage" show a wedding altar mid-glitch with bride/groom frozen like a buffering video.
+- Option 4 MUST be a funny gag visual (absurdist or satirical). Think completely unexpected scenarios or satirical takes. Example: A judge holding a giant "Divorce Approved" stamp with paparazzi flashing cameras in background.
 ${hardTags.length > 0 ? `- Include: ${hardTags.join(', ')}` : ''}
 ${softTags.length > 0 ? `- Style: ${softTags.join(', ')}` : ''}
 - Scene description only, complete sentences
