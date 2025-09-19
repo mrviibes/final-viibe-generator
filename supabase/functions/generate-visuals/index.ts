@@ -238,16 +238,26 @@ Style: ${mode}
 ${vocab.props ? `Props: ${vocab.props}` : ''}
 ${vocab.atmosphere ? `Mood: ${vocab.atmosphere}` : ''}${keywordSection}
 
-Rules:
-- Option 1 MUST show the literal scene/action described by the caption keywords (${keywords.slice(0, 3).join(', ')}). If caption mentions dreams, show dream bubbles/thought clouds with the dream content visible. If caption mentions specific animals/objects (squirrels, dogs, etc.), they must be prominently featured in the scene.
-- Option 2 should focus on category/subcategory elements (safe, neutral approach)
-- Option 3 MUST be a funny gag visual in ${comedians.option3.name} style: ${comedians.option3.scenario_approach}. Think exaggerated scenarios, unexpected juxtapositions, or ironic twists with ${comedians.option3.visual_style}.
-- Option 4 MUST be a funny absurdist visual in ${comedians.option4.name} style: ${comedians.option4.scenario_approach}. Think completely unexpected scenarios or satirical takes with ${comedians.option4.visual_style}.
+CRITICAL REQUIREMENTS:
+- Option 1: Literal scene showing caption keywords (${keywords.slice(0, 3).join(', ')}). If caption mentions dreams, show dream bubbles/thought clouds. If animals/objects mentioned, they MUST be prominently featured.
+- Option 2: Safe category/subcategory focus - serious, cinematic, professional approach.
+
+⚠️ OPTIONS 3 & 4 MUST BE OBVIOUSLY FUNNY - NO SERIOUS/DRAMATIC SCENES ALLOWED ⚠️
+
+- Option 3: FUNNY GAG in ${comedians.option3.name} style (${comedians.option3.visual_style}): ${comedians.option3.scenario_approach}
+  * MUST include: oversized props, ridiculous situations, visual punchlines, slapstick elements
+  * FORBIDDEN: realistic sports photography, dramatic lighting, cinematic poses, standard compositions
+  * Examples: gigantic sneakers towering over person, equipment behaving like pets, absurdly oversized everyday objects
+
+- Option 4: ABSURD/SURREAL in ${comedians.option4.name} style (${comedians.option4.visual_style}): ${comedians.option4.scenario_approach}
+  * MUST include: impossible physics, bizarre transformations, dream-logic scenarios, Dali-esque weirdness
+  * FORBIDDEN: normal-sized objects, realistic scenarios, standard sports/category setups
+  * Examples: objects turning into other objects, gravity-defying scenes, impossible architectural spaces
+
 ${hardTags.length > 0 ? `- Include: ${hardTags.join(', ')}` : ''}
-${softTags.length > 0 ? `- Style: ${softTags.join(', ')}` : ''}
-- Scene description only, complete sentences
-- No text/words visible in scene
-- No ellipses or fragments
+${softTags.length > 0 ? `- Style influence: ${softTags.join(', ')}` : ''}
+- Complete sentences only, no ellipses or fragments
+- No visible text/words in scenes
 
 Return JSON:
 {
@@ -379,6 +389,32 @@ Generate 4 scene concepts that work with this caption.`;
         // Validate structure
         if (!Array.isArray(out?.concepts) || out.concepts.length !== 4) {
           console.log(`${modelConfig.name} returned bad structure, trying next model`);
+          continue;
+        }
+
+        // Validate that Options 3 & 4 contain funny elements
+        const funnyKeywords = [
+          'gigantic', 'enormous', 'oversized', 'massive', 'towering', 'giant',
+          'ridiculous', 'absurd', 'bizarre', 'weird', 'strange', 'impossible',
+          'exaggerated', 'comical', 'silly', 'goofy', 'outrageous', 'wild',
+          'floating', 'flying', 'transformed', 'morphing', 'melting', 'warped',
+          'upside-down', 'backwards', 'twisted', 'distorted', 'surreal', 'dreamy'
+        ];
+        
+        const isFunny = (text: string) => {
+          const lowerText = text.toLowerCase();
+          return funnyKeywords.some(keyword => lowerText.includes(keyword)) ||
+                 /\b(ten feet|20 feet|giant|huge|tiny|miniature)\b/i.test(text) ||
+                 /\b(impossible|defying|floating|flying|morphing)\b/i.test(text);
+        };
+        
+        const option3Funny = out.concepts[2] && isFunny(out.concepts[2].text || '');
+        const option4Funny = out.concepts[3] && isFunny(out.concepts[3].text || '');
+        
+        if (!option3Funny || !option4Funny) {
+          console.log(`${modelConfig.name} Options 3 & 4 not funny enough (3: ${option3Funny}, 4: ${option4Funny}), trying next model`);
+          console.log('Option 3 text:', out.concepts[2]?.text);
+          console.log('Option 4 text:', out.concepts[3]?.text);
           continue;
         }
 
