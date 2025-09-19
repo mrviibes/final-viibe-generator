@@ -175,7 +175,7 @@ ${vocab.props ? `Props: ${vocab.props}` : ''}
 ${vocab.atmosphere ? `Mood: ${vocab.atmosphere}` : ''}${keywordSection}
 
 Rules:
-- Option 1 MUST directly incorporate at least one caption keyword visually (${keywords.slice(0, 3).join(', ')})
+- Option 1 MUST show the literal scene/action described by the caption keywords (${keywords.slice(0, 3).join(', ')}). If caption mentions dreams, show dream bubbles/thought clouds with the dream content visible. If caption mentions specific animals/objects (squirrels, dogs, etc.), they must be prominently featured in the scene.
 - Option 2 should focus on category/subcategory elements
 - Option 3 should be a creative twist connecting keywords and category
 - Option 4 should be an alternative approach
