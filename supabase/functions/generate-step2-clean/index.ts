@@ -141,43 +141,33 @@ async function generateWithGPT5(inputs: any): Promise<any> {
   const identityRules = getIdentityProtectionRules();
 
   const prompt = `
-  You are the ultimate creative comedy writer. Your goal is to generate edgy, hilarious, and viral-worthy content based on user inputs. You MUST follow all rules.
+  You are a creative meme text generator. Generate 4 different short text lines for a meme based on the inputs.
 
   Category: ${category}
   Subcategory: ${subcategory}
-  Overall Tone: ${tone}
+  Tone: ${tone}
   Content Rating: ${rating || 'PG-13'}
   Keywords/Tags: ${tags?.join(', ') || 'none'}
-  Word Limit: ${wordLimit || '25'} words
+  Word Limit: Keep each line under ${wordLimit || '25'} words
 
-  ADDITIONAL CONTEXT:
-  - Incorporate current pop culture trends and references to maximize shareability.
-  - Use slang, abbreviations, and internet humor where appropriate to appeal to a younger audience.
-  - Be concise and to-the-point; every word counts.
-  - Inject unexpected twists and dark humor to stand out.
-  - Use emojis sparingly but effectively to enhance the message.
-  - Include a relevant and funny image prompt for DALL-E 3 to generate a visual.
-
-  MANDATORY RULES:
-  - The content MUST be extremely edgy and funny.
-  - The content MUST be short, attention-grabbing, and optimized for social media.
-  - The content MUST include a DALL-E 3 image prompt.
-  - The content MUST be appropriate for the specified content rating.
-  - The content MUST incorporate the specified keywords/tags.
-  - The content MUST be within the specified word limit.
-  - The content MUST follow all identity protection rules.
-  - The content MUST use the specified tone.
-  - The content MUST be in the specified category and subcategory.
-  - The content MUST incorporate a pop culture reference.
+  RULES:
+  - Generate exactly 4 different variations of meme text
+  - Keep it ${tone} in tone
+  - Make it relevant to ${category}/${subcategory}
+  - Each line should be short and punchy
+  - Follow all identity protection rules
+  ${popCultureEntity ? `- Optionally reference: ${popCultureEntity}` : ''}
 
   ${identityRules}
 
-  OUTPUT FORMAT:
+  OUTPUT FORMAT (return valid JSON):
   {
-    "content": "Your generated content here",
-    "imagePrompt": "DALL-E 3 image prompt here",
-    "identityViolations": ["list any violations here"],
-    "entityUsed": "the pop culture entity used"
+    "lines": [
+      {"lane": "option1", "text": "First text variation here"},
+      {"lane": "option2", "text": "Second text variation here"}, 
+      {"lane": "option3", "text": "Third text variation here"},
+      {"lane": "option4", "text": "Fourth text variation here"}
+    ]
   }
   `;
 
@@ -219,24 +209,38 @@ async function generateWithGPT5(inputs: any): Promise<any> {
       const parsedContent = JSON.parse(rawContent);
       console.log('Parsed Content:', parsedContent);
 
-      const identityViolations = validateContentForIdentityViolations(parsedContent.content);
-      if (identityViolations.length > 0) {
+      // Validate that we got the expected lines array
+      if (!parsedContent.lines || !Array.isArray(parsedContent.lines) || parsedContent.lines.length !== 4) {
         resetEntityBatch();
-        console.warn('Identity Violations:', identityViolations);
+        throw new Error('Invalid response structure: Expected lines array with 4 items');
+      }
+
+      // Check each line for identity violations
+      const allViolations: string[] = [];
+      for (const line of parsedContent.lines) {
+        if (line.text) {
+          const violations = validateContentForIdentityViolations(line.text);
+          allViolations.push(...violations);
+        }
+      }
+
+      if (allViolations.length > 0) {
+        resetEntityBatch();
+        console.warn('Identity Violations:', allViolations);
         return {
-          error: `Identity violations found: ${identityViolations.join(', ')}`,
+          error: `Identity violations found: ${allViolations.join(', ')}`,
           success: false,
           model: MODEL,
           validated: false,
-          identityViolations,
+          identityViolations: allViolations,
           entityUsed: popCultureEntity || 'none'
         };
       }
 
       resetEntityBatch();
       return {
-        ...parsedContent,
         success: true,
+        lines: parsedContent.lines,
         model: MODEL,
         validated: true,
         identityViolations: [],
