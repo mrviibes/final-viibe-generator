@@ -163,30 +163,52 @@ const VISUAL_VOCABULARY = {
   }
 };
 
-// Extract action phrases and keywords from caption text
-function extractActionElements(text: string): { keywords: string[], actions: string[], timing: string[] } {
-  if (!text || typeof text !== 'string') return { keywords: [], actions: [], timing: [] };
+// Extract action phrases and keywords from caption text with enhanced phrase detection
+function extractActionElements(text: string): { keywords: string[], actions: string[], timing: string[], actionPhrases: string[] } {
+  if (!text || typeof text !== 'string') return { keywords: [], actions: [], timing: [], actionPhrases: [] };
   
   const lowerText = text.toLowerCase();
   
-  // Extract timing/sequence words
+  // Extract timing/sequence words with context
   const timingWords = ['before', 'after', 'during', 'while', 'when', 'then', 'until', 'since', 'as'];
   const timing = timingWords.filter(word => lowerText.includes(word));
   
-  // Extract action verbs and verb phrases
+  // Enhanced action phrase extraction - capture complete sequences
+  const actionPhrasePatterns = [
+    // Captures "calls a foul before the jump ball"
+    /\b(calls?|calling|called)\s+[a-z\s]+?\b(before|after|during|while|when)\s+[a-z\s]+?\b(ball|game|play|match)/g,
+    // Captures "throws something at someone"  
+    /\b(throws?|throwing|threw)\s+[a-z\s]+?\b(at|to|toward)\s+[a-z\s]+/g,
+    // Captures "gets ready for something"
+    /\b(gets?|getting|got)\s+[a-z\s]+?\b(for|before|after)\s+[a-z\s]+/g,
+    // Captures "jumps/runs/plays before/after something"
+    /\b(jumps?|jumping|jumped|runs?|running|ran|plays?|playing|played)\s+[a-z\s]+?\b(before|after|during|while|when)\s+[a-z\s]+/g,
+    // Captures "says/does something when something happens"
+    /\b(says?|saying|said|does|doing|did)\s+[a-z\s]+?\b(when|while|before|after)\s+[a-z\s]+/g,
+  ];
+  
+  const actionPhrases: string[] = [];
+  for (const pattern of actionPhrasePatterns) {
+    const matches = lowerText.match(pattern);
+    if (matches) {
+      actionPhrases.push(...matches.map(m => m.trim()));
+    }
+  }
+  
+  // Extract individual action verbs (fallback for simpler actions)
   const actionPatterns = [
-    /\b(calls?|calling|called)\s+[a-z\s]{1,20}/g,
-    /\b(gets?|getting|got)\s+[a-z\s]{1,20}/g,
-    /\b(throws?|throwing|threw)\s+[a-z\s]{1,20}/g,
-    /\b(jumps?|jumping|jumped)\s+[a-z\s]{1,20}/g,
-    /\b(runs?|running|ran)\s+[a-z\s]{1,20}/g,
-    /\b(plays?|playing|played)\s+[a-z\s]{1,20}/g,
-    /\b(sits?|sitting|sat)\s+[a-z\s]{1,20}/g,
-    /\b(stands?|standing|stood)\s+[a-z\s]{1,20}/g,
-    /\b(walks?|walking|walked)\s+[a-z\s]{1,20}/g,
-    /\b(says?|saying|said)\s+[a-z\s]{1,20}/g,
-    /\b(does|doing|did)\s+[a-z\s]{1,20}/g,
-    /\b(makes?|making|made)\s+[a-z\s]{1,20}/g
+    /\b(calls?|calling|called)\s+[a-z\s]{1,15}/g,
+    /\b(gets?|getting|got)\s+[a-z\s]{1,15}/g,
+    /\b(throws?|throwing|threw)\s+[a-z\s]{1,15}/g,
+    /\b(jumps?|jumping|jumped)\s+[a-z\s]{1,15}/g,
+    /\b(runs?|running|ran)\s+[a-z\s]{1,15}/g,
+    /\b(plays?|playing|played)\s+[a-z\s]{1,15}/g,
+    /\b(sits?|sitting|sat)\s+[a-z\s]{1,15}/g,
+    /\b(stands?|standing|stood)\s+[a-z\s]{1,15}/g,
+    /\b(walks?|walking|walked)\s+[a-z\s]{1,15}/g,
+    /\b(says?|saying|said)\s+[a-z\s]{1,15}/g,
+    /\b(does|doing|did)\s+[a-z\s]{1,15}/g,
+    /\b(makes?|making|made)\s+[a-z\s]{1,15}/g
   ];
   
   const actions: string[] = [];
@@ -226,7 +248,14 @@ function extractActionElements(text: string): { keywords: string[], actions: str
     .sort((a, b) => b.length - a.length)
     .slice(0, 5);
 
-  return { keywords, actions, timing };
+  console.log('🎯 Action extraction results:', { 
+    actionPhrases, 
+    actions: actions.slice(0, 3), 
+    timing, 
+    keywords: keywords.slice(0, 3) 
+  });
+  
+  return { keywords, actions, timing, actionPhrases };
 }
 
 // Case-insensitive lookup for visual vocabulary
@@ -242,7 +271,7 @@ function getVocabInsensitive(category: string, subcategory: string): { props: st
 
 // Enhanced visual scene generation with caption-first approach
 const SYSTEM_PROMPT_UNIVERSAL = (
-  { mode, category, subcategory, tags = [], keywords = [], actions = [], timing = [] }: { 
+  { mode, category, subcategory, tags = [], keywords = [], actions = [], timing = [], actionPhrases = [] }: { 
     mode: string; 
     category: string; 
     subcategory: string; 
@@ -250,6 +279,7 @@ const SYSTEM_PROMPT_UNIVERSAL = (
     keywords?: string[];
     actions?: string[];
     timing?: string[];
+    actionPhrases?: string[];
   }
 ) => {
   // Get category-specific visual vocabulary
@@ -280,6 +310,8 @@ Caption Keywords: ${keywords.join(', ')}` : '';
 Action Elements: ${actions.join(', ')}` : '';
   const timingSection = timing.length > 0 ? `
 Timing Words: ${timing.join(', ')}` : '';
+  const actionPhrasesSection = actionPhrases.length > 0 ? `
+🎯 COMPLETE ACTION PHRASES: ${actionPhrases.join(' | ')}` : '';
   
   const captionPriority = config.captionWeight > 0.5 ? 'CAPTION-FIRST' : 'CATEGORY-FIRST';
   const funnyCount = config.funnyExactly;
@@ -289,7 +321,7 @@ Timing Words: ${timing.join(', ')}` : '';
 Category: ${category}/${subcategory}
 Mode: ${mode}
 ${vocab.props ? `Props: ${vocab.props}` : ''}
-${vocab.atmosphere ? `Mood: ${vocab.atmosphere}` : ''}${keywordSection}${actionSection}${timingSection}
+${vocab.atmosphere ? `Mood: ${vocab.atmosphere}` : ''}${keywordSection}${actionSection}${timingSection}${actionPhrasesSection}
 
 ROLE REQUIREMENTS:
 - Option 1: Serious scene SHOWING the specific action/timing from caption
@@ -303,11 +335,12 @@ ${funnyCount >= 2 ? `
 - Option 4: ${comedians.option4.name} style absurd/surreal with impossible physics, dream logic
 ` : ''}
 
-CAPTION ACTION REQUIREMENTS (CRITICAL):
-- EVERY option MUST show the specific action/sequence from the caption
-- Option 1 MUST include ≥1 action element: ${actions.slice(0, 2).join(' OR ')}
+🚨 CAPTION ACTION REQUIREMENTS (CRITICAL) 🚨:
+${actionPhrases.length > 0 ? `- EVERY option MUST visually show this COMPLETE action sequence: "${actionPhrases[0]}"` : '- EVERY option MUST show the specific action/sequence from the caption'}
+- Option 1 MUST include the primary action phrase: ${actionPhrases[0] || actions.slice(0, 2).join(' OR ')}
 - ALL options must preserve timing/sequence: ${timing.join(', ') || 'the order of events'}
-- DO NOT default to generic ${category.toLowerCase()} props unless they serve the joke action
+- Show the ACTION HAPPENING, not just props/setting
+- DO NOT default to generic ${category.toLowerCase()} scenes unless they serve the SPECIFIC joke action
 - AVOID filler like "buzzing arena, dramatic spotlights" unless they amplify the caption action
 
 ANTI-GENERIC RULES:
@@ -363,13 +396,24 @@ serve(async (req) => {
     }
 
     // Extract action elements and keywords from caption for better targeting
-    const { keywords, actions, timing } = extractActionElements(final_text);
+    const { keywords, actions, timing, actionPhrases } = extractActionElements(final_text);
     
-    console.log('inputs', { final_text, category, subcategory, mode, layout_token, tags, keywords, actions, timing });
+    console.log('inputs', { final_text, category, subcategory, mode, layout_token, tags, keywords, actions, timing, actionPhrases });
 
-    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, category, subcategory, tags, keywords, actions, timing });
+    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, category, subcategory, tags, keywords, actions, timing, actionPhrases });
+    
+    // Enhanced user prompt with explicit action requirements
+    const primaryActionPhrase = actionPhrases[0] || actions[0] || '';
     const user = `Caption: "${final_text}"
 ${tags.length > 0 ? `Tags: ${tags.join(', ')}` : ''}
+
+🎯 CRITICAL: Every visual option must show the action "${primaryActionPhrase}" happening.
+
+Examples of what each option should show:
+- Option 1: ${primaryActionPhrase ? `Someone literally doing: "${primaryActionPhrase}"` : 'The main action from the caption happening'}
+- Option 2: ${primaryActionPhrase ? `The "${primaryActionPhrase}" action in a ${category.toLowerCase()} setting` : 'Caption action in category context'}
+- Option 3: ${primaryActionPhrase ? `"${primaryActionPhrase}" but exaggerated/oversized props` : 'Caption action as a visual gag'}
+- Option 4: ${primaryActionPhrase ? `"${primaryActionPhrase}" but surreal/impossible physics` : 'Caption action in absurd way'}
 
 Generate 4 scene concepts that work with this caption.`;
 
@@ -468,32 +512,73 @@ Generate 4 scene concepts that work with this caption.`;
                  /\b(impossible|defying|floating|flying|morphing)\b/i.test(text);
         };
         
-        // Check if concepts contain action elements from caption
-        const hasActionElements = (text: string) => {
-          if (actions.length === 0) return true; // No specific actions to check
+        // Enhanced validation: check for complete action phrases
+        const hasCompleteActionPhrase = (text: string) => {
+          if (actionPhrases.length === 0 && actions.length === 0) return true;
           const lowerText = text.toLowerCase();
+          
+          // First check for complete action phrases (preferred)
+          if (actionPhrases.length > 0) {
+            const primaryPhrase = actionPhrases[0];
+            const phraseWords = primaryPhrase.split(/\s+/).filter(w => w.length > 2);
+            // Require at least 60% of key words from the phrase to be present
+            const requiredMatches = Math.max(2, Math.ceil(phraseWords.length * 0.6));
+            const actualMatches = phraseWords.filter(word => 
+              lowerText.includes(word) || 
+              // Check for similar words (e.g., "calls" matches "calling")
+              lowerText.includes(word.slice(0, -1)) ||
+              lowerText.includes(word.slice(0, -2))
+            ).length;
+            console.log(`🔍 Action phrase check: "${primaryPhrase}" -> ${actualMatches}/${requiredMatches} matches in "${text.slice(0, 50)}..."`);
+            return actualMatches >= requiredMatches;
+          }
+          
+          // Fallback to individual action words
           return actions.some(action => {
-            const actionWords = action.split(/\s+/);
+            const actionWords = action.split(/\s+/).filter(w => w.length > 2);
             return actionWords.some(word => lowerText.includes(word));
           });
         };
         
-        // Check timing preservation
+        // Enhanced timing preservation check
         const hasTimingElements = (text: string) => {
-          if (timing.length === 0) return true; // No timing to check
+          if (timing.length === 0) return true;
           const lowerText = text.toLowerCase();
-          return timing.some(timeWord => lowerText.includes(timeWord)) ||
-                 /\b(before|after|during|while|then|first|next|suddenly)\b/i.test(text);
+          
+          // Check for specific timing words from caption
+          const hasSpecificTiming = timing.some(timeWord => lowerText.includes(timeWord));
+          // Also accept general timing indicators
+          const hasGeneralTiming = /\b(before|after|during|while|then|first|next|suddenly|when|as)\b/i.test(text);
+          
+          console.log(`⏰ Timing check: specific=${hasSpecificTiming}, general=${hasGeneralTiming} in "${text.slice(0, 50)}..."`);
+          return hasSpecificTiming || hasGeneralTiming;
         };
         
-        const option1HasAction = hasActionElements(out.concepts[0]?.text || '');
+        const option1HasAction = hasCompleteActionPhrase(out.concepts[0]?.text || '');
+        const option1HasTiming = hasTimingElements(out.concepts[0]?.text || '');
         const option3Funny = out.concepts[2] && isFunny(out.concepts[2].text || '');
         const option4Funny = out.concepts[3] && isFunny(out.concepts[3].text || '');
         
+        // Enhanced logging for debugging
+        console.log(`🎯 Validation results for ${modelConfig.name}:`);
+        console.log(`Option 1 - Action: ${option1HasAction}, Timing: ${option1HasTiming}`);
+        console.log(`Option 3 - Funny: ${option3Funny}`);
+        console.log(`Option 4 - Funny: ${option4Funny}`);
+        console.log(`Expected action phrase: "${actionPhrases[0] || actions[0] || 'none'}"`);
+        console.log(`Expected timing: ${timing.join(', ') || 'none'}`);
+        
         if (!option1HasAction) {
-          console.log(`${modelConfig.name} Option 1 missing action elements, trying next model`);
+          console.log(`❌ ${modelConfig.name} Option 1 missing complete action phrase, trying next model`);
           console.log('Option 1 text:', out.concepts[0]?.text);
-          console.log('Expected actions:', actions);
+          console.log('Expected action phrase:', actionPhrases[0] || 'none');
+          console.log('Expected actions:', actions.slice(0, 2));
+          continue;
+        }
+        
+        if (!option1HasTiming && timing.length > 0) {
+          console.log(`❌ ${modelConfig.name} Option 1 missing timing elements, trying next model`);
+          console.log('Option 1 text:', out.concepts[0]?.text);
+          console.log('Expected timing:', timing);
           continue;
         }
         
