@@ -203,7 +203,7 @@ function getRatingModifier(rating: string): string {
       return 'Include mild profanity (damn, hell) or sharp attitude.';
     case 'R':
       return 'Use strong profanity (fuck, shit, ass) and savage roasts.';
-    case 'XXX':
+    case 'Explicit':
       return 'Go full NSFW with explicit language and brutal content.';
     default:
       return 'Include some edge and attitude.';

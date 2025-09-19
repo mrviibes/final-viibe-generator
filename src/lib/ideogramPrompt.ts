@@ -78,7 +78,7 @@ export function sanitizeVisualTag(tag: string): { cleaned: string | null; wasMod
     'nude': 'artistic figure',
     'naked': 'artistic figure',
     'porn': 'artistic content',
-    'xxx': 'artistic',
+    'explicit': 'artistic',
     'erotic': 'romantic',
     'sexual': 'intimate',
     'nsfw': 'artistic',
