@@ -6719,9 +6719,9 @@ const Index = () => {
                     <div className="max-w-md mx-auto space-y-6">
                       {/* Tags Input */}
                       <div className="space-y-3">
-                          <p className="text-xs text-muted-foreground text-center">
-                            "quoted tag" → will appear literally in the text.<br />
-                            unquoted tag → just influences the vibe/style, won't appear in the text.
+                          <p className="text-xs text-muted-foreground text-left">
+                            <span className="font-bold">"quoted tag" →</span> will appear literally in the text.<br />
+                            <span className="font-bold">unquoted tag →</span> just influences the vibe/style, won't appear in the text.
                           </p>
                         <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder="Add tags (optional)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
                         
