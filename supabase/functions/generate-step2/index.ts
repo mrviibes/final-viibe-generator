@@ -392,11 +392,6 @@ function getToneOverrides(tone: string): any {
 function applyInputPrecedenceLocal(inputs: any): any {
   return applyInputPrecedence(inputs);
 }
-    processed.style = "standard"; // Use standard with current tone rules
-  }
-  
-  return processed;
-}
 
 function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[], style?: string, rating?: string): string {
   // Gate validators by tone
