@@ -228,12 +228,13 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
     }
   }
   
-  // Enhanced stage-ready fallback with comedian voice structure
+  // Enhanced stage-ready fallback with comedian voice structure and authentic delivery
   const comedianFallbacks = generateComedianStyleFallbacks(
     contextAnalysis.suggestedLexicon,
     tone,
     rating || 'PG-13',
-    style
+    style,
+    hardTags // Pass hard tags for authentic integration
   );
   
   // Apply hard tag enforcement to comedian fallbacks
@@ -252,27 +253,43 @@ function generateComedianStyleFallbacks(
   lexiconWords: string[],
   tone: string,
   rating: string,
-  style?: string
+  style?: string,
+  hardTags?: string[]
 ): Array<{ lane: string; text: string }> {
   const words = lexiconWords.length > 0 ? lexiconWords.slice(0, 4) : ['life', 'reality', 'experience', 'moment'];
   
-  // Comedian-style fallbacks with proper structure and delivery
+  // Enhanced comedian-style fallbacks with authentic delivery and tag integration
+  const taggedWord = hardTags && hardTags.length > 0 ? hardTags[0] : null;
+  
   if (rating === 'XXX') {
-    return [
-      { lane: "option1", text: `This ${words[0]} fucks harder than a horny teenager with house keys.` },
-      { lane: "option2", text: `${words[1]} just bent me over like a yoga instructor with commitment issues.` },
-      { lane: "option3", text: `Plot twist: ${words[2]} decided to raw dog my expectations without warning.` },
-      { lane: "option4", text: `Based on a true ${words[3]} that left me dirtier than laundry day.` }
+    // Enhanced XXX with raunch + comedian timing + visual imagery (no lazy shock text)
+    const xxxFallbacks = taggedWord ? [
+      { lane: "option1", text: `${taggedWord} kisses like he's blowing into a Nintendo cartridge, loud messy and somehow nostalgic.` },
+      { lane: "option2", text: `Watching ${taggedWord} eat wings is porn for napkins, wet desperate and leaving nothing but regret stains.` },
+      { lane: "option3", text: `${taggedWord} said he's romantic, then lit candles on a pizza box and called it foreplay.` },
+      { lane: "option4", text: `${taggedWord}'s love life is like Costco samples, short cheap and everyone still feels dirty after.` }
+    ] : [
+      { lane: "option1", text: `This ${words[0]} kisses like a plumber fixing a leak, wet loud and you still owe money after.` },
+      { lane: "option2", text: `${words[1]} goes down smoother than a politician's promises, sweet at first then you realize you got fucked.` },
+      { lane: "option3", text: `Plot twist: ${words[2]} decided to ride me harder than a mechanical bull with daddy issues.` },
+      { lane: "option4", text: `Based on a true ${words[3]} that left me more satisfied than a Karen finding the manager.` }
     ];
+    return xxxFallbacks;
   }
   
   if (rating === 'R') {
-    return [
-      { lane: "option1", text: `This ${words[0]} hit different, like getting punched by reality's ugly cousin.` },
+    const rFallbacks = taggedWord ? [
+      { lane: "option1", text: `${taggedWord} folds laundry like it insulted his fuckin' family, angry and personal.` },
+      { lane: "option2", text: `Watching ${taggedWord} parallel park is like watching a drunk surgeon, dangerous and somehow still disappointing.` },
+      { lane: "option3", text: `${taggedWord} eats wings with so much sauce the napkins apply for workers comp.` },
+      { lane: "option4", text: `Plot twist: ${taggedWord} lit candles on a pizza box and called it romance, the fire alarm called it foreplay.` }
+    ] : [
+      { lane: "option1", text: `This ${words[0]} hit different, like getting punched by reality's ugly fucking cousin.` },
       { lane: "option2", text: `${words[1]} just roasted me harder than my mom at family dinner damn.` },
       { lane: "option3", text: `Plot twist: ${words[2]} decided to be a complete asshole situation today.` },
       { lane: "option4", text: `Based on a true ${words[3]} that nobody fucking asked for but here we are.` }
     ];
+    return rFallbacks;
   }
   
   if (style === 'pop-culture') {
@@ -284,22 +301,35 @@ function generateComedianStyleFallbacks(
     ];
   }
   
-  // Default comedian-style fallbacks with proper delivery structure
+  // Enhanced default comedian-style fallbacks with authentic stage delivery
   if (tone === 'Savage') {
-    return [
+    const savageFallbacks = taggedWord ? [
+      { lane: "option1", text: `${taggedWord} really said hold my beer and watch me disappoint everyone professionally.` },
+      { lane: "option2", text: `${taggedWord} approached this like a drunk surgeon, confident but nobody should watch.` },
+      { lane: "option3", text: `Plot twist: ${taggedWord} decided to be the villain in my origin story, and honestly I respect the commitment.` },
+      { lane: "option4", text: `Based on a true ${taggedWord} experience that my therapist charges extra to hear about.` }
+    ] : [
       { lane: "option1", text: `This ${words[0]} really said hold my beer and watch me disappoint everyone.` },
       { lane: "option2", text: `${words[1]} just roasted me like a Sunday dinner nobody wanted to attend.` },
       { lane: "option3", text: `Plot twist: ${words[2]} decided to be the villain in my origin story.` },
       { lane: "option4", text: `Based on a true ${words[3]} that my therapist charges extra to hear.` }
     ];
+    return savageFallbacks;
   }
   
-  return [
+  // Default humorous fallbacks with stage-ready comedian structure
+  const defaultFallbacks = taggedWord ? [
+    { lane: "option1", text: `When ${taggedWord} gives you lemons, he makes memes and calls it therapy because that's who he is.` },
+    { lane: "option2", text: `Plot twist: this ${taggedWord} situation actually happened and I survived to tell it with minimal trauma.` },
+    { lane: "option3", text: `Based on a ${taggedWord} story that my friends refuse to believe but my therapist validates.` },
+    { lane: "option4", text: `${taggedWord} called and left a voicemail but I'm too busy processing the emotional damage.` }
+  ] : [
     { lane: "option1", text: `When ${words[0]} gives you lemons, make memes and call it therapy.` },
     { lane: "option2", text: `Plot twist: this ${words[1]} actually happened and I survived to tell it.` },
     { lane: "option3", text: `Based on a ${words[2]} story that my friends refuse to believe.` },
     { lane: "option4", text: `${words[3]} called and left a voicemail but I'm too busy processing trauma.` }
   ];
+  return defaultFallbacks;
 }
 
 async function retryWithBackoff<T>(

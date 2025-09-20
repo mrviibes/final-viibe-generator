@@ -17,19 +17,19 @@ export interface ContextLexicon {
 export const CONTEXT_LEXICON: ContextLexicon = {
   // CITIES & LOCATIONS
   "london": {
-    general: ["Tube", "pub", "queue", "mate", "bloke", "quid", "lorry", "lift", "flat", "bin"],
-    slang: ["innit", "bloody", "cheeky", "mental", "proper", "mental", "knackered", "gutted"],
-    cultural: ["Big Ben", "Thames", "Queen", "football", "tea", "fish and chips", "double decker", "Mind the Gap"],
-    emotional: ["rainy", "dreary", "posh", "classy", "stuffy", "charming", "historic", "foggy"],
-    technical: ["Underground", "Oyster card", "Borough", "Westminster", "Piccadilly", "Heathrow"]
+    general: ["Tube", "pub", "queue", "mate", "bloke", "quid", "lorry", "lift", "flat", "bin", "roundabout", "biscuit"],
+    slang: ["innit", "bloody", "cheeky", "mental", "proper", "knackered", "gutted", "taking the piss", "having a laugh", "brilliant", "rubbish", "pants"],
+    cultural: ["Big Ben", "Thames", "Queen", "football", "tea", "fish and chips", "double decker", "Mind the Gap", "Piccadilly Circus", "Tower Bridge", "coronation", "Brexit"],
+    emotional: ["rainy", "dreary", "posh", "classy", "stuffy", "charming", "historic", "foggy", "reserved", "polite", "sarcastic"],
+    technical: ["Underground", "Oyster card", "Borough", "Westminster", "Piccadilly", "Heathrow", "Zone 1", "contactless", "Tfl"]
   },
   
   "new_york": {
-    general: ["subway", "bodega", "cab", "pizza", "bagel", "apartment", "block", "avenue"],
-    slang: ["fuhgeddaboudit", "deadass", "mad", "brick", "schmuck", "yo", "facts", "cap"],
-    cultural: ["Yankees", "Times Square", "Broadway", "Manhattan", "Brooklyn", "Statue of Liberty"],
-    emotional: ["hustling", "gritty", "fast-paced", "aggressive", "ambitious", "ruthless"],
-    technical: ["MetroCard", "uptown", "downtown", "boroughs", "FDR Drive", "JFK"]
+    general: ["subway", "bodega", "cab", "pizza", "bagel", "apartment", "block", "avenue", "stoop", "deli", "corner store", "fire escape"],
+    slang: ["fuhgeddaboudit", "deadass", "mad", "brick", "schmuck", "yo", "facts", "cap", "bet", "fire", "lowkey", "highkey", "straight up", "on god"],
+    cultural: ["Yankees", "Times Square", "Broadway", "Manhattan", "Brooklyn", "Statue of Liberty", "Central Park", "Coney Island", "Wall Street", "9/11", "Pizza rat"],
+    emotional: ["hustling", "gritty", "fast-paced", "aggressive", "ambitious", "ruthless", "stressed", "impatient", "determined"],
+    technical: ["MetroCard", "uptown", "downtown", "boroughs", "FDR Drive", "JFK", "express train", "local", "turnstile"]
   },
   
   "los_angeles": {

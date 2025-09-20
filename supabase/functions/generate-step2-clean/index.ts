@@ -173,9 +173,21 @@ async function generateWithGPT5(inputs: any): Promise<any> {
     "Mike Birbiglia: vulnerable awkward storytelling with conversational neurotic observations"
   ];
   
-  // Randomly select 4 different comedian voices for this generation
+  // Randomly select 4 different comedian voices with length preferences
   const shuffled = [...comedianVoices].sort(() => 0.5 - Math.random());
   const selectedVoices = shuffled.slice(0, 4);
+  
+  // Voice-specific length preferences for authentic delivery
+  const voiceLengthPreferences = {
+    "Mitch Hedberg": [40, 60], // Shorter, punchy one-liners
+    "Anthony Jeselnik": [40, 70], // Sharp, precise delivery
+    "John Mulaney": [80, 120], // Longer storytelling
+    "Dave Chappelle": [80, 110], // Story-driven bits
+    "Bill Burr": [60, 100], // Rant energy, medium length
+    "Kevin Hart": [50, 90], // Animated reactions, varied length
+    "Ali Wong": [70, 110], // Vivid imagery, longer setup
+    "Jim Gaffigan": [60, 90] // Internal voice asides, moderate length
+  };
 
   // ENHANCED SYSTEM PROMPT WITH CONTEXT & COMEDIAN VOICES
   const contextInstructions = contextualPromptAdditions.length > 0 
@@ -186,7 +198,8 @@ async function generateWithGPT5(inputs: any): Promise<any> {
     ? `\n## LEXICON GUIDANCE:\nAuthentic vocabulary to naturally incorporate: ${lexiconWords.join(', ')}\n`
     : '';
 
-  const systemPrompt = `You generate exactly 4 unique STAGE-READY comedy lines that sound like they came from a comic's mouth.  
+  const systemPrompt = `You are transcribing from ACTUAL STAND-UP COMEDY SETS. Generate exactly 4 unique comedy lines that sound like they were recorded live from a comedian's mouth on stage.
+
 Return ONLY valid JSON in this exact structure:
 
 {
@@ -199,14 +212,25 @@ Return ONLY valid JSON in this exact structure:
 }
 
 ## CRITICAL: AUTHENTIC COMEDIAN DELIVERY
-Each line MUST sound like it's being delivered by a specific comedian on stage. You should be able to HEAR the timing, see the delivery, and imagine the laugh. Not AI copy - actual comedian bits.
+Each line must be so authentic that someone reading it can:
+- HEAR the comedian's voice and timing
+- SEE the physical delivery and stage presence  
+- IMAGINE the audience's laugh response
+- Feel like they're watching an actual comedy set, not reading AI-generated content
 
-## PUNCHLINE STRUCTURE (MANDATORY)
-Every line needs clear comic structure:
-- SETUP: brief context or premise (what's happening)
-- TWIST: unexpected turn or exaggeration (the laugh moment)
-- VISUAL: concrete, specific imagery (not abstract concepts)
-- Example: "Reid folds laundry like it insulted his fuckin' family." (Setup: Reid folding, Twist: personal vendetta, Visual: angry family confrontation)
+## MANDATORY PUNCHLINE ARCHITECTURE
+Every single line requires this exact structure:
+- SETUP: What's the situation? (brief, relatable premise)
+- TWIST: What's unexpected? (the surprise that triggers laughter)
+- VISUAL: What image forms in your mind? (concrete, specific, memorable)
+
+GOOD EXAMPLE: "Reid folds laundry like it insulted his fuckin' family."
+✓ Setup: Reid doing laundry (relatable)
+✓ Twist: treating clothes like personal enemies (unexpected)  
+✓ Visual: angry confrontation with fabric (vivid, specific)
+
+BAD EXAMPLE: "Laundry is tough sometimes."
+✗ No setup, no twist, no visual imagery
 
 ## Hard Technical Rules
 - Output exactly 4 unique lines.
@@ -226,7 +250,14 @@ ${contextInstructions}${lexiconInstructions}
 - Option 3: Channel ${selectedVoices[2]} - replicate their style and perspective
 - Option 4: Channel ${selectedVoices[3]} - capture their unique comedic approach
 
-REMEMBER: These must read like transcripts from actual stand-up sets, not generic joke templates.
+## AUTHENTIC DELIVERY REQUIREMENTS:
+- Each line must sound like that specific comedian is saying it on stage
+- Use their signature phrases, rhythm patterns, and comedic perspective
+- Incorporate their typical subject matter and observational style
+- Match their energy level: high-energy vs deadpan vs storytelling vs rant
+- Length should match their typical bit structure (one-liners vs stories)
+
+REMEMBER: You are transcribing actual stand-up performances, not writing generic comedy templates.
 
 ## Tone Map
 - Humorous = observational, witty, punny.
@@ -246,11 +277,18 @@ REMEMBER: These must read like transcripts from actual stand-up sets, not generi
 - Wildcard = unpredictable, but still a valid joke.
 
 ## Rating Map (Stage-Ready Comedy Rules)
-- G = wholesome family-friendly with clean comedian timing. Think Jim Gaffigan or Nate Bargatze energy.
-- PG = light sass with comedian attitude but stay clean. Add bite through delivery, not language.
+- G = wholesome family-friendly with clean comedian timing. Think Jim Gaffigan or Nate Bargatze energy. Still needs setup-twist-visual structure.
+- PG = light sass with comedian attitude but stay clean. Add bite through delivery, not language. Sharp observations with clean language.
 - PG-13 = sharp roasts with real edge. MUST include mild profanity (damn, hell, crap) OR clever innuendo OR savage attitude. Comedic timing required.
 - R = hard comedy club energy. MUST include strong profanity (fuck, shit, ass, bitch) with brutal comic timing, sexual references, or nasty roast delivery.
-- XXX = full raunch comedy mode. Explicit sexual content riding on ACTUAL comic premises (not just shock). Must combine raunch + timing + visual imagery. Think Joan Rivers dirty wit or Patrice O'Neal raw honesty with proper comedian structure.`;
+- XXX = ENHANCED EXPLICIT RULES: Sexual content must ride on ACTUAL comic premises, not lazy shock text. Required elements:
+  * Profanity quota: 1-2 per line maximum (never wall-to-wall swearing)
+  * Raunch premise: sex, relationships, bodily functions tied to VISUAL COMEDY scenarios
+  * Comedian delivery: Channel Joan Rivers wit, Patrice O'Neal honesty, Ali Wong imagery, Sarah Silverman twisted innocence
+  * Visual requirement: Create images you can SEE, not just crude language
+  * Length variety: Mix tight filthy one-liners (40-60 chars) with story beats (80-120 chars)
+  * Example GOOD XXX: "Reid kisses like he's blowing into a Nintendo cartridge, loud messy and somehow nostalgic."
+  * Example BAD XXX: "Reid is fucking terrible at fucking everything fuck."
   
   const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG-13'}`;
   
