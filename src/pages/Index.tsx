@@ -5388,8 +5388,11 @@ const Index = () => {
   const handleGenerateImage = async () => {
     const apiKey = getIdeogramApiKey();
     if (!apiKey) {
-      setShowIdeogramKeyDialog(true);
-      return;
+      // Proceed using server-side secret; local key is optional
+      toast({
+        title: "Using server-side API key",
+        description: "Proceeding without a local Ideogram key."
+      });
     }
 
     // Reset retry state
