@@ -1,6 +1,82 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Import comedian styles for proper voice assignment
+interface ComedianStyle {
+  name: string;
+  lengthRange: [number, number];
+  deliveryPattern: string;
+  examples: string[];
+}
+
+const COMEDIAN_STYLES: Record<string, ComedianStyle> = {
+  billBurr: {
+    name: "Bill Burr",
+    lengthRange: [40, 70],
+    deliveryPattern: "Confrontational roast with working-class edge",
+    examples: [
+      "This guy throws like he's mad at the ball",
+      "She drives like the GPS personally offended her"
+    ]
+  },
+  kevinHart: {
+    name: "Kevin Hart",
+    lengthRange: [50, 85],
+    deliveryPattern: "Animated panic with self-deprecating energy",
+    examples: [
+      "Zero points first, then celebrates like he just won the championship",
+      "Last time I saw moves that bad, the Titanic was still floating"
+    ]
+  },
+  aliWong: {
+    name: "Ali Wong",
+    lengthRange: [55, 90],
+    deliveryPattern: "Brutal honest observations with vivid imagery",
+    examples: [
+      "Watching him cook is like watching a toddler perform surgery",
+      "Her dance moves look like a drunk flamingo having an existential crisis"
+    ]
+  },
+  mitchHedberg: {
+    name: "Mitch Hedberg",
+    lengthRange: [35, 75],
+    deliveryPattern: "Surreal one-liners with unexpected twists",
+    examples: [
+      "I used to hate mornings. I still do, but I used to too",
+      "His cooking is so bad, the smoke alarm cheers him on"
+    ]
+  }
+};
+
+const LENGTH_BUCKETS = [
+  [40, 60],   // Short punchy
+  [61, 80],   // Medium build
+  [81, 100]   // Longer setup-payoff
+] as const;
+
+// Assign comedian to option with length bucket
+function assignComedianToOption(
+  optionNumber: number, 
+  style: string = "standard"
+): { comedian: ComedianStyle; lengthBucket: [number, number] } {
+  
+  const comedianKeys = Object.keys(COMEDIAN_STYLES);
+  const comedianKey = comedianKeys[optionNumber % comedianKeys.length];
+  const comedian = COMEDIAN_STYLES[comedianKey];
+  
+  // Assign length bucket in rotation
+  const bucketIndex = optionNumber % LENGTH_BUCKETS.length;
+  const lengthBucket = LENGTH_BUCKETS[bucketIndex];
+  
+  // Override with comedian's preferred range if shorter
+  const finalBucket: [number, number] = [
+    Math.max(lengthBucket[0], comedian.lengthRange[0]),
+    Math.min(lengthBucket[1], comedian.lengthRange[1])
+  ];
+  
+  return { comedian, lengthBucket: finalBucket };
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -159,19 +235,12 @@ async function generateWithGPT5(inputs: any): Promise<any> {
     "John Mulaney: nostalgic precise storytelling with childlike wonder, clear narrative timing"
   ];
   
-  // Assign specific comedian to each option with length constraints
+  // Assign specific comedian to each option using imported system
   const comedianAssignments = [
-    { name: "Bill Burr", style: "confrontational roast", lengthRange: [40, 70] },
-    { name: "Kevin Hart", style: "animated panic reaction", lengthRange: [50, 85] },
-    { name: "Ali Wong", style: "absurd vivid comparison", lengthRange: [55, 90] },
-    { name: "Mitch Hedberg", style: "surreal deadpan one-liner", lengthRange: [35, 75] }
-  ];
-
-  // Length buckets enforced strictly
-  const lengthBuckets = [
-    [40, 60],   // Short punchy
-    [61, 80],   // Medium build  
-    [81, 100]   // Longer setup-payoff (HARD LIMIT)
+    assignComedianToOption(0, inputs.style),
+    assignComedianToOption(1, inputs.style),
+    assignComedianToOption(2, inputs.style),
+    assignComedianToOption(3, inputs.style)
   ];
 
   // ENHANCED SYSTEM PROMPT WITH CONTEXT & COMEDIAN VOICES
@@ -197,17 +266,17 @@ async function generateWithGPT5(inputs: any): Promise<any> {
 ## CRITICAL: TIGHT COMEDY RULES
 
 **Length Control (ENFORCED):**
-- Option 1: ${comedianAssignments[0].lengthRange[0]}-${comedianAssignments[0].lengthRange[1]} chars (${comedianAssignments[0].name} style)
-- Option 2: ${comedianAssignments[1].lengthRange[0]}-${comedianAssignments[1].lengthRange[1]} chars (${comedianAssignments[1].name} style)  
-- Option 3: ${comedianAssignments[2].lengthRange[0]}-${comedianAssignments[2].lengthRange[1]} chars (${comedianAssignments[2].name} style)
-- Option 4: ${comedianAssignments[3].lengthRange[0]}-${comedianAssignments[3].lengthRange[1]} chars (${comedianAssignments[3].name} style)
+- Option 1: ${comedianAssignments[0].lengthBucket[0]}-${comedianAssignments[0].lengthBucket[1]} chars (${comedianAssignments[0].comedian.name} style)
+- Option 2: ${comedianAssignments[1].lengthBucket[0]}-${comedianAssignments[1].lengthBucket[1]} chars (${comedianAssignments[1].comedian.name} style)  
+- Option 3: ${comedianAssignments[2].lengthBucket[0]}-${comedianAssignments[2].lengthBucket[1]} chars (${comedianAssignments[2].comedian.name} style)
+- Option 4: ${comedianAssignments[3].lengthBucket[0]}-${comedianAssignments[3].lengthBucket[1]} chars (${comedianAssignments[3].comedian.name} style)
 - **HARD LIMIT: 100 characters maximum. Cut off mid-sentence if needed.**
 
 **Delivery Patterns:**
-- **Option 1 (${comedianAssignments[0].name}):** ${comedianAssignments[0].style} - direct, confrontational
-- **Option 2 (${comedianAssignments[1].name}):** ${comedianAssignments[1].style} - high energy, animated  
-- **Option 3 (${comedianAssignments[2].name}):** ${comedianAssignments[2].style} - vivid imagery, brutal honesty
-- **Option 4 (${comedianAssignments[3].name}):** ${comedianAssignments[3].style} - deadpan, unexpected twists
+- **Option 1 (${comedianAssignments[0].comedian.name}):** ${comedianAssignments[0].comedian.deliveryPattern}
+- **Option 2 (${comedianAssignments[1].comedian.name}):** ${comedianAssignments[1].comedian.deliveryPattern}  
+- **Option 3 (${comedianAssignments[2].comedian.name}):** ${comedianAssignments[2].comedian.deliveryPattern}
+- **Option 4 (${comedianAssignments[3].comedian.name}):** ${comedianAssignments[3].comedian.deliveryPattern}
 
 **Style Enforcement:**
 ${inputs.style === 'roast' ? '- Roast = short, direct insult with specific comparison. No rambling.' : ''}${inputs.style === 'absurd' ? '- Absurd = weird comparison with unexpected imagery. One clear visual.' : ''}${inputs.style === 'punchline_first' ? '- Punchline First = gag lands first, then setup. "[Result] first, then [explanation]"' : ''}${inputs.style === 'story' ? '- Short Story = tiny scene with flip. "[Time] [subject] [action], then [twist]"' : ''}
@@ -342,7 +411,7 @@ Generate tight, punchy lines that sound like actual comedians, not AI trying to 
       let text = (line.text || '').toString();
       
       // HARD LENGTH ENFORCEMENT - cut off at comedian's max length
-      const maxLength = comedianAssignments[index]?.lengthRange[1] || 100;
+      const maxLength = comedianAssignments[index]?.lengthBucket[1] || 100;
       if (text.length > maxLength) {
         // Cut at last complete word before limit
         text = text.substring(0, maxLength);
@@ -367,7 +436,7 @@ Generate tight, punchy lines that sound like actual comedians, not AI trying to 
     for (let i = 0; i < parsed.lines.length; i++) {
       const line = parsed.lines[i];
       const text = line.text || '';
-      const expectedLength = comedianAssignments[i]?.lengthRange || [40, 100];
+      const expectedLength = comedianAssignments[i]?.lengthBucket || [40, 100];
       
       // Length validation with comedian constraints
       if (text.length < expectedLength[0] || text.length > expectedLength[1]) {
@@ -392,12 +461,8 @@ Generate tight, punchy lines that sound like actual comedians, not AI trying to 
     const hardTagsValidation = hardTags; // Already parsed above
     const softTagsValidation = softTags; // Already parsed above
     
-    // Length validation - randomized buckets for diversity
-    const LENGTH_BUCKETS = [[40,60],[61,80],[81,100],[101,120]];
-    const shuffledBuckets = [...LENGTH_BUCKETS].sort(() => 0.5 - Math.random());
-    const expectedLengths = isStoryMode 
-      ? [[80, 100], [80, 100], [80, 100], [80, 100]] // Story mode: all 80-100 chars
-      : shuffledBuckets; // Random bucket assignment per generation
+    // Use comedian-specific length ranges for validation
+    const expectedLengths = comedianAssignments.map(assignment => assignment.lengthBucket);
     
     const allTexts = parsed.lines.map((line: any) => line.text?.toLowerCase() || '');
     const originalTexts = parsed.lines.map((line: any) => line.text || '');
