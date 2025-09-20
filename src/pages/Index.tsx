@@ -175,9 +175,11 @@ function ensureVisualVariance(options: Array<{
     // Rewrite if needed (but never rewrite option1)
     if (needsRewrite && option.lane !== 'option1') {
       const templates = {
-        option2: ['audience laughing', 'friends reacting mid-laugh', 'crowd recoiling dramatically', 'guests pointing, surprised']
+        option2: ['audience laughing', 'friends reacting mid-laugh', 'crowd recoiling dramatically', 'guests pointing, surprised'],
+        option3: ['mirror gag close-up', 'prop with twist relevant to joke', 'visual metaphor tied to line', 'scene detail enhancing joke'],
+        option4: ['unexpected mashup tied to joke', 'caricature exaggeration gag', 'surreal element reinforcing premise', 'dynamic action beat from joke']
       };
-      const laneTemplates = templates[option.lane as keyof typeof templates] || templates.option2;
+      const laneTemplates = templates[option.lane as keyof typeof templates] || templates.option4;
       const templateIndex = Math.abs(mainAnchor.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % laneTemplates.length;
       currentPrompt = `${laneTemplates[templateIndex]}, ${tokenSuffix}`;
       reasons.push(`Rewrote ${option.lane} option to avoid similarity/anchor conflict`);
@@ -291,7 +293,7 @@ function validateLayoutAwareVisuals(options: Array<{
 
     // Determine which lanes are missing
     const existingLanes = new Set(validOptions.map(opt => opt.lane));
-    const allLanes = ["option1", "option2"];
+    const allLanes = ["option1", "option2", "option3", "option4"];
     const missingLanes = allLanes.filter(lane => !existingLanes.has(lane));
 
     // Normalize existing prompts for deduplication
@@ -303,12 +305,14 @@ function validateLayoutAwareVisuals(options: Array<{
     // Lane-specific fallback templates
     const laneTemplates = {
       option1: ["person looking surprised and confused", "individual making exaggerated facial expression", "someone pointing at something off-camera", "person holding hands up in disbelief"],
-      option2: ["group of people laughing together", "friends high-fiving each other", "audience clapping enthusiastically", "family members smiling at camera"]
+      option2: ["group of people laughing together", "friends high-fiving each other", "audience clapping enthusiastically", "family members smiling at camera"],
+      option3: ["everyday object placed on wooden table", "related items scattered on surface", "empty room with single piece of furniture", "worn equipment sitting in corner"],
+      option4: ["abstract geometric shapes in bright colors", "symbolic metaphor representing achievement", "artistic representation with flowing lines", "conceptual imagery suggesting progress"]
     };
 
     // Generate fallbacks for missing lanes
     missingLanes.forEach(lane => {
-      const templates = laneTemplates[lane as keyof typeof laneTemplates] || laneTemplates.option2;
+      const templates = laneTemplates[lane as keyof typeof laneTemplates] || laneTemplates.option4;
 
       // Try each template until we find one that doesn't duplicate existing content
       for (const template of templates) {
@@ -5168,13 +5172,13 @@ const Index = () => {
         console.warn('⚠️ Some visuals filtered:', validation.reasons);
       }
 
-      // Ensure all 2 options are present
+      // Ensure all 4 options are present
       const lanes = new Set(validation.validOptions.map(opt => opt.lane));
-      if (lanes.size < 2) {
-        console.warn(`🎯 Missing options:`, Array.from(['option1', 'option2']).filter(l => !lanes.has(l)));
+      if (lanes.size < 4) {
+        console.warn(`🎯 Missing options:`, Array.from(['option1', 'option2', 'option3', 'option4']).filter(l => !lanes.has(l)));
       }
       const mappedOptions = validation.validOptions.map(option => ({
-        subject: option.prompt || (option.lane === 'option1' ? 'Direct visual concept' : 'Environmental perspective'),
+        subject: option.prompt || (option.lane === 'option1' ? 'Direct visual concept' : option.lane === 'option2' ? 'Environmental perspective' : option.lane === 'option3' ? 'Alternative viewpoint' : 'Abstract interpretation'),
         background: `Context: ${subcategory}`,
         prompt: option.prompt,
         slot: option.lane

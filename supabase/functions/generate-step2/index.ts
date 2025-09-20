@@ -474,9 +474,9 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
     ratingDesc = `Keep language clean and ${toneOverride.require_positive_or_supportive ? 'supportive' : 'affectionate'}`;
   }
   
-  let systemPrompt = `Generate 2 ${tone.toLowerCase()} lines for ${subcategory}. 
+  let systemPrompt = `Generate 4 ${tone.toLowerCase()} lines for ${subcategory}. 
 
-JSON: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}]}
+JSON: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}, {"lane": "option3", "text": "..."}, {"lane": "option4", "text": "..."}]}
 
 ${lengthReq}. ${ratingDesc}.`;
 
@@ -732,8 +732,8 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: {
     return { isValid: false, errors, warnings, lengths: [] };
   }
   
-  if (lines.length !== 2) {
-    errors.push(`Must have exactly 2 lines, got ${lines.length}`);
+  if (lines.length !== 4) {
+    errors.push(`Must have exactly 4 lines, got ${lines.length}`);
     return { isValid: false, errors, warnings, lengths: [] };
   }
   
@@ -810,8 +810,8 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: {
       if (hasAllTags) linesWithHardTags++;
     }
     
-    if (linesWithHardTags < 1) {
-      errors.push(`Hard tags: Only ${linesWithHardTags}/2 lines contain ALL required tags. Need 1+ lines with all tags: ${inputs.hardTags.join(', ')}`);
+    if (linesWithHardTags < 3) {
+      errors.push(`Hard tags: Only ${linesWithHardTags}/4 lines contain ALL required tags. Need 3+ lines with all tags: ${inputs.hardTags.join(', ')}`);
     }
   }
   
@@ -877,21 +877,29 @@ function getToneAwareFallback(inputs: any): Array<{lane: string, text: string}> 
       "Basketball": {
         "Sentimental": [
           "Every rebound teaches patience and our hearts listen closely",
-          "The court is loud but your calm finds the net perfectly"
+          "The court is loud but your calm finds the net perfectly",
+          "We miss a shot and hope sets the next screen beautifully",
+          "Your effort writes music and the buzzer hums along softly"
         ],
         "Romantic": [
           "Your cut to the hoop felt like a promise kept sweetly",
-          "The net sighs softly when your shot finds home again"
+          "The net sighs softly when your shot finds home again",
+          "Heart sets a screen and we glide to open space together",
+          "We miss once then your smile beats the buzzer every time"
         ]
       },
       "Baseball": {
         "Sentimental": [
           "The diamond glows when effort turns into pure grace",
-          "A quiet pitch and the crowd learns to breathe together"
+          "A quiet pitch and the crowd learns to breathe together",
+          "We jog the bases and hope keeps the steady pace",
+          "The glove closes and the moment stays warm forever"
         ],
         "Romantic": [
           "Your swing connects and my heart rounds all the bases",
-          "The diamond sparkles but your eyes catch more light somehow"
+          "The diamond sparkles but your eyes catch more light somehow",
+          "Home run distance but you still steal my breath completely",
+          "Stadium lights dim but we glow in the dugout together"
         ]
       }
     };
@@ -910,31 +918,45 @@ function getToneAwareFallback(inputs: any): Array<{lane: string, text: string}> 
   const fallbacksByTone: Record<string, string[]> = {
     "Savage": [
       "Your life choices make reality TV look classy somehow",
-      "Even GPS suggests alternate routes around your problems daily"
+      "Even GPS suggests alternate routes around your problems daily", 
+      "You're proof participation trophies were a serious mistake entirely",
+      "Your decisions have their own disaster relief fund already"
     ],
     "Humorous": [
       "Adulting is just Googling how to do things properly",
-      "My life runs on caffeine and good intentions mostly"
+      "My life runs on caffeine and good intentions mostly",
+      "Reality called but I sent it to voicemail again", 
+      "I'm not lazy I'm on energy saving mode currently"
     ],
     "Playful": [
       "You collect hobbies like other people collect dust bunnies",
-      "Your cooking skills are charmingly experimental and dangerous"
+      "Your cooking skills are charmingly experimental and dangerous",
+      "You're like a human golden retriever with anxiety issues",
+      "Your life is basically a sitcom without the laugh track"
     ],
     "Sentimental": [
       "Still can't believe we've made it this far together",
-      "Thanks for being weird with me all these wonderful years"
+      "Thanks for being weird with me all these wonderful years",
+      "We've survived worse and lived to laugh about it",
+      "Some friendships just make sense no matter what happens"
     ],
     "Romantic": [
       "You make ordinary moments feel like movie scenes",
-      "My heart does backflips when you laugh like that"
+      "My heart does backflips when you laugh like that",
+      "You're the plot twist my story always needed desperately",
+      "Every day with you writes itself into my favorite chapter"
     ],
     "Serious": [
       "Growth happens between plans and reality meeting each other",
-      "Some chapters are harder to write than others completely"
+      "Some chapters are harder to write than others completely", 
+      "The best lessons come disguised as inconveniences usually",
+      "Every experience teaches us something about ourselves ultimately"
     ],
     "Inspirational": [
       "You're writing a story no one else could tell",
-      "Your weird is exactly what the world needs more of"
+      "Your weird is exactly what the world needs more of",
+      "Every stumble forward still counts as progress definitely",
+      "The journey shapes us more than the destination ever could"
     ]
   };
   
@@ -949,7 +971,9 @@ function getToneAwareFallback(inputs: any): Array<{lane: string, text: string}> 
 function getEmergencyFallback(): Array<{lane: string, text: string}> {
   const emergency = [
     "Sometimes the universe has a sense of humor",
-    "Life keeps happening whether we're ready or not"
+    "Life keeps happening whether we're ready or not",
+    "We're all just figuring it out as we go", 
+    "Every day is an adventure in unexpected possibilities"
   ];
   
   return emergency.map((text, index) => ({
@@ -1041,10 +1065,10 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
     let parsedLines = null;
     try {
       const parsed = JSON.parse(rawContent);
-      if (parsed.lines && Array.isArray(parsed.lines) && parsed.lines.length === 2) {
+      if (parsed.lines && Array.isArray(parsed.lines) && parsed.lines.length === 4) {
         parsedLines = parsed.lines;
       } else {
-        throw new Error("Invalid JSON structure - need 2 lines");
+        throw new Error("Invalid JSON structure - need 4 lines");
       }
     } catch (e) {
       console.log("Failed to parse JSON from model:", e.message);

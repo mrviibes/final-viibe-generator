@@ -147,7 +147,7 @@ function postProcess(line: string, tone: string, requiredTags?: string[]): VibeC
 async function generateMultipleCandidates(inputs: VibeInputs): Promise<VibeCandidate[]> {
   try {
     const systemPromptUpdated = `You are a witty, creative copywriter specializing in short-form content. 
-Your task is to write 2 distinct options that vary in length and approach while maintaining the specified tone.
+Your task is to write 4 distinct options that vary in length and approach while maintaining the specified tone.
 Always output valid JSON only.`;
 
     // Enhanced instructions for movie/pop culture + quotes
@@ -167,7 +167,7 @@ Always output valid JSON only.`;
       ? `\n• Aim to include or reference these tags naturally (paraphrasing is fine): ${inputs.tags.join(', ')}`
       : '';
 
-    const userPrompt = `Write 2 different lines for this context:
+    const userPrompt = `Write 4 different lines for this context:
 
 Category: ${inputs.category} > ${inputs.subcategory}
 Tone: ${inputs.tone}
@@ -176,13 +176,14 @@ ${inputs.recipient_name && inputs.recipient_name !== "-" ? `Recipient: ${inputs.
 
 Requirements:
 • Each line must be under 100 characters
-• Make 1 short option (under 50 characters) and 1 longer option (80-100 characters)
-• Both must be genuinely different - varied wording, not just punctuation
-• Match the ${inputs.tone} tone consistently across both options
+• Make at least 1 short option (under 50 characters)  
+• Make at least 1 longer option (80-100 characters)
+• All 4 must be genuinely different - varied wording, not just punctuation
+• Match the ${inputs.tone} tone consistently across all options
 • No emojis, hashtags, or quotes${tagRequirement}${specialInstructions}
 
 Output only this JSON format:
-{"lines":["option1","option2"]}`;
+{"lines":["option1","option2","option3","option4"]}`;
 
     const messages = [
       { role: 'system', content: systemPromptUpdated },
@@ -224,7 +225,7 @@ Output only this JSON format:
   }
 }
 
-export async function generateCandidates(inputs: VibeInputs, n: number = 2): Promise<VibeResult> {
+export async function generateCandidates(inputs: VibeInputs, n: number = 4): Promise<VibeResult> {
   const candidateResults = await generateMultipleCandidates(inputs);
   
   // Extract API metadata if available
@@ -240,9 +241,9 @@ export async function generateCandidates(inputs: VibeInputs, n: number = 2): Pro
   let usedFallback = false;
   let reason: string | undefined;
   
-  if (uniqueValidLines.length >= 2) {
+  if (uniqueValidLines.length >= 4) {
     // We have enough unique valid lines
-    finalCandidates = uniqueValidLines.slice(0, 2);
+    finalCandidates = uniqueValidLines.slice(0, 4);
     
     // Shuffle the array to avoid always showing short ones first
     for (let i = finalCandidates.length - 1; i > 0; i--) {
@@ -269,7 +270,7 @@ export async function generateCandidates(inputs: VibeInputs, n: number = 2): Pro
     
     // Only use generic fallback as last resort
     const fallback = fallbackByTone[inputs.tone.toLowerCase()] || fallbackByTone.humorous;
-    while (finalCandidates.length < 2) {
+    while (finalCandidates.length < 4) {
       finalCandidates.push(fallback);
     }
     
@@ -291,7 +292,7 @@ export async function generateCandidates(inputs: VibeInputs, n: number = 2): Pro
     } else {
       // Genuine blocks (banned words, etc.) - use tone-based fallbacks
       const fallback = fallbackByTone[inputs.tone.toLowerCase()] || fallbackByTone.humorous;
-      finalCandidates = [fallback, `${fallback} today`];
+      finalCandidates = [fallback, `${fallback} today`, `${fallback} vibes`, `${fallback} energy`];
       picked = finalCandidates[0];
       usedFallback = true;
       reason = candidateResults.find(c => c.reason)?.reason || 'All candidates blocked';
@@ -313,6 +314,6 @@ export async function generateCandidates(inputs: VibeInputs, n: number = 2): Pro
 }
 
 export async function generateFinalLine(inputs: VibeInputs): Promise<string> {
-  const result = await generateCandidates(inputs, 2);
+  const result = await generateCandidates(inputs, 4);
   return result.picked;
 }
