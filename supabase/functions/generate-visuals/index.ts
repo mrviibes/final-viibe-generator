@@ -1,6 +1,50 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Import enhanced tag enforcement
+const ensureHardTags = (lines: string[], hard: string[], required = 3): string[] => {
+  const need = new Set(hard.slice(0, 3));         // cap to avoid token bloat
+  const withTags = lines.map(l => ({
+    l, 
+    hits: [...need].filter(h => l.toLowerCase().includes(h.toLowerCase())).length
+  }));
+  
+  if (withTags.filter(x => x.hits >= 2).length >= required) return lines;
+
+  // rewrite weakest lines by injecting missing tags near verbs
+  return lines.map(l => injectMissingTags(l, [...need]));
+};
+
+const injectMissingTags = (line: string, hardTags: string[]): string => {
+  const missingTags = hardTags.filter(tag => 
+    !line.toLowerCase().includes(tag.toLowerCase())
+  );
+  
+  if (missingTags.length === 0) return line;
+  
+  // Find insertion points near verbs or conjunctions
+  const insertionPatterns = [
+    /(\b(?:is|are|was|were|has|have|does|do|gets|got|makes|made)\b)/i,
+    /(\b(?:and|but|while|when|if|because|since)\b)/i,
+    /(\b(?:with|for|by|at|on|in)\b)/i
+  ];
+  
+  let modifiedLine = line;
+  
+  for (const tag of missingTags.slice(0, 2)) { // Limit to 2 tags max
+    for (const pattern of insertionPatterns) {
+      const match = modifiedLine.match(pattern);
+      if (match && match.index !== undefined) {
+        const insertPos = match.index + match[0].length;
+        modifiedLine = modifiedLine.slice(0, insertPos) + ` ${tag}` + modifiedLine.slice(insertPos);
+        break;
+      }
+    }
+  }
+  
+  return modifiedLine;
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -80,7 +124,7 @@ const SYSTEM_MINI = `Return 4 lines, one sentence each, 18 words max.
 Lane1 literal, Lane2 context, Lane3 exaggeration, Lane4 absurd.
 No numbering, no extra text.`;
 
-// Enhanced tag parsing with @prefix and quote normalization support  
+// Enhanced tag parsing with exact specification compliance
 function parseTagsFromInput(inputTags?: { hard: string[]; soft: string[] } | string[]): { hardTags: string[]; softTags: string[] } {
   // Handle new structured format
   if (inputTags && typeof inputTags === 'object' && !Array.isArray(inputTags)) {
@@ -90,7 +134,7 @@ function parseTagsFromInput(inputTags?: { hard: string[]; soft: string[] } | str
     };
   }
   
-  // Handle legacy array format - parse for hard/soft tags
+  // Handle legacy array format - parse for hard/soft tags using exact specification
   const tagArray = Array.isArray(inputTags) ? inputTags : [];
   const hardTags: string[] = [];
   const softTags: string[] = [];
@@ -99,14 +143,13 @@ function parseTagsFromInput(inputTags?: { hard: string[]; soft: string[] } | str
     const normalized = normalizeTagInput(tag);
     if (!normalized) continue;
     
-    // Check for hard tag markers: @prefix or quoted text
-    if (normalized.startsWith('@')) {
-      const unquoted = normalized.slice(1).trim();
-      if (unquoted) hardTags.push(unquoted);
-    } else if ((normalized.startsWith('"') && normalized.endsWith('"')) ||
-               (normalized.startsWith("'") && normalized.endsWith("'"))) {
-      const unquoted = normalized.slice(1, -1).trim();
-      if (unquoted) hardTags.push(unquoted);
+    // EXACT specification: "Reid" or @Reid = hard tag
+    const hard = /^".+"$|^@.+/.test(normalized);
+    
+    if (hard) {
+      // Remove @ prefix or quotes to get text
+      const text = normalized.replace(/^@/, "").replace(/^["']|["']$/g, "");
+      if (text) hardTags.push(text);
     } else {
       softTags.push(normalized.toLowerCase());
     }
@@ -115,7 +158,7 @@ function parseTagsFromInput(inputTags?: { hard: string[]; soft: string[] } | str
   return { hardTags, softTags };
 }
 
-// Normalize tag input with ASCII quotes
+// Normalize tag input with ASCII quotes (exact spec)
 function normalizeTagInput(rawTag: string): string {
   if (!rawTag) return '';
   return rawTag.trim()

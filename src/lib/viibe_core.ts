@@ -65,6 +65,7 @@ export async function generateTextOptions(session: Session, { tone, tags = [] }:
 import { openAIService } from './openai';
 import { parseVisualTags } from './textUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { getTagArrays } from '@/lib/parseTags';
 
 export async function generateVisualOptions(
   session: Session,
@@ -93,8 +94,9 @@ export async function generateVisualOptions(
   const allTags = [...(tags || []), ...(session.tags || [])];
   const uniqueTags = Array.from(new Set(allTags)).filter(t => t && t.trim().length > 0);
   
-  // Parse tags into hard and soft categories
-  const { hardTags, softTags } = parseVisualTags(uniqueTags);
+  // Parse tags using the enhanced parsing logic - convert array to comma string first
+  const rawTagsString = uniqueTags.join(", ");
+  const { hard: hardTags, soft: softTags } = getTagArrays(rawTagsString);
 
   const payload = {
     final_text: textContent,

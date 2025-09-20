@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getTagArrays, sanitizeInput, ensureHardTags } from "@/lib/parseTags";
 
 const SYSTEM_PROMPT = `You are a text line generator for memes and image overlays. Your job is to create exactly 4 one-liners based on the given category, subcategory, tone, and tags.
 
@@ -42,7 +43,10 @@ interface TextGenInput {
   category: string;
   subcategory: string;
   tone: string;
-  tags: string[];
+  tags: string[] | {
+    hard: string[];
+    soft: string[];
+  };
   mode?: string; // Backward compatibility
   style?: 'standard' | 'story' | 'punchline-first' | 'pop-culture' | 'wildcard';
   rating?: 'G' | 'PG' | 'PG-13' | 'R';
@@ -53,51 +57,6 @@ interface TextGenOutput {
     lane: string;
     text: string;
   }>;
-}
-
-// Enhanced tag parsing utility that supports @prefix syntax
-function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
-  const hardTags: string[] = [];
-  const softTags: string[] = [];
-  
-  for (const tag of tags) {
-    const normalized = normalizeTagInput(tag);
-    if (!normalized) continue;
-    
-    // Check for hard tag markers: @prefix or quoted text
-    if (normalized.startsWith('@')) {
-      // @Reid format - remove @ and store as hard tag
-      const unquoted = normalized.slice(1).trim();
-      if (unquoted) {
-        hardTags.push(unquoted);
-      }
-    } else if ((normalized.startsWith('"') && normalized.endsWith('"')) ||
-               (normalized.startsWith("'") && normalized.endsWith("'"))) {
-      // "Reid" format - remove quotes and store as hard tag
-      const unquoted = normalized.slice(1, -1).trim();
-      if (unquoted) {
-        hardTags.push(unquoted);
-      }
-    } else {
-      // Soft tag - store lowercased for style influence only
-      softTags.push(normalized.toLowerCase());
-    }
-  }
-  
-  return { hardTags, softTags };
-}
-
-// Normalize tag input with ASCII quotes and validation
-function normalizeTagInput(rawTag: string): string {
-  if (!rawTag) return '';
-  
-  return rawTag.trim()
-    // Convert curly quotes to straight quotes
-    .replace(/[""]/g, '"')
-    .replace(/['']/g, "'")
-    // Clean up spacing
-    .replace(/\s+/g, ' ')
-    .trim();
 }
 
 function sanitizeAndValidate(text: string, inputs?: TextGenInput): TextGenOutput | null {
@@ -142,7 +101,15 @@ function sanitizeAndValidate(text: string, inputs?: TextGenInput): TextGenOutput
     
     // Very relaxed validation for inputs
     if (inputs) {
-      const { hardTags } = parseTags(inputs.tags);
+      // Handle both legacy and new tag formats
+      let hardTags: string[] = [];
+      
+      if (Array.isArray(inputs.tags)) {
+        const { hard } = getTagArrays(inputs.tags.join(", "));
+        hardTags = hard;
+      } else if (inputs.tags && typeof inputs.tags === 'object') {
+        hardTags = inputs.tags.hard || [];
+      }
       
       // Only check tag coverage if there are many hard tags
       if (hardTags.length > 2) {
@@ -171,7 +138,15 @@ function sanitizeAndValidate(text: string, inputs?: TextGenInput): TextGenOutput
 }
 
 function buildUserMessage(inputs: TextGenInput): string {
-  const tagsStr = inputs.tags.length > 0 ? `, tags: [${inputs.tags.map(t => `"${t}"`).join(",")}]` : "";
+  // Handle both legacy and new tag formats
+  let tagsStr = "";
+  
+  if (Array.isArray(inputs.tags)) {
+    tagsStr = inputs.tags.length > 0 ? `, tags: [${inputs.tags.map(t => `"${t}"`).join(",")}]` : "";
+  } else if (inputs.tags && typeof inputs.tags === 'object') {
+    const allTags = [...inputs.tags.hard.map(t => `"${t}"`), ...inputs.tags.soft];
+    tagsStr = allTags.length > 0 ? `, tags: [${allTags.join(",")}]` : "";
+  }
   
   let modeInstruction = "";
   if (inputs.mode && inputs.mode !== "regenerate") {
@@ -300,13 +275,23 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
   const coercedInputs = {
     ...inputs,
     tags: Array.isArray(inputs.tags) ? inputs.tags : 
-          (typeof inputs.tags === 'string' ? [inputs.tags] : []),
+          (typeof inputs.tags === 'string' ? [inputs.tags] : inputs.tags),
     style: inputs.style || 'standard',
     rating: inputs.rating || 'PG-13'
   };
   
   // Parse tags into hard and soft categories using enhanced parsing
-  const { hardTags, softTags } = parseTags(coercedInputs.tags);
+  let hardTags: string[] = [];
+  let softTags: string[] = [];
+  
+  if (Array.isArray(coercedInputs.tags)) {
+    const { hard, soft } = getTagArrays(coercedInputs.tags.join(", "));
+    hardTags = hard;
+    softTags = soft;
+  } else if (coercedInputs.tags && typeof coercedInputs.tags === 'object') {
+    hardTags = coercedInputs.tags.hard || [];
+    softTags = coercedInputs.tags.soft || [];
+  }
   
   // Send structured tag data to backend
   const structuredInputs = {
@@ -361,9 +346,26 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
       throw new Error(`Only ${result.lines.length} lines returned, need 4`);
     }
 
-    console.log('✅ Validation passed, returning lines');
+    console.log('✅ Validation passed, enforcing hard tags if needed');
+    
+    // Apply hard tag enforcement before returning
+    const mustEnforceHardTags = hardTags.length > 0;
+    let finalLines = result.lines;
+    
+    if (mustEnforceHardTags) {
+      const lineTexts = finalLines.map((line: any) => line.text);
+      const enforcedTexts = ensureHardTags(lineTexts, hardTags, 3);
+      
+      finalLines = finalLines.map((line: any, idx: number) => ({
+        ...line,
+        text: enforcedTexts[idx] || line.text
+      }));
+      
+      console.log('✅ Applied hard tag enforcement to text generation');
+    }
+    
     return {
-      lines: result.lines.map((line: any) => ({
+      lines: finalLines.map((line: any) => ({
         lane: line.lane || 'default',
         text: line.text || ''
       }))

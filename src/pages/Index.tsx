@@ -27,6 +27,7 @@ import { SafetyValidationDialog } from "@/components/SafetyValidationDialog";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "@/components/ui/sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled, parseVisualTags, normalizeTagInput } from "@/lib/textUtils";
+import { getTagArrays, sanitizeInput, ensureHardTags } from "@/lib/parseTags";
 import { generateStep2Lines } from "@/lib/textGen";
 import { validateVisualBatch, validateCaptionMatch, shouldRetry, type VisualContext, type VisualConcept } from "@/lib/visualValidator";
 import { validateAppearanceConsistency } from "@/lib/appearanceValidator";
@@ -4982,11 +4983,11 @@ const Index = () => {
     return true; // Step 4 is just the final confirmation page
   };
 
-  // Handle adding tags with normalization
+  // Handle adding tags with enhanced normalization
   const handleAddTag = (tag: string) => {
-    const normalizedTag = normalizeTagInput(tag);
-    if (normalizedTag && !tags.includes(normalizedTag)) {
-      setTags([...tags, normalizedTag]);
+    const sanitizedTag = sanitizeInput(tag.trim());
+    if (sanitizedTag && !tags.includes(sanitizedTag)) {
+      setTags([...tags, sanitizedTag]);
     }
     setTagInput("");
   };
@@ -5000,11 +5001,11 @@ const Index = () => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  // Handle adding subject tags with normalization
+  // Handle adding subject tags with enhanced normalization  
   const handleAddSubjectTag = (tag: string) => {
-    const normalizedTag = normalizeTagInput(tag);
-    if (normalizedTag && !subjectTags.includes(normalizedTag)) {
-      setSubjectTags([...subjectTags, normalizedTag]);
+    const sanitizedTag = sanitizeInput(tag.trim());
+    if (sanitizedTag && !subjectTags.includes(sanitizedTag)) {
+      setSubjectTags([...subjectTags, sanitizedTag]);
     }
     setSubjectTagInput("");
   };

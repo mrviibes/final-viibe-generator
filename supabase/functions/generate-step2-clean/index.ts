@@ -30,7 +30,7 @@ async function generateWithGPT5(inputs: any): Promise<any> {
   const startTime = Date.now();
   console.log('🎯 Starting strict GPT-5 generation');
   
-  // ROBUST INPUT COERCION - handle structured tags
+  // ROBUST INPUT COERCION - handle structured tags with exact specification
   let tagsArray: string[] = [];
   let hardTags: string[] = [];
   let softTags: string[] = [];
@@ -41,34 +41,26 @@ async function generateWithGPT5(inputs: any): Promise<any> {
     softTags = Array.isArray(inputs.tags.soft) ? inputs.tags.soft : [];
     tagsArray = [...hardTags.map(t => `"${t}"`), ...softTags]; // Convert back for legacy compat
   } else {
-    // Legacy array format - parse it
+    // Legacy array format - parse using exact specification: "Reid" or @Reid = hard
     tagsArray = Array.isArray(inputs.tags) ? inputs.tags : 
                (typeof inputs.tags === 'string' ? [inputs.tags] : []);
     
-    // Parse legacy tags into hard/soft - CORRECTED LOGIC with @prefix support
+    // Parse legacy tags into hard/soft using exact specification
     hardTags = tagsArray.filter((tag: string) => {
       const normalized = normalizeTagInput(tag);
-      return normalized.startsWith('@') || 
-             (normalized.startsWith('"') && normalized.endsWith('"')) ||
-             (normalized.startsWith("'") && normalized.endsWith("'"));
+      return /^".+"$|^@.+/.test(normalized);      // "Reid" or @Reid = hard
     }).map((tag: string) => {
       const normalized = normalizeTagInput(tag);
-      if (normalized.startsWith('@')) {
-        return normalized.slice(1);
-      } else {
-        return normalized.slice(1, -1);
-      }
+      return normalized.replace(/^@/, "").replace(/^["']|["']$/g, "");
     });
     
     softTags = tagsArray.filter((tag: string) => {
       const normalized = normalizeTagInput(tag);
-      return !normalized.startsWith('@') && 
-             !((normalized.startsWith('"') && normalized.endsWith('"')) ||
-               (normalized.startsWith("'") && normalized.endsWith("'")));
+      return !/^".+"$|^@.+/.test(normalized);     // Everything else = soft
     });
   }
   
-  // Normalize tag input helper
+  // Normalize tag input helper with exact ASCII quote handling
   function normalizeTagInput(rawTag: string): string {
     if (!rawTag) return '';
     return rawTag.trim()
