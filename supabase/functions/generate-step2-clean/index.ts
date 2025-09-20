@@ -149,28 +149,28 @@ async function generateWithGPT5(inputs: any): Promise<any> {
     console.log('⚠️ Context analysis failed, using generic approach:', error.message);
   }
 
-  // Generate 4 random comedian voices with context-aware selection
+  // Stage-ready comedian voices - cleaned pool with authentic delivery instructions
   const comedianVoices = [
-    "Kevin Hart (energetic, self-deprecating, physical comedy)",
-    "Ali Wong (raw, raunchy, family humor)", 
-    "Dave Chappelle (sharp cultural commentary)",
-    "Taylor Tomlinson (millennial anxiety, dating disasters)",
-    "Ricky Gervais (edgy, mocking, zero filter)",
-    "Trevor Noah (global perspective, pointed observations)",
-    "Sebastian Maniscalco (exasperated family dysfunction)",
-    "Bill Burr (angry, brutal honesty, no apologies)",
-    "Hasan Minhaj (storytelling with political undertones)",
-    "Nate Bargatze (deadpan innocent observations)",
-    "Sarah Silverman (dark humor with childlike delivery)",
-    "Louis CK (uncomfortable confessions)",
-    "Wanda Sykes (sassy social commentary)",
-    "Chris Rock (loud relationship observations)",
-    "Jo Koy (family dynamics and mom impressions)",
-    "Norm MacDonald (bizarre deadpan with weird twists)",
-    "Mitch Hedberg (surreal one-liners with misdirection)",
-    "Amy Schumer (unapologetically dirty and self-aware)",
-    "George Carlin (cynical philosophical rants)",
-    "Joan Rivers (savage celebrity and fashion roasts)"
+    "Kevin Hart: high energy panic, animated reactions, self-roast first then roast others",
+    "Ali Wong: brutal honest observations, raw imagery, unapologetic bold delivery", 
+    "Dave Chappelle: storytelling with social insights, character voices, vivid scene-setting",
+    "Taylor Tomlinson: millennial anxiety storytelling with dating disaster punchlines",
+    "Ricky Gervais: provocative boundary-pushing with deadpan British cruelty",
+    "Bill Burr: working-class rant energy, confrontational truth-telling, gruff edge",
+    "Hasan Minhaj: cultural storytelling with political undertones, animated earnest delivery",
+    "Nate Bargatze: clean folksy storytelling with innocent confused observations",
+    "Sarah Silverman: dark humor with childlike innocent delivery, shocking sweet presentation",
+    "Wanda Sykes: dry sassy social commentary with sharp maternal wisdom",
+    "Chris Rock: loud relationship observations with clear setup-punchline structure",
+    "Anthony Jeselnik: dark deadpan one-liners with shocking twists, clinical brutal precision",
+    "Jim Gaffigan: self-deprecating food humor with internal voice asides, relatable dad energy",
+    "Amy Schumer: unapologetically dirty self-aware humor with relationship disasters",
+    "John Mulaney: nostalgic precise storytelling with childlike wonder, clear narrative timing",
+    "Norm MacDonald: bizarre deadpan with weird unexpected twists, anti-comedy surreal logic",
+    "Mitch Hedberg: surreal one-liners with misdirection wordplay, stoned philosophical rhythm",
+    "Joan Rivers: glamorous savage roasts with cutting Hollywood insider wit",
+    "Patrice O'Neal: brutally honest relationship observations, confrontational raw masculine truth",
+    "Mike Birbiglia: vulnerable awkward storytelling with conversational neurotic observations"
   ];
   
   // Randomly select 4 different comedian voices for this generation
@@ -186,7 +186,7 @@ async function generateWithGPT5(inputs: any): Promise<any> {
     ? `\n## LEXICON GUIDANCE:\nAuthentic vocabulary to naturally incorporate: ${lexiconWords.join(', ')}\n`
     : '';
 
-  const systemPrompt = `You generate exactly 4 unique one-liner jokes or captions.  
+  const systemPrompt = `You generate exactly 4 unique STAGE-READY comedy lines that sound like they came from a comic's mouth.  
 Return ONLY valid JSON in this exact structure:
 
 {
@@ -198,12 +198,21 @@ Return ONLY valid JSON in this exact structure:
   ]
 }
 
-## Hard Rules
+## CRITICAL: AUTHENTIC COMEDIAN DELIVERY
+Each line MUST sound like it's being delivered by a specific comedian on stage. You should be able to HEAR the timing, see the delivery, and imagine the laugh. Not AI copy - actual comedian bits.
+
+## PUNCHLINE STRUCTURE (MANDATORY)
+Every line needs clear comic structure:
+- SETUP: brief context or premise (what's happening)
+- TWIST: unexpected turn or exaggeration (the laugh moment)
+- VISUAL: concrete, specific imagery (not abstract concepts)
+- Example: "Reid folds laundry like it insulted his fuckin' family." (Setup: Reid folding, Twist: personal vendetta, Visual: angry family confrontation)
+
+## Hard Technical Rules
 - Output exactly 4 unique lines.
 - Each line must end with a single period. No commas, colons, semicolons, exclamations, or question marks. No em dashes. No ellipses.
-- Length: Randomized buckets from [[40,60],[61,80],[81,100],[101,120]] for diversity.  
+- Length: Randomized buckets from [[40,60],[61,80],[81,100],[101,120]] for variety.  
   ${inputs.style === 'story' ? '(Story Mode: all 4 must be 80–100 with setup → payoff.)' : ''}
-- Perspectives per batch: one general truth, one past-tense memory, one present-tense roast/flirt, one third-person tagged line (if a name tag exists).
 - Tone must match ${inputs.tone} selection.
 - Style must match ${inputs.style || 'standard'} selection.
 - Rating must match ${inputs.rating || 'PG-13'} selection.
@@ -211,13 +220,13 @@ Return ONLY valid JSON in this exact structure:
   * Quoted tags ${hardTags.length > 0 ? `(${hardTags.join(', ')})` : ''} MUST appear literally in 3 of 4 lines.  
   * Unquoted tags ${softTags.length > 0 ? `(${softTags.join(', ')})` : ''} must NOT appear literally, but must guide style, mood, or POV.
 ${contextInstructions}${lexiconInstructions}
-## COMEDIAN VOICE ASSIGNMENTS (CRITICAL - Each line MUST channel these specific voices):
-- Option 1: Channel ${selectedVoices[0]} style and delivery
-- Option 2: Channel ${selectedVoices[1]} style and delivery  
-- Option 3: Channel ${selectedVoices[2]} style and delivery
-- Option 4: Channel ${selectedVoices[3]} style and delivery
+## COMEDIAN VOICE ASSIGNMENTS (CRITICAL - Channel these EXACT delivery styles):
+- Option 1: Channel ${selectedVoices[0]} - use their specific rhythm, attitude, and delivery pattern
+- Option 2: Channel ${selectedVoices[1]} - match their comedic voice and timing  
+- Option 3: Channel ${selectedVoices[2]} - replicate their style and perspective
+- Option 4: Channel ${selectedVoices[3]} - capture their unique comedic approach
 
-- Must read like natural spoken jokes from these specific comedians, not generic templates.
+REMEMBER: These must read like transcripts from actual stand-up sets, not generic joke templates.
 
 ## Tone Map
 - Humorous = observational, witty, punny.
@@ -236,12 +245,12 @@ ${contextInstructions}${lexiconInstructions}
 - Pop Culture = MUST include a celebrity, meme, or trend.
 - Wildcard = unpredictable, but still a valid joke.
 
-## Rating Map
-- G = wholesome, no profanity, no innuendo. Family-friendly only.
-- PG = light sass and attitude but stay clean. Add some bite but no profanity.
-- PG-13 = sharp roasts with real bite. MUST include mild profanity (damn, hell, crap) OR clever innuendo OR savage attitude. Get edgy.
-- R = go hard. MUST include strong profanity (fuck, shit, ass, bitch), brutal roasts, sexual references, or nasty commentary. No holding back.
-- XXX = full NSFW mode. Explicit sexual content, brutal profanity, savage personal attacks, dark humor. Absolutely ruthless and dirty.`;
+## Rating Map (Stage-Ready Comedy Rules)
+- G = wholesome family-friendly with clean comedian timing. Think Jim Gaffigan or Nate Bargatze energy.
+- PG = light sass with comedian attitude but stay clean. Add bite through delivery, not language.
+- PG-13 = sharp roasts with real edge. MUST include mild profanity (damn, hell, crap) OR clever innuendo OR savage attitude. Comedic timing required.
+- R = hard comedy club energy. MUST include strong profanity (fuck, shit, ass, bitch) with brutal comic timing, sexual references, or nasty roast delivery.
+- XXX = full raunch comedy mode. Explicit sexual content riding on ACTUAL comic premises (not just shock). Must combine raunch + timing + visual imagery. Think Joan Rivers dirty wit or Patrice O'Neal raw honesty with proper comedian structure.`;
   
   const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG-13'}`;
   

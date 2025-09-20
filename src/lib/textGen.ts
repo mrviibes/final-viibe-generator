@@ -178,16 +178,22 @@ Tone: ${inputs.tone}${tagsStr}${modeInstruction}`;
 function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
   const { category, subcategory, tone, style, rating } = inputs;
   
-  // Import context analysis
+  // Import enhanced fallback systems
   const { analyzeContext } = require('./contextDetector');
   const { generateContextualFallback } = require('./contextLexicon');
+  const { ensureHardTagsInFallback } = require('./hardTagEnforcer');
   
   // Handle both legacy and new tag formats for context analysis
   let tags: string[] = [];
+  let hardTags: string[] = [];
+  
   if (Array.isArray(inputs.tags)) {
     tags = inputs.tags;
+    const { hard } = getTagArrays(inputs.tags.join(", "));
+    hardTags = hard;
   } else if (inputs.tags && typeof inputs.tags === 'object') {
     tags = [...inputs.tags.hard, ...inputs.tags.soft];
+    hardTags = inputs.tags.hard || [];
   }
   
   // Analyze context for enhanced fallbacks
@@ -199,9 +205,9 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
     tone
   );
   
-  console.log('🎯 Generating contextual fallback with recipe:', contextAnalysis.generationRecipe);
+  console.log('🎯 Generating stage-ready fallback with recipe:', contextAnalysis.generationRecipe);
   
-  // Try contextual fallback first
+  // Try contextual fallback first with comedian voice structure
   if (contextAnalysis.detectedContext?.secondary) {
     const contextualFallbacks = generateContextualFallback(
       contextAnalysis.detectedContext.secondary,
@@ -210,8 +216,11 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
     );
     
     if (contextualFallbacks.length >= 4) {
+      // Apply hard tag enforcement to contextual fallbacks
+      const tagEnforcedFallbacks = ensureHardTagsInFallback(contextualFallbacks, hardTags);
+      
       return {
-        lines: contextualFallbacks.map((text, idx) => ({
+        lines: tagEnforcedFallbacks.map((text, idx) => ({
           lane: `option${idx + 1}`,
           text
         }))
@@ -219,73 +228,78 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
     }
   }
   
-  // Enhanced generic fallback with context awareness
-  const toneAdjectives = {
-    'Savage': ['brutal', 'ruthless', 'savage', 'merciless'],
-    'Humorous': ['ridiculous', 'hilarious', 'absurd', 'comical'],
-    'Playful': ['silly', 'quirky', 'adorable', 'fun'],
-    'Sentimental': ['heartwarming', 'nostalgic', 'touching', 'meaningful'],
-    'Serious': ['profound', 'thoughtful', 'significant', 'deep'],
-    'Inspirational': ['empowering', 'uplifting', 'motivating', 'transformative']
+  // Enhanced stage-ready fallback with comedian voice structure
+  const comedianFallbacks = generateComedianStyleFallbacks(
+    contextAnalysis.suggestedLexicon,
+    tone,
+    rating || 'PG-13',
+    style
+  );
+  
+  // Apply hard tag enforcement to comedian fallbacks
+  const fallbackTexts = comedianFallbacks.map(f => f.text);
+  const tagEnforcedTexts = ensureHardTagsInFallback(fallbackTexts, hardTags);
+  
+  return {
+    lines: tagEnforcedTexts.map((text, idx) => ({
+      lane: `option${idx + 1}`,
+      text
+    }))
   };
+}
+
+function generateComedianStyleFallbacks(
+  lexiconWords: string[],
+  tone: string,
+  rating: string,
+  style?: string
+): Array<{ lane: string; text: string }> {
+  const words = lexiconWords.length > 0 ? lexiconWords.slice(0, 4) : ['life', 'reality', 'experience', 'moment'];
   
-  // Enhanced context words with lexicon integration
-  const contextWords = {
-    'Birthday': ['celebration', 'milestone', 'aging', 'party'],
-    'Wedding': ['commitment', 'love', 'ceremony', 'union'],
-    'Holiday': ['tradition', 'family', 'gathering', 'celebration'],
-    'Friend': ['friendship', 'loyalty', 'bond', 'connection'],
-    'Self': ['growth', 'journey', 'reflection', 'experience'],
-    'Work': ['career', 'productivity', 'hustle', 'grind'],
-    'Dating': ['romance', 'connection', 'chemistry', 'spark'],
-    'Travel': ['adventure', 'journey', 'exploration', 'destination'],
-    'Sports': ['competition', 'game', 'victory', 'challenge'],
-    'Technology': ['innovation', 'digital', 'connectivity', 'future']
-  };
-  
-  // Use suggested lexicon words if available
-  const lexiconWords = contextAnalysis.suggestedLexicon.length > 0 
-    ? contextAnalysis.suggestedLexicon.slice(0, 4)
-    : contextWords[subcategory] || ['life', 'reality', 'experience', 'moment'];
-  
-  const adj = toneAdjectives[tone] || toneAdjectives['Humorous'];
-  
-  if (style === 'pop-culture') {
-    const popCultureWords = contextAnalysis.detectedContext?.lexiconWords?.filter(w => 
-      ['Netflix', 'TikTok', 'Marvel', 'Taylor Swift', 'Instagram', 'YouTube'].some(pop => 
-        w.toLowerCase().includes(pop.toLowerCase())
-      )
-    ) || ['Netflix', 'TikTok', 'Marvel', 'Taylor Swift'];
-    
-    return {
-      lines: [
-        { lane: "option1", text: `${popCultureWords[0] || 'Netflix'} couldn't script this level of ${lexiconWords[0]}.` },
-        { lane: "option2", text: `This ${lexiconWords[1]} deserves its own ${popCultureWords[1] || 'TikTok'} trend honestly.` },
-        { lane: "option3", text: `${popCultureWords[2] || 'Marvel'} writers could never create a ${lexiconWords[2]} twist this unexpected.` },
-        { lane: "option4", text: `Even ${popCultureWords[3] || 'Taylor Swift'} wouldn't write about this level of ${lexiconWords[3]}.` }
-      ]
-    };
+  // Comedian-style fallbacks with proper structure and delivery
+  if (rating === 'XXX') {
+    return [
+      { lane: "option1", text: `This ${words[0]} fucks harder than a horny teenager with house keys.` },
+      { lane: "option2", text: `${words[1]} just bent me over like a yoga instructor with commitment issues.` },
+      { lane: "option3", text: `Plot twist: ${words[2]} decided to raw dog my expectations without warning.` },
+      { lane: "option4", text: `Based on a true ${words[3]} that left me dirtier than laundry day.` }
+    ];
   }
   
   if (rating === 'R') {
-    return {
-      lines: [
-        { lane: "option1", text: `This ${lexiconWords[0]} is absolutely fucking ${adj[0]}.` },
-        { lane: "option2", text: `${lexiconWords[1]} just ${adj[1]} me harder than I deserved honestly.` },
-        { lane: "option3", text: `Plot twist: ${lexiconWords[2]} decided to be a ${adj[2]} ass situation today.` },
-        { lane: "option4", text: `Based on a true ${lexiconWords[3]} that nobody asked for but damn here we are anyway.` }
-      ]
-    };
+    return [
+      { lane: "option1", text: `This ${words[0]} hit different, like getting punched by reality's ugly cousin.` },
+      { lane: "option2", text: `${words[1]} just roasted me harder than my mom at family dinner damn.` },
+      { lane: "option3", text: `Plot twist: ${words[2]} decided to be a complete asshole situation today.` },
+      { lane: "option4", text: `Based on a true ${words[3]} that nobody fucking asked for but here we are.` }
+    ];
   }
   
-  return {
-    lines: [
-      { lane: "option1", text: `When ${lexiconWords[0]} gives you ${adj[0]} moments, make memes.` },
-      { lane: "option2", text: `Plot twist: this ${adj[1]} ${lexiconWords[1]} actually happened to me.` },
-      { lane: "option3", text: `Based on a ${adj[2]} ${lexiconWords[2]} story that nobody asked for but here we are.` },
-      { lane: "option4", text: `${lexiconWords[3]} called and left a ${adj[3]} voicemail but I'm too busy to listen.` }
-    ]
-  };
+  if (style === 'pop-culture') {
+    return [
+      { lane: "option1", text: `Netflix couldn't script this level of ${words[0]} chaos honestly.` },
+      { lane: "option2", text: `This ${words[1]} deserves its own TikTok trend and I'm here for it.` },
+      { lane: "option3", text: `Marvel writers could never create a ${words[2]} twist this unexpected.` },
+      { lane: "option4", text: `Even Taylor Swift wouldn't write about this level of ${words[3]} drama.` }
+    ];
+  }
+  
+  // Default comedian-style fallbacks with proper delivery structure
+  if (tone === 'Savage') {
+    return [
+      { lane: "option1", text: `This ${words[0]} really said hold my beer and watch me disappoint everyone.` },
+      { lane: "option2", text: `${words[1]} just roasted me like a Sunday dinner nobody wanted to attend.` },
+      { lane: "option3", text: `Plot twist: ${words[2]} decided to be the villain in my origin story.` },
+      { lane: "option4", text: `Based on a true ${words[3]} that my therapist charges extra to hear.` }
+    ];
+  }
+  
+  return [
+    { lane: "option1", text: `When ${words[0]} gives you lemons, make memes and call it therapy.` },
+    { lane: "option2", text: `Plot twist: this ${words[1]} actually happened and I survived to tell it.` },
+    { lane: "option3", text: `Based on a ${words[2]} story that my friends refuse to believe.` },
+    { lane: "option4", text: `${words[3]} called and left a voicemail but I'm too busy processing trauma.` }
+  ];
 }
 
 async function retryWithBackoff<T>(
@@ -401,22 +415,42 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
       throw new Error(`Only ${result.lines.length} lines returned, need 4`);
     }
 
-    console.log('✅ Validation passed, enforcing hard tags if needed');
+    console.log('✅ Validation passed, applying enhanced hard tag enforcement');
     
-    // Apply hard tag enforcement before returning
-    const mustEnforceHardTags = hardTags.length > 0;
+    // Apply enhanced hard tag enforcement with punchline validation
+    const { enforceHardTagsPostGeneration } = require('./hardTagEnforcer');
+    const { validateBatchPunchlines } = require('./punchlineValidator');
+    
     let finalLines = result.lines;
     
-    if (mustEnforceHardTags) {
-      const lineTexts = finalLines.map((line: any) => line.text);
-      const enforcedTexts = ensureHardTags(lineTexts, hardTags, 3);
+    // Validate punchline structure first
+    const punchlineValidation = validateBatchPunchlines(finalLines);
+    console.log('🎭 Punchline validation:', {
+      overallScore: punchlineValidation.overallScore,
+      stageReady: punchlineValidation.stageReadyCount,
+      issues: punchlineValidation.totalIssues
+    });
+    
+    // Apply hard tag enforcement that survives failures
+    if (hardTags.length > 0) {
+      const enforcement = enforceHardTagsPostGeneration(
+        finalLines.map((line: any) => line.text),
+        hardTags,
+        3
+      );
       
-      finalLines = finalLines.map((line: any, idx: number) => ({
-        ...line,
-        text: enforcedTexts[idx] || line.text
-      }));
-      
-      console.log('✅ Applied hard tag enforcement to text generation');
+      if (enforcement.wasModified) {
+        finalLines = finalLines.map((line: any, idx: number) => ({
+          ...line,
+          text: enforcement.enforcedLines[idx] || line.text
+        }));
+        
+        console.log('✅ Enhanced hard tag enforcement applied:', {
+          coverage: `${enforcement.tagCoverage.toFixed(1)}%`,
+          modified: enforcement.wasModified,
+          log: enforcement.enforcementLog
+        });
+      }
     }
     
     return {
@@ -427,8 +461,12 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
     };
 
   } catch (error) {
-    console.error('❌ Text generation error:', error);
-    // Re-throw to surface in UI with toast notifications
-    throw error;
+    console.error('❌ Text generation error, falling back to stage-ready fallbacks:', error);
+    
+    // Enhanced fallback with hard tag enforcement that survives all failures
+    const fallbackResult = generateFallbackLines(inputs);
+    console.log('🎭 Using stage-ready fallback generation with tag enforcement');
+    
+    return fallbackResult;
   }
 }
