@@ -287,10 +287,10 @@ REMEMBER: You are transcribing actual stand-up performances, not writing generic
   * Comedian delivery: Channel Joan Rivers wit, Patrice O'Neal honesty, Ali Wong imagery, Sarah Silverman twisted innocence
   * Visual requirement: Create images you can SEE, not just crude language
   * Length variety: Mix tight filthy one-liners (40-60 chars) with story beats (80-120 chars)
-  * Example GOOD XXX: "Reid kisses like he's blowing into a Nintendo cartridge, loud messy and somehow nostalgic."
-  * Example BAD XXX: "Reid is fucking terrible at fucking everything fuck."
-  
-  const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG-13'}`;
+   * Example GOOD XXX: "Reid kisses like he's blowing into a Nintendo cartridge, loud messy and somehow nostalgic."
+   * Example BAD XXX: "Reid is fucking terrible at fucking everything fuck."`;
+   
+   const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG-13'}`;
   
   console.log('📝 Prompts - System:', systemPrompt.length, 'User:', userPrompt.length);
   
