@@ -50,6 +50,20 @@ export interface TagEnforcementConfig {
   degradeNotBypass: boolean;
 }
 
+export interface LengthBucketsConfig {
+  ranges: Array<[number, number]>;
+  randomizePerBatch: boolean;
+  enforceVariety: boolean;
+}
+
+export interface FunnyEnhancementsConfig {
+  requirePopCultureOrAbsurd: boolean;
+  requireOneStoryWithTwist: boolean;
+  banFlatDescriptions: boolean;
+  enabledTones: string[];
+  flatDescriptionPatterns: string[];
+}
+
 export const VIIBE_CONFIG = {
   system: VIIBE_CONFIG_V2.system,
   precedence: VIIBE_CONFIG_V2.precedence,
@@ -57,7 +71,9 @@ export const VIIBE_CONFIG = {
   comedianVoices: VIIBE_CONFIG_V2.comedianVoices as ComedianVoiceConfig,
   popCulture: VIIBE_CONFIG_V2.popCulture as PopCultureConfig,
   visualLanes: VIIBE_CONFIG_V2.visualLanes as VisualLanesConfig,
-  tagEnforcement: VIIBE_CONFIG_V2.tagEnforcement as TagEnforcementConfig
+  tagEnforcement: VIIBE_CONFIG_V2.tagEnforcement as TagEnforcementConfig,
+  lengthBuckets: VIIBE_CONFIG_V2.lengthBuckets as LengthBucketsConfig,
+  funnyEnhancements: VIIBE_CONFIG_V2.funnyEnhancements as FunnyEnhancementsConfig
 };
 
 // Type definitions

@@ -393,6 +393,158 @@ function applyInputPrecedenceLocal(inputs: any): any {
   return applyInputPrecedence(inputs);
 }
 
+// Length bucket assignment for variety
+function assignLengthBuckets(): Array<[number, number]> {
+  const buckets = VIIBE_CONFIG.lengthBuckets.ranges;
+  if (VIIBE_CONFIG.lengthBuckets.randomizePerBatch) {
+    // Shuffle array to get different ranges per batch
+    const shuffled = [...buckets];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+  return buckets;
+}
+
+// Check for flat descriptions
+function checkFlatDescriptions(lines: Array<{lane: string, text: string}>, tone: string): { hasFlatDescriptions: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  // Only check for comedy-enabled tones
+  if (!VIIBE_CONFIG.funnyEnhancements.enabledTones.includes(tone)) {
+    return { hasFlatDescriptions: false, issues: [] };
+  }
+  
+  const patterns = VIIBE_CONFIG.funnyEnhancements.flatDescriptionPatterns;
+  
+  const flatLines = lines.filter(line => {
+    const text = line.text.toLowerCase();
+    return patterns.some(pattern => text.includes(pattern.toLowerCase())) ||
+           // Additional flat pattern detection
+           /^[^.!?]*\b(is|are|was|were)\s+\w+\s+(at|in|on)\s+\w+[.!?]?$/.test(text) ||
+           text.split(' ').length < 6; // Very short, likely flat
+  });
+  
+  if (flatLines.length > 1) {
+    issues.push(`${flatLines.length} lines are flat descriptions. Need more dynamic, comedic approaches.`);
+  }
+  
+  return {
+    hasFlatDescriptions: flatLines.length > 1,
+    issues
+  };
+}
+
+// Check for comedy structure variety
+function checkComedyStructureVariety(lines: Array<{lane: string, text: string}>, tone: string): { hasVariety: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  if (!VIIBE_CONFIG.funnyEnhancements.enabledTones.includes(tone)) {
+    return { hasVariety: true, issues: [] };
+  }
+  
+  const structures = {
+    roast: 0,
+    absurd: 0,
+    punchlineFirst: 0,
+    story: 0
+  };
+  
+  lines.forEach(line => {
+    const text = line.text.toLowerCase();
+    
+    // Roast detection
+    if (/\b(your|you're|you are)\b/.test(text) && /\b(worst|terrible|awful|fail|disaster|mess)\b/.test(text)) {
+      structures.roast++;
+    }
+    // Absurd comparison detection  
+    else if (/\b(like|as|than)\b/.test(text) && /\b(suddenly|randomly|somehow|mysteriously|would|could)\b/.test(text)) {
+      structures.absurd++;
+    }
+    // Punchline-first detection
+    else if ((text.includes(',') || text.includes(':') || text.includes(' - ')) && text.split(' ').length > 6) {
+      structures.punchlineFirst++;
+    }
+    // Story detection
+    else if (/\b(then|when|after|before|until|so|first|decided|realized)\b/.test(text)) {
+      structures.story++;
+    }
+  });
+  
+  const usedStructures = Object.values(structures).filter(count => count > 0).length;
+  if (usedStructures < 3) {
+    issues.push(`Only ${usedStructures}/4 comedy structures used. Need variety: roast, absurd comparison, punchline-first, short story.`);
+  }
+  
+  return {
+    hasVariety: usedStructures >= 3,
+    issues
+  };
+}
+
+// Check for pop culture or absurd requirements
+function checkPopCultureOrAbsurd(lines: Array<{lane: string, text: string}>, tone: string): { hasRequiredContent: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  if (!VIIBE_CONFIG.funnyEnhancements.requirePopCultureOrAbsurd || 
+      !VIIBE_CONFIG.funnyEnhancements.enabledTones.includes(tone)) {
+    return { hasRequiredContent: true, issues: [] };
+  }
+  
+  const popCultureCount = lines.filter(line => {
+    const text = line.text.toLowerCase();
+    return /\b(netflix|tiktok|instagram|spotify|amazon|google|uber|disney|marvel|taylor swift|kardashian)\b/.test(text) ||
+           /\b(app|show|movie|song|celebrity|influencer|viral|trending|meme)\b/.test(text) ||
+           /\b(iphone|android|facebook|twitter|youtube|snapchat)\b/.test(text);
+  }).length;
+  
+  const absurdCount = lines.filter(line => {
+    const text = line.text.toLowerCase();
+    return /\b(like|as|than)\b/.test(text) && 
+           (/\b(drunk|high|confused|lost|broken|dead)\b/.test(text) ||
+            /\b(surgery|hospital|court|prison|therapy)\b/.test(text) ||
+            /\b(alien|zombie|robot|dinosaur|unicorn)\b/.test(text));
+  }).length;
+  
+  if (popCultureCount + absurdCount < 2) {
+    issues.push(`Need 2+ lines with pop culture references OR absurd comparisons. Found ${popCultureCount} pop culture + ${absurdCount} absurd.`);
+  }
+  
+  return {
+    hasRequiredContent: (popCultureCount + absurdCount) >= 2,
+    issues
+  };
+}
+
+// Check for story with twist requirement
+function checkStoryWithTwist(lines: Array<{lane: string, text: string}>, tone: string): { hasStoryWithTwist: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  if (!VIIBE_CONFIG.funnyEnhancements.requireOneStoryWithTwist || 
+      !VIIBE_CONFIG.funnyEnhancements.enabledTones.includes(tone)) {
+    return { hasStoryWithTwist: true, issues: [] };
+  }
+  
+  const storyWithTwistCount = lines.filter(line => {
+    const text = line.text.toLowerCase();
+    const hasNarrative = /\b(then|when|after|before|until|so|decided|realized|discovered|happened|turned out)\b/.test(text);
+    const hasTwist = /\b(but|except|actually|turns out|surprise|plot twist|however|unfortunately)\b/.test(text) ||
+                     text.includes(',') && text.split(',').length >= 2;
+    return hasNarrative && hasTwist && text.split(' ').length >= 8;
+  }).length;
+  
+  if (storyWithTwistCount < 1) {
+    issues.push(`Need 1+ mini-story with twist ending. Use narrative words (then, when, decided) + twist words (but, turns out, actually).`);
+  }
+  
+  return {
+    hasStoryWithTwist: storyWithTwistCount >= 1,
+    issues
+  };
+}
+
 function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[], style?: string, rating?: string): string {
   // Gate validators by tone
   const comedyEnabled = isComedyEnabled(tone);
@@ -406,12 +558,15 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
   // Select comedian voice
   const comedianVoice = selectComedianVoice(tone, rating || 'PG-13');
   
+  // Assign length buckets for variety
+  const lengthBuckets = assignLengthBuckets();
+  
   const styleDefinitions = {
-    'standard': 'Balanced one-liners (40-80 chars)',
-    'story': 'Mini-narratives with setup → payoff (60-100 chars)',
-    'pop-culture': 'Include celebrities, movies, TV, music, apps (40-80 chars)',
-    'punchline-first': 'Hit joke early, then tag-back (40-80 chars)',
-    'wildcard': 'Use current tone rules with creative approach (40-80 chars)'
+    'standard': 'Balanced one-liners with varied length',
+    'story': 'Mini-narratives with setup → payoff',
+    'pop-culture': 'Include celebrities, movies, TV, music, apps',
+    'punchline-first': 'Hit joke early, then tag-back',
+    'wildcard': 'Use current tone rules with creative approach'
   };
   
   const ratingDefs = {
@@ -421,7 +576,11 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
     'R': 'Explicit profanity (shit, fuck, ass), savage roasts'
   };
   
-  const lengthReq = style === 'story' ? "60-100 characters" : "40-80 characters";
+  // Build length assignments per line
+  const lengthAssignments = lengthBuckets.map((range, index) => 
+    `Option${index + 1}: ${range[0]}-${range[1]} chars`
+  ).join(', ');
+  
   const styleDesc = styleDefinitions[style || 'standard'] || styleDefinitions['standard'];
   let ratingDesc = ratingDefs[rating || 'PG-13'] || ratingDefs['PG-13'];
   
@@ -432,9 +591,18 @@ function getSystemPrompt(category: string, subcategory: string, tone: string, ta
   
   let systemPrompt = `Generate 4 ${tone.toLowerCase()} lines for ${subcategory}. 
 
-JSON: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}, {"lane": "option3", "text": "..."}, {"lane": "option4", "text": "..."}]}
+LENGTH VARIETY (CRITICAL): ${lengthAssignments}
+Each line MUST fit its assigned range for variety.
 
-${lengthReq}. ${ratingDesc}.`;
+STYLE: ${styleDesc}. ${ratingDesc}.
+
+COMEDY STRUCTURE ROTATION: Vary between:
+- Roast: Direct targeting ("Your [thing] is...")  
+- Absurd comparison: Unexpected similes ("Like a [thing] on [situation]")
+- Punchline-first: "Joke first, then setup explanation"
+- Short story: "Setup happened, then twist ending"
+
+JSON: {"lines": [{"lane": "option1", "text": "..."}, {"lane": "option2", "text": "..."}, {"lane": "option3", "text": "..."}, {"lane": "option4", "text": "..."}]}`;
 
   // Add comedian voice instruction
   if (comedianVoice) {
@@ -449,6 +617,15 @@ ${lengthReq}. ${ratingDesc}.`;
   // Add hard tag requirements
   if (hardTags.length > 0) {
     systemPrompt += `\n\nHARD TAGS: Must literally include these in 3 of 4 lines: ${hardTags.map(t => `"${t}"`).join(', ')}`;
+  }
+  
+  // Add funny enhancement rules for comedy-enabled tones
+  if (VIIBE_CONFIG.funnyEnhancements.enabledTones.includes(tone)) {
+    systemPrompt += `\n\nFUNNY ENHANCEMENTS (REQUIRED):
+- Must include 2+ pop culture references (Netflix, TikTok, celebrities, apps) OR absurd comparisons
+- Must include 1+ mini-story with twist ending ("Setup happened, but turns out...")
+- Ban flat descriptions like "Jesse is tall at basketball" - make them dynamic and comedic
+- Each line should use different comedy approach for variety`;
   }
   
   return systemPrompt;
@@ -693,7 +870,7 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: {
     return { isValid: false, errors, warnings, lengths: [] };
   }
   
-  // Length validation (relaxed - warnings only)
+  // Length variety validation - check if lines fall into different buckets
   const lengths = lines.map(line => line.text?.length || 0);
   const tooShort = lengths.filter(len => len < 20).length;
   const tooLong = lengths.filter(len => len > 120).length;
@@ -703,6 +880,20 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: {
   }
   if (tooLong > 0) {
     warnings.push(`${tooLong} lines too long (max 120 chars)`);
+  }
+  
+  // Check for length variety - lines should span different ranges
+  if (VIIBE_CONFIG.lengthBuckets.enforceVariety) {
+    const lengthRanges = lengths.map(len => {
+      if (len <= 60) return 'short';
+      if (len <= 80) return 'medium';  
+      if (len <= 100) return 'long';
+      return 'max';
+    });
+    const uniqueRanges = new Set(lengthRanges);
+    if (uniqueRanges.size < 3) {
+      warnings.push(`Insufficient length variety. Lines cluster in ${uniqueRanges.size}/4 ranges. Need more spread: ${lengths.join(', ')} chars`);
+    }
   }
   
   // Empty lines check (error)
@@ -778,6 +969,29 @@ function validateAndRepair(lines: Array<{lane: string, text: string}>, inputs: {
     
     if (softTagCoverage < inputs.softTags.length) {
       warnings.push(`Soft tags: ${softTagCoverage}/${inputs.softTags.length} exact phrases found`);
+    }
+  }
+  
+  // Funny enhancement validation for comedy tones
+  if (VIIBE_CONFIG.funnyEnhancements.enabledTones.includes(inputs.tone)) {
+    const flatCheck = checkFlatDescriptions(lines, inputs.tone);
+    if (flatCheck.hasFlatDescriptions) {
+      warnings.push(...flatCheck.issues);
+    }
+    
+    const structureCheck = checkComedyStructureVariety(lines, inputs.tone);
+    if (!structureCheck.hasVariety) {
+      warnings.push(...structureCheck.issues);
+    }
+    
+    const popCultureCheck = checkPopCultureOrAbsurd(lines, inputs.tone);
+    if (!popCultureCheck.hasRequiredContent) {
+      warnings.push(...popCultureCheck.issues);
+    }
+    
+    const storyCheck = checkStoryWithTwist(lines, inputs.tone);
+    if (!storyCheck.hasStoryWithTwist) {
+      warnings.push(...storyCheck.issues);
     }
   }
   

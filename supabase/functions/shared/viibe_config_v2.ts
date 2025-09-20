@@ -66,5 +66,17 @@ export const VIIBE_CONFIG_V2 = {
     "hardTagsRequiredIn": 3,
     "enforceAfterFallbacks": true,
     "degradeNotBypass": true
+  },
+  "lengthBuckets": {
+    "ranges": [[40,60], [61,80], [81,100], [101,120]],
+    "randomizePerBatch": true,
+    "enforceVariety": true
+  },
+  "funnyEnhancements": {
+    "requirePopCultureOrAbsurd": true,
+    "requireOneStoryWithTwist": true,
+    "banFlatDescriptions": true,
+    "enabledTones": ["Humorous", "Savage", "Playful", "Wildcard"],
+    "flatDescriptionPatterns": ["is tall at", "plays basketball", "simple description", "just", "only", "basic"]
   }
 } as const;
