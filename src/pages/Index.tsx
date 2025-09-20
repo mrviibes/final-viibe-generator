@@ -5097,6 +5097,18 @@ const Index = () => {
       setSubjectTagInput("");
     }
     setIsGeneratingSubject(true);
+    
+    // Safety timeout to prevent infinite loading - force clear after 90 seconds
+    const safetyTimeoutId = setTimeout(() => {
+      console.warn('🚨 Safety timeout triggered - forcing loading state to clear');
+      setIsGeneratingSubject(false);
+      toast({
+        title: 'Generation Timeout',
+        description: 'The request took too long and was cancelled. Please try again.',
+        variant: 'destructive'
+      });
+    }, 90000);
+    
     try {
       // Build inputs using the same mapping logic as text generation
       let category = '';
@@ -5167,13 +5179,21 @@ const Index = () => {
       let result: any = null;
       try {
         console.log('Attempting visual generation with session:', session);
-        result = await generateVisualOptions(session, {
+        
+        // Add timeout wrapper to prevent infinite loading
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Visual generation timed out after 60 seconds')), 60000);
+        });
+        
+        const visualGenerationPromise = generateVisualOptions(session, {
           tone: tone.toLowerCase(),
           tags: finalTags,
           textContent: finalLine || "",
           textLayoutId: selectedTextLayout || "negativeSpace",
           recommendationMode: visualSpice
         });
+        
+        result = await Promise.race([visualGenerationPromise, timeoutPromise]);
         console.log('Visual generation result:', result);
 
         // Validate concepts for caption compliance if text is expected
@@ -5207,11 +5227,21 @@ const Index = () => {
       } catch (error) {
         console.error('Visual generation failed:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        toast({
-          title: 'Visual generation failed',
-          description: errorMessage,
-          variant: 'destructive'
-        });
+        
+        // Check if it's a timeout error
+        if (errorMessage.includes('timed out') || errorMessage.includes('timeout')) {
+          toast({
+            title: 'Visual generation timed out',
+            description: 'The request took too long. Please try again with simpler settings.',
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: 'Visual generation failed',
+            description: errorMessage,
+            variant: 'destructive'
+          });
+        }
         return;
       }
 
@@ -5287,6 +5317,7 @@ const Index = () => {
     } catch (error) {
       console.error('Error generating visual recommendations:', error);
     } finally {
+      clearTimeout(safetyTimeoutId); // Clear the safety timeout
       setIsGeneratingSubject(false);
     }
   };

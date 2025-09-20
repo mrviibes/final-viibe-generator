@@ -128,7 +128,8 @@ export async function generateVisualOptions(
       throw new Error('No response from visual generation service');
     }
 
-    if (!data.success) {
+    // Handle both success and fallback responses
+    if (!data.success && !data.fallback) {
       console.error('API returned failure:', data);
       const errorMsg = data.error || 'Failed to generate visuals';
       const details = data.attempted_models ? ` (tried: ${data.attempted_models.join(', ')})` : '';
