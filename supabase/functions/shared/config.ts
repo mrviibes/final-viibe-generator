@@ -1,5 +1,5 @@
 // Unified configuration system for both Step 2 and Step 3
-import { VIIBE_CONFIG_V2 } from '../../config/viibe_config_v2.ts';
+import { VIIBE_CONFIG_V2 } from './viibe_config_v2.ts';
 
 export const NUM_TEXT_OPTIONS = VIIBE_CONFIG_V2.system.optionsPerStep.text as 4;
 export const NUM_VISUAL_OPTIONS = VIIBE_CONFIG_V2.system.optionsPerStep.visual as 4;
