@@ -1,8 +1,8 @@
 // Unified configuration system for both Step 2 and Step 3
-import config from '../../config/viibe_config_v2.json' assert { type: 'json' };
+import { VIIBE_CONFIG_V2 } from '../../config/viibe_config_v2.ts';
 
-export const NUM_TEXT_OPTIONS = config.system.optionsPerStep.text as 4;
-export const NUM_VISUAL_OPTIONS = config.system.optionsPerStep.visual as 4;
+export const NUM_TEXT_OPTIONS = VIIBE_CONFIG_V2.system.optionsPerStep.text as 4;
+export const NUM_VISUAL_OPTIONS = VIIBE_CONFIG_V2.system.optionsPerStep.visual as 4;
 
 export interface AutoRemap {
   if: { tone: string; rating: string };
@@ -51,13 +51,13 @@ export interface TagEnforcementConfig {
 }
 
 export const VIIBE_CONFIG = {
-  system: config.system,
-  precedence: config.precedence,
-  toneValidation: config.toneValidation as ToneValidationConfig,
-  comedianVoices: config.comedianVoices as ComedianVoiceConfig,
-  popCulture: config.popCulture as PopCultureConfig,
-  visualLanes: config.visualLanes as VisualLanesConfig,
-  tagEnforcement: config.tagEnforcement as TagEnforcementConfig
+  system: VIIBE_CONFIG_V2.system,
+  precedence: VIIBE_CONFIG_V2.precedence,
+  toneValidation: VIIBE_CONFIG_V2.toneValidation as ToneValidationConfig,
+  comedianVoices: VIIBE_CONFIG_V2.comedianVoices as ComedianVoiceConfig,
+  popCulture: VIIBE_CONFIG_V2.popCulture as PopCultureConfig,
+  visualLanes: VIIBE_CONFIG_V2.visualLanes as VisualLanesConfig,
+  tagEnforcement: VIIBE_CONFIG_V2.tagEnforcement as TagEnforcementConfig
 };
 
 // Type definitions

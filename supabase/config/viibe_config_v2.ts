@@ -1,4 +1,5 @@
-{
+// Unified configuration for both Step 2 and Step 3
+export const VIIBE_CONFIG_V2 = {
   "system": {
     "optionsPerStep": {
       "text": 4,
@@ -66,4 +67,4 @@
     "enforceAfterFallbacks": true,
     "degradeNotBypass": true
   }
-}
+} as const;
