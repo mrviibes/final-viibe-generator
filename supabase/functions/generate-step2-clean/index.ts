@@ -30,15 +30,55 @@ async function generateWithGPT5(inputs: any): Promise<any> {
   const startTime = Date.now();
   console.log('🎯 Starting strict GPT-5 generation');
   
-  // ROBUST INPUT COERCION
-  const tagsArray = Array.isArray(inputs.tags) ? inputs.tags : 
-                   (typeof inputs.tags === 'string' ? [inputs.tags] : []);
-  const tagsStr = tagsArray.length > 0 ? tagsArray.join(',') : 'none';
+  // ROBUST INPUT COERCION - handle structured tags
+  let tagsArray: string[] = [];
+  let hardTags: string[] = [];
+  let softTags: string[] = [];
   
-  // Parse tags (hard vs soft) - CORRECTED LOGIC
-  const hardTags = tagsArray.filter((tag: string) => tag.startsWith('"') && tag.endsWith('"'))
-    .map((tag: string) => tag.slice(1, -1));
-  const softTags = tagsArray.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"'));
+  if (inputs.tags && typeof inputs.tags === 'object' && !Array.isArray(inputs.tags)) {
+    // New structured format
+    hardTags = Array.isArray(inputs.tags.hard) ? inputs.tags.hard : [];
+    softTags = Array.isArray(inputs.tags.soft) ? inputs.tags.soft : [];
+    tagsArray = [...hardTags.map(t => `"${t}"`), ...softTags]; // Convert back for legacy compat
+  } else {
+    // Legacy array format - parse it
+    tagsArray = Array.isArray(inputs.tags) ? inputs.tags : 
+               (typeof inputs.tags === 'string' ? [inputs.tags] : []);
+    
+    // Parse legacy tags into hard/soft - CORRECTED LOGIC with @prefix support
+    hardTags = tagsArray.filter((tag: string) => {
+      const normalized = normalizeTagInput(tag);
+      return normalized.startsWith('@') || 
+             (normalized.startsWith('"') && normalized.endsWith('"')) ||
+             (normalized.startsWith("'") && normalized.endsWith("'"));
+    }).map((tag: string) => {
+      const normalized = normalizeTagInput(tag);
+      if (normalized.startsWith('@')) {
+        return normalized.slice(1);
+      } else {
+        return normalized.slice(1, -1);
+      }
+    });
+    
+    softTags = tagsArray.filter((tag: string) => {
+      const normalized = normalizeTagInput(tag);
+      return !normalized.startsWith('@') && 
+             !((normalized.startsWith('"') && normalized.endsWith('"')) ||
+               (normalized.startsWith("'") && normalized.endsWith("'")));
+    });
+  }
+  
+  // Normalize tag input helper
+  function normalizeTagInput(rawTag: string): string {
+    if (!rawTag) return '';
+    return rawTag.trim()
+      .replace(/[""]/g, '"')
+      .replace(/['']/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  const tagsStr = tagsArray.length > 0 ? tagsArray.join(',') : 'none';
 
   // Pop-culture buckets with cooldown rotation
   const POP_CULTURE_BUCKETS = {
@@ -242,10 +282,9 @@ Return ONLY valid JSON in this exact structure:
     const warnings = [];
     const isStoryMode = inputs.style === 'story';
     
-    // Parse tags into hard (quoted) and soft (unquoted) - CORRECTED LOGIC
-    const hardTags = tagsArray.filter((tag: string) => tag.startsWith('"') && tag.endsWith('"'))
-      .map((tag: string) => tag.slice(1, -1));
-    const softTags = tagsArray.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"'));
+    // Parse tags into hard (quoted/@prefix) and soft (unquoted) - ENHANCED LOGIC
+    const hardTagsValidation = hardTags; // Already parsed above
+    const softTagsValidation = softTags; // Already parsed above
     
     // Length validation - randomized buckets for diversity
     const LENGTH_BUCKETS = [[40,60],[61,80],[81,100],[101,120]];
@@ -258,8 +297,8 @@ Return ONLY valid JSON in this exact structure:
     const originalTexts = parsed.lines.map((line: any) => line.text || '');
     
     console.log('🔍 Validating texts:', originalTexts);
-    console.log('🏷️ Hard tags:', hardTags);
-    console.log('🏷️ Soft tags:', softTags);
+    console.log('🏷️ Hard tags:', hardTagsValidation);
+    console.log('🏷️ Soft tags:', softTagsValidation);
     
     // Rating content validation - more flexible
     const mildProfanity = ['damn', 'hell', 'crap', 'suck', 'sucks'];
@@ -284,17 +323,17 @@ Return ONLY valid JSON in this exact structure:
     // Perspective validation - strict requirements for finalized spec
     const hasGeneralTruth = allTexts.some(text => 
       !text.includes('you') && !text.includes('your') && 
-      !hardTags.some(tag => text.includes(tag.toLowerCase()))
+      !hardTagsValidation.some(tag => text.includes(tag.toLowerCase()))
     );
     const hasPastTense = allTexts.some(text => 
       /last |remember |used to|back |yesterday|ago|was |were /.test(text)
     );
     const hasPresentRoast = allTexts.some(text => 
       /you're|you |your |you'll/.test(text) || 
-      hardTags.some(tag => text.includes(tag.toLowerCase()))
+      hardTagsValidation.some(tag => text.includes(tag.toLowerCase()))
     );
-    const hasThirdPerson = hardTags.length > 0 ? 
-      allTexts.some(text => hardTags.some(tag => text.includes(tag.toLowerCase()))) : true;
+    const hasThirdPerson = hardTagsValidation.length > 0 ? 
+      allTexts.some(text => hardTagsValidation.some(tag => text.includes(tag.toLowerCase()))) : true;
     
     console.log('👁️ Perspective check:', { hasGeneralTruth, hasPastTense, hasPresentRoast, hasThirdPerson });
     
@@ -374,13 +413,13 @@ Return ONLY valid JSON in this exact structure:
     if (!hasPresentRoast) {
       warnings.push('missing_present_roast');
     }
-    if (!hasThirdPerson && hardTags.length > 0) {
+    if (!hasThirdPerson && hardTagsValidation.length > 0) {
       warnings.push('missing_third_person');
     }
     
     // RELAXED Tag enforcement - require at least 2/4 lines for flexibility
-    if (hardTags.length > 0) {
-      hardTags.forEach(tag => {
+    if (hardTagsValidation.length > 0) {
+      hardTagsValidation.forEach(tag => {
         const count = allTexts.filter(text => text.includes(tag.toLowerCase())).length;
         if (count < 2) {
           validationErrors.push('insufficient_hard_tags');
@@ -391,7 +430,7 @@ Return ONLY valid JSON in this exact structure:
     }
     
     // Soft tags must NOT appear literally (still critical)
-    softTags.forEach(tag => {
+    softTagsValidation.forEach(tag => {
       const count = allTexts.filter(text => text.includes(tag.toLowerCase())).length;
       if (count > 0) {
         validationErrors.push('soft_tag_leaked');

@@ -26,7 +26,10 @@ interface VisualInput {
   subcategory: string;
   mode: string;
   layout_token: string;
-  tags?: string[];
+  tags?: {
+    hard: string[];
+    soft: string[];
+  } | string[]; // Support both new and legacy formats
 }
 
 // Token estimation (rough approximation: 1 token ≈ 4 characters)
@@ -43,14 +46,23 @@ function truncatePrompt(prompt: string, maxTokens: number): string {
   return prompt.substring(0, maxChars) + '...';
 }
 
-// Lean prompt builder - minimal token usage
-function buildVisualPrompt({caption, category, subcategory, mode, tags}: {
+// Lean prompt builder with structured tag support
+function buildVisualPrompt({caption, category, subcategory, mode, hardTags, softTags}: {
   caption: string;
   category: string; 
   subcategory: string;
   mode: string;
-  tags: string[];
+  hardTags: string[];
+  softTags: string[];
 }) {
+  const tagSection = [];
+  if (hardTags.length > 0) {
+    tagSection.push(`Hard tags (must appear literally): ${hardTags.slice(0,4).join(", ")}.`);
+  }
+  if (softTags.length > 0) {
+    tagSection.push(`Soft tags (style guide): ${softTags.slice(0,4).join(", ")}.`);
+  }
+  
   return [
     "You output 4 one-sentence scene ideas. No lists. No numbering.",
     "Lane1=literal-from-caption keywords. Lane2=category-context.",
@@ -58,7 +70,7 @@ function buildVisualPrompt({caption, category, subcategory, mode, tags}: {
     "Max 18 words per line. No ellipses. No placeholders.",
     `Caption: "${caption}".`,
     `Category: ${category} / ${subcategory}.`,
-    `Tags: ${tags.slice(0,8).join(", ") || "none"}.`,
+    ...tagSection,
     `Mode: ${mode}.`
   ].join("\n");
 }
@@ -68,8 +80,125 @@ const SYSTEM_MINI = `Return 4 lines, one sentence each, 18 words max.
 Lane1 literal, Lane2 context, Lane3 exaggeration, Lane4 absurd.
 No numbering, no extra text.`;
 
-// Extract meaningful keywords from caption text
-function extractKeywords(text: string): string[] {
+// Enhanced tag parsing with @prefix and quote normalization support  
+function parseTagsFromInput(inputTags?: { hard: string[]; soft: string[] } | string[]): { hardTags: string[]; softTags: string[] } {
+  // Handle new structured format
+  if (inputTags && typeof inputTags === 'object' && !Array.isArray(inputTags)) {
+    return {
+      hardTags: inputTags.hard || [],
+      softTags: inputTags.soft || []
+    };
+  }
+  
+  // Handle legacy array format - parse for hard/soft tags
+  const tagArray = Array.isArray(inputTags) ? inputTags : [];
+  const hardTags: string[] = [];
+  const softTags: string[] = [];
+  
+  for (const tag of tagArray) {
+    const normalized = normalizeTagInput(tag);
+    if (!normalized) continue;
+    
+    // Check for hard tag markers: @prefix or quoted text
+    if (normalized.startsWith('@')) {
+      const unquoted = normalized.slice(1).trim();
+      if (unquoted) hardTags.push(unquoted);
+    } else if ((normalized.startsWith('"') && normalized.endsWith('"')) ||
+               (normalized.startsWith("'") && normalized.endsWith("'"))) {
+      const unquoted = normalized.slice(1, -1).trim();
+      if (unquoted) hardTags.push(unquoted);
+    } else {
+      softTags.push(normalized.toLowerCase());
+    }
+  }
+  
+  return { hardTags, softTags };
+}
+
+// Normalize tag input with ASCII quotes
+function normalizeTagInput(rawTag: string): string {
+  if (!rawTag) return '';
+  return rawTag.trim()
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Robust tag enforcement that survives fallbacks  
+function enforceTagCoverage(lines: string[], hardTags: string[], requiredLines = 3): string[] {
+  if (hardTags.length === 0) return lines;
+  
+  console.log('🏷️ Enforcing tag coverage:', { hardTags, requiredLines });
+  
+  const result = [...lines];
+  let linesWithAllTags = 0;
+  
+  // Count lines that already contain all hard tags
+  for (const line of result) {
+    const lowerLine = line.toLowerCase();
+    const hasAllTags = hardTags.every(tag => lowerLine.includes(tag.toLowerCase()));
+    if (hasAllTags) linesWithAllTags++;
+  }
+  
+  console.log(`📊 Lines with all tags: ${linesWithAllTags}/${requiredLines}`);
+  
+  // If we don't have enough coverage, inject tags into weakest lines
+  if (linesWithAllTags < requiredLines) {
+    const lineCoverage = result.map((line, idx) => ({
+      idx,
+      line,
+      tagCount: hardTags.filter(tag => line.toLowerCase().includes(tag.toLowerCase())).length
+    }));
+    
+    // Sort by tag coverage (lowest first)
+    lineCoverage.sort((a, b) => a.tagCount - b.tagCount);
+    
+    const linesToFix = requiredLines - linesWithAllTags;
+    for (let i = 0; i < linesToFix && i < lineCoverage.length; i++) {
+      const { idx, line } = lineCoverage[i];
+      const missingTags = hardTags.filter(tag => !line.toLowerCase().includes(tag.toLowerCase()));
+      
+      if (missingTags.length > 0) {
+        // Inject missing tags naturally into the line
+        result[idx] = injectTagsIntoLine(line, missingTags);
+        console.log(`🔧 Injected tags into line ${idx + 1}: ${missingTags.join(', ')}`);
+      }
+    }
+  }
+  
+  return result;
+}
+
+// Inject tags naturally into a line
+function injectTagsIntoLine(line: string, missingTags: string[]): string {
+  if (missingTags.length === 0) return line;
+  
+  // Simple injection strategy: add tags near action words or at the end
+  let modifiedLine = line;
+  
+  // Find insertion points (after verbs or before punctuation)
+  const insertionPoints = [
+    { pattern: /(\b(?:is|are|was|were|has|have|does|do|gets|got|makes|made)\b)/i, pos: 'after' },
+    { pattern: /(\b(?:with|and|while|during|for)\b)/i, pos: 'after' },
+    { pattern: /([\.,!]?\s*)$/, pos: 'before' }
+  ];
+  
+  for (const tag of missingTags.slice(0, 2)) { // Limit to 2 tags to avoid overcrowding
+    for (const point of insertionPoints) {
+      const match = modifiedLine.match(point.pattern);
+      if (match) {
+        const insertText = point.pos === 'after' ? ` ${tag}` : ` ${tag}`;
+        const insertPos = match.index! + (point.pos === 'after' ? match[0].length : 0);
+        
+        modifiedLine = modifiedLine.slice(0, insertPos) + insertText + modifiedLine.slice(insertPos);
+        break;
+      }
+    }
+  }
+  
+  return modifiedLine;
+}
   if (!text || typeof text !== 'string') return [];
   
   const stopWords = new Set([
@@ -198,9 +327,13 @@ function visualFallback({caption, category, subcategory}: {caption: string; cate
   ];
 }
 
-// Progressive retry with simplification
+// Progressive retry with simplification  
 async function tryGenerateWithRetry(input: VisualInput): Promise<any> {
+  const { hardTags, softTags } = parseTagsFromInput(input.tags);
   const keywords = extractKeywords(input.final_text);
+  const mustEnforceHardTags = hardTags.length > 0;
+  
+  console.log('🏷️ Parsed tags:', { hardTags, softTags, mustEnforceHardTags });
   
   // 1. Try full prompt
   try {
@@ -209,24 +342,67 @@ async function tryGenerateWithRetry(input: VisualInput): Promise<any> {
       category: input.category,
       subcategory: input.subcategory,
       mode: input.mode,
-      tags: input.tags || []
+      hardTags,
+      softTags
     });
     
-    return await tryOnce(fullPrompt, 'full');
+    const result = await tryOnce(fullPrompt, 'full');
+    
+    // Apply tag enforcement if needed
+    if (mustEnforceHardTags && result.success) {
+      const enforcedConcepts = result.concepts.map((concept: any) => ({
+        ...concept,
+        text: concept.text
+      }));
+      
+      const enforcedTexts = enforceTagCoverage(
+        enforcedConcepts.map((c: any) => c.text), 
+        hardTags, 
+        3
+      );
+      
+      result.concepts = enforcedConcepts.map((concept: any, idx: number) => ({
+        ...concept,
+        text: enforcedTexts[idx] || concept.text
+      }));
+      
+      console.log('✅ Applied tag enforcement to full prompt result');
+    }
+    
+    return result;
   } catch (e1) {
     console.log('Full prompt failed, trying simplified:', e1.message);
     
-    // 2. Try simplified prompt (drop mode, reduce tags)
+    // 2. Try simplified prompt (reduced tags)
     try {
       const simplifiedPrompt = buildVisualPrompt({
         caption: input.final_text,
         category: input.category,
         subcategory: input.subcategory,
         mode: 'balanced', // simplified mode
-        tags: (input.tags || []).slice(0, 3) // fewer tags
+        hardTags: hardTags.slice(0, 2), // fewer hard tags
+        softTags: softTags.slice(0, 2)  // fewer soft tags
       });
       
-      return await tryOnce(simplifiedPrompt, 'simplified');
+      const result = await tryOnce(simplifiedPrompt, 'simplified');
+      
+      // Still enforce tags even in simplified mode
+      if (mustEnforceHardTags && result.success) {
+        const enforcedTexts = enforceTagCoverage(
+          result.concepts.map((c: any) => c.text), 
+          hardTags.slice(0, 2), 
+          2  // Lower requirement for simplified
+        );
+        
+        result.concepts = result.concepts.map((concept: any, idx: number) => ({
+          ...concept,
+          text: enforcedTexts[idx] || concept.text
+        }));
+        
+        console.log('✅ Applied tag enforcement to simplified result');
+      }
+      
+      return result;
     } catch (e2) {
       console.log('Simplified prompt failed, trying minimal:', e2.message);
       
@@ -238,25 +414,51 @@ async function tryGenerateWithRetry(input: VisualInput): Promise<any> {
           `Category: ${input.category}.`
         ].join("\n");
         
-        return await tryOnce(minimalPrompt, 'minimal');
+        const result = await tryOnce(minimalPrompt, 'minimal');
+        
+        // Enforce tags even in minimal fallback if absolutely required
+        if (mustEnforceHardTags && result.success && hardTags.length > 0) {
+          const enforcedTexts = enforceTagCoverage(
+            result.concepts.map((c: any) => c.text), 
+            hardTags.slice(0, 1), // Only enforce 1 most important tag
+            1  // Very low requirement for minimal
+          );
+          
+          result.concepts = result.concepts.map((concept: any, idx: number) => ({
+            ...concept,
+            text: enforcedTexts[idx] || concept.text
+          }));
+          
+          console.log('✅ Applied minimal tag enforcement to fallback');
+        }
+        
+        return result;
       } catch (e3) {
         console.log('All attempts failed, using fallback:', e3.message);
         
-        // 4. Use context-aware fallback
+        // 4. Use context-aware fallback with tag enforcement
         const fallbackLines = visualFallback({
           caption: input.final_text,
           category: input.category,
           subcategory: input.subcategory
         });
         
+        // Apply tag enforcement to fallback lines too
+        let finalLines = fallbackLines;
+        if (mustEnforceHardTags && hardTags.length > 0) {
+          finalLines = enforceTagCoverage(fallbackLines, hardTags, 1);
+          console.log('✅ Applied tag enforcement to context fallback');
+        }
+        
         return {
           success: true,
           model: 'fallback',
-          concepts: fallbackLines.map((text, idx) => ({
+          concepts: finalLines.map((text, idx) => ({
             lane: `option${idx + 1}`,
             text
           })),
           fallback: true,
+          tag_enforced: mustEnforceHardTags,
           errors: [e1.message, e2.message, e3.message],
           prompt_tokens: 0,
           completion_tokens: 0
@@ -397,7 +599,20 @@ serve(async (req) => {
     const subcategory = String(inputs.subcategory || '').trim();
     const mode = String(inputs.mode || 'balanced').trim();
     const layout_token = String(inputs.layout_token || 'negativeSpace').trim();
-    const tags = Array.isArray(inputs.tags) ? inputs.tags.filter(t => typeof t === 'string' && t.trim().length > 0) : [];
+    
+    // Handle both new structured and legacy tag formats
+    let tags: { hard: string[]; soft: string[] } | string[] = [];
+    
+    if (inputs.tags && typeof inputs.tags === 'object' && !Array.isArray(inputs.tags)) {
+      // New structured format
+      tags = {
+        hard: Array.isArray(inputs.tags.hard) ? inputs.tags.hard.filter(t => typeof t === 'string' && t.trim().length > 0) : [],
+        soft: Array.isArray(inputs.tags.soft) ? inputs.tags.soft.filter(t => typeof t === 'string' && t.trim().length > 0) : []
+      };
+    } else if (Array.isArray(inputs.tags)) {
+      // Legacy array format
+      tags = inputs.tags.filter(t => typeof t === 'string' && t.trim().length > 0);
+    }
 
     if (!final_text || !category || !subcategory) {
       return new Response(JSON.stringify({ 
@@ -410,7 +625,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('🚀 Starting lean visual generation:', { final_text, category, subcategory, mode, layout_token, tags });
+    console.log('🚀 Starting enhanced visual generation:', { final_text, category, subcategory, mode, layout_token, tags });
 
     // Use progressive retry with simplification
     const result = await tryGenerateWithRetry({

@@ -92,6 +92,9 @@ export async function generateVisualOptions(
   // Combine session tags with passed tags, prioritizing passed tags
   const allTags = [...(tags || []), ...(session.tags || [])];
   const uniqueTags = Array.from(new Set(allTags)).filter(t => t && t.trim().length > 0);
+  
+  // Parse tags into hard and soft categories
+  const { hardTags, softTags } = parseVisualTags(uniqueTags);
 
   const payload = {
     final_text: textContent,
@@ -99,10 +102,13 @@ export async function generateVisualOptions(
     subcategory: session.subcategory,
     mode: recommendationMode || 'balanced',
     layout_token: textLayoutId,
-    tags: uniqueTags,
+    tags: {
+      hard: hardTags,
+      soft: softTags
+    }
   };
 
-  console.log('Calling generate-visuals with payload:', payload);
+  console.log('Calling generate-visuals with structured tag payload:', payload);
 
   try {
     const { data, error } = await supabase.functions.invoke('generate-visuals', {

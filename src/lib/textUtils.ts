@@ -1,27 +1,46 @@
-// Tag parsing utility for visual tags (same system as text generation)
+// Enhanced tag parsing utility with @prefix and quote normalization support
 export function parseVisualTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
   const hardTags: string[] = [];
   const softTags: string[] = [];
   
   for (const tag of tags) {
-    const trimmed = tag.trim();
-    if (!trimmed) continue;
+    const normalized = normalizeTagInput(tag);
+    if (!normalized) continue;
     
-    // Check if starts and ends with quotes
-    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-        (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-      // Hard tag - remove quotes and store for literal inclusion
-      const unquoted = trimmed.slice(1, -1).trim();
+    // Check for hard tag markers: @prefix or quoted text
+    if (normalized.startsWith('@')) {
+      // @Reid format - remove @ and store as hard tag
+      const unquoted = normalized.slice(1).trim();
+      if (unquoted) {
+        hardTags.push(unquoted);
+      }
+    } else if ((normalized.startsWith('"') && normalized.endsWith('"')) ||
+               (normalized.startsWith("'") && normalized.endsWith("'"))) {
+      // "Reid" format - remove quotes and store as hard tag
+      const unquoted = normalized.slice(1, -1).trim();
       if (unquoted) {
         hardTags.push(unquoted);
       }
     } else {
       // Soft tag - store lowercased for style influence only
-      softTags.push(trimmed.toLowerCase());
+      softTags.push(normalized.toLowerCase());
     }
   }
   
   return { hardTags, softTags };
+}
+
+// Normalize tag input with ASCII quotes and validation
+export function normalizeTagInput(rawTag: string): string {
+  if (!rawTag) return '';
+  
+  return rawTag.trim()
+    // Convert curly quotes to straight quotes
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'")
+    // Clean up spacing
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export function normalizeTypography(text: string): string {

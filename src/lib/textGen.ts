@@ -55,30 +55,49 @@ interface TextGenOutput {
   }>;
 }
 
-// Tag parsing utility for both client and server
+// Enhanced tag parsing utility that supports @prefix syntax
 function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
   const hardTags: string[] = [];
   const softTags: string[] = [];
   
   for (const tag of tags) {
-    const trimmed = tag.trim();
-    if (!trimmed) continue;
+    const normalized = normalizeTagInput(tag);
+    if (!normalized) continue;
     
-    // Check if starts and ends with quotes
-    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-        (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-      // Hard tag - remove quotes and store for literal inclusion
-      const unquoted = trimmed.slice(1, -1).trim();
+    // Check for hard tag markers: @prefix or quoted text
+    if (normalized.startsWith('@')) {
+      // @Reid format - remove @ and store as hard tag
+      const unquoted = normalized.slice(1).trim();
+      if (unquoted) {
+        hardTags.push(unquoted);
+      }
+    } else if ((normalized.startsWith('"') && normalized.endsWith('"')) ||
+               (normalized.startsWith("'") && normalized.endsWith("'"))) {
+      // "Reid" format - remove quotes and store as hard tag
+      const unquoted = normalized.slice(1, -1).trim();
       if (unquoted) {
         hardTags.push(unquoted);
       }
     } else {
       // Soft tag - store lowercased for style influence only
-      softTags.push(trimmed.toLowerCase());
+      softTags.push(normalized.toLowerCase());
     }
   }
   
   return { hardTags, softTags };
+}
+
+// Normalize tag input with ASCII quotes and validation
+function normalizeTagInput(rawTag: string): string {
+  if (!rawTag) return '';
+  
+  return rawTag.trim()
+    // Convert curly quotes to straight quotes
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'")
+    // Clean up spacing
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function sanitizeAndValidate(text: string, inputs?: TextGenInput): TextGenOutput | null {
@@ -286,12 +305,26 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
     rating: inputs.rating || 'PG-13'
   };
   
+  // Parse tags into hard and soft categories using enhanced parsing
+  const { hardTags, softTags } = parseTags(coercedInputs.tags);
+  
+  // Send structured tag data to backend
+  const structuredInputs = {
+    ...coercedInputs,
+    tags: {
+      hard: hardTags,
+      soft: softTags
+    }
+  };
+  
+  console.log('📋 Sending structured tag data:', { hardTags, softTags });
+  
   try {
     const result = await retryWithBackoff(async () => {
       console.log('📡 Attempting Edge Function call...');
       
       const { data, error } = await supabase.functions.invoke('generate-step2-clean', {
-        body: coercedInputs
+        body: structuredInputs
       });
 
       if (error) {

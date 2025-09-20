@@ -26,7 +26,7 @@ import { RetryWithLayoutDialog } from "@/components/RetryWithLayoutDialog";
 import { SafetyValidationDialog } from "@/components/SafetyValidationDialog";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "@/components/ui/sonner";
-import { normalizeTypography, suggestContractions, isTextMisspelled, parseVisualTags } from "@/lib/textUtils";
+import { normalizeTypography, suggestContractions, isTextMisspelled, parseVisualTags, normalizeTagInput } from "@/lib/textUtils";
 import { generateStep2Lines } from "@/lib/textGen";
 import { validateVisualBatch, validateCaptionMatch, shouldRetry, type VisualContext, type VisualConcept } from "@/lib/visualValidator";
 import { validateAppearanceConsistency } from "@/lib/appearanceValidator";
@@ -4982,11 +4982,11 @@ const Index = () => {
     return true; // Step 4 is just the final confirmation page
   };
 
-  // Handle adding tags
+  // Handle adding tags with normalization
   const handleAddTag = (tag: string) => {
-    const trimmedTag = tag.trim();
-    if (trimmedTag && !tags.includes(trimmedTag)) {
-      setTags([...tags, trimmedTag]);
+    const normalizedTag = normalizeTagInput(tag);
+    if (normalizedTag && !tags.includes(normalizedTag)) {
+      setTags([...tags, normalizedTag]);
     }
     setTagInput("");
   };
@@ -5000,11 +5000,11 @@ const Index = () => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  // Handle adding subject tags
+  // Handle adding subject tags with normalization
   const handleAddSubjectTag = (tag: string) => {
-    const trimmedTag = tag.trim();
-    if (trimmedTag && !subjectTags.includes(trimmedTag)) {
-      setSubjectTags([...subjectTags, trimmedTag]);
+    const normalizedTag = normalizeTagInput(tag);
+    if (normalizedTag && !subjectTags.includes(normalizedTag)) {
+      setSubjectTags([...subjectTags, normalizedTag]);
     }
     setSubjectTagInput("");
   };
@@ -6723,7 +6723,10 @@ const Index = () => {
                             "quoted tag" → will appear literally in the text.<br />
                             unquoted tag → just influences the vibe/style, won't appear in the text.
                           </p>
-                        <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder="Add tags (optional)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                        <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder='Add tags: @Reid or "Reid" for hard tags (press Enter)' className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                        <p className="text-xs text-muted-foreground text-center">
+                          💡 Tip: Use @Reid or "Reid" for hard tags that must appear literally in the text
+                        </p>
                         
                         {/* Display Tags */}
                         {tags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
@@ -6949,7 +6952,10 @@ const Index = () => {
                          <div className="max-w-lg mx-auto space-y-6">
                             {/* Tag Input */}
                             <div className="space-y-4">
-                               <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder="Enter tags (press Enter or comma to add)" className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                               <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder='@Reid or "Reid" for hard tags, casual for soft tags' className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                               <p className="text-xs text-muted-foreground text-center">
+                                 💡 Hard tags (@Reid or "Reid") appear literally • Soft tags (casual) guide style only
+                               </p>
                                
                                {/* Smart tagging instructions - same as text generation */}
                                <div className="text-center space-y-1">
