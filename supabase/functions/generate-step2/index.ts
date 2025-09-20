@@ -1,6 +1,28 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Import unified configuration system
+import { 
+  NUM_TEXT_OPTIONS, 
+  VIIBE_CONFIG, 
+  isComedyEnabled, 
+  shouldEnableValidator,
+  validateOptionCount,
+  type Step2Input,
+  type TextLine,
+  type Tone,
+  type Rating
+} from '../shared/config.ts';
+import { applyInputPrecedence, validatePrecedenceCompliance } from '../shared/precedence.ts';
+import { startNewBatch, isEntityAvailable, markEntityUsed } from '../shared/popCulture.ts';
+import { selectVoicesForAllLines, getVoiceInstructions } from '../shared/comedianVoices.ts';
+import { 
+  parseTags, 
+  validateTagCoverage, 
+  enforceTagCoverage, 
+  type TagValidationResult 
+} from '../shared/tagEnforcement.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -8,23 +30,8 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Comedian Voice Banks Configuration
-const COMEDIAN_STYLE_BANKS = {
-  "Humorous": ["kevin_hart", "ali_wong", "bill_burr", "taylor_tomlinson", "chris_rock"],
-  "Savage": ["joan_rivers", "ricky_gervais", "dave_chappelle", "wanda_sykes", "anthony_jeselnik"], 
-  "Playful": ["jim_gaffigan", "hasan_minhaj", "nate_bargatze", "james_acaster", "john_early"],
-  "Romantic": ["john_mulaney", "hasan_minhaj", "nate_bargatze", "taylor_tomlinson", "bo_burnham_clean"],
-  "Sentimental": ["mike_birbiglia", "demetri_martin", "ellen", "trevor_noah_clean", "hannah_gadsby_clean"]
-};
-
-const TONE_VOICE_MAP = {
-  "Romantic": "Romantic",
-  "Sentimental": "Sentimental", 
-  "Playful": "Playful",
-  "Savage": "Savage",
-  "Humorous": "Humorous",
-  "Wildcard": "inherit_current_tone"
-};
+// Validate configuration on startup
+validateOptionCount(NUM_TEXT_OPTIONS);
 
 // Global Blacklist System
 const GLOBAL_BLACKLIST = {
@@ -320,29 +327,9 @@ function checkToneAlignment(lines: Array<{lane: string, text: string}>, tone: st
   };
 }
 
-function parseTags(tags: string[]): { hardTags: string[]; softTags: string[] } {
-  const hardTags: string[] = [];
-  const softTags: string[] = [];
-  
-  for (const tag of tags) {
-    const trimmed = tag.trim();
-    if (!trimmed) continue;
-    
-    // Check if starts and ends with quotes
-    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-        (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-      // Hard tag - remove quotes and store for literal inclusion
-      const unquoted = trimmed.slice(1, -1).trim();
-      if (unquoted) {
-        hardTags.push(unquoted);
-      }
-    } else {
-      // Soft tag - store lowercased for style influence only
-      softTags.push(trimmed.toLowerCase());
-    }
-  }
-  
-  return { hardTags, softTags };
+// Legacy function - now uses shared implementation
+function parseTagsLocal(tags: string[]): { hardTags: string[]; softTags: string[] } {
+  return parseTags(tags);
 }
 
 // Check global blacklist
@@ -372,21 +359,9 @@ function checkBlacklist(text: string): { blocked: boolean; matches: string[] } {
   };
 }
 
-// Select comedian voice for tone
-function selectComedianVoice(tone: string, rating: string): string | null {
-  const voiceType = TONE_VOICE_MAP[tone];
-  if (!voiceType || voiceType === "inherit_current_tone") {
-    return null;
-  }
-  
-  const voices = COMEDIAN_STYLE_BANKS[voiceType];
-  if (!voices || voices.length === 0) {
-    return null;
-  }
-  
-  // Select random voice from appropriate bank
-  const randomIndex = Math.floor(Math.random() * voices.length);
-  return voices[randomIndex];
+// Legacy function - now uses shared implementation
+function selectComedianVoiceLocal(tone: string, rating: string): string | null {
+  return selectVoicesForAllLines(tone, rating, 1)[0] || null;
 }
 
 // Get tone overrides for clean tones
@@ -413,28 +388,10 @@ function getToneOverrides(tone: string): any {
   return toneOverrides[tone] || null;
 }
 
-// Apply input precedence and auto-remap logic
-function applyInputPrecedence(inputs: any): any {
-  const processed = { ...inputs };
-  
-  // Auto-remap conflicting tone/rating combinations
-  const autoRemaps = [
-    { if: { tone: "Sentimental", rating: "R" }, then: { rating: "PG" } },
-    { if: { tone: "Sentimental", rating: "Explicit" }, then: { rating: "PG-13" } },
-    { if: { tone: "Romantic", rating: "R" }, then: { rating: "PG" } },
-    { if: { tone: "Romantic", rating: "Explicit" }, then: { rating: "PG-13" } }
-  ];
-  
-  for (const remap of autoRemaps) {
-    if (processed.tone === remap.if.tone && processed.rating === remap.if.rating) {
-      console.log(`🔄 Auto-remapping: ${remap.if.tone} + ${remap.if.rating} → ${remap.then.rating}`);
-      processed.rating = remap.then.rating;
-      break;
-    }
-  }
-  
-  // Style inheritance - Wildcard uses current tone rules
-  if (processed.style === "wildcard") {
+// Legacy function - now uses shared implementation
+function applyInputPrecedenceLocal(inputs: any): any {
+  return applyInputPrecedence(inputs);
+}
     processed.style = "standard"; // Use standard with current tone rules
   }
   
@@ -442,6 +399,10 @@ function applyInputPrecedence(inputs: any): any {
 }
 
 function getSystemPrompt(category: string, subcategory: string, tone: string, tags: string[], style?: string, rating?: string): string {
+  // Gate validators by tone
+  const comedyEnabled = isComedyEnabled(tone);
+  const forceFunnyEnabled = shouldEnableValidator('forceFunny', tone);
+  const ratingQuotasEnabled = shouldEnableValidator('ratingQuotas', tone);
   const { hardTags, softTags } = parseTags(tags);
   
   // Get tone overrides
@@ -1114,7 +1075,9 @@ async function attemptGeneration(inputs: any, attemptNumber: number, previousErr
   }
 }
 
-serve(async (req) => {
+  serve(async (req) => {
+    // Initialize new batch for pop-culture cooldown
+    startNewBatch();
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -1125,9 +1088,15 @@ serve(async (req) => {
     console.log("Generate Step 2 function called");
     console.log("Raw request data:", rawInputs);
     
-    // Apply input precedence and auto-remap logic
-    const inputs = applyInputPrecedence(rawInputs);
+    // Apply input precedence transformations BEFORE system prompt generation
+    const inputs = applyInputPrecedenceLocal(rawInputs);
     console.log("Processed inputs:", inputs);
+    
+    // Validate precedence compliance
+    const precedenceCheck = validatePrecedenceCompliance(inputs);
+    if (!precedenceCheck.compliant) {
+      console.warn('⚠️ Precedence issues:', precedenceCheck.issues);
+    }
 
     if (!openAIApiKey) {
       console.log("API completely failed, using tone-aware fallback:", []);

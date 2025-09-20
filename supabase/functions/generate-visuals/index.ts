@@ -1,12 +1,23 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Import unified configuration system
+import { 
+  NUM_VISUAL_OPTIONS, 
+  VIIBE_CONFIG, 
+  validateOptionCount,
+  type VisualLine
+} from '../shared/config.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+
+// Validate configuration on startup
+validateOptionCount(undefined, NUM_VISUAL_OPTIONS);
 
 // Multi-model fallback strategy (matching Step 2 configuration)
 const MODELS = [
@@ -168,22 +179,27 @@ const SYSTEM_PROMPT_UNIVERSAL = (
   const keywordSection = keywords.length > 0 ? `
 Caption Keywords: ${keywords.join(', ')}` : '';
   
-  return `Generate 4 visual scene concepts for ${category}/${subcategory}.
+  return `Generate ${NUM_VISUAL_OPTIONS} visual scene concepts for ${category}/${subcategory}.
 
 Style: ${mode}
 ${vocab.props ? `Props: ${vocab.props}` : ''}
 ${vocab.atmosphere ? `Mood: ${vocab.atmosphere}` : ''}${keywordSection}
 
-Rules:
-- Option 1 MUST show the literal scene/action described by the caption keywords (${keywords.slice(0, 3).join(', ')}). If caption mentions dreams, show dream bubbles/thought clouds with the dream content visible. If caption mentions specific animals/objects (squirrels, dogs, etc.), they must be prominently featured in the scene.
-- Option 2 should focus on category/subcategory elements (safe, neutral approach)
-- Option 3 MUST be a funny gag visual (exaggerated or ironic). Think over-the-top scenarios, unexpected juxtapositions, or ironic twists. Example: If caption mentions "rebooting like a Kardashian marriage" show a wedding altar mid-glitch with bride/groom frozen like a buffering video.
-- Option 4 MUST be a funny gag visual (absurdist or satirical). Think completely unexpected scenarios or satirical takes. Example: A judge holding a giant "Divorce Approved" stamp with paparazzi flashing cameras in background.
+Lane Requirements (ENFORCED):
+- Lane 1 (${VIIBE_CONFIG.visualLanes.structure.lane1}): Literal scene/action from caption keywords (${keywords.slice(0, 3).join(', ')}). If caption mentions dreams, show dream bubbles/thought clouds with dream content visible. If caption mentions specific animals/objects, they must be prominently featured.
+- Lane 2 (${VIIBE_CONFIG.visualLanes.structure.lane2}): Focus on category/subcategory elements (safe, neutral approach)
+- Lane 3 (${VIIBE_CONFIG.visualLanes.structure.lane3}): MUST be comedic with exaggerated or ironic gag elements. Over-the-top scenarios, unexpected juxtapositions, or ironic twists. Use comedian exaggeration language.
+- Lane 4 (${VIIBE_CONFIG.visualLanes.structure.lane4}): MUST be comedic with absurdist or satirical elements. Completely unexpected scenarios or satirical takes. Use comedian absurd language.
+
+Content Rules:
 ${hardTags.length > 0 ? `- Include: ${hardTags.join(', ')}` : ''}
 ${softTags.length > 0 ? `- Style: ${softTags.join(', ')}` : ''}
 - Scene description only, complete sentences
 - No text/words visible in scene
 - No ellipses or fragments
+- Banned filler phrases: ${VIIBE_CONFIG.visualLanes.requirements.banFiller.join(', ')}
+
+CRITICAL: Lanes 3-4 must use comedic language and gag elements. NO generic descriptions.
 
 Return JSON:
 {
@@ -312,17 +328,16 @@ Generate 4 scene concepts that work with this caption.`;
           }
         }
 
-        // Validate structure
-        if (!Array.isArray(out?.concepts) || out.concepts.length !== 4) {
-          console.log(`${modelConfig.name} returned bad structure, trying next model`);
+        // Validate structure - enforce NUM_VISUAL_OPTIONS
+        if (!Array.isArray(out?.concepts) || out.concepts.length !== NUM_VISUAL_OPTIONS) {
+          console.log(`${modelConfig.name} returned bad structure (expected ${NUM_VISUAL_OPTIONS} concepts, got ${out?.concepts?.length}), trying next model`);
           continue;
         }
 
-        // Check for banned phrases (expanded list)
+        // Check for banned phrases (from config + expanded list)
         const banned = [
-          'random object', 'empty room', 'abstract shapes', 'generic photo',
-          'prop with twist', 'group of people laughing', 'abstract geometric shapes',
-          'group of people', 'person looking disappointed', 'random everyday object'
+          ...VIIBE_CONFIG.visualLanes.requirements.banFiller,
+          'abstract geometric shapes', 'group of people', 'person looking disappointed'
         ];
         const fails = out.concepts.some((c: any) =>
           typeof c?.text === 'string' && banned.some(b => c.text.toLowerCase().includes(b))
@@ -333,6 +348,22 @@ Generate 4 scene concepts that work with this caption.`;
           continue;
         }
 
+        // Success! Validate comedic lanes and sanitize concepts
+        const funnyConcepts = out.concepts.filter((c: any, idx: number) => 
+          idx >= 2 && // Lanes 3-4 (0-indexed)
+          c?.text && typeof c.text === 'string' &&
+          (c.text.toLowerCase().includes('exaggerat') || 
+           c.text.toLowerCase().includes('absurd') ||
+           c.text.toLowerCase().includes('over-the-top') ||
+           c.text.toLowerCase().includes('ironic') ||
+           c.text.toLowerCase().includes('satirical'))
+        ).length;
+        
+        if (funnyConcepts < VIIBE_CONFIG.visualLanes.requirements.funnyConcepts) {
+          console.log(`${modelConfig.name} failed comedic lane requirement (${funnyConcepts}/${VIIBE_CONFIG.visualLanes.requirements.funnyConcepts} funny concepts), trying next model`);
+          continue;
+        }
+        
         // Success! Sanitize concepts to remove caption quotes and cap word count
         console.log(`${modelConfig.name} succeeded with ${out.concepts.length} concepts`);
         
