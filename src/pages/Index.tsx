@@ -36,6 +36,8 @@ import { careersList } from "@/lib/careers";
 import { LAYOUT_PRIORITY, RETRY_TIERS, decideLayoutAndStyle, getPreferredLayout, getPreferredStyle, isLongCaption, decideLongCaptionLayoutAndStyle } from "@/lib/textRenderingConfig";
 import { TextRenderingStatus, type TextRenderingStatusType } from "@/components/TextRenderingStatus";
 import { CaptionOverlay } from "@/components/CaptionOverlay";
+import { sanitizeTagList, validateTagInput, type TagSuggestion } from "@/lib/tagSanitizer";
+import { TagSuggestionDialog } from "@/components/TagSuggestionDialog";
 
 // Helper function to clean layout tokens from visual descriptions for display
 const cleanVisualDescription = (text: string): string => {
@@ -4347,6 +4349,7 @@ const Index = () => {
   const [visualModel, setVisualModel] = useState<string | null>(null); // Track which model was used
   const [subjectTags, setSubjectTags] = useState<string[]>([]);
   const [subjectTagInput, setSubjectTagInput] = useState<string>("");
+  const [subjectTagInputWarning, setSubjectTagInputWarning] = useState<string>("");
   const [isGeneratingSubject, setIsGeneratingSubject] = useState<boolean>(false);
   const [showSubjectTagEditor, setShowSubjectTagEditor] = useState<boolean>(false);
   const [subjectDescription, setSubjectDescription] = useState<string>("");
@@ -4356,6 +4359,9 @@ const Index = () => {
   const [customHeight, setCustomHeight] = useState<string>("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState<string>("");
+  const [tagInputWarning, setTagInputWarning] = useState<string>("");
+  const [tagSuggestions, setTagSuggestions] = useState<TagSuggestion[]>([]);
+  const [showTagSuggestionDialog, setShowTagSuggestionDialog] = useState<boolean>(false);
   const [generatedOptions, setGeneratedOptions] = useState<string[]>([]);
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
@@ -4990,11 +4996,28 @@ const Index = () => {
       setTags([...tags, sanitizedTag]);
     }
     setTagInput("");
+    setTagInputWarning("");
   };
   const handleTagInputKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       handleAddTag(tagInput);
+    }
+  };
+
+  // Real-time tag validation
+  const handleTagInputChange = (value: string) => {
+    setTagInput(value);
+    
+    if (value.trim()) {
+      const validation = validateTagInput(value.trim());
+      if (!validation.isValid) {
+        setTagInputWarning(validation.warning || "");
+      } else {
+        setTagInputWarning("");
+      }
+    } else {
+      setTagInputWarning("");
     }
   };
   const removeTag = (tagToRemove: string) => {
@@ -5008,12 +5031,49 @@ const Index = () => {
       setSubjectTags([...subjectTags, sanitizedTag]);
     }
     setSubjectTagInput("");
+    setSubjectTagInputWarning("");
   };
   const handleSubjectTagInputKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       handleAddSubjectTag(subjectTagInput);
     }
+  };
+
+  // Real-time subject tag validation
+  // Real-time subject tag validation
+  const handleSubjectTagInputChange = (value: string) => {
+    setSubjectTagInput(value);
+    
+    if (value.trim()) {
+      const validation = validateTagInput(value.trim());
+      if (!validation.isValid) {
+        setSubjectTagInputWarning(validation.warning || "");
+      } else {
+        setSubjectTagInputWarning("");
+      }
+    } else {
+      setSubjectTagInputWarning("");
+    }
+  };
+
+  // Tag suggestion handlers
+  const handleAcceptSuggestion = (originalTag: string, newTag: string) => {
+    // Replace in both tag arrays
+    setTags(prev => prev.map(tag => tag === originalTag ? newTag : tag));
+    setSubjectTags(prev => prev.map(tag => tag === originalTag ? newTag : tag));
+  };
+
+  const handleKeepOriginalTag = (tag: string) => {
+    // User wants to keep the problematic tag - we'll let them try
+    sonnerToast.warning(`"${tag}" may cause generation to fail due to content policies`, {
+      description: "Generation might be blocked by OpenAI's safety filters."
+    });
+  };
+
+  const handleCancelTagSuggestions = () => {
+    setTagSuggestions([]);
+    setShowTagSuggestionDialog(false);
   };
   const removeSubjectTag = (tagToRemove: string) => {
     setSubjectTags(subjectTags.filter(tag => tag !== tagToRemove));
@@ -5715,9 +5775,12 @@ const Index = () => {
     setIsCustomTextConfirmed(false);
     setTags([]);
     setTagInput("");
+    setTagInputWarning("");
+    setTagSuggestions([]);
     setSubjectTags([]);
     setSubjectTagInput("");
-    setSubjectDescription("");
+    setSubjectTagInputWarning("");
+          setSubjectDescription("");
     setIsSubjectDescriptionConfirmed(false);
 
     // Clear generation state
@@ -6727,7 +6790,20 @@ const Index = () => {
                             "quoted tag" → will appear literally in the text.<br />
                             unquoted tag → just influences the vibe/style, won't appear in the text.
                           </p>
-                        <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder='Add tags: @Reid or "Reid" for hard tags (press Enter)' className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                        <Input 
+                          value={tagInput} 
+                          onChange={e => handleTagInputChange(e.target.value)} 
+                          onKeyDown={handleTagInputKeyDown} 
+                          placeholder='Add tags: @Reid or "Reid" for hard tags (press Enter)' 
+                          className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${
+                            tagInputWarning ? 'border-destructive' : 'border-border'
+                          }`} 
+                        />
+                        {tagInputWarning && (
+                          <p className="text-xs text-destructive text-center mt-1">
+                            ⚠️ {tagInputWarning}
+                          </p>
+                        )}
                         
                         
                         {/* Display Tags */}
@@ -6954,7 +7030,20 @@ const Index = () => {
                          <div className="max-w-lg mx-auto space-y-6">
                             {/* Tag Input */}
                             <div className="space-y-4">
-                               <Input value={subjectTagInput} onChange={e => setSubjectTagInput(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder='@Reid or "Reid" for hard tags, casual for soft tags' className="text-center border-2 border-border bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg" />
+                                <Input 
+                                  value={subjectTagInput} 
+                                  onChange={e => handleSubjectTagInputChange(e.target.value)} 
+                                  onKeyDown={handleSubjectTagInputKeyDown} 
+                                  placeholder='@Reid or "Reid" for hard tags, casual for soft tags' 
+                                  className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${
+                                    subjectTagInputWarning ? 'border-destructive' : 'border-border'
+                                  }`} 
+                                />
+                                {subjectTagInputWarning && (
+                                  <p className="text-xs text-destructive text-center mt-1">
+                                    ⚠️ {subjectTagInputWarning}
+                                  </p>
+                                )}
                                <p className="text-xs text-muted-foreground text-center">
                                  💡 Hard tags (@Reid or "Reid") appear literally • Soft tags (casual) guide style only
                                </p>
@@ -7542,6 +7631,16 @@ const Index = () => {
       }} onSwitchToOverlay={() => {
         handleGenerateImage();
       }} currentLayout={selectedTextLayout || "negativeSpace"} />
+
+        {/* Tag Suggestion Dialog */}
+        <TagSuggestionDialog 
+          open={showTagSuggestionDialog}
+          onOpenChange={setShowTagSuggestionDialog}
+          suggestions={tagSuggestions}
+          onAcceptSuggestion={handleAcceptSuggestion}
+          onKeepOriginal={handleKeepOriginalTag}
+          onCancel={handleCancelTagSuggestions}
+        />
 
         {/* Safety Validation Dialog */}
         <SafetyValidationDialog open={showSafetyValidationDialog} onOpenChange={setShowSafetyValidationDialog} onProceed={() => {

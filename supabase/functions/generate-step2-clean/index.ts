@@ -318,6 +318,30 @@ REMEMBER: You are transcribing actual stand-up performances, not writing generic
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ API Error:', response.status, errorText);
+      
+      // Enhanced error handling for content safety violations
+      if (response.status === 400) {
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.error?.code === 'content_policy_violation' || 
+              errorData.error?.message?.includes('content policy') ||
+              errorData.error?.message?.includes('safety') ||
+              errorData.error?.message?.includes('inappropriate')) {
+            console.error('🚫 Content Safety Violation:', errorData.error.message);
+            throw new Error(`CONTENT_SAFETY_VIOLATION: ${errorData.error.message}`);
+          }
+        } catch (parseError) {
+          // If we can't parse the error, check if the text contains content policy keywords
+          if (errorText.toLowerCase().includes('content policy') || 
+              errorText.toLowerCase().includes('safety') ||
+              errorText.toLowerCase().includes('inappropriate') ||
+              errorText.toLowerCase().includes('violation')) {
+            console.error('🚫 Content Safety Violation (text match):', errorText);
+            throw new Error(`CONTENT_SAFETY_VIOLATION: ${errorText}`);
+          }
+        }
+      }
+      
       throw new Error(`API ${response.status}: ${errorText}`);
     }
     

@@ -415,6 +415,12 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
       if (error) {
         console.error('❌ Supabase function error:', error);
         
+        // Check for content safety violations
+        if (error.message?.includes('CONTENT_SAFETY_VIOLATION')) {
+          const errorMessage = error.message.replace('CONTENT_SAFETY_VIOLATION: ', '');
+          throw new Error(`CONTENT_SAFETY_VIOLATION: OpenAI rejected the request due to content policy. This usually happens when soft tags contain inappropriate language like gender stereotypes or offensive phrases. Error: ${errorMessage}`);
+        }
+        
         // Enhanced error message for network issues
         if (error.message?.includes('Failed to send a request') || 
             error.message?.includes('Failed to fetch')) {
