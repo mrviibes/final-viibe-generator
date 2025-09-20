@@ -6900,7 +6900,7 @@ const Index = () => {
                                  Option {index + 1}
                                </span>
                              </div>
-                            <p className="text-sm text-card-foreground leading-relaxed">
+                            <p className="text-sm text-card-foreground leading-relaxed whitespace-normal break-words overflow-wrap-anywhere">
                               {option}
                             </p>
                           </div>
