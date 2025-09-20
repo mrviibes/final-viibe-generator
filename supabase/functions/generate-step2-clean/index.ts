@@ -95,7 +95,61 @@ async function generateWithGPT5(inputs: any): Promise<any> {
     usedEntities.add(shuffledPop[0]); // Use only one per batch
   }
 
-  // Generate 4 random comedian voices for this batch
+  // ENHANCED CONTEXT ANALYSIS - Import functions dynamically to avoid bundling issues
+  let contextAnalysis = null;
+  let lexiconWords: string[] = [];
+  let contextualPromptAdditions: string[] = [];
+  
+  try {
+    // Simple context detection for edge function environment
+    const analysisText = `${inputs.category} ${inputs.subcategory} ${tagsStr}`.toLowerCase();
+    
+    // Detect context patterns (simplified for edge function)
+    const contextPatterns = {
+      london: /london|british|england|uk|tube|pub|tea/i,
+      new_york: /new.?york|nyc|manhattan|brooklyn|subway|bodega/i,
+      los_angeles: /los.?angeles|la|hollywood|california|freeway/i,
+      dating: /dating|tinder|bumble|match|swipe|single/i,
+      basketball: /basketball|nba|dunk|hoop|lebron|jordan/i,
+      tech: /tech|coding|programmer|developer|startup|silicon.?valley/i,
+      netflix: /netflix|streaming|binge|series|show/i
+    };
+    
+    let detectedContext = null;
+    for (const [context, pattern] of Object.entries(contextPatterns)) {
+      if (pattern.test(analysisText)) {
+        detectedContext = context;
+        break;
+      }
+    }
+    
+    // Simple lexicon mapping for edge function
+    const simpleLexicon: { [key: string]: string[] } = {
+      london: ["Tube", "pub", "queue", "mate", "bloody", "Big Ben", "Thames", "rainy"],
+      new_york: ["subway", "bodega", "cab", "pizza", "deadass", "Yankees", "Manhattan", "hustling"],
+      los_angeles: ["freeway", "traffic", "beach", "Hollywood", "hella", "Lakers", "chill", "fake"],
+      dating: ["swipe", "match", "chemistry", "ghosting", "Tinder", "red flags", "situationship"],
+      basketball: ["dribble", "shoot", "dunk", "NBA", "clutch", "LeBron", "Jordan", "balling"],
+      tech: ["code", "bug", "deploy", "startup", "ship it", "Silicon Valley", "disrupt", "burned out"],
+      netflix: ["streaming", "binge", "series", "Netflix and chill", "autoplay", "cliffhanger", "addictive"]
+    };
+    
+    if (detectedContext && simpleLexicon[detectedContext]) {
+      lexiconWords = simpleLexicon[detectedContext].slice(0, 5);
+      console.log(`🎯 Detected context: ${detectedContext}, lexicon: ${lexiconWords.join(', ')}`);
+      
+      // Add context-specific instructions
+      contextualPromptAdditions.push(`Use authentic ${detectedContext} vocabulary and references`);
+      if (lexiconWords.length > 0) {
+        contextualPromptAdditions.push(`Include words like: ${lexiconWords.slice(0, 3).join(', ')}`);
+      }
+    }
+    
+  } catch (error) {
+    console.log('⚠️ Context analysis failed, using generic approach:', error.message);
+  }
+
+  // Generate 4 random comedian voices with context-aware selection
   const comedianVoices = [
     "Kevin Hart (energetic, self-deprecating, physical comedy)",
     "Ali Wong (raw, raunchy, family humor)", 
@@ -123,7 +177,15 @@ async function generateWithGPT5(inputs: any): Promise<any> {
   const shuffled = [...comedianVoices].sort(() => 0.5 - Math.random());
   const selectedVoices = shuffled.slice(0, 4);
 
-  // FINALIZED SYSTEM PROMPT WITH COMEDIAN VOICES
+  // ENHANCED SYSTEM PROMPT WITH CONTEXT & COMEDIAN VOICES
+  const contextInstructions = contextualPromptAdditions.length > 0 
+    ? `\n## CONTEXT AWARENESS:\n${contextualPromptAdditions.map(add => `- ${add}`).join('\n')}\n`
+    : '';
+  
+  const lexiconInstructions = lexiconWords.length > 0
+    ? `\n## LEXICON GUIDANCE:\nAuthentic vocabulary to naturally incorporate: ${lexiconWords.join(', ')}\n`
+    : '';
+
   const systemPrompt = `You generate exactly 4 unique one-liner jokes or captions.  
 Return ONLY valid JSON in this exact structure:
 
@@ -148,7 +210,7 @@ Return ONLY valid JSON in this exact structure:
 - Tags:  
   * Quoted tags ${hardTags.length > 0 ? `(${hardTags.join(', ')})` : ''} MUST appear literally in 3 of 4 lines.  
   * Unquoted tags ${softTags.length > 0 ? `(${softTags.join(', ')})` : ''} must NOT appear literally, but must guide style, mood, or POV.
-
+${contextInstructions}${lexiconInstructions}
 ## COMEDIAN VOICE ASSIGNMENTS (CRITICAL - Each line MUST channel these specific voices):
 - Option 1: Channel ${selectedVoices[0]} style and delivery
 - Option 2: Channel ${selectedVoices[1]} style and delivery  
@@ -216,7 +278,7 @@ Return ONLY valid JSON in this exact structure:
     const latencyMs = Date.now() - startTime;
     const finishReason = data.choices?.[0]?.finish_reason;
     
-    // TELEMETRY
+    // ENHANCED TELEMETRY WITH CONTEXT TRACKING
     console.log('📊 TELEMETRY:', JSON.stringify({
       model_used: data.model,
       latency_ms: latencyMs,
@@ -224,7 +286,10 @@ Return ONLY valid JSON in this exact structure:
       tokens_out: data.usage?.completion_tokens,
       style: inputs.style,
       rating: inputs.rating,
-      finish_reason: finishReason
+      finish_reason: finishReason,
+      context_detected: contextAnalysis ? 'yes' : 'no',
+      lexicon_words_used: lexiconWords.length,
+      contextual_additions: contextualPromptAdditions.length
     }));
     
     // STRICT MODEL VALIDATION - FAIL FAST

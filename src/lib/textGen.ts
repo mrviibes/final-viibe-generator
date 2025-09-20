@@ -178,7 +178,48 @@ Tone: ${inputs.tone}${tagsStr}${modeInstruction}`;
 function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
   const { category, subcategory, tone, style, rating } = inputs;
   
-  // Create tone/style-aware fallback instead of generic ones
+  // Import context analysis
+  const { analyzeContext } = require('./contextDetector');
+  const { generateContextualFallback } = require('./contextLexicon');
+  
+  // Handle both legacy and new tag formats for context analysis
+  let tags: string[] = [];
+  if (Array.isArray(inputs.tags)) {
+    tags = inputs.tags;
+  } else if (inputs.tags && typeof inputs.tags === 'object') {
+    tags = [...inputs.tags.hard, ...inputs.tags.soft];
+  }
+  
+  // Analyze context for enhanced fallbacks
+  const contextAnalysis = analyzeContext(
+    `${category} ${subcategory}`,
+    category,
+    subcategory,
+    tags,
+    tone
+  );
+  
+  console.log('🎯 Generating contextual fallback with recipe:', contextAnalysis.generationRecipe);
+  
+  // Try contextual fallback first
+  if (contextAnalysis.detectedContext?.secondary) {
+    const contextualFallbacks = generateContextualFallback(
+      contextAnalysis.detectedContext.secondary,
+      tone,
+      rating || 'PG-13'
+    );
+    
+    if (contextualFallbacks.length >= 4) {
+      return {
+        lines: contextualFallbacks.map((text, idx) => ({
+          lane: `option${idx + 1}`,
+          text
+        }))
+      };
+    }
+  }
+  
+  // Enhanced generic fallback with context awareness
   const toneAdjectives = {
     'Savage': ['brutal', 'ruthless', 'savage', 'merciless'],
     'Humorous': ['ridiculous', 'hilarious', 'absurd', 'comical'],
@@ -188,6 +229,7 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
     'Inspirational': ['empowering', 'uplifting', 'motivating', 'transformative']
   };
   
+  // Enhanced context words with lexicon integration
   const contextWords = {
     'Birthday': ['celebration', 'milestone', 'aging', 'party'],
     'Wedding': ['commitment', 'love', 'ceremony', 'union'],
@@ -195,19 +237,32 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
     'Friend': ['friendship', 'loyalty', 'bond', 'connection'],
     'Self': ['growth', 'journey', 'reflection', 'experience'],
     'Work': ['career', 'productivity', 'hustle', 'grind'],
-    'Dating': ['romance', 'connection', 'chemistry', 'spark']
+    'Dating': ['romance', 'connection', 'chemistry', 'spark'],
+    'Travel': ['adventure', 'journey', 'exploration', 'destination'],
+    'Sports': ['competition', 'game', 'victory', 'challenge'],
+    'Technology': ['innovation', 'digital', 'connectivity', 'future']
   };
   
+  // Use suggested lexicon words if available
+  const lexiconWords = contextAnalysis.suggestedLexicon.length > 0 
+    ? contextAnalysis.suggestedLexicon.slice(0, 4)
+    : contextWords[subcategory] || ['life', 'reality', 'experience', 'moment'];
+  
   const adj = toneAdjectives[tone] || toneAdjectives['Humorous'];
-  const ctx = contextWords[subcategory] || ['life', 'reality', 'experience', 'moment'];
   
   if (style === 'pop-culture') {
+    const popCultureWords = contextAnalysis.detectedContext?.lexiconWords?.filter(w => 
+      ['Netflix', 'TikTok', 'Marvel', 'Taylor Swift', 'Instagram', 'YouTube'].some(pop => 
+        w.toLowerCase().includes(pop.toLowerCase())
+      )
+    ) || ['Netflix', 'TikTok', 'Marvel', 'Taylor Swift'];
+    
     return {
       lines: [
-        { lane: "option1", text: "Netflix couldn't script this level of chaos." },
-        { lane: "option2", text: "This moment deserves its own TikTok trend honestly." },
-        { lane: "option3", text: "Marvel writers could never create a plot twist this unexpected." },
-        { lane: "option4", text: "Even Taylor Swift wouldn't write a song about this level of drama happening." }
+        { lane: "option1", text: `${popCultureWords[0] || 'Netflix'} couldn't script this level of ${lexiconWords[0]}.` },
+        { lane: "option2", text: `This ${lexiconWords[1]} deserves its own ${popCultureWords[1] || 'TikTok'} trend honestly.` },
+        { lane: "option3", text: `${popCultureWords[2] || 'Marvel'} writers could never create a ${lexiconWords[2]} twist this unexpected.` },
+        { lane: "option4", text: `Even ${popCultureWords[3] || 'Taylor Swift'} wouldn't write about this level of ${lexiconWords[3]}.` }
       ]
     };
   }
@@ -215,20 +270,20 @@ function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
   if (rating === 'R') {
     return {
       lines: [
-        { lane: "option1", text: `This ${ctx[0]} is absolutely fucking ${adj[0]}.` },
-        { lane: "option2", text: `Reality just ${adj[1]} me harder than I deserved honestly.` },
-        { lane: "option3", text: `Plot twist: ${ctx[1]} decided to be a ${adj[2]} ass situation today.` },
-        { lane: "option4", text: `Based on a true ${ctx[2]} that nobody asked for but damn here we are anyway.` }
+        { lane: "option1", text: `This ${lexiconWords[0]} is absolutely fucking ${adj[0]}.` },
+        { lane: "option2", text: `${lexiconWords[1]} just ${adj[1]} me harder than I deserved honestly.` },
+        { lane: "option3", text: `Plot twist: ${lexiconWords[2]} decided to be a ${adj[2]} ass situation today.` },
+        { lane: "option4", text: `Based on a true ${lexiconWords[3]} that nobody asked for but damn here we are anyway.` }
       ]
     };
   }
   
   return {
     lines: [
-      { lane: "option1", text: `When ${ctx[0]} gives you ${adj[0]} moments, make memes.` },
-      { lane: "option2", text: `Plot twist: this ${adj[1]} ${ctx[1]} actually happened to me.` },
-      { lane: "option3", text: `Based on a ${adj[2]} ${ctx[2]} story that nobody asked for but here we are.` },
-      { lane: "option4", text: `${ctx[3]} called and left a ${adj[3]} voicemail but I'm too busy to listen.` }
+      { lane: "option1", text: `When ${lexiconWords[0]} gives you ${adj[0]} moments, make memes.` },
+      { lane: "option2", text: `Plot twist: this ${adj[1]} ${lexiconWords[1]} actually happened to me.` },
+      { lane: "option3", text: `Based on a ${adj[2]} ${lexiconWords[2]} story that nobody asked for but here we are.` },
+      { lane: "option4", text: `${lexiconWords[3]} called and left a ${adj[3]} voicemail but I'm too busy to listen.` }
     ]
   };
 }

@@ -23,6 +23,18 @@ export function buildDeveloperPrompt(inputs: VibeInputs): string {
     language = "English"
   } = inputs;
 
+  // Import context analysis at runtime to avoid circular dependencies
+  const { analyzeContext } = require('./contextDetector');
+  
+  // Analyze context for enhanced prompting
+  const contextAnalysis = analyzeContext(
+    `${category} ${subcategory} ${recipient_name} ${relationship}`,
+    category,
+    subcategory,
+    tags,
+    tone
+  );
+
   const tagsCSV = tags.join(', ');
   
   // Enhanced instructions for movie/pop culture + quotes
@@ -38,6 +50,24 @@ export function buildDeveloperPrompt(inputs: VibeInputs): string {
     specialInstructions += ` Incorporate ${recipient_name} naturally into the movie context while maintaining the roasting tone.`;
   }
 
+  // Add contextual enhancements
+  if (contextAnalysis.detectedContext) {
+    const ctx = contextAnalysis.detectedContext;
+    specialInstructions += ` CONTEXT: ${ctx.primary}${ctx.secondary ? ` (${ctx.secondary})` : ''}. `;
+    
+    if (ctx.lexiconWords.length > 0) {
+      specialInstructions += `Use authentic vocabulary: ${ctx.lexiconWords.slice(0, 3).join(', ')}. `;
+    }
+    
+    // Add contextual prompt additions
+    if (contextAnalysis.contextualPromptAdditions.length > 0) {
+      specialInstructions += contextAnalysis.contextualPromptAdditions.join('. ') + '. ';
+    }
+  }
+
+  // Log generation recipe
+  console.log('🧪 GENERATION RECIPE - Vibe Manual:', JSON.stringify(contextAnalysis.generationRecipe, null, 2));
+
   return `Context
 Category: ${category} > ${subcategory}
 Tone: ${tone}
@@ -46,6 +76,7 @@ Relationship: ${relationship}
 Language: ${language}
 Tags: ${tagsCSV}
 HardLimit: 100 characters
+${contextAnalysis.detectedContext ? `Lexicon: ${contextAnalysis.suggestedLexicon.join(', ')}` : ''}
 
 Instructions
 Write ONE original line for the subcategory above in the selected tone. Stay under 100 characters including spaces. Use plain text. No emojis, hashtags, quotes, or newlines. Use tags as content hints. Do not list the tags. If any tag is unsafe, ignore it and continue.${specialInstructions} Return JSON only.`;
@@ -73,6 +104,42 @@ export const fallbackByTone: Record<string, string> = {
   playful: "Fun and light as ordered",
   serious: "Thoughtful message loading"
 };
+
+// CONTEXT-AWARE FALLBACK GENERATOR
+export function getContextualFallback(
+  tone: string,
+  category: string,
+  subcategory: string,
+  tags: string[] = []
+): string {
+  const { analyzeContext } = require('./contextDetector');
+  const { generateContextualFallback } = require('./contextLexicon');
+  
+  // Analyze context for contextual fallback
+  const contextAnalysis = analyzeContext(
+    `${category} ${subcategory}`,
+    category,
+    subcategory,
+    tags,
+    tone
+  );
+  
+  if (contextAnalysis.detectedContext?.secondary) {
+    const contextualFallbacks = generateContextualFallback(
+      contextAnalysis.detectedContext.secondary,
+      tone,
+      'PG-13'
+    );
+    
+    if (contextualFallbacks.length > 0) {
+      console.log('🎯 Using contextual fallback for:', contextAnalysis.detectedContext.secondary);
+      return contextualFallbacks[0];
+    }
+  }
+  
+  // Fallback to tone-based generic
+  return fallbackByTone[tone.toLowerCase()] || fallbackByTone.playful;
+}
 
 // Banned patterns and words
 export const bannedPatterns = [
