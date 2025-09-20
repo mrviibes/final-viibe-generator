@@ -1,14 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Import unified configuration system
-import { 
-  NUM_VISUAL_OPTIONS, 
-  VIIBE_CONFIG, 
-  validateOptionCount,
-  type VisualLine
-} from '../shared/config.ts';
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -16,187 +8,367 @@ const corsHeaders = {
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
-// Validate configuration on startup
-validateOptionCount(undefined, NUM_VISUAL_OPTIONS);
+// Token budget management
+const MAX_TOTAL_TOKENS = 4000;
+const MAX_COMPLETION_TOKENS = 1200;
+const SOFT_PROMPT_BUDGET = MAX_TOTAL_TOKENS - MAX_COMPLETION_TOKENS;
 
-// Multi-model fallback strategy (increased token limits)
+// Progressive model fallback
 const MODELS = [
-  { name: 'gpt-5-2025-08-07', tokens: 1500, useMaxCompletionTokens: true },
-  { name: 'gpt-4.1-2025-04-14', tokens: 1200, useMaxCompletionTokens: true },
-  { name: 'gpt-5-mini-2025-08-07', tokens: 1200, useMaxCompletionTokens: true }
+  { name: 'gpt-5-2025-08-07', tokens: MAX_COMPLETION_TOKENS, useMaxCompletionTokens: true },
+  { name: 'gpt-4.1-2025-04-14', tokens: 1000, useMaxCompletionTokens: true },
+  { name: 'gpt-5-mini-2025-08-07', tokens: 800, useMaxCompletionTokens: true }
 ];
 
 interface VisualInput {
   final_text: string;
   category: string;
   subcategory: string;
-  mode: string; // balanced | cinematic | dynamic | surreal | chaos | exaggerated
+  mode: string;
   layout_token: string;
   tags?: string[];
 }
 
-// Layout-specific text placement rules
-const LAYOUT_RULES = {
-  "negativeSpace": {
-    placement: "integrated into natural empty/negative space near largest margin",
-    style: "clean modern sans-serif, elegant alignment, subtle glow for readability"
-  },
-  "memeTopBottom": {
-    placement: "bold caption at top and/or bottom in clear bands",
-    style: "large modern sans-serif, centered, high contrast, clean stroke"
-  },
-  "lowerThird": {
-    placement: "clean banner across bottom third",
-    style: "modern sans-serif, centered, semi-transparent band ok"
-  },
-  "sideBarLeft": {
-    placement: "vertical side caption panel on left side",
-    style: "modern sans-serif, stacked/vertical layout, subtle strip"
-  },
-  "badgeSticker": {
-    placement: "inside a minimal badge/sticker overlay",
-    style: "modern sans-serif, simple shape (circle/ribbon/starburst)"
-  },
-  "subtleCaption": {
-    placement: "small caption near bottom or corner",
-    style: "elegant modern sans-serif, high contrast, subtle glow"
-  }
-};
+// Token estimation (rough approximation: 1 token ≈ 4 characters)
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
 
-// Visual vocabulary for category-specific props
-const VISUAL_VOCABULARY = {
-  "Celebrations": {
-    "Birthday": {
-      props: "cake with frosting candles, balloons, party hats, wrapped gifts, confetti, streamers",
-      atmosphere: "warm festive lighting, frosting textures, sparkler candles, neon birthday sign"
-    },
-    "Wedding": {
-      props: "wedding cake, rings, bouquet, veil, champagne glasses",
-      atmosphere: "romantic glow, fairy lights, aisle petals, archway"
-    },
-    "Christmas": {
-      props: "Christmas tree, string lights, ornaments, stockings, wreaths, wrapped gifts",
-      atmosphere: "warm fireplace glow, snowy window, twinkling fairy lights"
-    },
-    "Halloween": {
-      props: "jack-o-lanterns, spooky masks, cobwebs, skeletons, candy buckets, bats",
-      atmosphere: "eerie moonlight, fog, candlelit pumpkins, haunted house vibe"
-    }
-  },
-  "Sports": {
-    "American Football": {
-      props: "football, helmet, shoulder pads, playbook, stadium scoreboard",
-      atmosphere: "floodlights, grassy field, roaring crowd, sideline energy"
-    },
-    "Soccer": {
-      props: "soccer ball, cleats, shin guards, nets, trophy cup",
-      atmosphere: "grassy pitch, stadium floodlights, colorful fans, confetti rain"
-    },
-    "Basketball": {
-      props: "basketball, hoop, sneakers, sweat towel, scoreboard",
-      atmosphere: "hardwood court, buzzing arena, dramatic spotlights"
-    }
-  },
-  "Daily Life": {
-    "Work": {
-      props: "laptops, coffee mugs, sticky notes, conference table, charts",
-      atmosphere: "office lighting, messy desk, casual clutter"
-    },
-    "Parenting": {
-      props: "toys, strollers, crayons, spilled snacks, baby bottles",
-      atmosphere: "chaotic living room, colorful mess, joyful clutter"
-    },
-    "Dating": {
-      props: "candlelit table, roses, champagne, heart-shaped balloons",
-      atmosphere: "city lights at night, cozy restaurant, sunset skyline"
-    }
-  }
-};
+// Truncate prompt to fit budget
+function truncatePrompt(prompt: string, maxTokens: number): string {
+  const maxChars = maxTokens * 4;
+  if (prompt.length <= maxChars) return prompt;
+  
+  console.log(`⚠️ Truncating prompt from ${prompt.length} to ${maxChars} chars`);
+  return prompt.substring(0, maxChars) + '...';
+}
+
+// Lean prompt builder - minimal token usage
+function buildVisualPrompt({caption, category, subcategory, mode, tags}: {
+  caption: string;
+  category: string; 
+  subcategory: string;
+  mode: string;
+  tags: string[];
+}) {
+  return [
+    "You output 4 one-sentence scene ideas. No lists. No numbering.",
+    "Lane1=literal-from-caption keywords. Lane2=category-context.",
+    "Lane3=funny-exaggeration. Lane4=funny-absurd.", 
+    "Max 18 words per line. No ellipses. No placeholders.",
+    `Caption: "${caption}".`,
+    `Category: ${category} / ${subcategory}.`,
+    `Tags: ${tags.slice(0,8).join(", ") || "none"}.`,
+    `Mode: ${mode}.`
+  ].join("\n");
+}
+
+// Ultra-minimal system prompt
+const SYSTEM_MINI = `Return 4 lines, one sentence each, 18 words max.
+Lane1 literal, Lane2 context, Lane3 exaggeration, Lane4 absurd.
+No numbering, no extra text.`;
 
 // Extract meaningful keywords from caption text
 function extractKeywords(text: string): string[] {
   if (!text || typeof text !== 'string') return [];
   
-  // Common stop words to filter out
   const stopWords = new Set([
     'the', 'is', 'at', 'which', 'on', 'and', 'a', 'to', 'are', 'as', 'was', 'were',
     'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
     'should', 'may', 'might', 'can', 'shall', 'must', 'ought', 'i', 'you', 'he', 'she',
     'it', 'we', 'they', 'them', 'their', 'what', 'where', 'when', 'why', 'how', 'all',
     'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor',
-    'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'but', 'like',
-    'me', 'my', 'myself', 'this', 'that', 'these', 'those', 'am', 'an', 'for', 'in',
-    'of', 'or', 'with', 'from', 'up', 'about', 'into', 'through', 'during', 'before',
-    'after', 'above', 'below', 'between', 'again', 'further', 'then', 'once'
+    'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'but', 'like'
   ]);
 
-  // Extract words, clean them up, and filter
   const words = text
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
+    .replace(/[^\w\s]/g, ' ')
     .split(/\s+/)
     .filter(word => 
-      word.length > 2 && // At least 3 characters
-      !stopWords.has(word) && // Not a stop word
-      !word.match(/^\d+$/) // Not just numbers
+      word.length > 2 && 
+      !stopWords.has(word) && 
+      !word.match(/^\d+$/)
     );
 
-  // Get unique words and prioritize longer, more meaningful ones
-  const uniqueWords = Array.from(new Set(words));
-  return uniqueWords
-    .sort((a, b) => b.length - a.length) // Longer words first
-    .slice(0, 5); // Top 5 keywords
+  return Array.from(new Set(words))
+    .sort((a, b) => b.length - a.length)
+    .slice(0, 5);
 }
 
-// Case-insensitive lookup for visual vocabulary
-function getVocabInsensitive(category: string, subcategory: string): { props: string; atmosphere: string } {
-  const catKey = Object.keys(VISUAL_VOCABULARY).find(k => k.toLowerCase() === String(category).toLowerCase());
-  if (!catKey) return { props: '', atmosphere: '' };
-  const subMap = (VISUAL_VOCABULARY as any)[catKey] || {};
-  const subKey = Object.keys(subMap).find(k => k.toLowerCase() === String(subcategory).toLowerCase());
-  if (!subKey) return { props: '', atmosphere: '' };
-  const match = subMap[subKey] || {};
-  return { props: String(match.props || ''), atmosphere: String(match.atmosphere || '') };
+// Semantic validation functions - replace exact keyword matching
+const exaggerationCues = ['over-the-top', 'giant', 'massive', 'extreme', 'wild', 'dramatic', 'exaggerated', 'oversized'];
+const surrealCues = ['impossible', 'floating', 'melting', 'absurd', 'surreal', 'bizarre', 'chaotic', 'weird'];
+const categoryVocab = ['christmas', 'santa', 'tree', 'gifts', 'holiday', 'festive', 'celebration', 'birthday', 'cake', 'party'];
+
+function hasOverlap(text: string, keywords: string[]): number {
+  const lower = text.toLowerCase();
+  return keywords.filter(k => lower.includes(k.toLowerCase())).length;
 }
 
-// Shortened system prompt for better token efficiency
-const SYSTEM_PROMPT_UNIVERSAL = (
-  { mode, category, subcategory, tags = [], keywords = [] }: { 
-    mode: string; 
-    category: string; 
-    subcategory: string; 
-    tags?: string[]; 
-    keywords?: string[] 
-  }
-) => {
-  const keywordSection = keywords.length > 0 ? `
-Keywords: ${keywords.join(', ')}` : '';
+function hasAny(text: string, cues: string[]): boolean {
+  const lower = text.toLowerCase();
+  return cues.some(cue => lower.includes(cue));
+}
+
+function hasContrast(text: string): boolean {
+  return /but|however|while|instead|opposite/.test(text.toLowerCase());
+}
+
+function violatesScale(text: string): boolean {
+  return /tiny|giant|massive|miniature|huge|microscopic/.test(text.toLowerCase());
+}
+
+function isLiteral(text: string, keywords: string[]): boolean {
+  return hasOverlap(text, keywords) >= 2;
+}
+
+function isContextual(text: string): boolean {
+  return hasAny(text, categoryVocab) >= 1;
+}
+
+function isLikelyFunny(text: string): boolean {
+  return hasAny(text, exaggerationCues) || hasContrast(text);
+}
+
+function isLikelyAbsurd(text: string): boolean {
+  return hasAny(text, surrealCues) || violatesScale(text);
+}
+
+function wordCount(text: string): number {
+  return text.trim().split(/\s+/).length;
+}
+
+function sentenceCount(text: string): number {
+  return (text.match(/[.!?]+/g) || []).length;
+}
+
+// Semantic validation - replace exact keyword matching
+function validateVisuals(lines: string[], keywords: string[]): boolean {
+  if (lines.length !== 4) return false;
   
-  return `Generate 4 visual scene concepts for ${category}/${subcategory}.
+  const okLen = lines.every(l => wordCount(l) <= 18 && sentenceCount(l) >= 1);
+  const roleOK = 
+    isLiteral(lines[0], keywords) &&
+    isContextual(lines[1]) &&
+    isLikelyFunny(lines[2]) &&
+    isLikelyAbsurd(lines[3]);
 
-Style: ${mode}${keywordSection}
+  return okLen && roleOK;
+}
 
-Lane Requirements:
-- Lane 1: Literal scene from keywords. Show specific objects/animals mentioned.
-- Lane 2: Safe ${category}/${subcategory} scene 
-- Lane 3: COMEDIC exaggerated gag with over-the-top elements
-- Lane 4: COMEDIC absurd/satirical scenario
+// Context-aware fallbacks - replace generic baseball with category-specific
+function visualFallback({caption, category, subcategory}: {caption: string; category: string; subcategory: string}): string[] {
+  const kw = caption.toLowerCase().split(/\W+/).filter(Boolean).slice(0,5);
+  const c = category.toLowerCase();
+  
+  if (c.includes("christmas") || c.includes("holiday") || c.includes("santa")) {
+    return [
+      `Santa at a workbench matching "${kw.join(" ")}" with elves scrambling.`,
+      `Cozy living room tree scene tied to "${kw.join(" ")}" in-frame props.`,
+      `Cake of lights so overpacked it threatens the fuse box.`,
+      `Snow globe city where the caption idea literally walks by the glass.`
+    ];
+  }
+  
+  if (c.includes("birthday") || c.includes("celebration")) {
+    return [
+      `Birthday party scene with "${kw.join(" ")}" theme and colorful decorations.`,
+      `Festive cake and balloons setup matching "${kw.join(" ")}" concept.`,
+      `Over-the-top birthday celebration with excessive decorations everywhere.`,
+      `Absurd birthday scenario where "${kw.join(" ")}" takes center stage.`
+    ];
+  }
+  
+  if (c.includes("sport")) {
+    return [
+      `Athletic scene featuring "${kw.join(" ")}" with sports equipment visible.`,
+      `Stadium or gym setting that showcases ${subcategory} without text.`,
+      `Exaggerated sports moment with over-the-top athletic action.`,
+      `Absurd sports scenario where normal rules don't apply.`
+    ];
+  }
+  
+  // Generic fallbacks as last resort
+  return [
+    `Literal scene from "${kw.join(" ")}" with clear subject and action.`,
+    `Clean category shot that shows ${subcategory} without text overlay.`,
+    `Exaggerated version of the action so it is clearly comedic.`,
+    `Absurd reimagining that still references the original concept.`
+  ];
+}
 
-Rules:
-- Complete sentences, no text in scene
-- Lanes 3-4 must be funny with gag elements
-- No: ${VIIBE_CONFIG.visualLanes.requirements.banFiller.slice(0, 3).join(', ')}
+// Progressive retry with simplification
+async function tryGenerateWithRetry(input: VisualInput): Promise<any> {
+  const keywords = extractKeywords(input.final_text);
+  
+  // 1. Try full prompt
+  try {
+    const fullPrompt = buildVisualPrompt({
+      caption: input.final_text,
+      category: input.category,
+      subcategory: input.subcategory,
+      mode: input.mode,
+      tags: input.tags || []
+    });
+    
+    return await tryOnce(fullPrompt, 'full');
+  } catch (e1) {
+    console.log('Full prompt failed, trying simplified:', e1.message);
+    
+    // 2. Try simplified prompt (drop mode, reduce tags)
+    try {
+      const simplifiedPrompt = buildVisualPrompt({
+        caption: input.final_text,
+        category: input.category,
+        subcategory: input.subcategory,
+        mode: 'balanced', // simplified mode
+        tags: (input.tags || []).slice(0, 3) // fewer tags
+      });
+      
+      return await tryOnce(simplifiedPrompt, 'simplified');
+    } catch (e2) {
+      console.log('Simplified prompt failed, trying minimal:', e2.message);
+      
+      // 3. Try minimal prompt (caption + lanes only)
+      try {
+        const minimalPrompt = [
+          "4 scene ideas. Lane1=literal. Lane2=context. Lane3=funny. Lane4=absurd.",
+          `Caption: "${input.final_text}".`,
+          `Category: ${input.category}.`
+        ].join("\n");
+        
+        return await tryOnce(minimalPrompt, 'minimal');
+      } catch (e3) {
+        console.log('All attempts failed, using fallback:', e3.message);
+        
+        // 4. Use context-aware fallback
+        const fallbackLines = visualFallback({
+          caption: input.final_text,
+          category: input.category,
+          subcategory: input.subcategory
+        });
+        
+        return {
+          success: true,
+          model: 'fallback',
+          concepts: fallbackLines.map((text, idx) => ({
+            lane: `option${idx + 1}`,
+            text
+          })),
+          fallback: true,
+          errors: [e1.message, e2.message, e3.message],
+          prompt_tokens: 0,
+          completion_tokens: 0
+        };
+      }
+    }
+  }
+}
 
-Return JSON:
-{
-  "concepts": [
-    {"lane": "option1", "text": "description"},
-    {"lane": "option2", "text": "description"}, 
-    {"lane": "option3", "text": "description"},
-    {"lane": "option4", "text": "description"}
-  ]
-}`;
-};
+// Single attempt with a given prompt
+async function tryOnce(prompt: string, attemptType: string): Promise<any> {
+  // Check token budget and auto-truncate if needed
+  const estimatedTokens = estimateTokens(prompt);
+  let finalPrompt = prompt;
+  
+  if (estimatedTokens > SOFT_PROMPT_BUDGET) {
+    finalPrompt = truncatePrompt(prompt, SOFT_PROMPT_BUDGET);
+  }
+  
+  console.log(`${attemptType} attempt - Prompt tokens: ${estimateTokens(finalPrompt)}`);
+  
+  // Try models in sequence
+  for (const modelConfig of MODELS) {
+    console.log(`Trying ${modelConfig.name} for ${attemptType} attempt`);
+    
+    const body: Record<string, unknown> = {
+      model: modelConfig.name,
+      messages: [
+        { role: 'system', content: SYSTEM_MINI },
+        { role: 'user', content: finalPrompt }
+      ],
+      [modelConfig.useMaxCompletionTokens ? 'max_completion_tokens' : 'max_tokens']: modelConfig.tokens,
+    };
+
+    try {
+      const controller = new AbortController();
+      const timeoutMs = modelConfig.name.includes('gpt-5') ? 15000 : 12000;
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+      const r = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (!r.ok) {
+        console.log(`${modelConfig.name} failed with status ${r.status}`);
+        continue;
+      }
+
+      const data = await r.json();
+      const content = data?.choices?.[0]?.message?.content;
+      const finishReason = data?.choices?.[0]?.finish_reason;
+      
+      if (!content || content.trim() === '') {
+        console.log(`${modelConfig.name} returned empty content (finish_reason: ${finishReason})`);
+        continue;
+      }
+
+      if (finishReason === 'length') {
+        console.log(`${modelConfig.name} hit token limit (finish_reason: length)`);
+        continue;
+      }
+
+      // Parse response - expect simple lines, not JSON
+      const lines = content.split('\n')
+        .map(line => line.trim())
+        .filter(line => line && !line.match(/^(lane|option|\d+\.|\-)/i))
+        .slice(0, 4);
+
+      if (lines.length !== 4) {
+        console.log(`${modelConfig.name} returned ${lines.length} lines instead of 4`);
+        continue;
+      }
+
+      // Apply semantic validation
+      const keywords = extractKeywords(finalPrompt);
+      if (!validateVisuals(lines, keywords)) {
+        console.log(`${modelConfig.name} failed semantic validation`);
+        continue;
+      }
+
+      // Success!
+      return {
+        success: true,
+        model: modelConfig.name,
+        concepts: lines.map((text, idx) => ({
+          lane: `option${idx + 1}`,
+          text: text.substring(0, 150) // Cap length
+        })),
+        prompt_tokens: estimateTokens(finalPrompt),
+        completion_tokens: estimateTokens(content),
+        finish_reason: finishReason
+      };
+
+    } catch (error) {
+      console.error(`${modelConfig.name} error:`, error.message);
+      if (error.name === 'AbortError') {
+        console.log(`${modelConfig.name} timeout`);
+      }
+      continue;
+    }
+  }
+  
+  throw new Error(`All models failed for ${attemptType} attempt`);
+}
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -207,7 +379,11 @@ serve(async (req) => {
   try {
     if (!OPENAI_API_KEY) {
       console.error('OPENAI_API_KEY missing');
-      return new Response(JSON.stringify({ success: false, error: 'OPENAI_API_KEY missing' }), {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'OPENAI_API_KEY missing',
+        reason: 'missing_api_key'
+      }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -224,234 +400,55 @@ serve(async (req) => {
     const tags = Array.isArray(inputs.tags) ? inputs.tags.filter(t => typeof t === 'string' && t.trim().length > 0) : [];
 
     if (!final_text || !category || !subcategory) {
-      return new Response(JSON.stringify({ success: false, error: 'Missing required fields: final_text, category, subcategory' }), {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Missing required fields: final_text, category, subcategory',
+        reason: 'missing_fields'
+      }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Extract keywords from caption for better targeting
-    const keywords = extractKeywords(final_text);
-    
-    console.log('inputs', { final_text, category, subcategory, mode, layout_token, tags, keywords });
+    console.log('🚀 Starting lean visual generation:', { final_text, category, subcategory, mode, layout_token, tags });
 
-    const system = SYSTEM_PROMPT_UNIVERSAL({ mode, category, subcategory, tags, keywords });
-    const user = `Caption: "${final_text}"
-
-Generate 4 scene concepts that work with this caption.`;
-
-    // Log prompt lengths for debugging
-    console.log(`Prompt lengths - System: ${system.length} chars, User: ${user.length} chars`);
-
-    // Try models in sequence until one succeeds
-    for (const modelConfig of MODELS) {
-      console.log(`Trying model: ${modelConfig.name}`);
-      
-      const body: Record<string, unknown> = {
-        model: modelConfig.name,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-        response_format: { type: 'json_object' },
-        [modelConfig.useMaxCompletionTokens ? 'max_completion_tokens' : 'max_tokens']: modelConfig.tokens,
-      };
-
-      console.log('reqBody', JSON.stringify(body));
-
-      try {
-        const controller = new AbortController();
-        // Increase timeout for GPT-5, shorter for GPT-4.1
-        const timeoutMs = modelConfig.name.includes('gpt-5') ? 20000 : 15000;
-        const timeout = setTimeout(() => {
-          console.log(`${modelConfig.name} timed out after ${timeoutMs}ms`);
-          controller.abort();
-        }, timeoutMs);
-
-        const r = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${OPENAI_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(body),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeout);
-        console.log(`${modelConfig.name} status:`, r.status);
-
-        if (!r.ok) {
-          console.log(`${modelConfig.name} failed with status ${r.status}, trying next model`);
-          continue;
-        }
-
-        const data = await r.json();
-        console.log(`${modelConfig.name} response:`, data);
-
-        // Check for token limit issues
-        const finishReason = data?.choices?.[0]?.finish_reason;
-        if (finishReason === 'length') {
-          console.log(`${modelConfig.name} hit token limit (finish_reason: length), trying next model`);
-          continue;
-        }
-
-        const content = data?.choices?.[0]?.message?.content;
-        if (!content || content.trim() === '') {
-          console.log(`${modelConfig.name} returned empty content (finish_reason: ${finishReason}), trying next model`);
-          continue;
-        }
-
-        // Parse JSON response
-        let out: any;
-        try {
-          out = JSON.parse(content);
-        } catch (e) {
-          try {
-            const cleaned = content.replace(/```json\s*|```/g, '').trim();
-            out = JSON.parse(cleaned);
-          } catch (_e) {
-            console.log(`${modelConfig.name} returned invalid JSON, trying next model`);
-            continue;
-          }
-        }
-
-        // Validate structure - enforce NUM_VISUAL_OPTIONS
-        if (!Array.isArray(out?.concepts) || out.concepts.length !== NUM_VISUAL_OPTIONS) {
-          console.log(`${modelConfig.name} returned bad structure (expected ${NUM_VISUAL_OPTIONS} concepts, got ${out?.concepts?.length}), trying next model`);
-          continue;
-        }
-
-        // Check for banned phrases (from config + expanded list)
-        const banned = [
-          ...VIIBE_CONFIG.visualLanes.requirements.banFiller,
-          'abstract geometric shapes', 'group of people', 'person looking disappointed'
-        ];
-        const fails = out.concepts.some((c: any) =>
-          typeof c?.text === 'string' && banned.some(b => c.text.toLowerCase().includes(b))
-        );
-        
-        if (fails) {
-          console.log(`${modelConfig.name} contained banned phrases, trying next model`);
-          continue;
-        }
-
-        // Success! Validate comedic lanes with relaxed criteria
-        const funnyConcepts = out.concepts.filter((c: any, idx: number) => 
-          idx >= 2 && // Lanes 3-4 (0-indexed)
-          c?.text && typeof c.text === 'string' &&
-          (c.text.length > 50 || // Longer descriptions likely more comedic
-           /dramatic|wild|chaos|disco|velvet|throne|courtroom|sunglasses|facepalm|conga|limbo/i.test(c.text))
-        ).length;
-        
-        if (funnyConcepts < 1) { // Relaxed from 2 to 1
-          console.log(`${modelConfig.name} failed comedic lane requirement (${funnyConcepts}/1 funny concepts), trying next model`);
-          continue;
-        }
-        
-        // Success! Sanitize concepts to remove caption quotes and cap word count
-        console.log(`${modelConfig.name} succeeded with ${out.concepts.length} concepts`);
-        
-        const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const captionRe = new RegExp(escapeRegex(final_text), 'gi');
-        const quotedCaptionRe = new RegExp(`["'""]?${escapeRegex(final_text)}["'""]?`, 'gi');
-        const captionLabelRe = /caption[^:]{0,80}:\s*["'""][^"'""]+["'""]/gi;
-        
-        const sanitize = (t: string) => {
-          let s = String(t || '');
-          const before = s;
-          // Remove explicit caption quotes and labeled fragments
-          s = s.replace(captionLabelRe, 'caption');
-          s = s.replace(quotedCaptionRe, '');
-          s = s.replace(captionRe, '');
-          // Remove context fragments like "- Context: Birthday"
-          s = s.replace(/\s*-\s*Context:\s*[^.!?]*[.!?]?/gi, '');
-          // Collapse punctuation and spaces
-          s = s.replace(/\s{2,}/g, ' ').replace(/\s*([,:;.!?])\s*/g, '$1 ');
-          s = s.replace(/\s+/g, ' ').trim();
-          // Enforce 18-word cap WITHOUT adding ellipses
-          const words = s.split(/\s+/);
-          if (words.length > 18) {
-            s = words.slice(0, 18).join(' ');
-            // Ensure it ends with proper punctuation
-            if (!s.match(/[.!?]$/)) s += '.';
-          }
-          // Remove any trailing ellipses or multiple dots
-          s = s.replace(/\.{2,}|…/g, '.');
-          console.log('🧼 Sanitized concept', { before, after: s, words: s ? s.split(/\s+/).length : 0 });
-          return s;
-        };
-        
-        const sanitizedConcepts = out.concepts.map((c: any, idx: number) => ({
-          lane: c?.lane || `option${idx + 1}`,
-          text: sanitize(String(c?.text || '')),
-        })).filter((c: any) => c.text && c.text.trim().length > 0);
-        
-        console.log('Final sanitized concepts:', JSON.stringify(sanitizedConcepts, null, 2));
-        
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            model: modelConfig.name, 
-            concepts: sanitizedConcepts,
-            generated_at: new Date().toISOString()
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-
-      } catch (error) {
-        if (error.name === 'AbortError') {
-          console.error(`${modelConfig.name} timeout - model taking too long, trying next`);
-        } else {
-          console.error(`${modelConfig.name} error:`, error.message || error);
-        }
-        continue;
-      }
-    }
-
-    // All models failed - provide context-aware fallback
-    console.error('All models failed, providing emergency fallback concepts');
-    
-    // Create category-specific fallbacks using keywords from the original text
-    const createContextFallbacks = () => {
-      const vocab = getVocabInsensitive(category, subcategory);
-      const key1 = keywords[0] || category.toLowerCase();
-      const key2 = keywords[1] || subcategory.toLowerCase();
-      
-      return [
-        {
-          "lane": "option1",
-          "text": `A ${category.toLowerCase()} scene featuring ${key1} with ${key2} prominently displayed.`
-        },
-        {
-          "lane": "option2", 
-          "text": `A traditional ${subcategory.toLowerCase()} setting with ${vocab.props || 'festive decorations'}.`
-        },
-        {
-          "lane": "option3",
-          "text": `An exaggerated ${category.toLowerCase()} scene with over-the-top ${key1} and dramatic ${key2} elements.`
-        },
-        {
-          "lane": "option4",
-          "text": `A satirical ${subcategory.toLowerCase()} scenario where ${key1} creates absurd chaos with ${key2}.`
-        }
-      ];
-    };
-    
-    const fallbackConcepts = createContextFallbacks();
-    
-    return new Response(JSON.stringify({ 
-      success: true, 
-      model: 'fallback',
-      concepts: fallbackConcepts,
-      fallback: true,
-      attempted_models: MODELS.map(m => m.name)
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Use progressive retry with simplification
+    const result = await tryGenerateWithRetry({
+      final_text,
+      category,
+      subcategory,
+      mode,
+      layout_token,
+      tags
     });
+
+    console.log('✅ Visual generation completed:', {
+      model: result.model,
+      fallback: result.fallback,
+      conceptCount: result.concepts.length,
+      promptTokens: result.prompt_tokens,
+      completionTokens: result.completion_tokens
+    });
+
+    return new Response(
+      JSON.stringify({ 
+        ...result,
+        generated_at: new Date().toISOString()
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
   } catch (error: any) {
     console.error('generate-visuals error:', error);
-    return new Response(JSON.stringify({ success: false, error: String(error?.message || error) }), {
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: error.message || 'Unknown error',
+      reason: 'unexpected_error',
+      debug_info: {
+        error_type: error.constructor.name,
+        stack: error.stack?.substring(0, 500)
+      }
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
