@@ -40,6 +40,29 @@ async function generateWithGPT5(inputs: any): Promise<any> {
     .map((tag: string) => tag.slice(1, -1));
   const softTags = tagsArray.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"'));
 
+  // Pop-culture buckets with cooldown rotation
+  const POP_CULTURE_BUCKETS = {
+    music: ['Taylor Swift', 'Drake', 'Billie Eilish', 'Bad Bunny', 'Doja Cat', 'The Weeknd'],
+    movies: ['Marvel', 'Disney', 'Netflix', 'HBO', 'Marvel', 'Star Wars', 'Batman'],
+    internet: ['TikTok', 'Instagram', 'Twitter', 'YouTube', 'memes', 'viral', 'trending'],
+    sports: ['NBA', 'NFL', 'FIFA', 'Olympics', 'LeBron James', 'Tom Brady', 'Messi']
+  };
+  
+  // Simple in-memory cooldown (reset per deployment)
+  const usedEntities = new Set();
+  const pickFromBucket = (bucket: string[]) => bucket.find(x => !usedEntities.has(x)) ?? bucket[0];
+  
+  const popCultureChoices = [
+    pickFromBucket(POP_CULTURE_BUCKETS.music),
+    pickFromBucket(POP_CULTURE_BUCKETS.movies), 
+    pickFromBucket(POP_CULTURE_BUCKETS.internet),
+    pickFromBucket(POP_CULTURE_BUCKETS.sports)
+  ];
+  const shuffledPop = [...popCultureChoices].sort(() => 0.5 - Math.random());
+  if (inputs.style === 'pop_culture') {
+    usedEntities.add(shuffledPop[0]); // Use only one per batch
+  }
+
   // Generate 4 random comedian voices for this batch
   const comedianVoices = [
     "Kevin Hart (energetic, self-deprecating, physical comedy)",
@@ -84,7 +107,7 @@ Return ONLY valid JSON in this exact structure:
 ## Hard Rules
 - Output exactly 4 unique lines.
 - Each line must end with a single period. No commas, colons, semicolons, exclamations, or question marks. No em dashes. No ellipses.
-- Length: option1 = 40–50 chars, option2 = 50–60, option3 = 60–70, option4 = 70–80.  
+- Length: Randomized buckets from [[40,60],[61,80],[81,100],[101,120]] for diversity.  
   ${inputs.style === 'story' ? '(Story Mode: all 4 must be 80–100 with setup → payoff.)' : ''}
 - Perspectives per batch: one general truth, one past-tense memory, one present-tense roast/flirt, one third-person tagged line (if a name tag exists).
 - Tone must match ${inputs.tone} selection.
@@ -224,10 +247,12 @@ Return ONLY valid JSON in this exact structure:
       .map((tag: string) => tag.slice(1, -1));
     const softTags = tagsArray.filter((tag: string) => !tag.startsWith('"') && !tag.endsWith('"'));
     
-    // Length validation - exact character ranges
+    // Length validation - randomized buckets for diversity
+    const LENGTH_BUCKETS = [[40,60],[61,80],[81,100],[101,120]];
+    const shuffledBuckets = [...LENGTH_BUCKETS].sort(() => 0.5 - Math.random());
     const expectedLengths = isStoryMode 
       ? [[80, 100], [80, 100], [80, 100], [80, 100]] // Story mode: all 80-100 chars
-      : [[40, 50], [50, 60], [60, 70], [70, 80]]; // Standard: exact bands
+      : shuffledBuckets; // Random bucket assignment per generation
     
     const allTexts = parsed.lines.map((line: any) => line.text?.toLowerCase() || '');
     const originalTexts = parsed.lines.map((line: any) => line.text || '');
@@ -389,14 +414,12 @@ Return ONLY valid JSON in this exact structure:
       });
     }
     
-    // Pop culture validation
+    // Pop culture validation - use selected entity
     if (inputs.style === 'pop_culture') {
-      const popCultureWords = ['taylor', 'swift', 'drake', 'kanye', 'netflix', 'tiktok', 'marvel', 'disney', 'meme', 'viral'];
-      const hasPopCulture = allTexts.some(text => {
-        return popCultureWords.some(word => text.includes(word));
-      });
-      if (!hasPopCulture) {
-        validationErrors.push('style_noncompliant');
+      const selectedEntity = shuffledPop[0].toLowerCase();
+      const hasSelectedEntity = allTexts.some(text => text.includes(selectedEntity));
+      if (!hasSelectedEntity) {
+        validationErrors.push('missing_pop_culture_entity');
       }
     }
     
