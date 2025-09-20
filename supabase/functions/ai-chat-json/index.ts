@@ -65,14 +65,18 @@ serve(async (req) => {
     const isO3Model = model?.startsWith('o3') || model?.startsWith('o4');
     const isNewerModel = isGPT5Model || isGPT4_1Model || isO3Model;
     
-    const tokenLimit = max_completion_tokens || max_tokens;
+    const tokenLimit = max_completion_tokens ?? max_tokens;
     const tokenParameter = isNewerModel ? 'max_completion_tokens' : 'max_tokens';
 
-    // Build request body with proper parameters - HIGHER TOKEN LIMITS
+    // Enforce a sensible minimum so JSON responses don't truncate
+    const minTokens = isNewerModel ? 200 : 150;
+    const safeTokenLimit = Math.max(tokenLimit ?? 0, minTokens);
+
+    // Build request body with proper parameters - ensure enough tokens for JSON
     const requestBody: any = {
       model,
       messages: enhancedMessages,
-      [tokenParameter]: tokenLimit || (isNewerModel ? 450 : 300),
+      [tokenParameter]: safeTokenLimit,
       response_format: { type: "json_object" }
     };
 
