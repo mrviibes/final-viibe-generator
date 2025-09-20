@@ -410,6 +410,55 @@ Generate tight, punchy lines that sound like actual comedians, not AI trying to 
     parsed.lines = parsed.lines.map((line: any, index: number) => {
       let text = (line.text || '').toString();
       
+      // APPLY ANIMAL SAFETY SANITIZATION FIRST
+      const category = inputs.category?.toLowerCase() || '';
+      const subcategory = inputs.subcategory?.toLowerCase() || '';
+      
+      // Check if this is an animal context
+      const isAnimalContext = (cat: string, sub: string): boolean => {
+        const animalCategories = ['animals', 'pets', 'wildlife', 'daily life'];
+        const animalSubcategories = ['dog park', 'pets', 'animals', 'wildlife', 'zoo'];
+        return animalCategories.includes(cat) || animalSubcategories.includes(sub);
+      };
+      
+      // Apply animal safety filters if this is an animal context
+      if (isAnimalContext(category, subcategory)) {
+        // Sanitize problematic verbs
+        const animalSafety = {
+          "attack": "start beef with",
+          "attacks": "starts beef with", 
+          "bite": "snap at",
+          "bites": "snaps at",
+          "hump": "awkwardly hop on",
+          "humps": "awkwardly hops on",
+          "maul": "overwhelm",
+          "mauls": "overwhelms",
+          "kill": "defeat",
+          "kills": "defeats",
+          "rip": "grab"
+        };
+        
+        for (const [badVerb, replacement] of Object.entries(animalSafety)) {
+          const regex = new RegExp(`\\b${badVerb}\\b`, 'gi');
+          if (regex.test(text)) {
+            text = text.replace(regex, replacement);
+            console.log(`🐾 Animal safety: Replaced "${badVerb}" with "${replacement}"`);
+          }
+        }
+        
+        // Filter explicit terms for animal contexts
+        const explicitTerms = ["sex", "sexy", "sexual", "oral", "porn", "boner", "nsfw", "kinky", "horny", "naked", "nude"];
+        for (const term of explicitTerms) {
+          const regex = new RegExp(`\\b${term}\\b`, 'gi');
+          if (regex.test(text)) {
+            text = text.replace(regex, '[filtered]');
+            console.log(`🚫 Animal explicit filter: Removed "${term}" from animal context`);
+          }
+        }
+        
+        console.log(`🐾 Applied animal safety filters to: "${text}"`);
+      }
+      
       // HARD LENGTH ENFORCEMENT - cut off at comedian's max length
       const maxLength = comedianAssignments[index]?.lengthBucket[1] || 100;
       if (text.length > maxLength) {
@@ -705,6 +754,21 @@ serve(async (req) => {
     
     const inputs = await req.json();
     console.log('📨 Raw inputs received:', JSON.stringify(inputs, null, 2));
+    
+    // APPLY ANIMAL SAFETY AUTO-REMAPPING BEFORE PROCESSING
+    const isAnimalContext = (category: string, subcategory: string): boolean => {
+      const animalCategories = ['animals', 'pets', 'wildlife', 'daily life'];
+      const animalSubcategories = ['dog park', 'pets', 'animals', 'wildlife', 'zoo'];
+      return animalCategories.includes(category?.toLowerCase() || '') || 
+             animalSubcategories.includes(subcategory?.toLowerCase() || '');
+    };
+    
+    // Apply animal safety auto-remap: Explicit -> R for animal contexts
+    if (isAnimalContext(inputs.category, inputs.subcategory) && inputs.rating === 'Explicit') {
+      console.log(`🐾 Animal safety auto-remap: ${inputs.category}/${inputs.subcategory} + Explicit → R`);
+      inputs.rating = 'R';
+      inputs._animalSafetyApplied = true;
+    }
     
     // ROBUST INPUT VALIDATION AND COERCION
     if (!inputs.category || !inputs.subcategory || !inputs.tone) {

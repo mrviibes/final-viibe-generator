@@ -17,7 +17,12 @@ export const VIIBE_CONFIG_V2 = {
       { "if": { "tone": "Sentimental", "rating": "R" }, "then": { "rating": "PG" } },
       { "if": { "tone": "Sentimental", "rating": "Explicit" }, "then": { "rating": "PG-13" } },
       { "if": { "tone": "Romantic", "rating": "R" }, "then": { "rating": "PG" } },
-      { "if": { "tone": "Romantic", "rating": "Explicit" }, "then": { "rating": "PG-13" } }
+      { "if": { "tone": "Romantic", "rating": "Explicit" }, "then": { "rating": "PG-13" } },
+      { "if": { "category": "animals", "rating": "Explicit" }, "then": { "rating": "R" } },
+      { "if": { "subcategory": "Dog park", "rating": "Explicit" }, "then": { "rating": "R" } },
+      { "if": { "subcategory": "Pets", "rating": "Explicit" }, "then": { "rating": "R" } },
+      { "if": { "subcategory": "Animals", "rating": "Explicit" }, "then": { "rating": "R" } },
+      { "if": { "subcategory": "Wildlife", "rating": "Explicit" }, "then": { "rating": "R" } }
     ]
   },
   "toneValidation": {
@@ -68,9 +73,34 @@ export const VIIBE_CONFIG_V2 = {
     "degradeNotBypass": true
   },
   "lengthBuckets": {
-    "ranges": [[40,60], [61,80], [81,100], [101,120]],
+    "ranges": [[40,60], [61,80], [81,100]],
     "randomizePerBatch": true,
     "enforceVariety": true
+  },
+  "ratingGates": {
+    "animals": { "blockExplicit": true, "allowROnly": true },
+    "pets": { "blockExplicit": true, "allowROnly": true },
+    "dogPark": { "blockExplicit": true, "allowROnly": true },
+    "wildlife": { "blockExplicit": true, "allowROnly": true }
+  },
+  "animalSafety": {
+    "banVerbs": ["attack", "maul", "kill", "bite", "rip", "hump", "rape", "violate", "abuse"],
+    "softSubs": {
+      "attack": "start beef with",
+      "attacks": "starts beef with", 
+      "bite": "snap at",
+      "bites": "snaps at",
+      "hump": "awkwardly hop on",
+      "humps": "awkwardly hops on",
+      "maul": "overwhelm",
+      "mauls": "overwhelms",
+      "kill": "defeat",
+      "kills": "defeats",
+      "rip": "grab"
+    }
+  },
+  "explicitTermsAnimals": {
+    "ban": ["sex", "sexy", "sexual", "oral", "porn", "boner", "nsfw", "kinky", "horny", "naked", "nude", "erotic", "masturbate", "orgasm", "penetrate", "thrust"]
   },
   "funnyEnhancements": {
     "requirePopCultureOrAbsurd": true,

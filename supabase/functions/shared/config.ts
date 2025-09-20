@@ -64,6 +64,22 @@ export interface FunnyEnhancementsConfig {
   flatDescriptionPatterns: string[];
 }
 
+export interface RatingGatesConfig {
+  animals: { blockExplicit: boolean; allowROnly: boolean };
+  pets: { blockExplicit: boolean; allowROnly: boolean };
+  dogPark: { blockExplicit: boolean; allowROnly: boolean };
+  wildlife: { blockExplicit: boolean; allowROnly: boolean };
+}
+
+export interface AnimalSafetyConfig {
+  banVerbs: string[];
+  softSubs: Record<string, string>;
+}
+
+export interface ExplicitTermsAnimalsConfig {
+  ban: string[];
+}
+
 export const VIIBE_CONFIG = {
   system: VIIBE_CONFIG_V2.system,
   precedence: VIIBE_CONFIG_V2.precedence,
@@ -73,7 +89,10 @@ export const VIIBE_CONFIG = {
   visualLanes: VIIBE_CONFIG_V2.visualLanes as VisualLanesConfig,
   tagEnforcement: VIIBE_CONFIG_V2.tagEnforcement as TagEnforcementConfig,
   lengthBuckets: VIIBE_CONFIG_V2.lengthBuckets as LengthBucketsConfig,
-  funnyEnhancements: VIIBE_CONFIG_V2.funnyEnhancements as FunnyEnhancementsConfig
+  funnyEnhancements: VIIBE_CONFIG_V2.funnyEnhancements as FunnyEnhancementsConfig,
+  ratingGates: VIIBE_CONFIG_V2.ratingGates as RatingGatesConfig,
+  animalSafety: VIIBE_CONFIG_V2.animalSafety as AnimalSafetyConfig,
+  explicitTermsAnimals: VIIBE_CONFIG_V2.explicitTermsAnimals as ExplicitTermsAnimalsConfig
 };
 
 // Type definitions
@@ -117,4 +136,57 @@ export function validateOptionCount(textOptions?: number, visualOptions?: number
   if (visualOptions && visualOptions !== NUM_VISUAL_OPTIONS) {
     throw new Error(`Invalid visual option count: ${visualOptions}. Must be ${NUM_VISUAL_OPTIONS}`);
   }
+}
+
+// Animal safety helper functions
+export function isAnimalContext(category: string, subcategory: string): boolean {
+  const animalCategories = ['animals', 'pets', 'wildlife'];
+  const animalSubcategories = ['dog park', 'pets', 'animals', 'wildlife', 'zoo', 'veterinarian', 'pet store', 'animal shelter'];
+  
+  return animalCategories.includes(category.toLowerCase()) || 
+         animalSubcategories.includes(subcategory.toLowerCase());
+}
+
+export function shouldBlockExplicitForAnimals(category: string, subcategory: string, rating: Rating): boolean {
+  if (!isAnimalContext(category, subcategory)) return false;
+  return rating === 'Explicit';
+}
+
+export function sanitizeAnimalVerbs(text: string): { sanitized: string; wasModified: boolean } {
+  let sanitized = text;
+  let wasModified = false;
+  
+  const { animalSafety } = VIIBE_CONFIG;
+  
+  for (const [badVerb, replacement] of Object.entries(animalSafety.softSubs)) {
+    const regex = new RegExp(`\\b${badVerb}\\b`, 'gi');
+    if (regex.test(sanitized)) {
+      sanitized = sanitized.replace(regex, replacement);
+      wasModified = true;
+      console.log(`🐾 Animal safety: Replaced "${badVerb}" with "${replacement}"`);
+    }
+  }
+  
+  return { sanitized, wasModified };
+}
+
+export function filterExplicitTermsForAnimals(text: string, category: string, subcategory: string): { cleaned: string; wasModified: boolean } {
+  if (!isAnimalContext(category, subcategory)) {
+    return { cleaned: text, wasModified: false };
+  }
+  
+  let cleaned = text;
+  let wasModified = false;
+  const { explicitTermsAnimals } = VIIBE_CONFIG;
+  
+  for (const term of explicitTermsAnimals.ban) {
+    const regex = new RegExp(`\\b${term}\\b`, 'gi');
+    if (regex.test(cleaned)) {
+      cleaned = cleaned.replace(regex, '[filtered]');
+      wasModified = true;
+      console.log(`🚫 Animal explicit filter: Removed "${term}" from animal context`);
+    }
+  }
+  
+  return { cleaned, wasModified };
 }
