@@ -151,43 +151,28 @@ async function generateWithGPT5(inputs: any): Promise<any> {
 
   // Stage-ready comedian voices - cleaned pool with authentic delivery instructions
   const comedianVoices = [
-    "Kevin Hart: high energy panic, animated reactions, self-roast first then roast others",
-    "Ali Wong: brutal honest observations, raw imagery, unapologetic bold delivery", 
-    "Dave Chappelle: storytelling with social insights, character voices, vivid scene-setting",
-    "Taylor Tomlinson: millennial anxiety storytelling with dating disaster punchlines",
-    "Ricky Gervais: provocative boundary-pushing with deadpan British cruelty",
     "Bill Burr: working-class rant energy, confrontational truth-telling, gruff edge",
-    "Hasan Minhaj: cultural storytelling with political undertones, animated earnest delivery",
-    "Nate Bargatze: clean folksy storytelling with innocent confused observations",
-    "Sarah Silverman: dark humor with childlike innocent delivery, shocking sweet presentation",
-    "Wanda Sykes: dry sassy social commentary with sharp maternal wisdom",
-    "Chris Rock: loud relationship observations with clear setup-punchline structure",
-    "Anthony Jeselnik: dark deadpan one-liners with shocking twists, clinical brutal precision",
-    "Jim Gaffigan: self-deprecating food humor with internal voice asides, relatable dad energy",
-    "Amy Schumer: unapologetically dirty self-aware humor with relationship disasters",
-    "John Mulaney: nostalgic precise storytelling with childlike wonder, clear narrative timing",
-    "Norm MacDonald: bizarre deadpan with weird unexpected twists, anti-comedy surreal logic",
+    "Kevin Hart: high energy panic, animated reactions, self-roast first then roast others", 
+    "Ali Wong: brutal honest observations, raw imagery, unapologetic bold delivery",
     "Mitch Hedberg: surreal one-liners with misdirection wordplay, stoned philosophical rhythm",
-    "Joan Rivers: glamorous savage roasts with cutting Hollywood insider wit",
-    "Patrice O'Neal: brutally honest relationship observations, confrontational raw masculine truth",
-    "Mike Birbiglia: vulnerable awkward storytelling with conversational neurotic observations"
+    "Anthony Jeselnik: dark deadpan one-liners with shocking twists, clinical brutal precision",
+    "John Mulaney: nostalgic precise storytelling with childlike wonder, clear narrative timing"
   ];
   
-  // Randomly select 4 different comedian voices with length preferences
-  const shuffled = [...comedianVoices].sort(() => 0.5 - Math.random());
-  const selectedVoices = shuffled.slice(0, 4);
-  
-  // Voice-specific length preferences for authentic delivery
-  const voiceLengthPreferences = {
-    "Mitch Hedberg": [40, 60], // Shorter, punchy one-liners
-    "Anthony Jeselnik": [40, 70], // Sharp, precise delivery
-    "John Mulaney": [80, 120], // Longer storytelling
-    "Dave Chappelle": [80, 110], // Story-driven bits
-    "Bill Burr": [60, 100], // Rant energy, medium length
-    "Kevin Hart": [50, 90], // Animated reactions, varied length
-    "Ali Wong": [70, 110], // Vivid imagery, longer setup
-    "Jim Gaffigan": [60, 90] // Internal voice asides, moderate length
-  };
+  // Assign specific comedian to each option with length constraints
+  const comedianAssignments = [
+    { name: "Bill Burr", style: "confrontational roast", lengthRange: [40, 70] },
+    { name: "Kevin Hart", style: "animated panic reaction", lengthRange: [50, 85] },
+    { name: "Ali Wong", style: "absurd vivid comparison", lengthRange: [55, 90] },
+    { name: "Mitch Hedberg", style: "surreal deadpan one-liner", lengthRange: [35, 75] }
+  ];
+
+  // Length buckets enforced strictly
+  const lengthBuckets = [
+    [40, 60],   // Short punchy
+    [61, 80],   // Medium build  
+    [81, 100]   // Longer setup-payoff (HARD LIMIT)
+  ];
 
   // ENHANCED SYSTEM PROMPT WITH CONTEXT & COMEDIAN VOICES
   const contextInstructions = contextualPromptAdditions.length > 0 
@@ -198,9 +183,7 @@ async function generateWithGPT5(inputs: any): Promise<any> {
     ? `\n## LEXICON GUIDANCE:\nAuthentic vocabulary to naturally incorporate: ${lexiconWords.join(', ')}\n`
     : '';
 
-  const systemPrompt = `You are transcribing from ACTUAL STAND-UP COMEDY SETS. Generate exactly 4 unique comedy lines that sound like they were recorded live from a comedian's mouth on stage.
-
-Return ONLY valid JSON in this exact structure:
+  const systemPrompt = `Generate exactly 4 unique stand-up comedy lines. Return ONLY valid JSON:
 
 {
   "lines": [
@@ -211,86 +194,47 @@ Return ONLY valid JSON in this exact structure:
   ]
 }
 
-## CRITICAL: AUTHENTIC COMEDIAN DELIVERY
-Each line must be so authentic that someone reading it can:
-- HEAR the comedian's voice and timing
-- SEE the physical delivery and stage presence  
-- IMAGINE the audience's laugh response
-- Feel like they're watching an actual comedy set, not reading AI-generated content
+## CRITICAL: TIGHT COMEDY RULES
 
-## MANDATORY PUNCHLINE ARCHITECTURE
-Every single line requires this exact structure:
-- SETUP: What's the situation? (brief, relatable premise)
-- TWIST: What's unexpected? (the surprise that triggers laughter)
-- VISUAL: What image forms in your mind? (concrete, specific, memorable)
+**Length Control (ENFORCED):**
+- Option 1: ${comedianAssignments[0].lengthRange[0]}-${comedianAssignments[0].lengthRange[1]} chars (${comedianAssignments[0].name} style)
+- Option 2: ${comedianAssignments[1].lengthRange[0]}-${comedianAssignments[1].lengthRange[1]} chars (${comedianAssignments[1].name} style)  
+- Option 3: ${comedianAssignments[2].lengthRange[0]}-${comedianAssignments[2].lengthRange[1]} chars (${comedianAssignments[2].name} style)
+- Option 4: ${comedianAssignments[3].lengthRange[0]}-${comedianAssignments[3].lengthRange[1]} chars (${comedianAssignments[3].name} style)
+- **HARD LIMIT: 100 characters maximum. Cut off mid-sentence if needed.**
 
-GOOD EXAMPLE: "Reid folds laundry like it insulted his fuckin' family."
-✓ Setup: Reid doing laundry (relatable)
-✓ Twist: treating clothes like personal enemies (unexpected)  
-✓ Visual: angry confrontation with fabric (vivid, specific)
+**Delivery Patterns:**
+- **Option 1 (${comedianAssignments[0].name}):** ${comedianAssignments[0].style} - direct, confrontational
+- **Option 2 (${comedianAssignments[1].name}):** ${comedianAssignments[1].style} - high energy, animated  
+- **Option 3 (${comedianAssignments[2].name}):** ${comedianAssignments[2].style} - vivid imagery, brutal honesty
+- **Option 4 (${comedianAssignments[3].name}):** ${comedianAssignments[3].style} - deadpan, unexpected twists
 
-BAD EXAMPLE: "Laundry is tough sometimes."
-✗ No setup, no twist, no visual imagery
+**Style Enforcement:**
+${inputs.style === 'roast' ? '- Roast = short, direct insult with specific comparison. No rambling.' : ''}${inputs.style === 'absurd' ? '- Absurd = weird comparison with unexpected imagery. One clear visual.' : ''}${inputs.style === 'punchline_first' ? '- Punchline First = gag lands first, then setup. "[Result] first, then [explanation]"' : ''}${inputs.style === 'story' ? '- Short Story = tiny scene with flip. "[Time] [subject] [action], then [twist]"' : ''}
 
-## Hard Technical Rules
-- Output exactly 4 unique lines.
-- Each line must end with a single period. No commas, colons, semicolons, exclamations, or question marks. No em dashes. No ellipses.
-- Length: Randomized buckets from [[40,60],[61,80],[81,100],[101,120]] for variety.  
-  ${inputs.style === 'story' ? '(Story Mode: all 4 must be 80–100 with setup → payoff.)' : ''}
-- Tone must match ${inputs.tone} selection.
-- Style must match ${inputs.style || 'standard'} selection.
-- Rating must match ${inputs.rating || 'PG-13'} selection.
-- Tags:  
-  * Quoted tags ${hardTags.length > 0 ? `(${hardTags.join(', ')})` : ''} MUST appear literally in 3 of 4 lines.  
-  * Unquoted tags ${softTags.length > 0 ? `(${softTags.join(', ')})` : ''} must NOT appear literally, but must guide style, mood, or POV.
+**One Joke = One Beat Rule:**
+- Each line contains exactly ONE comedic premise
+- No stacking multiple references or insults  
+- No rambling explanations or qualifiers
+- Focus on setup → punchline rhythm
+
+**Technical Rules:**
+- End with single period only
+- Tone: ${inputs.tone}
+- Rating: ${inputs.rating || 'PG-13'}
+- Hard tags ${hardTags.length > 0 ? `(${hardTags.join(', ')})` : ''} MUST appear literally in 3 of 4 lines
+- Soft tags ${softTags.length > 0 ? `(${softTags.join(', ')})` : ''} guide style only, don't appear literally
+
 ${contextInstructions}${lexiconInstructions}
-## COMEDIAN VOICE ASSIGNMENTS (CRITICAL - Channel these EXACT delivery styles):
-- Option 1: Channel ${selectedVoices[0]} - use their specific rhythm, attitude, and delivery pattern
-- Option 2: Channel ${selectedVoices[1]} - match their comedic voice and timing  
-- Option 3: Channel ${selectedVoices[2]} - replicate their style and perspective
-- Option 4: Channel ${selectedVoices[3]} - capture their unique comedic approach
 
-## AUTHENTIC DELIVERY REQUIREMENTS:
-- Each line must sound like that specific comedian is saying it on stage
-- Use their signature phrases, rhythm patterns, and comedic perspective
-- Incorporate their typical subject matter and observational style
-- Match their energy level: high-energy vs deadpan vs storytelling vs rant
-- Length should match their typical bit structure (one-liners vs stories)
+**EXAMPLES OF TIGHT DELIVERY:**
+✅ GOOD: "Jesse shoots free throws like he's allergic to the rim." (52 chars, clear visual)
+✅ GOOD: "Zero defense first, then Jesse brags like he locked down LeBron." (69 chars, punchline-first)
+❌ BAD: "Jesse's basketball skills are questionable at best, and when he attempts to shoot free throws it's like watching someone who has never seen a basketball before trying to figure out..." (RAMBLING, TOO LONG)
 
-REMEMBER: You are transcribing actual stand-up performances, not writing generic comedy templates.
-
-## Tone Map
-- Humorous = observational, witty, punny.
-- Savage = sharp roast, unapologetic.
-- Romantic = flirty, affectionate.
-- Sentimental = heartfelt, sincere.
-- Nostalgic = wistful, memory-driven.
-- Inspirational = uplifting, motivational.
-- Playful = mischievous, cheeky.
-- Serious = plain, formal.
-
-## Style Map
-- Standard = balanced one-liners.
-- Story Mode = narrative mini-story with setup → payoff, 80–100 chars.
-- Punchline First = gag lands in the first half.
-- Pop Culture = MUST include a celebrity, meme, or trend.
-- Wildcard = unpredictable, but still a valid joke.
-
-## Rating Map (Stage-Ready Comedy Rules)
-- G = wholesome family-friendly with clean comedian timing. Think Jim Gaffigan or Nate Bargatze energy. Still needs setup-twist-visual structure.
-- PG = light sass with comedian attitude but stay clean. Add bite through delivery, not language. Sharp observations with clean language.
-- PG-13 = sharp roasts with real edge. MUST include mild profanity (damn, hell, crap) OR clever innuendo OR savage attitude. Comedic timing required.
-- R = hard comedy club energy. MUST include strong profanity (fuck, shit, ass, bitch) with brutal comic timing, sexual references, or nasty roast delivery.
-- XXX = ENHANCED EXPLICIT RULES: Sexual content must ride on ACTUAL comic premises, not lazy shock text. Required elements:
-  * Profanity quota: 1-2 per line maximum (never wall-to-wall swearing)
-  * Raunch premise: sex, relationships, bodily functions tied to VISUAL COMEDY scenarios
-  * Comedian delivery: Channel Joan Rivers wit, Patrice O'Neal honesty, Ali Wong imagery, Sarah Silverman twisted innocence
-  * Visual requirement: Create images you can SEE, not just crude language
-  * Length variety: Mix tight filthy one-liners (40-60 chars) with story beats (80-120 chars)
-  * Example GOOD XXX: "Reid kisses like he's blowing into a Nintendo cartridge, loud messy and somehow nostalgic."
-  * Example BAD XXX: "Reid is fucking terrible at fucking everything fuck."`;
+Generate tight, punchy lines that sound like actual comedians, not AI trying to explain jokes.`;
   
-  const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG-13'}`;
+  const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG-13'}'`;
   
   console.log('📝 Prompts - System:', systemPrompt.length, 'User:', userPrompt.length);
   
@@ -393,19 +337,53 @@ REMEMBER: You are transcribing actual stand-up performances, not writing generic
     
     console.log('📝 Generated lines before validation:', JSON.stringify(parsed.lines, null, 2));
 
-    // SANITIZE lines to minimize punctuation violations
-    parsed.lines = parsed.lines.map((line: any) => {
-      const t = (line.text || '').toString();
-      let s = t.replace(/—/g, ' ').replace(/[!?]/g, '.').replace(/\.{2,}/g, '.').trim();
-      if (!s.endsWith('.')) {
-        s = s.replace(/[.]+$/,'') + '.';
+    // SANITIZE lines to minimize punctuation violations and ENFORCE LENGTH LIMITS
+    parsed.lines = parsed.lines.map((line: any, index: number) => {
+      let text = (line.text || '').toString();
+      
+      // HARD LENGTH ENFORCEMENT - cut off at comedian's max length
+      const maxLength = comedianAssignments[index]?.lengthRange[1] || 100;
+      if (text.length > maxLength) {
+        // Cut at last complete word before limit
+        text = text.substring(0, maxLength);
+        const lastSpace = text.lastIndexOf(' ');
+        if (lastSpace > maxLength * 0.8) { // If we can find a reasonable word boundary
+          text = text.substring(0, lastSpace);
+        }
       }
-      return { ...line, text: s };
+      
+      // Clean punctuation  
+      let sanitized = text.replace(/—/g, ' ').replace(/[!?]/g, '.').replace(/\.{2,}/g, '.').trim();
+      if (!sanitized.endsWith('.')) {
+        sanitized = sanitized.replace(/[.]+$/,'') + '.';
+      }
+      
+      return { ...line, text: sanitized };
     });
     console.log('🧼 Lines after sanitation:', JSON.stringify(parsed.lines, null, 2));
 
-    // STRICT VALIDATION - Enforce finalized rules
+    // STRICT VALIDATION - Enforce finalized rules with LENGTH CHECKS
     const validationErrors = [];
+    for (let i = 0; i < parsed.lines.length; i++) {
+      const line = parsed.lines[i];
+      const text = line.text || '';
+      const expectedLength = comedianAssignments[i]?.lengthRange || [40, 100];
+      
+      // Length validation with comedian constraints
+      if (text.length < expectedLength[0] || text.length > expectedLength[1]) {
+        validationErrors.push(`Line ${i+1} length ${text.length} outside range ${expectedLength[0]}-${expectedLength[1]}`);
+      }
+      
+      // Basic structure validation
+      if (text.length < 20) {
+        validationErrors.push(`Line ${i+1} too short: "${text}"`);
+      }
+      
+      // Punctuation validation
+      if (!text.endsWith('.') || /[!?,:;]/.test(text)) {
+        validationErrors.push(`Line ${i+1} punctuation: "${text}"`);
+      }
+    }
     const criticalErrors = [];
     const warnings = [];
     const isStoryMode = inputs.style === 'story';
