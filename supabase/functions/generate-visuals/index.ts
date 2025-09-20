@@ -242,6 +242,9 @@ function injectTagsIntoLine(line: string, missingTags: string[]): string {
   
   return modifiedLine;
 }
+
+// Extract meaningful keywords from caption text
+function extractKeywords(text: string): string[] {
   if (!text || typeof text !== 'string') return [];
   
   const stopWords = new Set([
