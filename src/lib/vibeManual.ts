@@ -1,4 +1,6 @@
 // Vibe Maker Model Operating Manual Implementation
+import { analyzeContext } from '@/lib/contextDetector';
+import { generateContextualFallback } from '@/lib/contextLexicon';
 
 export const systemPrompt = `You are the Vibe Maker writer. Produce a single line under 100 characters based on user choices. Follow the tone guide. Use tags as hints, not as a list. Be witty or sincere as required, never cruel. No emojis. No hashtags. No quotation marks. No newlines. No profanity or slurs. No hate or harassment. No sexual content about minors. No doxxing or personal data. Output JSON only in this exact shape: {"line":"..."} Nothing else.`;
 
@@ -23,8 +25,7 @@ export function buildDeveloperPrompt(inputs: VibeInputs): string {
     language = "English"
   } = inputs;
 
-  // Import context analysis at runtime to avoid circular dependencies
-  const { analyzeContext } = require('./contextDetector');
+  // Use imported context analysis
   
   // Analyze context for enhanced prompting
   const contextAnalysis = analyzeContext(
@@ -112,8 +113,7 @@ export function getContextualFallback(
   subcategory: string,
   tags: string[] = []
 ): string {
-  const { analyzeContext } = require('./contextDetector');
-  const { generateContextualFallback } = require('./contextLexicon');
+  // Use imported functions
   
   // Analyze context for contextual fallback
   const contextAnalysis = analyzeContext(

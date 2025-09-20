@@ -1,5 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getTagArrays, sanitizeInput, ensureHardTags } from "@/lib/parseTags";
+import { analyzeContext } from '@/lib/contextDetector';
+import { generateContextualFallback } from '@/lib/contextLexicon';
+import { ensureHardTagsInFallback, enforceHardTagsPostGeneration } from '@/lib/hardTagEnforcer';
+import { validateBatchPunchlines } from '@/lib/punchlineValidator';
 
 const SYSTEM_PROMPT = `You are a text line generator for memes and image overlays. Your job is to create exactly 4 one-liners based on the given category, subcategory, tone, and tags.
 
@@ -178,10 +182,7 @@ Tone: ${inputs.tone}${tagsStr}${modeInstruction}`;
 function generateFallbackLines(inputs: TextGenInput): TextGenOutput {
   const { category, subcategory, tone, style, rating } = inputs;
   
-  // Import enhanced fallback systems
-  const { analyzeContext } = require('./contextDetector');
-  const { generateContextualFallback } = require('./contextLexicon');
-  const { ensureHardTagsInFallback } = require('./hardTagEnforcer');
+  // Use imported enhanced fallback systems
   
   // Handle both legacy and new tag formats for context analysis
   let tags: string[] = [];
@@ -448,8 +449,6 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
     console.log('✅ Validation passed, applying enhanced hard tag enforcement');
     
     // Apply enhanced hard tag enforcement with punchline validation
-    const { enforceHardTagsPostGeneration } = require('./hardTagEnforcer');
-    const { validateBatchPunchlines } = require('./punchlineValidator');
     
     let finalLines = result.lines;
     
