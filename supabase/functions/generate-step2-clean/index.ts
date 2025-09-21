@@ -11,8 +11,6 @@ import {
   validateRatingJoke, 
   validateHardTagsInBatch,
   validateRomanticTone,
-  validatePunchlineFirstStyle,
-  validateContextLexicon,
   type MultiRatingOutput 
 } from "./multiRating.ts";
 
@@ -103,18 +101,15 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
       const isValidFormat = validateRatingJoke(text, effectiveRating, parsedTags);
       const isValidTone = inputs.tone?.toLowerCase() === 'romantic' ? 
         validateRomanticTone(text, context) : true;
-      const isValidStyle = inputs.style?.toLowerCase() === 'punchline-first' ?
-        validatePunchlineFirstStyle(text) : true;
-      const hasContextWords = validateContextLexicon(text, context);
       
-      if (isValidFormat && isValidTone && isValidStyle && hasContextWords) {
+      if (isValidFormat && isValidTone) {
         results[rating] = {
           voice: comedian.name,
           text: text
         };
         allJokes.push(text);
       } else {
-        console.warn(`⚠️ Validation failed for ${rating} (format:${isValidFormat}, tone:${isValidTone}, style:${isValidStyle}, context:${hasContextWords}), using fallback`);
+        console.warn(`⚠️ Validation failed for ${rating}, using fallback`);
         const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name);
         results[rating] = {
           voice: comedian.name,
