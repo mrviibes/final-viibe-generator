@@ -7,5 +7,5 @@ export function normalizeRating(category: string, tone: string, rating: "PG"|"PG
 }
 
 export function isExplicitBlocked(category: string): boolean {
-  return explicitBlocked.has(category);
+  return BLOCK.has(category);
 }

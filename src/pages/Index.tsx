@@ -6918,38 +6918,43 @@ const Index = () => {
                         </div>
                            
                         {/* Show options for selected rating */}
-                        {multiRatingOptions.ratings[selectedRatingTab] && (
-                          <div className="space-y-4 max-w-2xl mx-auto">
-                            {multiRatingOptions.ratings[selectedRatingTab].map((option: any, idx: number) => (
-                              <Card key={idx} className="cursor-pointer hover:bg-accent transition-colors border-2 hover:border-primary/20" 
-                                    onClick={() => {
-                                      setSelectedGeneratedOption(option.text);
-                                      setSelectedGeneratedIndex(idx);
-                                    }}>
-                                <CardContent className="p-6">
-                                  <div className="text-center space-y-4">
-                                    <div className="text-base font-medium text-foreground leading-relaxed">
-                                      {option.text}
+                        {(() => {
+                          const raw: any = (multiRatingOptions as any).ratings[selectedRatingTab];
+                          const list: any[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
+                          if (!list.length) return null;
+                          return (
+                            <div className="space-y-4 max-w-2xl mx-auto">
+                              {list.map((option: any, idx: number) => (
+                                <Card key={idx} className="cursor-pointer hover:bg-accent transition-colors border-2 hover:border-primary/20" 
+                                      onClick={() => {
+                                        setSelectedGeneratedOption(option.text);
+                                        setSelectedGeneratedIndex(idx);
+                                      }}>
+                                  <CardContent className="p-6">
+                                    <div className="text-center space-y-4">
+                                      <div className="text-base font-medium text-foreground leading-relaxed">
+                                        {option.text}
+                                      </div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {option.voice} style
+                                      </div>
+                                      <Button variant="outline" className="mt-4">
+                                        Select This Joke
+                                      </Button>
                                     </div>
-                                    <div className="text-sm text-muted-foreground">
-                                      {option.voice} style
-                                    </div>
-                                    <Button variant="outline" className="mt-4">
-                                      Select This Joke
-                                    </Button>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        )}
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                          );
+                        })()}
                         
                         {/* Show warning if Explicit was downgraded */}
-                        {["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(
+                        {(["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(
                           selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : 
                           selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : 
                           selectedSubOption || ''
-                        ) && selectedRatingTab === 'Explicit' && (
+                        )) && selectedRatingTab === 'Explicit' && (
                           <div className="text-center mt-4">
                             <small className="text-muted-foreground bg-accent/50 px-3 py-1 rounded-full text-xs">
                               ℹ️ Explicit not allowed for this category. Shown as R.

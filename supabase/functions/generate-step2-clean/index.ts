@@ -78,7 +78,7 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
         if (!response.ok) {
           console.error(`❌ API Error for ${rating} option ${optionIndex + 1}:`, response.status);
           // Use fallback
-          const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name);
+          const fallbackText = generateFallbackJoke(normalizedRating, context, comedian.name);
           results[rating].push({
             voice: comedian.name,
             text: fallbackText
@@ -99,7 +99,7 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
           // Use "G" rules for format + profanity ban, then romantic-specific checks
           isValidFormat = validateRatingJoke(text, 'G', parsedTags) && validateRomanticTone(text, context);
         } else {
-          isValidFormat = validateRatingJoke(text, effectiveRating, parsedTags);
+          isValidFormat = validateRatingJoke(text, normalizedRating, parsedTags);
         }
         
         if (isValidFormat) {
@@ -110,7 +110,7 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
           allJokes.push(text);
         } else {
           console.warn(`⚠️ Validation failed for ${rating} option ${optionIndex + 1}, using fallback`);
-          const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name, inputs.tone, inputs.style);
+          const fallbackText = generateFallbackJoke(normalizedRating, context, comedian.name, inputs.tone, inputs.style);
           results[rating].push({
             voice: comedian.name,
             text: fallbackText
@@ -120,7 +120,7 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
         
       } catch (error) {
         console.error(`❌ Generation failed for ${rating} option ${optionIndex + 1}:`, error);
-        const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name, inputs.tone, inputs.style);
+        const fallbackText = generateFallbackJoke(normalizedRating, context, comedian.name, inputs.tone, inputs.style);
         results[rating].push({
           voice: comedian.name,
           text: fallbackText
@@ -307,22 +307,22 @@ serve(async (req) => {
       
       // Emergency fallback with context enforcement
       const fallbackRatings: MultiRatingOutput = {
-        G: {
-          voice: "Jim Gaffigan",
-          text: generateFallbackJoke("G", `${inputs.category} > ${inputs.subcategory}`, "Jim Gaffigan", inputs.tone, inputs.style)
-        },
-        "PG-13": {
-          voice: "Kevin Hart", 
-          text: generateFallbackJoke("PG-13", `${inputs.category} > ${inputs.subcategory}`, "Kevin Hart", inputs.tone, inputs.style)
-        },
-        R: {
-          voice: "Bill Burr",
-          text: generateFallbackJoke("R", `${inputs.category} > ${inputs.subcategory}`, "Bill Burr", inputs.tone, inputs.style)
-        },
-        Explicit: {
-          voice: "Sarah Silverman",
-          text: generateFallbackJoke("Explicit", `${inputs.category} > ${inputs.subcategory}`, "Sarah Silverman", inputs.tone, inputs.style)
-        }
+        G: [
+          { voice: "Jim Gaffigan", text: generateFallbackJoke("G", `${inputs.category} > ${inputs.subcategory}`, "Jim Gaffigan", inputs.tone, inputs.style) },
+          { voice: "Ellen DeGeneres", text: generateFallbackJoke("G", `${inputs.category} > ${inputs.subcategory}`, "Ellen DeGeneres", inputs.tone, inputs.style) }
+        ],
+        "PG-13": [
+          { voice: "Kevin Hart", text: generateFallbackJoke("PG-13", `${inputs.category} > ${inputs.subcategory}`, "Kevin Hart", inputs.tone, inputs.style) },
+          { voice: "Ali Wong", text: generateFallbackJoke("PG-13", `${inputs.category} > ${inputs.subcategory}`, "Ali Wong", inputs.tone, inputs.style) }
+        ],
+        R: [
+          { voice: "Bill Burr", text: generateFallbackJoke("R", `${inputs.category} > ${inputs.subcategory}`, "Bill Burr", inputs.tone, inputs.style) },
+          { voice: "Chris Rock", text: generateFallbackJoke("R", `${inputs.category} > ${inputs.subcategory}`, "Chris Rock", inputs.tone, inputs.style) }
+        ],
+        Explicit: [
+          { voice: "Sarah Silverman", text: generateFallbackJoke("Explicit", `${inputs.category} > ${inputs.subcategory}`, "Sarah Silverman", inputs.tone, inputs.style) },
+          { voice: "Amy Schumer", text: generateFallbackJoke("Explicit", `${inputs.category} > ${inputs.subcategory}`, "Amy Schumer", inputs.tone, inputs.style) }
+        ]
       };
       
       return new Response(JSON.stringify({

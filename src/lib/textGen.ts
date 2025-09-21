@@ -447,8 +447,16 @@ export async function generateMultiRatingLines(inputs: TextGenInput): Promise<Mu
     }
 
     console.log('✅ Multi-rating generation successful');
+    const ratings = response.data.ratings;
+    // Coerce any single objects into arrays to be safe
+    const coerce = (v: any) => Array.isArray(v) ? v : v ? [v] : [];
     return {
-      ratings: response.data.ratings,
+      ratings: {
+        G: coerce(ratings.G),
+        "PG-13": coerce(ratings["PG-13"]),
+        R: coerce(ratings.R),
+        Explicit: coerce(ratings.Explicit)
+      },
       model: response.data.model || 'unknown',
       timing: response.data.timing || { total_ms: 0 }
     };
