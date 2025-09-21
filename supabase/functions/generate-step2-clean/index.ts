@@ -1,6 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { parseTags, type ParsedTags } from "./tags.ts";
+import { parseTags, validateTagUsage, type ParsedTags } from "./tags.ts";
 import { buildPrompt } from "./buildPrompt.ts";
 import { stripSoftEcho } from "./sanitize.ts";
 import { validate } from "./validate.ts";
@@ -92,6 +92,19 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
         
         // Apply context and tone enforcement BEFORE validation so fixes are considered
         text = enforceContextAndTone(text, context, inputs.tone || 'Humorous', inputs.style || 'punchline-first');
+        
+        // Validate tag usage for hard tags - inject if missing
+        const tagValidation = validateTagUsage(text, parsedTags.hard);
+        if (!tagValidation.valid && parsedTags.hard.length > 0) {
+          console.log(`❌ Joke missing required tags. Found: [${tagValidation.foundTags.join(", ")}], Missing: [${tagValidation.missingTags.join(", ")}]`);
+          
+          // Try to inject missing tag into the joke
+          if (tagValidation.missingTags.length > 0) {
+            const missingTag = tagValidation.missingTags[0];
+            text = injectTagIntoJoke(text, missingTag);
+            console.log(`✅ Injected tag "${missingTag}" into joke: "${text}"`);
+          }
+        }
         
         // Validate the joke (romantic tone overrides rating-specific profanity requirements)
         let isValidFormat = false;
@@ -349,3 +362,24 @@ serve(async (req) => {
     });
   }
 });
+
+// Helper function to inject a tag into a joke naturally
+function injectTagIntoJoke(joke: string, tag: string): string {
+  // Try to inject near verbs or conjunctions
+  const patterns = [
+    /(\b(?:is|are|was|were|has|have|does|do|gets|got|makes|made)\b)/i,
+    /(\b(?:and|but|while|when|if|because|since)\b)/i,
+    /(\b(?:with|for|by|at|on|in)\b)/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = joke.match(pattern);
+    if (match && match.index !== undefined) {
+      const insertPos = match.index + match[0].length;
+      return joke.slice(0, insertPos) + ` ${tag}` + joke.slice(insertPos);
+    }
+  }
+  
+  // Fallback: append at the end before punctuation
+  return joke.replace(/[.!?]$/, ` ${tag}.`);
+}
