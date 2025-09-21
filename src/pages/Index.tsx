@@ -6763,7 +6763,7 @@ const Index = () => {
               }
 
               // Add generated options available notice (when options generated but none selected)
-              if (selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption) {
+              if (selectedCompletionOption === "ai-assist" && (generatedOptions.length > 0 || multiRatingOptions) && !selectedGeneratedOption) {
                 const tagDisplay = tags.length > 0 ? `, tags: ${tags.join(", ")}` : " (no tags added)";
                 selections.push({
                   title: "Text options generated",
@@ -6821,7 +6821,7 @@ const Index = () => {
                   </> : null}
 
                 {/* Show AI Assist form when selected and no options generated yet */}
-                {selectedCompletionOption === "ai-assist" && generatedOptions.length === 0 && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {selectedCompletionOption === "ai-assist" && !multiRatingOptions && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">Add words to help influence your final text</p>
                     </div>
@@ -6861,12 +6861,12 @@ const Index = () => {
                   </div>}
 
                 {/* Show generated options box when options exist but no selection made yet */}
-                {selectedCompletionOption === "ai-assist" && generatedOptions.length > 0 && !selectedGeneratedOption && <>
+                {selectedCompletionOption === "ai-assist" && multiRatingOptions && !selectedGeneratedOption && <>
                   </>}
 
 
                 {/* Generated Text Options Grid - Show when options exist but no selection made */}
-                {generatedOptions.length > 0 && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {multiRatingOptions && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     
                     <div className="text-center mb-6">
                       <div className="flex items-center justify-center gap-3 mb-4">
