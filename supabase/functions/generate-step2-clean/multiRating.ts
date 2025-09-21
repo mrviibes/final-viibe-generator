@@ -13,34 +13,73 @@ export interface MultiRatingOutput {
   Explicit: RatingResult[];
 }
 
-// Rating-specific comedian voice banks
+// Expanded rating-specific comedian voice banks for true variety
 const COMEDIAN_VOICE_BANKS = {
   G: [
     { name: "Jim Gaffigan", style: "Clean observational, family-safe wordplay" },
     { name: "Nate Bargatze", style: "Innocent storytelling, wholesome confusion" },
-    { name: "Ellen DeGeneres", style: "Gentle teasing, relatable daily observations" }
+    { name: "Ellen DeGeneres", style: "Gentle teasing, relatable daily observations" },
+    { name: "Brian Regan", style: "Animated clean storytelling with physical comedy" },
+    { name: "Jerry Seinfeld", style: "Observational 'what's the deal with' structure" },
+    { name: "Bob Newhart", style: "Deadpan phone conversation style, understated" }
   ],
   "PG-13": [
     { name: "Kevin Hart", style: "High-energy panic, mild profanity (damn/hell)" },
     { name: "Trevor Noah", style: "Smart observations with light edge" },
-    { name: "Ali Wong", style: "Honest sass with controlled attitude" }
+    { name: "Ali Wong", style: "Honest sass with controlled attitude" },
+    { name: "Taylor Tomlinson", style: "Millennial anxiety with dating disasters" },
+    { name: "Hasan Minhaj", style: "Cultural storytelling with political undertones" },
+    { name: "Sebastian Maniscalco", style: "Exasperated family humor with gestures" },
+    { name: "John Mulaney", style: "Precise nostalgic storytelling" }
   ],
   R: [
     { name: "Bill Burr", style: "Strong profanity, adult themes, ranty energy" },
     { name: "Chris Rock", style: "Sharp social commentary with f-bombs" },
-    { name: "Wanda Sykes", style: "Brutal honesty with adult language" }
+    { name: "Wanda Sykes", style: "Brutal honesty with adult language" },
+    { name: "Dave Chappelle", style: "Cultural insights with provocative edge" },
+    { name: "Ricky Gervais", style: "Edgy British cruelty, boundary-pushing" },
+    { name: "Anthony Jeselnik", style: "Dark deadpan with shocking twists" },
+    { name: "Patrice O'Neal", style: "Confrontational relationship truths" }
   ],
   Explicit: [
     { name: "Sarah Silverman", style: "Raunchy innuendo tied to premise" },
     { name: "Joan Rivers", style: "Savage sexual references and shock value" },
-    { name: "Amy Schumer", style: "Explicit sexual comedy, no filter" }
+    { name: "Amy Schumer", style: "Explicit sexual comedy, no filter" },
+    { name: "Doug Stanhope", style: "Dark explicit social commentary" },
+    { name: "Lisa Lampanelli", style: "Insult comedy with explicit language" },
+    { name: "Andrew Dice Clay", style: "Crude nursery rhymes and explicit stories" }
   ]
 } as const;
 
+// Anti-repeat tracking for true variety
+let usedComediansByRating: Record<string, Set<string>> = {
+  G: new Set(),
+  "PG-13": new Set(),
+  R: new Set(),
+  Explicit: new Set()
+};
+
 export function selectComedianForRating(rating: string): { name: string; style: string } {
   const bank = COMEDIAN_VOICE_BANKS[rating as keyof typeof COMEDIAN_VOICE_BANKS] || COMEDIAN_VOICE_BANKS["PG-13"];
-  const randomIndex = Math.floor(Math.random() * bank.length);
-  return bank[randomIndex];
+  const usedSet = usedComediansByRating[rating] || new Set();
+  
+  // Get available comedians (not yet used)
+  const availableComedians = bank.filter(comedian => !usedSet.has(comedian.name));
+  
+  // If all comedians have been used, reset the tracking
+  if (availableComedians.length === 0) {
+    console.log(`🔄 Resetting comedian rotation for ${rating} rating`);
+    usedComediansByRating[rating] = new Set();
+    return bank[Math.floor(Math.random() * bank.length)];
+  }
+  
+  // Select from available comedians
+  const selectedComedian = availableComedians[Math.floor(Math.random() * availableComedians.length)];
+  usedSet.add(selectedComedian.name);
+  usedComediansByRating[rating] = usedSet;
+  
+  console.log(`🎭 Selected ${selectedComedian.name} for ${rating} (${usedSet.size}/${bank.length} used)`);
+  return selectedComedian;
 }
 
 export function buildPromptForRating(
@@ -52,10 +91,10 @@ export function buildPromptForRating(
   tags: ParsedTags
 ): string {
   const ratingInstructions = {
-    G: "Family-friendly humor only. No profanity, innuendo, or targeting individuals. Wholesome and light.",
-    "PG-13": "Sharp roasts with real bite. MUST include mild profanity (damn, hell, crap) OR clever innuendo OR savage attitude. Get edgy.",
-    R: "Go hard. MUST include strong profanity (fuck, shit, ass, bitch), brutal roasts, sexual references, or nasty commentary. No holding back.",
-    Explicit: "Full NSFW mode. Explicit sexual content, brutal profanity, savage personal attacks, dark humor. Absolutely ruthless and dirty."
+    G: "FAMILY-FRIENDLY ONLY: Absolutely no profanity, innuendo, or adult themes. Wholesome, clean humor suitable for children. Think Saturday morning cartoons.",
+    "PG-13": "MILD EDGE REQUIRED: Must include light profanity (damn, hell, crap) OR sharp attitude OR clever innuendo. Distinctly more bite than G-rated but not harsh.",
+    R: "ADULT LANGUAGE MANDATORY: Must include strong profanity (fuck, shit, ass, bitch) OR explicit sexual references OR brutal roasts. Clear adult content.",
+    Explicit: "FULL NSFW REQUIRED: Must contain explicit sexual content, graphic profanity, savage personal attacks, or extreme dark humor. No limits."
   };
 
   const hardTagsStr = tags.hard.length ? tags.hard.join(", ") : "none";
@@ -73,10 +112,16 @@ export function buildPromptForRating(
     contextWords = "CHRISTMAS LEXICON REQUIRED: Use at least one of: Christmas, tree, presents, Santa, holiday, celebration, gifts.";
   }
   
-  // Punchline-first style enforcement
+  // Structure enforcement based on style
   let styleInstructions = "";
   if (style === 'punchline-first') {
-    styleInstructions = "PUNCHLINE-FIRST STYLE: Start with a cue like 'Spoiler first then', 'Plot twist first then', 'Fine first then'. NO COMMAS anywhere. One sentence total.";
+    styleInstructions = "MANDATORY PUNCHLINE-FIRST: Must start with 'Spoiler first then', 'Plot twist first then', or 'Fine first then' followed by the actual joke. No exceptions.";
+  } else if (style === 'story') {
+    styleInstructions = "STORY STRUCTURE: Mini narrative with setup → conflict/twist → punchline. Must have clear beginning, middle, end.";
+  } else if (style === 'pop-culture') {
+    styleInstructions = "POP CULTURE REQUIRED: Must reference specific celebrities, movies, TV shows, apps, or current trends. Make the reference central to the joke.";
+  } else if (style === 'wildcard') {
+    styleInstructions = "WILDCARD CHAOS: Use any structure (roast, absurd, story, punchline-first) but make it unexpected or surreal.";
   }
   
   // Special handling for Romantic tone
@@ -139,28 +184,31 @@ export function validateRatingJoke(text: string, rating: string, tags: ParsedTag
       break;
       
     case "PG-13":
-      // Must have mild profanity OR clever innuendo
-      const mildProfanity = ['damn', 'hell', 'crap'];
+      // Must have mild profanity OR clever innuendo OR sharp attitude
+      const mildProfanity = ['damn', 'hell', 'crap', 'suck', 'screw'];
       const hasMildProfanity = mildProfanity.some(word => lowerText.includes(word));
-      const hasAttitude = /(savage|roast|burn|destroy|wreck)/i.test(text);
-      if (!hasMildProfanity && !hasAttitude) return false;
+      const hasAttitude = /(savage|roast|burn|destroy|wreck|brutal|harsh|bite|edge)/i.test(text);
+      const hasInnuendo = /(bang|screw|hard|stiff|wet|tight|comes|climax)/i.test(text);
+      if (!hasMildProfanity && !hasAttitude && !hasInnuendo) return false;
       break;
       
     case "R":
-      // Prefer strong profanity, but allow brutal attitude or explicit terms
-      const strongProfanity = ['fuck', 'shit', 'ass', 'bitch'];
+      // Must have strong profanity OR explicit sexual terms OR extremely brutal content
+      const strongProfanity = ['fuck', 'shit', 'ass', 'bitch', 'bastard', 'prick'];
       const hasStrong = strongProfanity.some(word => lowerText.includes(word));
-      const hasAttitudeR = /(savage|roast|burn|destroy|wreck|brutal)/i.test(text);
-      const hasExplicitTermR = ['sex', 'sexual', 'orgasm', 'kinky', 'horny', 'naked', 'screw', 'bang'].some(term => lowerText.includes(term));
-      if (!hasStrong && !hasExplicitTermR && !hasAttitudeR) return false;
+      const hasExplicitTermR = ['sex', 'sexual', 'orgasm', 'kinky', 'horny', 'naked', 'penetrat', 'aroused', 'erection'].some(term => lowerText.includes(term));
+      const hasBrutalContent = /(fucking|shitting|bitching|savage|brutal|destroy|annihilate|murder)/i.test(text);
+      if (!hasStrong && !hasExplicitTermR && !hasBrutalContent) return false;
       break;
       
     case "Explicit":
-      // Must have sexual innuendo or explicit content
-      const explicitTerms = ['sex', 'sexual', 'orgasm', 'kinky', 'horny', 'naked', 'screw', 'bang'];
+      // Must have explicit sexual content OR extreme profanity OR graphic descriptions
+      const explicitTerms = ['sex', 'sexual', 'orgasm', 'kinky', 'horny', 'naked', 'penetrat', 'aroused', 'erection', 'masturbat', 'climax', 'cumming'];
+      const extremeProfanity = ['fuck', 'shit', 'ass', 'bitch', 'cunt', 'cock', 'pussy', 'dick'];
       const hasExplicit = explicitTerms.some(term => lowerText.includes(term));
-      const strongProfanityPresent = ['fuck', 'shit', 'ass', 'bitch'].some(word => lowerText.includes(word));
-      if (!hasExplicit && !strongProfanityPresent) return false;
+      const hasExtremeProfanity = extremeProfanity.some(word => lowerText.includes(word));
+      const hasGraphicContent = /(fucking|sucking|licking|penetrating|thrusting|moaning)/i.test(text);
+      if (!hasExplicit && !hasExtremeProfanity && !hasGraphicContent) return false;
       break;
   }
   
