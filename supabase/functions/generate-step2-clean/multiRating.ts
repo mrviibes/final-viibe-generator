@@ -61,11 +61,16 @@ export function buildPromptForRating(
   const hardTagsStr = tags.hard.length ? tags.hard.join(", ") : "none";
   const softTagsStr = tags.soft.length ? tags.soft.slice(0, 6).join(" | ") : "none";
   
-  // Thanksgiving lexicon enforcement
-  const isThanksgiving = context.toLowerCase().includes('thanksgiving');
+  // Context-specific lexicon enforcement
   let contextWords = "";
-  if (isThanksgiving) {
+  const contextLower = context.toLowerCase();
+  
+  if (contextLower.includes('thanksgiving')) {
     contextWords = "THANKSGIVING LEXICON REQUIRED: Use at least one of: turkey, gravy, pie, table, toast, leftovers, cranberry, family, stuffing.";
+  } else if (contextLower.includes('birthday')) {
+    contextWords = "BIRTHDAY LEXICON REQUIRED: Use at least one of: cake, candles, party, wish, balloons, celebrate.";
+  } else if (contextLower.includes('christmas')) {
+    contextWords = "CHRISTMAS LEXICON REQUIRED: Use at least one of: Christmas, tree, presents, Santa, holiday, celebration, gifts.";
   }
   
   // Punchline-first style enforcement
@@ -85,12 +90,6 @@ export function buildPromptForRating(
       "- Pop culture allowed but max ONE entity per batch",
       "- Keep it genuinely affectionate, not generic hype"
     ].join("\n");
-  }
-  
-  // Context-specific lexicon
-  let contextWords = "";
-  if (context.toLowerCase().includes("birthday")) {
-    contextWords = "Birthday lexicon REQUIRED: cake, candles, party, wish, balloons, celebrate";
   }
 
   return [
@@ -180,7 +179,8 @@ export function validateHardTagsInBatch(jokes: string[], hardTags: string[]): bo
 const CONTEXT_LEXICONS = {
   "soccer practice": ["pitch", "keeper", "goal", "boot", "practice", "drill", "field", "ball"],
   "thanksgiving": ["turkey", "gravy", "pie", "table", "toast", "leftovers", "cranberry", "family", "stuffing"],
-  "birthday": ["cake", "candles", "party", "wish", "balloons", "celebrate"]
+  "birthday": ["cake", "candles", "party", "wish", "balloons", "celebrate"],
+  "christmas": ["christmas", "tree", "presents", "santa", "holiday", "celebration", "gifts"]
 };
 
 function isPunchlineFirst(s: string): boolean {
@@ -226,6 +226,8 @@ export function enforceContextAndTone(text: string, context: string, tone: strin
       result = result.replace(/\.$/, " at the table.");
     } else if (contextKey.includes('birthday')) {
       result = result.replace(/\.$/, " at the party.");
+    } else if (contextKey.includes('christmas')) {
+      result = result.replace(/\.$/, " for the holidays.");
     }
   }
   
