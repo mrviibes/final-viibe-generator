@@ -52,7 +52,7 @@ interface TextGenInput {
     soft: string[];
   };
   mode?: string; // Backward compatibility
-  style?: 'standard' | 'story' | 'punchline-first' | 'pop-culture' | 'wildcard';
+  style?: 'punchline-first' | 'story' | 'pop-culture' | 'wildcard';
   rating?: 'G' | 'PG' | 'PG-13' | 'R';
 }
 

@@ -40,14 +40,13 @@ export const VIIBE_CONFIG_V2 = {
   },
   "comedianVoices": {
     "banks": {
-      "Humorous": ["kevin_hart", "ali_wong", "bill_burr", "taylor_tomlinson", "chris_rock"],
-      "Savage": ["joan_rivers", "ricky_gervais", "dave_chappelle", "wanda_sykes", "anthony_jeselnik"], 
-      "Playful": ["jim_gaffigan", "hasan_minhaj", "nate_bargatze", "james_acaster", "john_early"],
-      "Romantic": ["john_mulaney", "hasan_minhaj", "nate_bargatze", "taylor_tomlinson", "bo_burnham_clean"],
-      "Sentimental": ["mike_birbiglia", "demetri_martin", "ellen", "trevor_noah_clean", "hannah_gadsby_clean"]
+      "punchline-first": ["kevin_hart", "chris_rock", "joan_rivers", "ali_wong"],
+      "story": ["john_mulaney", "mike_birbiglia", "hasan_minhaj", "taylor_tomlinson"],
+      "pop-culture": ["chris_rock", "ricky_gervais", "amy_schumer", "sarah_silverman"],
+      "wildcard": ["mitch_hedberg", "anthony_jeselnik", "bill_burr", "demetri_martin"]
     },
     "alwaysRandomizePerLine": true,
-    "enabledForAllTones": true
+    "enabledForAllStyles": true
   },
   "popCulture": {
     "enableCooldown": true,

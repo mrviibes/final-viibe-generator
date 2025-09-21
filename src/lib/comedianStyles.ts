@@ -109,7 +109,7 @@ export const STYLE_PATTERNS = {
 // Assign comedian to option with length bucket
 export function assignComedianToOption(
   optionNumber: number, 
-  style: string = "standard"
+  style: string = "punchline-first"
 ): { comedian: ComedianStyle; lengthBucket: [number, number] } {
   
   const comedianKeys = Object.keys(COMEDIAN_STYLES);

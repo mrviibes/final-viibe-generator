@@ -2,14 +2,13 @@
 
 export function getStyleDefinition(style: string): string {
   const definitions = {
-    'standard': 'Balanced observational one-liners with varied structure and natural flow (40-80 chars)',
-    'story': 'ALL 4 lines must be mini-narratives with setup → payoff structure. Length: 60-100 chars for narrative flow.',
-    'punchline-first': 'Hit the joke early, then brief tag-back or twist for extra impact (40-80 chars)',
-    'pop-culture': 'ALL 4 lines must include specific celebrities, movies, TV shows, music artists, apps, or trending topics (40-80 chars)',
-    'wildcard': 'Randomized structure and experimental humor - be creative and unexpected (40-80 chars)'
+    'punchline-first': 'Always a one-liner joke. Start with the funny hit, explain after. Must be comedic structure, never flat description (40-80 chars)',
+    'story': 'Mini stand-up story that always ends with a laugh. Longer narrative with setup and payoff (70-100 chars)',
+    'pop-culture': 'Same joke structures but guarantees cultural references. Always includes celebrities, movies, TV, music, apps, or trends (40-80 chars)',
+    'wildcard': 'Pure chaos using random joke structures (roast, absurd, punchline-first, story). Can be surreal or dark but still a joke shape (40-80 chars)'
   };
   
-  return definitions[style] || definitions['standard'];
+  return definitions[style] || definitions['punchline-first'];
 }
 
 export function getRatingDefinition(rating: string): string {

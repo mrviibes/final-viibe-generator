@@ -4372,8 +4372,8 @@ const Index = () => {
     validated?: boolean;
     issues?: string[];
   } | null>(null);
-  const [textMode, setTextMode] = useState<string>("standard");
-  const [textStyle, setTextStyle] = useState<'standard' | 'story' | 'punchline-first' | 'pop-culture' | 'wildcard'>("standard");
+  const [textMode, setTextMode] = useState<string>("punchline-first");
+  const [textStyle, setTextStyle] = useState<'punchline-first' | 'story' | 'pop-culture' | 'wildcard'>("punchline-first");
   const [textRating, setTextRating] = useState<'G' | 'PG' | 'PG-13' | 'R'>("PG-13");
 
   // Text editing state - simplified
@@ -6859,20 +6859,19 @@ const Index = () => {
                          {/* Style Dropdown */}
                          <div className="flex flex-col items-center gap-2">
                            <label className="text-sm font-medium text-muted-foreground">Style</label>
-                            <Select value={textStyle} onValueChange={value => {
-                    setTextStyle(value as 'standard' | 'story' | 'punchline-first' | 'pop-culture' | 'wildcard');
-                  }}>
-                             <SelectTrigger className="w-40">
-                               <SelectValue />
-                             </SelectTrigger>
-                             <SelectContent className="bg-background border border-border shadow-lg z-50">
-                               <SelectItem value="standard">Standard</SelectItem>
-                               <SelectItem value="story">Story Mode</SelectItem>
-                               <SelectItem value="punchline-first">Punchline First</SelectItem>
-                               <SelectItem value="pop-culture">Pop Culture</SelectItem>
-                               <SelectItem value="wildcard">Wildcard</SelectItem>
-                             </SelectContent>
-                           </Select>
+                             <Select value={textStyle} onValueChange={value => {
+                     setTextStyle(value as 'punchline-first' | 'story' | 'pop-culture' | 'wildcard');
+                   }}>
+                              <SelectTrigger className="w-40">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border border-border shadow-lg z-50">
+                                <SelectItem value="punchline-first">Punchline First</SelectItem>
+                                <SelectItem value="story">Story Mode</SelectItem>
+                                <SelectItem value="pop-culture">Pop Culture</SelectItem>
+                                <SelectItem value="wildcard">Wild Card</SelectItem>
+                              </SelectContent>
+                            </Select>
                          </div>
                          
                          {/* Rating Slider */}

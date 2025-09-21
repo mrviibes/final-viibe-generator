@@ -26,7 +26,7 @@ export interface ToneValidationConfig {
 export interface ComedianVoiceConfig {
   banks: Record<string, string[]>;
   alwaysRandomizePerLine: boolean;
-  enabledForAllTones: boolean;
+  enabledForAllStyles: boolean;
 }
 
 export interface PopCultureConfig {

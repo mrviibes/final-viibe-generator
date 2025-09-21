@@ -1,15 +1,15 @@
 // Comedian voice selection system
 import { VIIBE_CONFIG } from './config.ts';
 
-export function selectComedianVoice(tone: string, rating: string): string | null {
-  if (!VIIBE_CONFIG.comedianVoices.enabledForAllTones) {
+export function selectComedianVoice(style: string, rating: string): string | null {
+  if (!VIIBE_CONFIG.comedianVoices.enabledForAllStyles) {
     return null;
   }
   
-  const voices = VIIBE_CONFIG.comedianVoices.banks[tone];
+  const voices = VIIBE_CONFIG.comedianVoices.banks[style];
   if (!voices || voices.length === 0) {
-    // Fallback to Humorous bank if tone-specific bank not found
-    const fallbackVoices = VIIBE_CONFIG.comedianVoices.banks.Humorous;
+    // Fallback to punchline-first bank if style-specific bank not found
+    const fallbackVoices = VIIBE_CONFIG.comedianVoices.banks['punchline-first'];
     if (!fallbackVoices || fallbackVoices.length === 0) {
       return null;
     }
@@ -21,24 +21,24 @@ export function selectComedianVoice(tone: string, rating: string): string | null
   return voices[randomIndex];
 }
 
-export function selectVoicesForAllLines(tone: string, rating: string, lineCount: number): string[] {
+export function selectVoicesForAllLines(style: string, rating: string, lineCount: number): string[] {
   if (!VIIBE_CONFIG.comedianVoices.alwaysRandomizePerLine) {
-    const singleVoice = selectComedianVoice(tone, rating);
+    const singleVoice = selectComedianVoice(style, rating);
     return Array(lineCount).fill(singleVoice || 'default');
   }
   
   // Select different voice for each line
   const voices: string[] = [];
   for (let i = 0; i < lineCount; i++) {
-    voices.push(selectComedianVoice(tone, rating) || 'default');
+    voices.push(selectComedianVoice(style, rating) || 'default');
   }
   
   return voices;
 }
 
-export function getVoiceInstructions(voice: string, tone: string): string {
+export function getVoiceInstructions(voice: string, style: string): string {
   if (voice === 'default' || !voice) {
-    return `Write in a ${tone.toLowerCase()} tone.`;
+    return `Write in ${style} style with strong comedic structure.`;
   }
   
   const voiceInstructions: Record<string, string> = {
@@ -69,5 +69,5 @@ export function getVoiceInstructions(voice: string, tone: string): string {
     'mitch_hedberg': 'Channel Mitch Hedberg: surreal one-liners with misdirection wordplay, stoned philosophical observations with rhythm.'
   };
   
-  return voiceInstructions[voice] || `Write in a ${tone.toLowerCase()} tone with ${voice} style.`;
+  return voiceInstructions[voice] || `Write in ${style} style with ${voice} comedic approach.`;
 }

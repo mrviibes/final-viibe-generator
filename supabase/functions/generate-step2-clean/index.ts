@@ -57,7 +57,7 @@ const LENGTH_BUCKETS = [
 // Assign comedian to option with length bucket
 function assignComedianToOption(
   optionNumber: number, 
-  style: string = "standard"
+  style: string = "punchline-first"
 ): { comedian: ComedianStyle; lengthBucket: [number, number] } {
   
   const comedianKeys = Object.keys(COMEDIAN_STYLES);
@@ -303,7 +303,7 @@ ${contextInstructions}${lexiconInstructions}
 
 Generate tight, punchy lines that sound like actual comedians, not AI trying to explain jokes.`;
   
-  const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'standard'} Rating:${inputs.rating || 'PG-13'}'`;
+  const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'punchline-first'} Rating:${inputs.rating || 'PG-13'}'`;
   
   console.log('📝 Prompts - System:', systemPrompt.length, 'User:', userPrompt.length);
   

@@ -360,8 +360,8 @@ function checkBlacklist(text: string): { blocked: boolean; matches: string[] } {
 }
 
 // Legacy function - now uses shared implementation
-function selectComedianVoiceLocal(tone: string, rating: string): string | null {
-  return selectVoicesForAllLines(tone, rating, 1)[0] || null;
+function selectComedianVoiceLocal(style: string, rating: string): string | null {
+  return selectVoicesForAllLines(style, rating, 1)[0] || null;
 }
 
 // Get tone overrides for clean tones
