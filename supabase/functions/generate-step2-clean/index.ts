@@ -11,6 +11,7 @@ import {
   validateRatingJoke, 
   validateHardTagsInBatch,
   validateRomanticTone,
+  enforceContextAndTone,
   type MultiRatingOutput 
 } from "./multiRating.ts";
 
@@ -101,7 +102,6 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
         validateRomanticTone(text, context) : true;
       
       // Apply context and tone enforcement
-      const { enforceContextAndTone } = await import("./multiRating.ts");
       text = enforceContextAndTone(text, context, inputs.tone || 'Humorous', inputs.style || 'punchline-first');
       
       if (isValidFormat && isValidTone) {
