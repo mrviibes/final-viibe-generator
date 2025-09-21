@@ -1,5 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { parseTags, type ParsedTags } from "./tags.ts";
+import { buildPrompt } from "./buildPrompt.ts";
+import { stripSoftEcho } from "./sanitize.ts";
+import { validate } from "./validate.ts";
+import { normalizeRating } from "../shared/rating.ts";
 
 // Import comedian styles for proper voice assignment
 interface ComedianStyle {
@@ -106,47 +111,18 @@ async function generateWithGPT5(inputs: any): Promise<any> {
   const startTime = Date.now();
   console.log('🎯 Starting strict GPT-5 generation');
   
-  // ROBUST INPUT COERCION - handle structured tags with exact specification
-  let tagsArray: string[] = [];
-  let hardTags: string[] = [];
-  let softTags: string[] = [];
+  // NEW TAG PARSING SYSTEM - use dedicated parser
+  const rawTagString = Array.isArray(inputs.tags) ? inputs.tags.join(',') : (inputs.tags || '');
+  const parsedTags = parseTags(rawTagString);
+  const { hard: hardTags, soft: softTags } = parsedTags;
   
-  if (inputs.tags && typeof inputs.tags === 'object' && !Array.isArray(inputs.tags)) {
-    // New structured format
-    hardTags = Array.isArray(inputs.tags.hard) ? inputs.tags.hard : [];
-    softTags = Array.isArray(inputs.tags.soft) ? inputs.tags.soft : [];
-    tagsArray = [...hardTags.map(t => `"${t}"`), ...softTags]; // Convert back for legacy compat
-  } else {
-    // Legacy array format - parse using exact specification: "Reid" or @Reid = hard
-    tagsArray = Array.isArray(inputs.tags) ? inputs.tags : 
-               (typeof inputs.tags === 'string' ? [inputs.tags] : []);
-    
-    // Parse legacy tags into hard/soft using exact specification
-    hardTags = tagsArray.filter((tag: string) => {
-      const normalized = normalizeTagInput(tag);
-      return /^".+"$|^@.+/.test(normalized);      // "Reid" or @Reid = hard
-    }).map((tag: string) => {
-      const normalized = normalizeTagInput(tag);
-      return normalized.replace(/^@/, "").replace(/^["']|["']$/g, "");
-    });
-    
-    softTags = tagsArray.filter((tag: string) => {
-      const normalized = normalizeTagInput(tag);
-      return !/^".+"$|^@.+/.test(normalized);     // Everything else = soft
-    });
-  }
-  
-  // Normalize tag input helper with exact ASCII quote handling
-  function normalizeTagInput(rawTag: string): string {
-    if (!rawTag) return '';
-    return rawTag.trim()
-      .replace(/[""]/g, '"')
-      .replace(/['']/g, "'")
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
+  // Legacy array format for compatibility
+  const tagsArray = [...hardTags.map(t => `"${t}"`), ...softTags];
 
   const tagsStr = tagsArray.length > 0 ? tagsArray.join(',') : 'none';
+  
+  // APPLY RATING NORMALIZATION
+  const normalizedRating = normalizeRating(inputs.category || '', inputs.tone || '', inputs.rating || 'PG-13');
 
   // Pop-culture buckets with cooldown rotation
   const POP_CULTURE_BUCKETS = {
@@ -302,7 +278,7 @@ ${inputs.style === 'roast' ? '- Roast = short, direct insult with specific compa
 **Technical Rules:**
 - End with single period only
 - Tone: ${inputs.tone}
-- Rating: ${inputs.rating || 'PG-13'}
+- Rating: ${normalizedRating}
 - Hard tags ${hardTags.length > 0 ? `(${hardTags.join(', ')})` : ''} MUST appear literally in 3 of 4 lines
 - Soft tags ${softTags.length > 0 ? `(${softTags.join(', ')})` : ''} guide style only, don't appear literally
 
@@ -315,7 +291,7 @@ ${contextInstructions}${lexiconInstructions}
 
 Generate tight, punchy lines that sound like actual comedians, not AI trying to explain jokes.`;
   
-  const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'punchline-first'} Rating:${inputs.rating || 'PG-13'}'`;
+  const userPrompt = `Category:${inputs.category} Subcategory:${inputs.subcategory} Tone:${inputs.tone} Tags:${tagsStr} Style:${inputs.style || 'punchline-first'} Rating:${normalizedRating}'`;
   
   console.log('📝 Prompts - System:', systemPrompt.length, 'User:', userPrompt.length);
   
@@ -729,6 +705,61 @@ Generate tight, punchy lines that sound like actual comedians, not AI trying to 
       console.error('❌ STRICT FAIL: Too many critical validation failures:', criticalErrors.join('; '));
       throw new Error(`Strict validation failure: ${criticalErrors.join('; ')}`);
     }
+    
+    // NEW POST-PROCESSING PIPELINE - Apply soft tag sanitization
+    let finalLines = parsed.lines.map((line: any) => line.text || '');
+    finalLines = stripSoftEcho(finalLines, softTags);
+    
+    // Validate with new system and retry if needed
+    if (!validate(finalLines, parsedTags) && softTags.length > 0) {
+      console.log('🔄 Validation failed, retrying without soft tags');
+      // Single retry with soft tags stripped from prompt
+      const retryContext = {
+        context: `${inputs.category} ${inputs.subcategory}`,
+        tone: inputs.tone,
+        rating: normalizedRating,
+        style: inputs.style || 'punchline-first',
+        tags: { hard: hardTags, soft: [] }
+      };
+      
+      try {
+        const retryPrompt = buildPrompt(retryContext);
+        const retryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            messages: [
+              { role: 'system', content: retryPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            response_format: { type: "json_object" },
+            max_completion_tokens: 350
+          }),
+        });
+        
+        if (retryResponse.ok) {
+          const retryData = await retryResponse.json();
+          const retryParsed = JSON.parse(retryData.choices?.[0]?.message?.content || '{}');
+          if (retryParsed.lines && Array.isArray(retryParsed.lines)) {
+            finalLines = retryParsed.lines.map((line: any) => line.text || '');
+            finalLines = stripSoftEcho(finalLines, softTags);
+            console.log('✅ Retry successful with sanitization');
+          }
+        }
+      } catch (retryError) {
+        console.warn('⚠️ Retry failed, using original with sanitization:', retryError.message);
+      }
+    }
+    
+    // Update parsed lines with sanitized versions
+    parsed.lines = finalLines.map((text: string, index: number) => ({
+      lane: `option${index + 1}`,
+      text: text
+    }));
     
     // Success only if no critical errors (per finalized spec)
     console.log('✅ STRICT GENERATION SUCCESS: all critical validations passed');

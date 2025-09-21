@@ -4374,7 +4374,7 @@ const Index = () => {
   } | null>(null);
   const [textMode, setTextMode] = useState<string>("punchline-first");
   const [textStyle, setTextStyle] = useState<'punchline-first' | 'story' | 'pop-culture' | 'wildcard'>("punchline-first");
-  const [textRating, setTextRating] = useState<'G' | 'PG' | 'PG-13' | 'R'>("PG-13");
+  const [textRating, setTextRating] = useState<'G' | 'PG' | 'PG-13' | 'R' | 'Explicit'>("PG-13");
 
   // Text editing state - simplified
   const [isEditingSelectedText, setIsEditingSelectedText] = useState(false);
@@ -6811,10 +6811,10 @@ const Index = () => {
                       {/* Tags Input */}
                       <div className="space-y-3">
                           <p className="text-xs text-muted-foreground text-left">
-                            <strong>Quoted text</strong> = the exact words that will appear in the text<br />
-                            <strong>Unquoted text</strong> = just influences the text
+                            <strong>Add keywords or names</strong><br />
+                            <strong>Words in quotes</strong> appear in the joke. <strong>Words without quotes</strong> guide the vibe.
                           </p>
-                        <Input value={tagInput} onChange={e => handleTagInputChange(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder='This box is optional' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${tagInputWarning ? 'border-destructive' : 'border-border'}`} />
+                        <Input value={tagInput} onChange={e => handleTagInputChange(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder='"Jesse", traffic, late' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${tagInputWarning ? 'border-destructive' : 'border-border'}`} />
                         {tagInputWarning && <p className="text-xs text-destructive text-center mt-1">
                             ⚠️ {tagInputWarning}
                           </p>}
@@ -6878,25 +6878,45 @@ const Index = () => {
                          <div className="flex flex-col items-center gap-2">
                            <label className="text-sm font-medium text-muted-foreground">Rating</label>
                             <Select value={textRating} onValueChange={value => {
-                    setTextRating(value as 'G' | 'PG' | 'PG-13' | 'R');
+                    setTextRating(value as 'G' | 'PG' | 'PG-13' | 'R' | 'Explicit');
                   }}>
                              <SelectTrigger className="w-20">
                                <SelectValue />
                              </SelectTrigger>
-                             <SelectContent className="bg-background border border-border shadow-lg z-50">
-                               <SelectItem value="G">G</SelectItem>
-                               <SelectItem value="PG">PG</SelectItem>
-                               <SelectItem value="PG-13">PG-13</SelectItem>
-                               <SelectItem value="R">R</SelectItem>
-                             </SelectContent>
+                              <SelectContent className="bg-background border border-border shadow-lg z-50">
+                                <SelectItem value="G">G</SelectItem>
+                                <SelectItem value="PG">PG</SelectItem>
+                                <SelectItem value="PG-13">PG-13</SelectItem>
+                                <SelectItem value="R">R</SelectItem>
+                                {!["Pets","Animals","Dog park","Kids","School","Teachers","Daycare"].includes(
+                                  selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' :
+                                  selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' :
+                                  selectedSubOption || ''
+                                ) && (
+                                  <SelectItem value="Explicit">Explicit</SelectItem>
+                                )}
+                              </SelectContent>
                            </Select>
-                         </div>
-                         
-                         <Button variant="outline" size="sm" onClick={handleGenerateText} disabled={isGenerating} className="text-xs mt-6">
-                           {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                           Regenerate
-                         </Button>
-                       </div>
+                          </div>
+                          
+                          {/* Explicit rating warning */}
+                          {textRating === "Explicit" && ["Pets","Animals","Dog park","Kids","School","Teachers","Daycare"].includes(
+                            selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' :
+                            selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' :
+                            selectedSubOption || ''
+                          ) && (
+                            <div className="text-center mb-4">
+                              <small className="text-muted-foreground bg-accent/50 px-3 py-1 rounded-full text-xs">
+                                ℹ️ Explicit rating will be downgraded for this category
+                              </small>
+                            </div>
+                          )}
+                          
+                          <Button variant="outline" size="sm" onClick={handleGenerateText} disabled={isGenerating} className="text-xs mt-6">
+                            {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                            Regenerate
+                          </Button>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
@@ -7044,15 +7064,15 @@ const Index = () => {
                             {/* Tag Input */}
                             <div className="space-y-4">
                                {/* Tag explanation */}
-                                <div className="text-left space-y-1">
-                                  <p className="text-sm text-muted-foreground">
-                                    <span className="font-bold">Quoted text</span> = the exact words that will appear in the visuals
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    <span className="font-bold">Unquoted text</span> = just influences the visuals
-                                  </p>
-                                </div>
-                                <Input value={subjectTagInput} onChange={e => handleSubjectTagInputChange(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder='This box is optional' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${subjectTagInputWarning ? 'border-destructive' : 'border-border'}`} />
+                                 <div className="text-left space-y-1">
+                                   <p className="text-sm text-muted-foreground">
+                                     <span className="font-bold">Add keywords or names</span>
+                                   </p>
+                                   <p className="text-sm text-muted-foreground">
+                                     <span className="font-bold">Words in quotes</span> appear in the visual. <span className="font-bold">Words without quotes</span> guide the style.
+                                   </p>
+                                 </div>
+                                 <Input value={subjectTagInput} onChange={e => handleSubjectTagInputChange(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder='"Jesse", traffic, late' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${subjectTagInputWarning ? 'border-destructive' : 'border-border'}`} />
                                 {subjectTagInputWarning && <p className="text-xs text-destructive text-center mt-1">
                                     ⚠️ {subjectTagInputWarning}
                                   </p>}

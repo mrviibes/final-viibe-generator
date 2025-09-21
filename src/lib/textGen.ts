@@ -54,7 +54,7 @@ interface TextGenInput {
   };
   mode?: string; // Backward compatibility
   style?: 'punchline-first' | 'story' | 'pop-culture' | 'wildcard';
-  rating?: 'G' | 'PG' | 'PG-13' | 'R';
+  rating?: 'G' | 'PG' | 'PG-13' | 'R' | 'Explicit';
 }
 
 interface TextGenOutput {
