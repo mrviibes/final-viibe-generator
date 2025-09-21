@@ -96,15 +96,19 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
       const data = await response.json();
       let text = (data.choices?.[0]?.message?.content || '').trim();
       
-      // Validate the joke
-      const isValidFormat = validateRatingJoke(text, effectiveRating, parsedTags);
-      const isValidTone = inputs.tone?.toLowerCase() === 'romantic' ? 
-        validateRomanticTone(text, context) : true;
-      
-      // Apply context and tone enforcement
+      // Apply context and tone enforcement BEFORE validation so fixes are considered
       text = enforceContextAndTone(text, context, inputs.tone || 'Humorous', inputs.style || 'punchline-first');
       
-      if (isValidFormat && isValidTone) {
+      // Validate the joke (romantic tone overrides rating-specific profanity requirements)
+      let isValidFormat = false;
+      if (inputs.tone?.toLowerCase() === 'romantic') {
+        // Use "G" rules for format + profanity ban, then romantic-specific checks
+        isValidFormat = validateRatingJoke(text, 'G', parsedTags) && validateRomanticTone(text, context);
+      } else {
+        isValidFormat = validateRatingJoke(text, effectiveRating, parsedTags);
+      }
+      
+      if (isValidFormat) {
         results[rating] = {
           voice: comedian.name,
           text: text
@@ -112,7 +116,7 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
         allJokes.push(text);
       } else {
         console.warn(`⚠️ Validation failed for ${rating}, using fallback`);
-        const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name);
+        const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name, inputs.tone, inputs.style);
         results[rating] = {
           voice: comedian.name,
           text: fallbackText

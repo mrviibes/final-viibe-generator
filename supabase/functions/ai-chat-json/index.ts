@@ -159,10 +159,12 @@ serve(async (req) => {
         : `No content received from OpenAI (finish_reason: ${finishReason})`;
       
       console.error(errorMsg);
+      // For truncation, return gracefully with 200 so UI doesn't break
+      const statusCode = finishReason === 'length' ? 200 : 500;
       return new Response(
         JSON.stringify({ error: errorMsg, finishReason }),
         { 
-          status: 500, 
+          status: statusCode, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
