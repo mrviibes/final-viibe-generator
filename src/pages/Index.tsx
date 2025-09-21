@@ -5428,6 +5428,10 @@ const Index = () => {
         validated: true,
         issues: []
       });
+      // Smoothly scroll results into view
+      setTimeout(() => {
+        document.getElementById('multi-rating-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
     } catch (error) {
       console.error('❌ Error generating text:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -6893,7 +6897,7 @@ const Index = () => {
                           
                           {/* Multi-Rating Tab Results */}
                           {multiRatingOptions && (
-                            <div className="mt-6 space-y-4">
+                            <div id="multi-rating-results" className="mt-6 space-y-4">
                               <div className="text-center">
                                 <p className="text-sm font-medium text-muted-foreground mb-2">Generated for all ratings:</p>
                                 <div className="flex justify-center gap-1 bg-muted p-1 rounded-lg w-fit mx-auto">

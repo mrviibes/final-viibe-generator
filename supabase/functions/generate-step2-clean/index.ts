@@ -189,6 +189,29 @@ function generateFallbackJoke(rating: string, context: string, comedianName: str
     return romanticBirthdayFallbacks[randomIndex];
   }
   
+  if (isRomantic && contextLower.includes('christmas')) {
+    const romanticChristmasFallbacks = [
+      "Spoiler first then your smile is my favorite gift under every tree.",
+      "Plot twist first then cocoa tastes sweeter when your hand warms mine by the tree.",
+      "Fine first then lights twinkle slower because my heart saves the best for you.",
+      "Zero first then the quiet after wrapping is louder than how much I love you."
+    ];
+    const randomIndex = Math.floor(Math.random() * romanticChristmasFallbacks.length);
+    return romanticChristmasFallbacks[randomIndex];
+  }
+  
+  // Generic romantic fallback if tone demands it
+  if (isRomantic) {
+    const romanticGeneric = [
+      "Spoiler first then I love how this moment makes us feel like home.",
+      "Plot twist first then my heart picks you every single time.",
+      "Fine first then the world slows down whenever you laugh near me.",
+      "Zero first then I keep finding new ways to love you here."
+    ];
+    const randomIndex = Math.floor(Math.random() * romanticGeneric.length);
+    return romanticGeneric[randomIndex];
+  }
+  
   // Regular fallbacks by rating
   const fallbacks = {
     G: [
