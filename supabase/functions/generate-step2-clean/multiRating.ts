@@ -116,8 +116,9 @@ export function validateRatingJoke(text: string, rating: string, tags: ParsedTag
   const periodCount = (text.match(/\./g) || []).length;
   if (periodCount !== 1) return false;
   
-  // NO COMMAS ALLOWED
-  if (text.includes(',') || text.includes('—')) return false;
+  // Commas: allow at most one, ban em-dash
+  const commaCount = (text.match(/,/g) || []).length;
+  if (commaCount > 1 || text.includes('—')) return false;
   
   // Grammar validation - must start with capital letter
   if (!/^[A-Z]/.test(text)) return false;
@@ -146,9 +147,12 @@ export function validateRatingJoke(text: string, rating: string, tags: ParsedTag
       break;
       
     case "R":
-      // Must have strong profanity
+      // Prefer strong profanity, but allow brutal attitude or explicit terms
       const strongProfanity = ['fuck', 'shit', 'ass', 'bitch'];
-      if (!strongProfanity.some(word => lowerText.includes(word))) return false;
+      const hasStrong = strongProfanity.some(word => lowerText.includes(word));
+      const hasAttitudeR = /(savage|roast|burn|destroy|wreck|brutal)/i.test(text);
+      const hasExplicitTermR = ['sex', 'sexual', 'orgasm', 'kinky', 'horny', 'naked', 'screw', 'bang'].some(term => lowerText.includes(term));
+      if (!hasStrong && !hasExplicitTermR && !hasAttitudeR) return false;
       break;
       
     case "Explicit":
