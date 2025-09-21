@@ -27,9 +27,19 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
   const startTime = Date.now();
   console.log('🎯 Starting multi-rating comedy generation');
   
-  // Parse tags
-  const rawTagString = Array.isArray(inputs.tags) ? inputs.tags.join(',') : (inputs.tags || '');
-  const parsedTags = parseTags(rawTagString);
+  // Parse tags - handle object format {hard, soft}
+  let parsedTags: ParsedTags;
+  if (inputs.tags && typeof inputs.tags === 'object' && !Array.isArray(inputs.tags)) {
+    // Direct object format
+    parsedTags = {
+      hard: inputs.tags.hard || [],
+      soft: inputs.tags.soft || []
+    };
+  } else {
+    // String or array format
+    const rawTagString = Array.isArray(inputs.tags) ? inputs.tags.join(',') : (inputs.tags || '');
+    parsedTags = parseTags(rawTagString);
+  }
   
   const context = `${inputs.category} > ${inputs.subcategory}`;
   const ratings = ["G", "PG-13", "R", "Explicit"] as const;
@@ -76,8 +86,7 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
             { role: 'system', content: 'You are a professional comedian. Return exactly one joke sentence.' },
             { role: 'user', content: prompt }
           ],
-          max_completion_tokens: 100,
-          temperature: 0.8
+          max_completion_tokens: 100
         }),
         signal: AbortSignal.timeout(10000)
       });
@@ -101,6 +110,12 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
       const isValidFormat = validateRatingJoke(text, effectiveRating, parsedTags);
       const isValidTone = inputs.tone?.toLowerCase() === 'romantic' ? 
         validateRomanticTone(text, context) : true;
+      
+      // Apply romantic + thanksgiving enforcement if needed
+      if (inputs.tone?.toLowerCase() === 'romantic' && context.toLowerCase().includes('thanksgiving')) {
+        const { enforceRomanticThanksgiving } = await import("./multiRating.ts");
+        text = enforceRomanticThanksgiving(text, context, inputs.tone, inputs.style || 'punchline-first');
+      }
       
       if (isValidFormat && isValidTone) {
         results[rating] = {
@@ -148,6 +163,19 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
 function generateFallbackJoke(rating: string, context: string, comedianName: string): string {
   const isRomantic = context.toLowerCase().includes('romantic');
   const isBirthday = context.toLowerCase().includes('birthday');
+  const isThanksgiving = context.toLowerCase().includes('thanksgiving');
+  
+  // Romantic + Thanksgiving specific fallbacks
+  if (isRomantic && isThanksgiving) {
+    const romanticThanksgivingFallbacks = [
+      "Spoiler first then we pass the turkey and my heart passes gratitude back.",
+      "Plot twist first then your laugh warms the table and my heart agrees completely.",
+      "Fine first then I love your chaos and the gravy finds peace with us.",
+      "Zero first then your smile butters the rolls and my heart begs for seconds."
+    ];
+    const randomIndex = Math.floor(Math.random() * romanticThanksgivingFallbacks.length);
+    return romanticThanksgivingFallbacks[randomIndex];
+  }
   
   // Romantic + Birthday specific fallbacks
   if (isRomantic && isBirthday) {

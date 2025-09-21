@@ -5397,23 +5397,28 @@ const Index = () => {
         tags: finalTagsForGeneration
       });
 
-      // Generate using new text generator
-      const result = await generateStep2Lines({
+      // Prepare tags in proper format
+      const parsedTags = getTagArrays(finalTagsForGeneration.join(','));
+      
+      // Generate using multi-rating text generator
+      const result = await generateMultiRatingLines({
         category,
         subcategory,
         tone,
-        tags: finalTagsForGeneration,
+        tags: parsedTags, // Pass the parsed tags object
         style: textStyle,
         rating: textRating,
         mode: textMode // Keep for backward compatibility
       });
-      console.log('✅ Generated text options:', result);
+      console.log('✅ Generated multi-rating text options:', result);
 
       // Clear previous selection when generating/regenerating
       setSelectedGeneratedOption(null);
       setSelectedGeneratedIndex(null);
-      setGeneratedOptions(result.lines.map(line => line.text));
-      setTextGenerationModel('gpt-5-mini-2025-08-07');
+      setGeneratedOptions([]); // Clear old single options
+      setMultiRatingOptions(result); // Set the multi-rating results
+      setSelectedRatingTab("PG-13"); // Default to PG-13
+      setTextGenerationModel(result.model || 'gpt-4.1-2025-04-14');
       setTextGenerationMetadata({
         validated: true,
         issues: []
@@ -6943,7 +6948,7 @@ const Index = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
-                      {generatedOptions.slice(0, 4).map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50" onClick={() => {
+                      {!multiRatingOptions && generatedOptions.slice(0, 4).map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50" onClick={() => {
                 setSelectedGeneratedOption(option);
                 setSelectedGeneratedIndex(index);
 

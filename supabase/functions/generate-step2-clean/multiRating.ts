@@ -61,6 +61,19 @@ export function buildPromptForRating(
   const hardTagsStr = tags.hard.length ? tags.hard.join(", ") : "none";
   const softTagsStr = tags.soft.length ? tags.soft.slice(0, 6).join(" | ") : "none";
   
+  // Thanksgiving lexicon enforcement
+  const isThanksgiving = context.toLowerCase().includes('thanksgiving');
+  let contextWords = "";
+  if (isThanksgiving) {
+    contextWords = "THANKSGIVING LEXICON REQUIRED: Use at least one of: turkey, gravy, pie, table, toast, leftovers, cranberry, family, stuffing.";
+  }
+  
+  // Punchline-first style enforcement
+  let styleInstructions = "";
+  if (style === 'punchline-first') {
+    styleInstructions = "PUNCHLINE-FIRST STYLE: Start with a cue like 'Spoiler first then', 'Plot twist first then', 'Fine first then'. NO COMMAS anywhere. One sentence total.";
+  }
+  
   // Special handling for Romantic tone
   let toneInstructions = "";
   if (tone.toLowerCase() === "romantic") {
@@ -81,17 +94,18 @@ export function buildPromptForRating(
   }
 
   return [
-    "Return one sentence. 40–100 characters. One period. No em dashes.",
+    "Return one sentence. 40–100 characters. One period. NO COMMAS ANYWHERE.",
     `Write a real joke in ${style} style. Sound like ${comedian.name}.`,
     `Context: ${context}. Keep it visibly about that context.`,
-    contextWords ? `CONTEXT WORDS: ${contextWords}` : "",
+    contextWords ? contextWords : "",
+    styleInstructions ? styleInstructions : "",
     `Rating: ${rating} - ${ratingInstructions[rating as keyof typeof ratingInstructions]}`,
     toneInstructions ? toneInstructions : "",
     `Comedian style: ${comedian.style}`,
     `Tone: ${tone}`,
     hardTagsStr !== "none" ? `Hard tags: ${hardTagsStr} MUST appear literally.` : "Hard tags: none",
     softTagsStr !== "none" ? `Themes: ${softTagsStr} (guide tone only, do not appear verbatim)` : "Themes: none",
-    "CRITICAL: Start with capital letter. Perfect grammar. One sentence only."
+    "CRITICAL: Start with capital letter. Perfect grammar. One sentence only. NO COMMAS."
   ].filter(Boolean).join("\n");
 }
 
@@ -103,7 +117,8 @@ export function validateRatingJoke(text: string, rating: string, tags: ParsedTag
   const periodCount = (text.match(/\./g) || []).length;
   if (periodCount !== 1) return false;
   
-  if (text.includes('—')) return false;
+  // NO COMMAS ALLOWED
+  if (text.includes(',') || text.includes('—')) return false;
   
   // Grammar validation - must start with capital letter
   if (!/^[A-Z]/.test(text)) return false;
@@ -159,6 +174,58 @@ export function validateHardTagsInBatch(jokes: string[], hardTags: string[]): bo
   
   // Require at least 3 of 4 jokes to contain hard tags
   return jokesWithAllTags >= 3;
+}
+
+// Thanksgiving context enforcement
+const THANKSGIVING_WORDS = ["turkey", "gravy", "pie", "table", "toast", "leftovers", "cranberry", "family", "stuffing"];
+
+function isPunchlineFirst(s: string): boolean {
+  return /^(spoiler first then|plot twist first then|fine first then|zero first then)/i.test(s) || /\b first then \b/i.test(s);
+}
+
+function hasRomanticTone(s: string): boolean {
+  return /(love|heart|warm|dear|sweet|admire|tender)/i.test(s);
+}
+
+function hasThanksgivingContext(s: string): boolean {
+  return THANKSGIVING_WORDS.some(w => s.toLowerCase().includes(w));
+}
+
+function formatOK(s: string): boolean {
+  return /^[A-Z]/.test(s) && 
+         !/,|—/.test(s) && 
+         (s.match(/\./g) || []).length === 1 && 
+         s.length >= 40 && s.length <= 100;
+}
+
+export function enforceRomanticThanksgiving(text: string, context: string, tone: string, style: string): string {
+  const isRomantic = tone.toLowerCase() === 'romantic';
+  const isThanksgiving = context.toLowerCase().includes('thanksgiving');
+  const isPunchlineStyle = style === 'punchline-first';
+  
+  if (!isRomantic || !isThanksgiving) return text;
+  
+  let result = text.trim().replace(/\s+\./g, ".");
+  
+  // Enforce punchline-first style
+  if (isPunchlineStyle && !isPunchlineFirst(result)) {
+    result = "Spoiler first then " + result[0].toLowerCase() + result.slice(1);
+  }
+  
+  // Add Thanksgiving context if missing
+  if (!hasThanksgivingContext(result)) {
+    result = result.replace(/\.$/, " at the table.");
+  }
+  
+  // Add romantic tone if missing
+  if (!hasRomanticTone(result)) {
+    result = result.replace(/\.$/, " and my heart knows it.");
+  }
+  
+  // Clean up grammar
+  result = result.replace(/\.$/, ".").replace(/^[a-z]/, m => m.toUpperCase());
+  
+  return result;
 }
 
 export function validateRomanticTone(text: string, context: string): boolean {
