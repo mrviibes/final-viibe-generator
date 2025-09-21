@@ -5555,7 +5555,9 @@ const Index = () => {
         const isTextValid = await validateTextRendering(imageUrl, finalText, layout);
         if (isTextValid) {
           console.log(`✅ Text rendering successful on attempt ${attempt + 1}`);
+          console.log(`🖼️ Setting generated image URL: ${imageUrl}`);
           setGeneratedImageUrl(imageUrl);
+          console.log(`🖼️ Image URL state should now be set`);
           sonnerToast.success("Your VIIBE has been generated successfully!");
           return;
         }
@@ -5580,7 +5582,9 @@ const Index = () => {
       setBackgroundOnlyImageUrl(backgroundImageUrl);
       setShowTextOverlay(true);
       setShouldUseFallback(true);
+      console.log(`🖼️ Setting fallback image URL: ${backgroundImageUrl}`);
       setGeneratedImageUrl(backgroundImageUrl);
+      console.log(`🖼️ Fallback image URL state should now be set`);
       sonnerToast.success("Image generated with text overlay fallback");
     } catch (error) {
       throw new Error("Fallback generation also failed");
@@ -5662,8 +5666,11 @@ const Index = () => {
       seed: seedValue
     });
     if (response.data && response.data.length > 0) {
-      return response.data[0].url;
+      const imageUrl = response.data[0].url;
+      console.log(`🖼️ Generated image URL from API: ${imageUrl}`);
+      return imageUrl;
     } else {
+      console.error('❌ No image data received from Ideogram API', response);
       throw new Error("No image data received from Ideogram API");
     }
   };
@@ -7376,10 +7383,16 @@ const Index = () => {
                        </Button>
                        <TextRenderingStatus status={textRenderingStatus} className="mb-2" />
                        <p className="text-sm text-muted-foreground">This may take a few moments</p>
-                    </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
-                       {showTextOverlay && backgroundOnlyImageUrl ? <CaptionOverlay imageUrl={backgroundOnlyImageUrl} caption={selectedGeneratedOption || stepTwoText || ""} layout={selectedTextLayout || "memeTopBottom"} onImageReady={composedImageUrl => {
-                  setFinalImageWithText(composedImageUrl);
-                }} /> : <img src={generatedImageUrl} alt="Generated VIIBE" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />}
+                     </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
+                        {showTextOverlay && backgroundOnlyImageUrl ? <CaptionOverlay imageUrl={backgroundOnlyImageUrl} caption={selectedGeneratedOption || stepTwoText || ""} layout={selectedTextLayout || "memeTopBottom"} onImageReady={composedImageUrl => {
+                   setFinalImageWithText(composedImageUrl);
+                 }} /> : <img 
+                   src={generatedImageUrl} 
+                   alt="Generated VIIBE" 
+                   className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                   onLoad={() => console.log('🖼️ Image loaded successfully')}
+                   onError={(e) => console.error('❌ Image failed to load:', e, 'URL:', generatedImageUrl)}
+                 />}
                     </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
                       <AlertCircle className="h-8 w-8 text-destructive" />
                       <div>
