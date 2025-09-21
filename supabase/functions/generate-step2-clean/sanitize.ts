@@ -1,7 +1,7 @@
 export function stripSoftEcho(lines: string[], soft: string[]) {
   if (!soft.length) return lines;
   const re = new RegExp(`\\b(${soft.map(escape).join("|")})\\b`, "ig");
-  return lines.map(l => l.replace(re, m => synonyms[m.toLowerCase()] ?? "that"));
+  return lines.map(l => l.replace(re, "that"));
 }
 
 const synonyms: Record<string,string> = {

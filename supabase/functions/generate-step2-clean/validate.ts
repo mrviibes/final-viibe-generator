@@ -1,16 +1,22 @@
 import { ParsedTags } from "./tags.ts";
 
 export function validate(lines: string[], tags: ParsedTags) {
+  // Basic format: 40-100 chars, one sentence, no commas, no em dashes, starts with capital
   const basic = lines.length === 4 && lines.every(l =>
+    /^[A-Z]/.test(l) &&
     l.length >= 40 && l.length <= 100 &&
     (l.match(/\./g) || []).length === 1 &&
-    !/[—]/.test(l)
+    !/[,—]/.test(l)
   );
   if (!basic) return false;
 
-  if (tags.hard.length) {
-    const hits = lines.map(l => tags.hard.every(h => l.toLowerCase().includes(h.toLowerCase())));
-    if (hits.filter(Boolean).length < 3) return false;
+  // Hard tag validation: must appear in at least 3 of 4 lines
+  if (tags.hard.length > 0) {
+    const hits = lines.filter(l => 
+      tags.hard.every(h => l.toLowerCase().includes(h.toLowerCase()))
+    ).length;
+    if (hits < 3) return false;
   }
+  
   return true;
 }

@@ -6893,21 +6893,28 @@ const Index = () => {
                              </Select>
                           </div>
                           
-                          {/* Rating Dropdown */}
-                          <div className="flex flex-col items-center gap-2">
-                            <label className="text-sm font-medium text-muted-foreground">Rating</label>
-                            <Select value={selectedRatingTab} onValueChange={value => setSelectedRatingTab(value as "G" | "PG-13" | "R" | "Explicit")}>
-                              <SelectTrigger className="w-40">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="bg-background border border-border shadow-lg z-50">
-                                <SelectItem value="G">G - General</SelectItem>
-                                <SelectItem value="PG-13">PG-13 - Mild</SelectItem>
-                                <SelectItem value="R">R - Strong</SelectItem>
-                                <SelectItem value="Explicit">Explicit - Adult</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
+                           {/* Rating and Regenerate Controls */}
+                           <div className="flex flex-col items-center gap-4">
+                             <label className="text-sm font-medium text-muted-foreground">Rating</label>
+                             <div className="flex items-center gap-3">
+                               <Select value={selectedRatingTab} onValueChange={value => setSelectedRatingTab(value as "G" | "PG-13" | "R" | "Explicit")}>
+                                 <SelectTrigger className="w-40">
+                                   <SelectValue />
+                                 </SelectTrigger>
+                                 <SelectContent className="bg-background border border-border shadow-lg z-50">
+                                   <SelectItem value="G">G - General</SelectItem>
+                                   <SelectItem value="PG-13">PG-13 - Mild</SelectItem>
+                                   <SelectItem value="R">R - Strong</SelectItem>
+                                   <SelectItem value="Explicit">Explicit - Adult</SelectItem>
+                                 </SelectContent>
+                               </Select>
+                               
+                               <Button variant="outline" size="sm" onClick={handleGenerateText} disabled={isGenerating} className="text-xs h-9 px-3">
+                                 {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                                 Regenerate
+                               </Button>
+                             </div>
+                           </div>
                         </div>
                            
                         {/* Show options for selected rating */}
@@ -6951,15 +6958,7 @@ const Index = () => {
                         )}
                       </div>
                     </div>
-                  }
-
-                  {/* Regenerate Button */}
-                  <div className="mt-6 text-center">
-                    <Button variant="outline" size="sm" onClick={handleGenerateText} disabled={isGenerating} className="text-xs">
-                      {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                      Regenerate
-                    </Button>
-                  </div>
+                   }
 
                   {/* Regular Generated Options Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">

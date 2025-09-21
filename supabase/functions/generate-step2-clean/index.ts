@@ -32,34 +32,24 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
   const parsedTags = parseTags(inputs.tags);
   
   const context = `${inputs.category} > ${inputs.subcategory}`;
-  const ratings = ["G", "PG-13", "R", "Explicit"] as const;
-  
-  // Check for category-based explicit blocking
-  const category = inputs.category?.toLowerCase() || '';
-  const subcategory = inputs.subcategory?.toLowerCase() || '';
-  const animalContexts = ['animals', 'pets', 'wildlife', 'daily life'];
-  const animalSubcategories = ['dog park', 'pets', 'animals', 'wildlife', 'zoo', 'kids', 'school'];
-  
-  const isAnimalContext = animalContexts.includes(category) || animalSubcategories.includes(subcategory);
-  const effectiveRatings = isAnimalContext ? ["G", "PG-13", "R", "R"] : ratings; // Downgrade Explicit to R for animals
+  const RATINGS: Rating[] = ["G", "PG-13", "R", "Explicit"];
   
   const results: Partial<MultiRatingOutput> = {};
   const allJokes: string[] = [];
   
-  // Generate for each rating (2 options each)
-  for (let i = 0; i < ratings.length; i++) {
-    const rating = ratings[i];
-    const effectiveRating = effectiveRatings[i];
+  // Generate for each rating (2 options each)  
+  for (const rating of RATINGS) {
+    const normalizedRating = normalizeRating(inputs.category, inputs.tone, rating);
     results[rating] = [];
     
     // Generate 2 options per rating
     for (let optionIndex = 0; optionIndex < 2; optionIndex++) {
-      const comedian = selectComedianForRating(effectiveRating);
+      const comedian = selectComedianForRating(normalizedRating);
       
       console.log(`🎭 Generating ${rating} joke ${optionIndex + 1}/2 with ${comedian.name} voice`);
       
       const prompt = buildPromptForRating(
-        effectiveRating,
+        normalizedRating,
         comedian,
         context,
         inputs.tone || 'Humorous',
