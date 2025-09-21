@@ -6860,8 +6860,8 @@ const Index = () => {
                          <div className="flex flex-col items-center gap-2">
                            <label className="text-sm font-medium text-muted-foreground">Style</label>
                              <Select value={textStyle} onValueChange={value => {
-                     setTextStyle(value as 'punchline-first' | 'story' | 'pop-culture' | 'wildcard');
-                   }}>
+                    setTextStyle(value as 'punchline-first' | 'story' | 'pop-culture' | 'wildcard');
+                  }}>
                               <SelectTrigger className="w-40">
                                 <SelectValue />
                               </SelectTrigger>
@@ -6888,29 +6888,17 @@ const Index = () => {
                                 <SelectItem value="PG">PG</SelectItem>
                                 <SelectItem value="PG-13">PG-13</SelectItem>
                                 <SelectItem value="R">R</SelectItem>
-                                {!["Pets","Animals","Dog park","Kids","School","Teachers","Daycare"].includes(
-                                  selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' :
-                                  selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' :
-                                  selectedSubOption || ''
-                                ) && (
-                                  <SelectItem value="Explicit">Explicit</SelectItem>
-                                )}
+                                {!["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : selectedSubOption || '') && <SelectItem value="Explicit">Explicit</SelectItem>}
                               </SelectContent>
                            </Select>
                           </div>
                           
                           {/* Explicit rating warning */}
-                          {textRating === "Explicit" && ["Pets","Animals","Dog park","Kids","School","Teachers","Daycare"].includes(
-                            selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' :
-                            selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' :
-                            selectedSubOption || ''
-                          ) && (
-                            <div className="text-center mb-4">
+                          {textRating === "Explicit" && ["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : selectedSubOption || '') && <div className="text-center mb-4">
                               <small className="text-muted-foreground bg-accent/50 px-3 py-1 rounded-full text-xs">
                                 ℹ️ Explicit rating will be downgraded for this category
                               </small>
-                            </div>
-                          )}
+                            </div>}
                           
                           <Button variant="outline" size="sm" onClick={handleGenerateText} disabled={isGenerating} className="text-xs mt-6">
                             {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
@@ -7057,7 +7045,9 @@ const Index = () => {
                     {/* Subject generation form for AI Assist - show only if no visual is selected yet */}
                     {selectedSubjectOption === "ai-assist" && selectedVisualIndex === null && showSubjectTagEditor && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-8">
-                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add relevant tags for visual generation</h2>
+                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add text for visual generation (optional)
+
+                </h2>
                         </div>
 
                          <div className="max-w-lg mx-auto space-y-6">
