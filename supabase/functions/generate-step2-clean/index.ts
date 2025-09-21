@@ -46,92 +46,97 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
   const results: Partial<MultiRatingOutput> = {};
   const allJokes: string[] = [];
   
-  // Generate for each rating
+  // Generate for each rating (2 options each)
   for (let i = 0; i < ratings.length; i++) {
     const rating = ratings[i];
     const effectiveRating = effectiveRatings[i];
-    const comedian = selectComedianForRating(effectiveRating);
+    results[rating] = [];
     
-    console.log(`🎭 Generating ${rating} joke with ${comedian.name} voice`);
-    
-    const prompt = buildPromptForRating(
-      effectiveRating,
-      comedian,
-      context,
-      inputs.tone || 'Humorous',
-      inputs.style || 'punchline-first',
-      parsedTags
-    );
-    
-    try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [
-            { role: 'system', content: 'You are a professional comedian. Return exactly one joke sentence.' },
-            { role: 'user', content: prompt }
-          ],
-          max_completion_tokens: 100
-        }),
-        signal: AbortSignal.timeout(10000)
-      });
+    // Generate 2 options per rating
+    for (let optionIndex = 0; optionIndex < 2; optionIndex++) {
+      const comedian = selectComedianForRating(effectiveRating);
       
-      if (!response.ok) {
-        console.error(`❌ API Error for ${rating}:`, response.status);
-        // Use fallback
-        const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name);
-        results[rating] = {
-          voice: comedian.name,
-          text: fallbackText
-        };
-        allJokes.push(fallbackText);
-        continue;
-      }
+      console.log(`🎭 Generating ${rating} joke ${optionIndex + 1}/2 with ${comedian.name} voice`);
       
-      const data = await response.json();
-      let text = (data.choices?.[0]?.message?.content || '').trim();
+      const prompt = buildPromptForRating(
+        effectiveRating,
+        comedian,
+        context,
+        inputs.tone || 'Humorous',
+        inputs.style || 'punchline-first',
+        parsedTags
+      );
       
-      // Apply context and tone enforcement BEFORE validation so fixes are considered
-      text = enforceContextAndTone(text, context, inputs.tone || 'Humorous', inputs.style || 'punchline-first');
-      
-      // Validate the joke (romantic tone overrides rating-specific profanity requirements)
-      let isValidFormat = false;
-      if (inputs.tone?.toLowerCase() === 'romantic') {
-        // Use "G" rules for format + profanity ban, then romantic-specific checks
-        isValidFormat = validateRatingJoke(text, 'G', parsedTags) && validateRomanticTone(text, context);
-      } else {
-        isValidFormat = validateRatingJoke(text, effectiveRating, parsedTags);
-      }
-      
-      if (isValidFormat) {
-        results[rating] = {
-          voice: comedian.name,
-          text: text
-        };
-        allJokes.push(text);
-      } else {
-        console.warn(`⚠️ Validation failed for ${rating}, using fallback`);
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            messages: [
+              { role: 'system', content: 'You are a professional comedian. Return exactly one joke sentence.' },
+              { role: 'user', content: prompt }
+            ],
+            max_completion_tokens: 100
+          }),
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (!response.ok) {
+          console.error(`❌ API Error for ${rating} option ${optionIndex + 1}:`, response.status);
+          // Use fallback
+          const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name);
+          results[rating].push({
+            voice: comedian.name,
+            text: fallbackText
+          });
+          allJokes.push(fallbackText);
+          continue;
+        }
+        
+        const data = await response.json();
+        let text = (data.choices?.[0]?.message?.content || '').trim();
+        
+        // Apply context and tone enforcement BEFORE validation so fixes are considered
+        text = enforceContextAndTone(text, context, inputs.tone || 'Humorous', inputs.style || 'punchline-first');
+        
+        // Validate the joke (romantic tone overrides rating-specific profanity requirements)
+        let isValidFormat = false;
+        if (inputs.tone?.toLowerCase() === 'romantic') {
+          // Use "G" rules for format + profanity ban, then romantic-specific checks
+          isValidFormat = validateRatingJoke(text, 'G', parsedTags) && validateRomanticTone(text, context);
+        } else {
+          isValidFormat = validateRatingJoke(text, effectiveRating, parsedTags);
+        }
+        
+        if (isValidFormat) {
+          results[rating].push({
+            voice: comedian.name,
+            text: text
+          });
+          allJokes.push(text);
+        } else {
+          console.warn(`⚠️ Validation failed for ${rating} option ${optionIndex + 1}, using fallback`);
+          const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name, inputs.tone, inputs.style);
+          results[rating].push({
+            voice: comedian.name,
+            text: fallbackText
+          });
+          allJokes.push(fallbackText);
+        }
+        
+      } catch (error) {
+        console.error(`❌ Generation failed for ${rating} option ${optionIndex + 1}:`, error);
         const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name, inputs.tone, inputs.style);
-        results[rating] = {
+        results[rating].push({
           voice: comedian.name,
           text: fallbackText
-        };
+        });
         allJokes.push(fallbackText);
       }
-      
-    } catch (error) {
-      console.error(`❌ Generation failed for ${rating}:`, error);
-      const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name, inputs.tone, inputs.style);
-      results[rating] = {
-        voice: comedian.name,
-        text: fallbackText
-      };
-      allJokes.push(fallbackText);
     }
   }
   

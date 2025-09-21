@@ -65,10 +65,10 @@ interface TextGenOutput {
 }
 
 export interface MultiRatingOutput {
-  G: { voice: string; text: string };
-  "PG-13": { voice: string; text: string };
-  R: { voice: string; text: string };
-  Explicit: { voice: string; text: string };
+  G: { voice: string; text: string }[];
+  "PG-13": { voice: string; text: string }[];
+  R: { voice: string; text: string }[];
+  Explicit: { voice: string; text: string }[];
 }
 
 export interface MultiRatingResult {

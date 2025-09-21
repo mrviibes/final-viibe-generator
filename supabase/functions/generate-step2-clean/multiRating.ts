@@ -7,10 +7,10 @@ export interface RatingResult {
 }
 
 export interface MultiRatingOutput {
-  G: RatingResult;
-  "PG-13": RatingResult;
-  R: RatingResult;
-  Explicit: RatingResult;
+  G: RatingResult[];
+  "PG-13": RatingResult[];
+  R: RatingResult[];
+  Explicit: RatingResult[];
 }
 
 // Rating-specific comedian voice banks

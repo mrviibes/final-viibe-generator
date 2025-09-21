@@ -6865,122 +6865,124 @@ const Index = () => {
                   </>}
 
 
-                {/* Generated Text Options Grid - Show when options exist but no selection made */}
-                {multiRatingOptions && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    
-                    <div className="text-center mb-6">
-                      <div className="flex items-center justify-center gap-3 mb-4">
-                        <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
-                      </div>
-                      
-                       {/* Style and Rating Controls */}
-                       <div className="flex items-center justify-center gap-4 mb-4">
-                         {/* Style Dropdown */}
-                         <div className="flex flex-col items-center gap-2">
-                           <label className="text-sm font-medium text-muted-foreground">Style</label>
-                             <Select value={textStyle} onValueChange={value => {
-                    setTextStyle(value as 'punchline-first' | 'story' | 'pop-culture' | 'wildcard');
-                  }}>
+                 {/* Generated Text Options Grid - Show when options exist but no selection made */}
+                 {multiRatingOptions && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                     
+                     <div className="text-center mb-6">
+                       <div className="flex items-center justify-center gap-3 mb-4">
+                         <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
+                       </div>
+                       
+                        {/* Style and Rating Controls */}
+                        <div className="flex items-center justify-center gap-4 mb-4">
+                          {/* Style Dropdown */}
+                          <div className="flex flex-col items-center gap-2">
+                            <label className="text-sm font-medium text-muted-foreground">Style</label>
+                              <Select value={textStyle} onValueChange={value => {
+                     setTextStyle(value as 'punchline-first' | 'story' | 'pop-culture' | 'wildcard');
+                   }}>
+                               <SelectTrigger className="w-40">
+                                 <SelectValue />
+                               </SelectTrigger>
+                               <SelectContent className="bg-background border border-border shadow-lg z-50">
+                                 <SelectItem value="punchline-first">Punchline First</SelectItem>
+                                 <SelectItem value="story">Story Mode</SelectItem>
+                                 <SelectItem value="pop-culture">Pop Culture</SelectItem>
+                                 <SelectItem value="wildcard">Wild Card</SelectItem>
+                               </SelectContent>
+                             </Select>
+                          </div>
+                          
+                          {/* Rating Dropdown */}
+                          <div className="flex flex-col items-center gap-2">
+                            <label className="text-sm font-medium text-muted-foreground">Rating</label>
+                            <Select value={selectedRatingTab} onValueChange={value => setSelectedRatingTab(value as "G" | "PG-13" | "R" | "Explicit")}>
                               <SelectTrigger className="w-40">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent className="bg-background border border-border shadow-lg z-50">
-                                <SelectItem value="punchline-first">Punchline First</SelectItem>
-                                <SelectItem value="story">Story Mode</SelectItem>
-                                <SelectItem value="pop-culture">Pop Culture</SelectItem>
-                                <SelectItem value="wildcard">Wild Card</SelectItem>
+                                <SelectItem value="G">G - General</SelectItem>
+                                <SelectItem value="PG-13">PG-13 - Mild</SelectItem>
+                                <SelectItem value="R">R - Strong</SelectItem>
+                                <SelectItem value="Explicit">Explicit - Adult</SelectItem>
                               </SelectContent>
                             </Select>
-                         </div>
-                         
-                          {/* Remove Rating Selector - Now generating all ratings */}
-                          
-                          {/* Multi-Rating Tab Results */}
-                          {multiRatingOptions && (
-                            <div id="multi-rating-results" className="mt-6 space-y-4">
-                              <div className="text-center">
-                                <p className="text-sm font-medium text-muted-foreground mb-2">Generated for all ratings:</p>
-                                <div className="flex justify-center gap-1 bg-muted p-1 rounded-lg w-fit mx-auto">
-                                  {(['G', 'PG-13', 'R', 'Explicit'] as const).map((rating) => (
-                                    <button
-                                      key={rating}
-                                      onClick={() => setSelectedRatingTab(rating)}
-                                      className={`px-3 py-1 text-xs rounded-md transition-all ${
-                                        selectedRatingTab === rating
-                                          ? 'bg-primary text-primary-foreground shadow-sm'
-                                          : 'text-muted-foreground hover:text-foreground'
-                                      }`}
-                                    >
-                                      {rating}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                              
-                              <div className="bg-muted/30 p-4 rounded-lg">
-                                <div className="text-center space-y-2">
-                                  <p className="text-base font-medium">{multiRatingOptions.ratings[selectedRatingTab].text}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {multiRatingOptions.ratings[selectedRatingTab].voice} style
-                                  </p>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedGeneratedOption(multiRatingOptions.ratings[selectedRatingTab].text);
-                                      setSelectedGeneratedIndex(0);
-                                    }}
-                                    className="mt-2"
-                                  >
-                                    Select This Joke
-                                  </Button>
-                                </div>
-                              </div>
-                              
-                              {/* Show warning if Explicit was downgraded */}
-                              {["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(
-                                selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : 
-                                selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : 
-                                selectedSubOption || ''
-                              ) && selectedRatingTab === 'Explicit' && (
-                                <div className="text-center">
-                                  <small className="text-muted-foreground bg-accent/50 px-3 py-1 rounded-full text-xs">
-                                    ℹ️ Explicit not allowed for this category. Shown as R.
-                                  </small>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          
-                          <Button variant="outline" size="sm" onClick={handleGenerateText} disabled={isGenerating} className="text-xs mt-6">
-                            {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                            Regenerate
-                          </Button>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
-                      {!multiRatingOptions && generatedOptions.slice(0, 4).map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50" onClick={() => {
-                setSelectedGeneratedOption(option);
-                setSelectedGeneratedIndex(index);
-
-                // Reset editing state
-                setIsEditingSelectedText(false);
-              }}>
-                           <div className="space-y-3">
-                             <div className="flex items-center justify-between">
-                               <span className="text-sm font-medium text-muted-foreground">
-                                 Option {index + 1}
-                               </span>
-                             </div>
-                            <p className="text-sm text-card-foreground leading-relaxed whitespace-normal break-words overflow-wrap-anywhere">
-                              {option}
-                            </p>
                           </div>
-                        </Card>)}
+                        </div>
+                           
+                        {/* Show options for selected rating */}
+                        {multiRatingOptions.ratings[selectedRatingTab] && (
+                          <div className="space-y-4 max-w-2xl mx-auto">
+                            {multiRatingOptions.ratings[selectedRatingTab].map((option: any, idx: number) => (
+                              <Card key={idx} className="cursor-pointer hover:bg-accent transition-colors border-2 hover:border-primary/20" 
+                                    onClick={() => {
+                                      setSelectedGeneratedOption(option.text);
+                                      setSelectedGeneratedIndex(idx);
+                                    }}>
+                                <CardContent className="p-6">
+                                  <div className="text-center space-y-4">
+                                    <div className="text-base font-medium text-foreground leading-relaxed">
+                                      {option.text}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {option.voice} style
+                                    </div>
+                                    <Button variant="outline" className="mt-4">
+                                      Select This Joke
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Show warning if Explicit was downgraded */}
+                        {["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(
+                          selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : 
+                          selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : 
+                          selectedSubOption || ''
+                        ) && selectedRatingTab === 'Explicit' && (
+                          <div className="text-center mt-4">
+                            <small className="text-muted-foreground bg-accent/50 px-3 py-1 rounded-full text-xs">
+                              ℹ️ Explicit not allowed for this category. Shown as R.
+                            </small>
+                          </div>
+                        )}
+                      </div>
                     </div>
-
                   </div>}
+
+                  {/* Regenerate Button */}
+                  <div className="mt-6 text-center">
+                    <Button variant="outline" size="sm" onClick={handleGenerateText} disabled={isGenerating} className="text-xs">
+                      {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                      Regenerate
+                    </Button>
+                  </div>
+
+                  {/* Regular Generated Options Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
+                    {!multiRatingOptions && generatedOptions.slice(0, 4).map((option, index) => (
+                      <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50" 
+                            onClick={() => {
+                              setSelectedGeneratedOption(option);
+                              setSelectedGeneratedIndex(index);
+                              setIsEditingSelectedText(false);
+                            }}>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-muted-foreground">
+                              Option {index + 1}
+                            </span>
+                          </div>
+                          <p className="text-sm text-card-foreground leading-relaxed whitespace-normal break-words overflow-wrap-anywhere">
+                            {option}
+                          </p>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
 
                 {/* Show Write Myself input panel when selected but not confirmed */}
                 {selectedCompletionOption === "write-myself" && !isCustomTextConfirmed && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
