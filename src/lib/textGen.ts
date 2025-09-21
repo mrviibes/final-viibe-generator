@@ -64,6 +64,19 @@ interface TextGenOutput {
   }>;
 }
 
+export interface MultiRatingOutput {
+  G: { voice: string; text: string };
+  "PG-13": { voice: string; text: string };
+  R: { voice: string; text: string };
+  Explicit: { voice: string; text: string };
+}
+
+export interface MultiRatingResult {
+  ratings: MultiRatingOutput;
+  model: string;
+  timing: { total_ms: number };
+}
+
 function sanitizeAndValidate(text: string, inputs?: TextGenInput): TextGenOutput | null {
   try {
     // Clean up the response
@@ -369,8 +382,110 @@ async function retryWithBackoff<T>(
   throw lastError;
 }
 
+export async function generateMultiRatingLines(inputs: TextGenInput): Promise<MultiRatingResult> {
+  console.log('🚀 Generating multi-rating lines with inputs:', inputs);
+  
+  // ROBUST INPUT COERCION
+  const coercedInputs = {
+    category: inputs.category || 'daily-life',
+    subcategory: inputs.subcategory || 'general',
+    tone: inputs.tone || 'Humorous',
+    tags: inputs.tags || [],
+    style: inputs.style || 'punchline-first'
+  };
+
+  // Parse tags properly - handle different input formats
+  let hardTags: string[] = [];
+  let softTags: string[] = [];
+  
+  if (Array.isArray(coercedInputs.tags)) {
+    // Legacy array format - join and parse
+    const joinedTags = coercedInputs.tags.join(',');
+    const parsedArray = getTagArrays(joinedTags);
+    if (Array.isArray(parsedArray)) {
+      hardTags = parsedArray.filter((tag: string) => 
+        tag.startsWith('"') && tag.endsWith('"')
+      ).map((tag: string) => tag.slice(1, -1));
+      softTags = parsedArray.filter((tag: string) => 
+        !tag.startsWith('"') || !tag.endsWith('"')
+      );
+    }
+  } else if (typeof coercedInputs.tags === 'object' && coercedInputs.tags !== null) {
+    // New object format with hard/soft properties
+    const tagObj = coercedInputs.tags as any;
+    if (tagObj.hard && Array.isArray(tagObj.hard)) {
+      hardTags = tagObj.hard;
+    }
+    if (tagObj.soft && Array.isArray(tagObj.soft)) {
+      softTags = tagObj.soft;
+    }
+  }
+
+  const payload = {
+    category: coercedInputs.category,
+    subcategory: coercedInputs.subcategory,
+    tone: coercedInputs.tone,
+    tags: [...hardTags.map(t => `"${t}"`), ...softTags],
+    style: coercedInputs.style
+  };
+
+  try {
+    console.log('📡 Calling generate-step2-clean for multi-rating generation');
+    
+    const response = await supabase.functions.invoke('generate-step2-clean', {
+      body: payload
+    });
+
+    if (response.error) {
+      console.error('❌ Supabase function error:', response.error);
+      throw new Error(`Function error: ${response.error.message}`);
+    }
+
+    if (!response.data?.success || !response.data?.ratings) {
+      console.error('❌ Invalid response structure:', response.data);
+      throw new Error('Invalid response structure from function');
+    }
+
+    console.log('✅ Multi-rating generation successful');
+    return {
+      ratings: response.data.ratings,
+      model: response.data.model || 'unknown',
+      timing: response.data.timing || { total_ms: 0 }
+    };
+
+  } catch (error) {
+    console.error('❌ Multi-rating generation failed:', error);
+    
+    // Emergency fallback - generate all ratings with simple templates
+    const fallbackRatings: MultiRatingOutput = {
+      G: {
+        voice: "Jim Gaffigan",
+        text: `${coercedInputs.category} is like my sock drawer, organized chaos.`
+      },
+      "PG-13": {
+        voice: "Kevin Hart", 
+        text: `${coercedInputs.category} went sideways faster than expected, damn.`
+      },
+      R: {
+        voice: "Bill Burr",
+        text: `This ${coercedInputs.category} situation is fucked up, honestly.`
+      },
+      Explicit: {
+        voice: "Sarah Silverman",
+        text: `${coercedInputs.category} screwed me harder than my ex.`
+      }
+    };
+    
+    return {
+      ratings: fallbackRatings,
+      model: 'fallback',
+      timing: { total_ms: 0 }
+    };
+  }
+}
+
 export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenOutput> {
-  console.log('🚀 Generating step2 lines with inputs:', inputs);
+  console.log('🚀 Generating step2 lines with inputs (legacy mode):', inputs);
   
   // ROBUST INPUT COERCION
   const coercedInputs = {

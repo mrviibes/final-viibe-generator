@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "@/components/ui/sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled, parseVisualTags, normalizeTagInput } from "@/lib/textUtils";
 import { getTagArrays, sanitizeInput, ensureHardTags } from "@/lib/parseTags";
-import { generateStep2Lines } from "@/lib/textGen";
+import { generateStep2Lines, generateMultiRatingLines, type MultiRatingResult } from "@/lib/textGen";
 import { validateVisualBatch, validateCaptionMatch, shouldRetry, type VisualContext, type VisualConcept } from "@/lib/visualValidator";
 import { validateAppearanceConsistency } from "@/lib/appearanceValidator";
 import { testNetworkConnectivity } from "@/lib/networkTest";
@@ -4363,8 +4363,10 @@ const Index = () => {
   const [tagSuggestions, setTagSuggestions] = useState<TagSuggestion[]>([]);
   const [showTagSuggestionDialog, setShowTagSuggestionDialog] = useState<boolean>(false);
   const [generatedOptions, setGeneratedOptions] = useState<string[]>([]);
+  const [multiRatingOptions, setMultiRatingOptions] = useState<MultiRatingResult | null>(null);
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
+  const [selectedRatingTab, setSelectedRatingTab] = useState<"G" | "PG-13" | "R" | "Explicit">("PG-13");
   const [selectedTextLayout, setSelectedTextLayout] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [textGenerationModel, setTextGenerationModel] = useState<string | null>(null);
@@ -6874,31 +6876,64 @@ const Index = () => {
                             </Select>
                          </div>
                          
-                         {/* Rating Slider */}
-                         <div className="flex flex-col items-center gap-2">
-                           <label className="text-sm font-medium text-muted-foreground">Rating</label>
-                            <Select value={textRating} onValueChange={value => {
-                    setTextRating(value as 'G' | 'PG' | 'PG-13' | 'R' | 'Explicit');
-                  }}>
-                             <SelectTrigger className="w-20">
-                               <SelectValue />
-                             </SelectTrigger>
-                              <SelectContent className="bg-background border border-border shadow-lg z-50">
-                                <SelectItem value="G">G</SelectItem>
-                                <SelectItem value="PG">PG</SelectItem>
-                                <SelectItem value="PG-13">PG-13</SelectItem>
-                                <SelectItem value="R">R</SelectItem>
-                                {!["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : selectedSubOption || '') && <SelectItem value="Explicit">Explicit</SelectItem>}
-                              </SelectContent>
-                           </Select>
-                          </div>
+                          {/* Remove Rating Selector - Now generating all ratings */}
                           
-                          {/* Explicit rating warning */}
-                          {textRating === "Explicit" && ["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : selectedSubOption || '') && <div className="text-center mb-4">
-                              <small className="text-muted-foreground bg-accent/50 px-3 py-1 rounded-full text-xs">
-                                ℹ️ Explicit rating will be downgraded for this category
-                              </small>
-                            </div>}
+                          {/* Multi-Rating Tab Results */}
+                          {multiRatingOptions && (
+                            <div className="mt-6 space-y-4">
+                              <div className="text-center">
+                                <p className="text-sm font-medium text-muted-foreground mb-2">Generated for all ratings:</p>
+                                <div className="flex justify-center gap-1 bg-muted p-1 rounded-lg w-fit mx-auto">
+                                  {(['G', 'PG-13', 'R', 'Explicit'] as const).map((rating) => (
+                                    <button
+                                      key={rating}
+                                      onClick={() => setSelectedRatingTab(rating)}
+                                      className={`px-3 py-1 text-xs rounded-md transition-all ${
+                                        selectedRatingTab === rating
+                                          ? 'bg-primary text-primary-foreground shadow-sm'
+                                          : 'text-muted-foreground hover:text-foreground'
+                                      }`}
+                                    >
+                                      {rating}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              
+                              <div className="bg-muted/30 p-4 rounded-lg">
+                                <div className="text-center space-y-2">
+                                  <p className="text-base font-medium">{multiRatingOptions.ratings[selectedRatingTab].text}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {multiRatingOptions.ratings[selectedRatingTab].voice} style
+                                  </p>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedGeneratedOption(multiRatingOptions.ratings[selectedRatingTab].text);
+                                      setSelectedGeneratedIndex(0);
+                                    }}
+                                    className="mt-2"
+                                  >
+                                    Select This Joke
+                                  </Button>
+                                </div>
+                              </div>
+                              
+                              {/* Show warning if Explicit was downgraded */}
+                              {["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(
+                                selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : 
+                                selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : 
+                                selectedSubOption || ''
+                              ) && selectedRatingTab === 'Explicit' && (
+                                <div className="text-center">
+                                  <small className="text-muted-foreground bg-accent/50 px-3 py-1 rounded-full text-xs">
+                                    ℹ️ Explicit not allowed for this category. Shown as R.
+                                  </small>
+                                </div>
+                              )}
+                            </div>
+                          )}
                           
                           <Button variant="outline" size="sm" onClick={handleGenerateText} disabled={isGenerating} className="text-xs mt-6">
                             {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
