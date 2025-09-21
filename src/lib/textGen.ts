@@ -58,10 +58,14 @@ interface TextGenInput {
 }
 
 interface TextGenOutput {
-  lines: Array<{
+  lines?: Array<{
     lane: string;
     text: string;
   }>;
+  success?: boolean;
+  multiRatingData?: MultiRatingResult;
+  model?: string;
+  timing?: any;
 }
 
 export interface MultiRatingOutput {
@@ -558,9 +562,25 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
       throw new Error(`Generation failed: ${errorMsg}`);
     }
 
+    // Handle multi-rating response
+    if (result?.ratings && typeof result.ratings === 'object') {
+      console.log('✅ Multi-rating response received');
+      return {
+        success: true,
+        multiRatingData: {
+          ratings: result.ratings,
+          model: result.model || 'unknown',
+          timing: result.timing || { total_ms: 0 }
+        },
+        model: result.model || 'unknown',
+        timing: result.timing
+      };
+    }
+
+    // Fallback to legacy format
     if (!result?.lines || !Array.isArray(result.lines)) {
       console.error('❌ Invalid response structure:', result);
-      throw new Error('Invalid response: missing or invalid lines array');
+      throw new Error('Invalid response: missing lines array or ratings object');
     }
 
     if (result.lines.length < 4) {

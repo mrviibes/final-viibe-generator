@@ -61,23 +61,34 @@ export function buildPromptForRating(
   const hardTagsStr = tags.hard.length ? tags.hard.join(", ") : "none";
   const softTagsStr = tags.soft.length ? tags.soft.slice(0, 6).join(" | ") : "none";
   
+  // Context-specific lexicon enforcement
+  const contextLower = context.toLowerCase();
+  let contextWords = "";
+  
+  if (contextLower.includes("thanksgiving")) {
+    contextWords = "Thanksgiving lexicon REQUIRED: turkey, gravy, pie, table, toast, leftovers, cranberry, family, stuffing";
+  } else if (contextLower.includes("birthday")) {
+    contextWords = "Birthday lexicon REQUIRED: cake, candles, party, wish, balloons, celebrate";
+  } else if (contextLower.includes("christmas")) {
+    contextWords = "Christmas lexicon REQUIRED: tree, gifts, snow, cookies, family, lights";
+  }
+  
+  // Style enforcement
+  let styleInstructions = "";
+  if (style.toLowerCase() === "punchline-first") {
+    styleInstructions = "PUNCHLINE-FIRST STRUCTURE: Start with a reveal word (Spoiler, Plot twist, News flash, Fine, Okay) then deliver the punchline.";
+  }
+  
   // Special handling for Romantic tone
   let toneInstructions = "";
   if (tone.toLowerCase() === "romantic") {
     toneInstructions = [
       "ROMANTIC TONE OVERRIDE:",
-      "- NO profanity allowed (overrides rating)",
-      "- MUST include affectionate language: love, adore, heart, warm, sweet, tender",
-      "- If birthday context: MUST include birthday words: cake, candles, party, wish, balloons",
-      "- Pop culture allowed but max ONE entity per batch",
-      "- Keep it genuinely affectionate, not generic hype"
+      "- NO profanity allowed (overrides rating for G/PG-13)",
+      "- MUST include affectionate language: love, adore, heart, warm, sweet, tender, dear, cherish",
+      "- Keep it genuinely affectionate and warm, not generic hype",
+      "- Pop culture allowed but max ONE entity per batch"
     ].join("\n");
-  }
-  
-  // Context-specific lexicon
-  let contextWords = "";
-  if (context.toLowerCase().includes("birthday")) {
-    contextWords = "Birthday lexicon REQUIRED: cake, candles, party, wish, balloons, celebrate";
   }
 
   return [
@@ -85,6 +96,7 @@ export function buildPromptForRating(
     `Write a real joke in ${style} style. Sound like ${comedian.name}.`,
     `Context: ${context}. Keep it visibly about that context.`,
     contextWords ? `CONTEXT WORDS: ${contextWords}` : "",
+    styleInstructions ? styleInstructions : "",
     `Rating: ${rating} - ${ratingInstructions[rating as keyof typeof ratingInstructions]}`,
     toneInstructions ? toneInstructions : "",
     `Comedian style: ${comedian.style}`,
@@ -170,15 +182,50 @@ export function validateRomanticTone(text: string, context: string): boolean {
   if (profanityWords.some(word => lowerText.includes(word))) return false;
   
   // Require affectionate language
-  const affectionWords = ['love', 'adore', 'heart', 'warm', 'sweet', 'tender', 'cherish', 'treasure'];
+  const affectionWords = ['love', 'adore', 'heart', 'warm', 'sweet', 'tender', 'cherish', 'treasure', 'dear'];
   const hasAffection = affectionWords.some(word => lowerText.includes(word));
   
-  // Check for birthday context words if it's a birthday context
-  if (lowerContext.includes('birthday')) {
+  // Check for context-specific words
+  let hasContextWords = true;
+  if (lowerContext.includes('thanksgiving')) {
+    const thanksgivingWords = ['turkey', 'gravy', 'pie', 'table', 'toast', 'leftovers', 'cranberry', 'family', 'stuffing'];
+    hasContextWords = thanksgivingWords.some(word => lowerText.includes(word));
+  } else if (lowerContext.includes('birthday')) {
     const birthdayWords = ['cake', 'candles', 'party', 'wish', 'balloons', 'celebrate'];
-    const hasBirthdayContext = birthdayWords.some(word => lowerText.includes(word));
-    return hasAffection || hasBirthdayContext;
+    hasContextWords = birthdayWords.some(word => lowerText.includes(word));
+  } else if (lowerContext.includes('christmas')) {
+    const christmasWords = ['tree', 'gifts', 'snow', 'cookies', 'family', 'lights'];
+    hasContextWords = christmasWords.some(word => lowerText.includes(word));
   }
   
-  return hasAffection;
+  return hasAffection && hasContextWords;
+}
+
+export function validatePunchlineFirstStyle(text: string): boolean {
+  const lowerText = text.toLowerCase();
+  // Must start with punchline-first cue words
+  const punchlineStarters = ['spoiler', 'plot twist', 'news flash', 'fine', 'okay', 'guess what'];
+  return punchlineStarters.some(starter => lowerText.startsWith(starter));
+}
+
+export function validateContextLexicon(text: string, context: string): boolean {
+  const lowerText = text.toLowerCase();
+  const lowerContext = context.toLowerCase();
+  
+  if (lowerContext.includes('thanksgiving')) {
+    const thanksgivingWords = ['turkey', 'gravy', 'pie', 'table', 'toast', 'leftovers', 'cranberry', 'family', 'stuffing'];
+    return thanksgivingWords.some(word => lowerText.includes(word));
+  }
+  
+  if (lowerContext.includes('birthday')) {
+    const birthdayWords = ['cake', 'candles', 'party', 'wish', 'balloons', 'celebrate'];
+    return birthdayWords.some(word => lowerText.includes(word));
+  }
+  
+  if (lowerContext.includes('christmas')) {
+    const christmasWords = ['tree', 'gifts', 'snow', 'cookies', 'family', 'lights'];
+    return christmasWords.some(word => lowerText.includes(word));
+  }
+  
+  return true; // Default true for other contexts
 }

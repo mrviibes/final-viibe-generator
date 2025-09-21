@@ -5412,7 +5412,21 @@ const Index = () => {
       // Clear previous selection when generating/regenerating
       setSelectedGeneratedOption(null);
       setSelectedGeneratedIndex(null);
-      setGeneratedOptions(result.lines.map(line => line.text));
+      
+      if (result.multiRatingData) {
+        // Handle multi-rating response (new format)
+        setMultiRatingOptions(result.multiRatingData);
+        setGeneratedOptions([]);
+        console.log('✅ Multi-rating generation completed');
+      } else if (result.lines && result.lines.length > 0) {
+        // Handle legacy single rating response  
+        setGeneratedOptions(result.lines.map(line => line.text));
+        setMultiRatingOptions(null);
+        console.log('✅ Text generation completed successfully');
+      } else {
+        throw new Error('No valid content generated');
+      }
+      
       setTextGenerationModel('gpt-5-mini-2025-08-07');
       setTextGenerationMetadata({
         validated: true,
