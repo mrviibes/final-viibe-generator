@@ -4,6 +4,7 @@ import { analyzeContext } from '@/lib/contextDetector';
 import { generateContextualFallback } from '@/lib/contextLexicon';
 import { ensureHardTagsInFallback, enforceHardTagsPostGeneration } from '@/lib/hardTagEnforcer';
 import { validateBatchPunchlines } from '@/lib/punchlineValidator';
+import { validateStructureVariety, enforceStructureVariety } from '@/lib/structureValidator';
 
 const SYSTEM_PROMPT = `You are a text line generator for memes and image overlays. Your job is to create exactly 4 one-liners based on the given category, subcategory, tone, and tags.
 
@@ -454,42 +455,39 @@ export async function generateStep2Lines(inputs: TextGenInput): Promise<TextGenO
 
     console.log('✅ Validation passed, applying enhanced hard tag enforcement');
     
-    // Apply enhanced hard tag enforcement with punchline validation
-    
-    let finalLines = result.lines;
-    
-    // Validate punchline structure first
-    const punchlineValidation = validateBatchPunchlines(finalLines);
-    console.log('🎭 Punchline validation:', {
-      overallScore: punchlineValidation.overallScore,
-      stageReady: punchlineValidation.stageReadyCount,
-      issues: punchlineValidation.totalIssues
+    // Apply structure variety enforcement and fragment fixes
+    const structureValidation = validateStructureVariety(result.lines);
+    console.log('🎭 Structure analysis:', {
+      variety: structureValidation.hasRequiredVariety,
+      absurd: structureValidation.hasAbsurdImagery,
+      structures: structureValidation.structureCount
     });
     
-    // Apply hard tag enforcement that survives failures
+    let processedLines = enforceStructureVariety(result.lines);
+    
+    // Apply post-generation hard tag enforcement  
     if (hardTags.length > 0) {
       const enforcement = enforceHardTagsPostGeneration(
-        finalLines.map((line: any) => line.text),
+        processedLines.map((line: any) => line.text),
         hardTags,
         3
       );
       
       if (enforcement.wasModified) {
-        finalLines = finalLines.map((line: any, idx: number) => ({
+        processedLines = processedLines.map((line: any, idx: number) => ({
           ...line,
           text: enforcement.enforcedLines[idx] || line.text
         }));
         
         console.log('✅ Enhanced hard tag enforcement applied:', {
           coverage: `${enforcement.tagCoverage.toFixed(1)}%`,
-          modified: enforcement.wasModified,
-          log: enforcement.enforcementLog
+          modified: enforcement.wasModified
         });
       }
     }
     
     return {
-      lines: finalLines.map((line: any) => ({
+      lines: processedLines.map((line: any) => ({
         lane: line.lane || 'default',
         text: line.text || ''
       }))

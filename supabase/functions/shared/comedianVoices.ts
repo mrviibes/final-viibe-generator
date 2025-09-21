@@ -27,10 +27,47 @@ export function selectVoicesForAllLines(style: string, rating: string, lineCount
     return Array(lineCount).fill(singleVoice || 'default');
   }
   
-  // Select different voice for each line
+  // Select different voice for each line with structure variety enforcement
   const voices: string[] = [];
+  const usedVoices = new Set<string>();
+  
   for (let i = 0; i < lineCount; i++) {
-    voices.push(selectComedianVoice(style, rating) || 'default');
+    let selectedVoice = selectComedianVoice(style, rating) || 'default';
+    
+    // Ensure unique voices per batch if enforcement is enabled
+    if (VIIBE_CONFIG.comedianVoices.enforceUniqueVoicesPerBatch) {
+      let attempts = 0;
+      while (usedVoices.has(selectedVoice) && attempts < 10) {
+        selectedVoice = selectComedianVoice(style, rating) || 'default';
+        attempts++;
+      }
+      usedVoices.add(selectedVoice);
+    }
+    
+    voices.push(selectedVoice);
+  }
+  
+  return voices;
+}
+
+export function selectVoicesForStructures(structures: string[]): string[] {
+  const structureMapping = VIIBE_CONFIG.comedianVoices.structureMapping;
+  const voices: string[] = [];
+  const usedVoices = new Set<string>();
+  
+  for (const structure of structures) {
+    const availableVoices = structureMapping[structure] || structureMapping['punchline_first'];
+    let selectedVoice = availableVoices[Math.floor(Math.random() * availableVoices.length)];
+    
+    // Ensure unique voices
+    let attempts = 0;
+    while (usedVoices.has(selectedVoice) && attempts < 10) {
+      selectedVoice = availableVoices[Math.floor(Math.random() * availableVoices.length)];
+      attempts++;
+    }
+    
+    usedVoices.add(selectedVoice);
+    voices.push(selectedVoice);
   }
   
   return voices;

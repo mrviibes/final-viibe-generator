@@ -39,6 +39,12 @@ export const VIIBE_CONFIG_V2 = {
     }
   },
   "comedianVoices": {
+    "structureMapping": {
+      "roast": ["bill_burr", "joan_rivers", "mitch_hedberg"],
+      "absurd": ["ali_wong", "demetri_martin", "norm_macdonald"],
+      "punchline_first": ["kevin_hart", "chris_rock"],
+      "story": ["john_mulaney", "hasan_minhaj", "mike_birbiglia"]
+    },
     "banks": {
       "punchline-first": ["kevin_hart", "chris_rock", "joan_rivers", "ali_wong"],
       "story": ["john_mulaney", "mike_birbiglia", "hasan_minhaj", "taylor_tomlinson"],
@@ -46,7 +52,8 @@ export const VIIBE_CONFIG_V2 = {
       "wildcard": ["mitch_hedberg", "anthony_jeselnik", "bill_burr", "demetri_martin"]
     },
     "alwaysRandomizePerLine": true,
-    "enabledForAllStyles": true
+    "enabledForAllStyles": true,
+    "enforceUniqueVoicesPerBatch": true
   },
   "popCulture": {
     "enableCooldown": true,
@@ -107,5 +114,25 @@ export const VIIBE_CONFIG_V2 = {
     "banFlatDescriptions": true,
     "enabledTones": ["Humorous", "Savage", "Playful", "Wildcard"],
     "flatDescriptionPatterns": ["is tall at", "plays basketball", "simple description", "just", "only", "basic"]
+  },
+  "structureVariety": {
+    "enforcePerBatch": true,
+    "requiredStructures": ["roast", "absurd", "punchline_first", "story"],
+    "absurdImageryPatterns": [
+      "like a [animal] [doing human thing]",
+      "treats [object] like [impossible comparison]", 
+      "[person] approaches [activity] like [surreal analogy]",
+      "looks like [thing] arguing with [other thing]"
+    ]
+  },
+  "fragmentValidation": {
+    "bannedEndings": ["to", "of", "and", "but", "or", "with", "from", "in", "on", "at"],
+    "autoCompletions": {
+      "to": ["lose one", "go wrong", "fail spectacularly"],
+      "of": ["chaos", "disappointment", "regret"],
+      "and": ["nobody asked", "it shows", "here we are"],
+      "but": ["nobody cares", "it backfired", "plot twist"],
+      "with": ["zero success", "maximum chaos", "predictable results"]
+    }
   }
 } as const;

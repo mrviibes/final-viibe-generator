@@ -243,6 +243,18 @@ async function generateWithGPT5(inputs: any): Promise<any> {
     assignComedianToOption(3, inputs.style)
   ];
 
+  // Enhanced structure variety enforcement
+  const requiredStructures = ['roast', 'absurd', 'punchline_first', 'story'];
+  const structureInstructions = requiredStructures.map((structure, index) => {
+    const instructions = {
+      'roast': 'Create a roast-style one-liner with confrontational energy',
+      'absurd': 'Create an absurd comparison using animals or impossible analogies',
+      'punchline_first': 'Structure as punchline first, then explanation', 
+      'story': 'Create a mini narrative with setup and payoff'
+    };
+    return `Option ${index + 1}: ${instructions[structure]} (${comedianAssignments[index].comedian.name} voice)`;
+  }).join('\n');
+
   // ENHANCED SYSTEM PROMPT WITH CONTEXT & COMEDIAN VOICES
   const contextInstructions = contextualPromptAdditions.length > 0 
     ? `\n## CONTEXT AWARENESS:\n${contextualPromptAdditions.map(add => `- ${add}`).join('\n')}\n`
