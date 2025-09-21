@@ -7043,10 +7043,6 @@ const Index = () => {
                          <div className="max-w-lg mx-auto space-y-6">
                             {/* Tag Input */}
                             <div className="space-y-4">
-                                <Input value={subjectTagInput} onChange={e => handleSubjectTagInputChange(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder='This box is optional' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${subjectTagInputWarning ? 'border-destructive' : 'border-border'}`} />
-                                {subjectTagInputWarning && <p className="text-xs text-destructive text-center mt-1">
-                                    ⚠️ {subjectTagInputWarning}
-                                  </p>}
                                {/* Tag explanation */}
                                 <div className="text-left space-y-1">
                                   <p className="text-sm text-muted-foreground">
@@ -7056,6 +7052,10 @@ const Index = () => {
                                     <span className="font-bold">Unquoted text</span> = just influences the visuals
                                   </p>
                                 </div>
+                                <Input value={subjectTagInput} onChange={e => handleSubjectTagInputChange(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder='This box is optional' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${subjectTagInputWarning ? 'border-destructive' : 'border-border'}`} />
+                                {subjectTagInputWarning && <p className="text-xs text-destructive text-center mt-1">
+                                    ⚠️ {subjectTagInputWarning}
+                                  </p>}
                                
                                {/* Display tags - moved above toggle */}
                                {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
