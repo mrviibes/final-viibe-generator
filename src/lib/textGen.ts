@@ -394,38 +394,56 @@ export async function generateMultiRatingLines(inputs: TextGenInput): Promise<Mu
     style: inputs.style || 'punchline-first'
   };
 
-  // Parse tags properly - handle different input formats
+  // Parse tags properly - create structured format that edge function expects
   let hardTags: string[] = [];
   let softTags: string[] = [];
   
-  if (Array.isArray(coercedInputs.tags)) {
-    // Legacy array format - join and parse
-    const joinedTags = coercedInputs.tags.join(',');
-    const parsedArray = getTagArrays(joinedTags);
-    if (Array.isArray(parsedArray)) {
-      hardTags = parsedArray.filter((tag: string) => 
-        tag.startsWith('"') && tag.endsWith('"')
-      ).map((tag: string) => tag.slice(1, -1));
-      softTags = parsedArray.filter((tag: string) => 
-        !tag.startsWith('"') || !tag.endsWith('"')
-      );
-    }
-  } else if (typeof coercedInputs.tags === 'object' && coercedInputs.tags !== null) {
-    // New object format with hard/soft properties
-    const tagObj = coercedInputs.tags as any;
-    if (tagObj.hard && Array.isArray(tagObj.hard)) {
-      hardTags = tagObj.hard;
-    }
-    if (tagObj.soft && Array.isArray(tagObj.soft)) {
-      softTags = tagObj.soft;
-    }
+  const tags = coercedInputs.tags as any; // Type assertion for flexibility
+  
+  if (Array.isArray(tags)) {
+    // Process array of tags - detect hard tags (quoted or @-prefixed)
+    tags.forEach((tag: any) => {
+      const normalizedTag = String(tag).replace(/[""]/g, '"').replace(/['']/g, "'").trim();
+      const isHard = /^".+"$/.test(normalizedTag) || /^@/.test(normalizedTag);
+      const cleanTag = normalizedTag.replace(/^@/, "").replace(/^["']|["']$/g, "").trim();
+      
+      if (cleanTag) {
+        if (isHard) {
+          hardTags.push(cleanTag);
+        } else {
+          softTags.push(cleanTag);
+        }
+      }
+    });
+  } else if (typeof tags === 'object' && tags !== null) {
+    // Already structured format
+    hardTags = tags.hard || [];
+    softTags = tags.soft || [];
+  } else if (typeof tags === 'string') {
+    // String format - split and parse
+    const items = tags.split(',').map((s: string) => s.trim()).filter(Boolean);
+    items.forEach((tag: string) => {
+      const normalizedTag = tag.replace(/[""]/g, '"').replace(/['']/g, "'").trim();
+      const isHard = /^".+"$/.test(normalizedTag) || /^@/.test(normalizedTag);
+      const cleanTag = normalizedTag.replace(/^@/, "").replace(/^["']|["']$/g, "").trim();
+      
+      if (cleanTag) {
+        if (isHard) {
+          hardTags.push(cleanTag);
+        } else {
+          softTags.push(cleanTag);
+        }
+      }
+    });
   }
+
+  console.log('🏷️ Parsed tags:', { hardTags, softTags, original: coercedInputs.tags });
 
   const payload = {
     category: coercedInputs.category,
     subcategory: coercedInputs.subcategory,
     tone: coercedInputs.tone,
-    tags: [...hardTags.map(t => `"${t}"`), ...softTags],
+    tags: { hard: hardTags, soft: softTags }, // Send as structured object
     style: coercedInputs.style
   };
 
