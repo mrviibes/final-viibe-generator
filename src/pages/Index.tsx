@@ -29,6 +29,7 @@ import { toast as sonnerToast } from "@/components/ui/sonner";
 import { normalizeTypography, suggestContractions, isTextMisspelled, parseVisualTags, normalizeTagInput } from "@/lib/textUtils";
 import { getTagArrays, sanitizeInput, ensureHardTags } from "@/lib/parseTags";
 import { generateStep2Lines, generateMultiRatingLines, type MultiRatingResult } from "@/lib/textGen";
+import { generateSingleMode } from "@/lib/singleTextGen";
 import { validateVisualBatch, validateCaptionMatch, shouldRetry, type VisualContext, type VisualConcept } from "@/lib/visualValidator";
 import { validateAppearanceConsistency } from "@/lib/appearanceValidator";
 import { testNetworkConnectivity } from "@/lib/networkTest";
@@ -5317,7 +5318,149 @@ const Index = () => {
     }
   };
 
-  // Generate text using new text generator
+  // Generate text using single-mode generator
+  const handleGenerateSingle = async () => {
+    if (!textStyle || !selectedRatingTab) {
+      sonnerToast.error("Please select both Style and Rating first");
+      return;
+    }
+
+    // Skip AI generation in barebones mode
+    if (barebonesMode) {
+      sonnerToast.error("AI text generation is disabled in barebones mode. Please use 'Write my own line' option.");
+      return;
+    }
+
+    if (!openAIService.hasApiKey()) {
+      setShowApiKeyDialog(true);
+      return;
+    }
+
+    // Auto-commit pending tag input before generating
+    if (tagInput.trim()) {
+      setTags([...tags, tagInput.trim()]);
+      setTagInput("");
+    }
+
+    setIsGenerating(true);
+    setGeneratedOptions([]);
+    setSingleModeOptions(null);
+
+    // Safety timeout
+    const safetyTimeoutId = setTimeout(() => {
+      console.warn('🚨 Safety timeout triggered - forcing loading state to clear');
+      setIsGenerating(false);
+      toast({
+        title: 'Generation Timeout',
+        description: 'The request took too long and was cancelled. Please try again.',
+        variant: 'destructive'
+      });
+    }, 90000);
+
+    try {
+      let category = '';
+      let subcategory = '';
+      let finalTags = [...tags];
+
+      // Map category
+      switch (selectedStyle) {
+        case 'celebrations':
+          category = 'Celebrations';
+          break;
+        case 'sports':
+          category = 'Sports';
+          break;
+        case 'daily-life':
+          category = 'Daily Life';
+          break;
+        case 'vibes-punchlines':
+          category = 'Vibes & Punchlines';
+          break;
+        case 'pop-culture':
+          category = 'Pop Culture';
+          break;
+        case 'random':
+          category = 'Random';
+          break;
+        default:
+          category = 'Random';
+      }
+
+      // Get subcategory based on selected option
+      if (selectedStyle === 'celebrations' && selectedSubOption) {
+        const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+        subcategory = celebOption?.name || selectedSubOption;
+      } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+        const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+        subcategory = popOption?.name || selectedSubOption;
+        if (selectedPick) {
+          finalTags.push(selectedPick);
+        }
+      } else if (selectedStyle === 'vibes-punchlines' && selectedSubOption) {
+        subcategory = selectedSubOption;
+        if (selectedSubOption === "Career Jokes" && selectedPick) {
+          finalTags.push(selectedPick);
+        }
+      } else if (selectedSubOption) {
+        subcategory = selectedSubOption;
+      } else {
+        subcategory = 'General';
+      }
+
+      // Get tone from text style
+      const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
+      const tone = selectedTextStyleObj?.name || 'Humorous';
+
+      console.log('🎯 Single mode generation with:', {
+        category,
+        subcategory,
+        tone,
+        style: textStyle,
+        rating: selectedRatingTab,
+        tags: finalTags
+      });
+
+      const result = await generateSingleMode({
+        category,
+        subcategory,
+        tone,
+        style: textStyle,
+        rating: selectedRatingTab,
+        tags: finalTags
+      });
+
+      clearTimeout(safetyTimeoutId);
+
+      if (result.success && result.options?.length === 2) {
+        setSingleModeOptions(result.options);
+        console.log('✅ Single mode generation successful:', result.options);
+      } else {
+        throw new Error('Invalid response format');
+      }
+
+    } catch (error: any) {
+      clearTimeout(safetyTimeoutId);
+      console.error('❌ Single mode generation failed:', error);
+      
+      const errorMessage = error?.message || 'Unknown error occurred';
+      setSingleModeOptions(null);
+
+      toast({
+        title: "Generation Failed",
+        description: `${errorMessage}. Try again or check your settings.`,
+        variant: "destructive",
+        action: (
+          <Button variant="outline" size="sm" onClick={() => handleGenerateSingle()}>
+            Retry
+          </Button>
+        )
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Legacy multi-rating generator for fallback
   const handleGenerateText = async () => {
     // Skip AI generation in barebones mode
     if (barebonesMode) {
@@ -6792,7 +6935,8 @@ const Index = () => {
                       <p className="text-xl text-muted-foreground">
                         {barebonesMode ? "Write your custom text directly" : "Choose your option for completing your text"}
                       </p>
-                    </div>
+                     </div>
+                 </div>}
 
                     {barebonesMode ?
             // Barebones mode: Show only write-myself option
@@ -6855,15 +6999,51 @@ const Index = () => {
                           </div>}
                       </div>
 
-                      {/* Generate Button - Hide in barebones mode */}
-                      {!barebonesMode && <div className="text-center">
-                          <Button variant="brand" className="px-8 py-3 text-base font-medium rounded-lg" onClick={handleGenerateText} disabled={isGenerating}>
+                      {/* Style and Rating Selection - Then Generate Button */}
+                      {!barebonesMode && <div className="space-y-6">
+                        {/* Style and Rating Controls */}
+                        <div className="flex items-center justify-center gap-4">
+                          {/* Style Dropdown */}
+                          <div className="flex flex-col items-center gap-2">
+                            <label className="text-sm font-medium text-muted-foreground">Style</label>
+                            <Select value={textStyle} onValueChange={value => setTextStyle(value as 'punchline-first' | 'story' | 'pop-culture' | 'wildcard')}>
+                              <SelectTrigger className="w-40">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border border-border shadow-lg z-50">
+                                <SelectItem value="punchline-first">Punchline First</SelectItem>
+                                <SelectItem value="story">Story Mode</SelectItem>
+                                <SelectItem value="pop-culture">Pop Culture</SelectItem>
+                                <SelectItem value="wildcard">Wild Card</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {/* Rating Dropdown */}
+                          <div className="flex flex-col items-center gap-2">
+                            <label className="text-sm font-medium text-muted-foreground">Rating</label>
+                            <Select value={selectedRatingTab} onValueChange={value => setSelectedRatingTab(value as "G" | "PG-13" | "R" | "Explicit")}>
+                              <SelectTrigger className="w-40">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border border-border shadow-lg z-50">
+                                <SelectItem value="G">G - General</SelectItem>
+                                <SelectItem value="PG-13">PG-13 - Mild</SelectItem>
+                                <SelectItem value="R">R - Strong</SelectItem>
+                                <SelectItem value="Explicit">Explicit - Adult</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {/* Generate Button */}
+                          <Button variant="brand" className="px-6 py-3 text-base font-medium rounded-lg" onClick={handleGenerateSingle} disabled={isGenerating || !textStyle || !selectedRatingTab}>
                             {isGenerating ? <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                 Generating...
-                              </> : "Generate Text Now"}
+                              </> : "Generate"}
                           </Button>
-                        </div>}
+                        </div>
+                      </div>}
                     </div>
                   </div>}
 
@@ -6872,91 +7052,46 @@ const Index = () => {
                   </>}
 
 
-                 {/* Generated Text Options Grid - Show when options exist but no selection made */}
-                 {multiRatingOptions && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                     
+                 {/* Single-Mode Generated Text Options - Show exactly 2 options */}
+                 {singleModeOptions && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                      <div className="text-center mb-6">
                        <div className="flex items-center justify-center gap-3 mb-4">
                          <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
                        </div>
                        
-                        {/* Style and Rating Controls */}
-                        <div className="flex items-center justify-center gap-4 mb-4">
-                          {/* Style Dropdown */}
-                          <div className="flex flex-col items-center gap-2">
-                            <label className="text-sm font-medium text-muted-foreground">Style</label>
-                              <Select value={textStyle} onValueChange={value => {
-                     setTextStyle(value as 'punchline-first' | 'story' | 'pop-culture' | 'wildcard');
-                   }}>
-                               <SelectTrigger className="w-40">
-                                 <SelectValue />
-                               </SelectTrigger>
-                               <SelectContent className="bg-background border border-border shadow-lg z-50">
-                                 <SelectItem value="punchline-first">Punchline First</SelectItem>
-                                 <SelectItem value="story">Story Mode</SelectItem>
-                                 <SelectItem value="pop-culture">Pop Culture</SelectItem>
-                                 <SelectItem value="wildcard">Wild Card</SelectItem>
-                               </SelectContent>
-                             </Select>
-                          </div>
-                          
-                           {/* Rating and Regenerate Controls */}
-                           <div className="flex flex-col items-center gap-4">
-                             <label className="text-sm font-medium text-muted-foreground">Rating</label>
-                             <div className="flex items-center gap-3">
-                               <Select value={selectedRatingTab} onValueChange={value => setSelectedRatingTab(value as "G" | "PG-13" | "R" | "Explicit")}>
-                                 <SelectTrigger className="w-40">
-                                   <SelectValue />
-                                 </SelectTrigger>
-                                 <SelectContent className="bg-background border border-border shadow-lg z-50">
-                                   <SelectItem value="G">G - General</SelectItem>
-                                   <SelectItem value="PG-13">PG-13 - Mild</SelectItem>
-                                   <SelectItem value="R">R - Strong</SelectItem>
-                                   <SelectItem value="Explicit">Explicit - Adult</SelectItem>
-                                 </SelectContent>
-                               </Select>
-                               
-                               <Button variant="outline" size="sm" onClick={handleGenerateText} disabled={isGenerating} className="text-xs h-9 px-3">
-                                 {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                                 Regenerate
+                       {/* Regenerate Button */}
+                       <div className="flex justify-center">
+                         <Button variant="outline" size="sm" onClick={handleGenerateSingle} disabled={isGenerating} className="text-xs h-9 px-3">
+                           {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                           Regenerate
+                         </Button>
+                       </div>
+                     </div>
+                           
+                     {/* Show exactly 2 options */}
+                     <div className="space-y-4 max-w-2xl mx-auto">
+                       {singleModeOptions.map((option: string, idx: number) => (
+                         <Card key={idx} className="cursor-pointer hover:bg-accent transition-colors border-2 hover:border-primary/20" 
+                               onClick={() => {
+                                 setSelectedGeneratedOption(option);
+                                 setSelectedGeneratedIndex(idx);
+                               }}>
+                           <CardContent className="p-6">
+                             <div className="text-center space-y-4">
+                               <div className="text-base font-medium text-foreground leading-relaxed">
+                                 {option}
+                               </div>
+                               <Button variant="outline" className="mt-4">
+                                 Select This Joke
                                </Button>
                              </div>
-                           </div>
+                           </CardContent>
+                         </Card>
+                       ))}
                         </div>
-                           
-                        {/* Show options for selected rating */}
-                        {(() => {
-                          const raw: any = (multiRatingOptions as any).ratings[selectedRatingTab];
-                          const list: any[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
-                          if (!list.length) return null;
-                          return (
-                            <div className="space-y-4 max-w-2xl mx-auto">
-                              {list.map((option: any, idx: number) => (
-                                <Card key={idx} className="cursor-pointer hover:bg-accent transition-colors border-2 hover:border-primary/20" 
-                                      onClick={() => {
-                                        setSelectedGeneratedOption(option.text);
-                                        setSelectedGeneratedIndex(idx);
-                                      }}>
-                                  <CardContent className="p-6">
-                                    <div className="text-center space-y-4">
-                                      <div className="text-base font-medium text-foreground leading-relaxed">
-                                        {option.text}
-                                      </div>
-                                      <div className="text-sm text-muted-foreground">
-                                        {option.voice} style
-                                      </div>
-                                      <Button variant="outline" className="mt-4">
-                                        Select This Joke
-                                      </Button>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              ))}
-                            </div>
-                          );
-                        })()}
-                        
-                        {/* Show warning if Explicit was downgraded */}
+                     </div>
+                     
+                     {/* Show warning if Explicit was downgraded */}
                         {(["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(
                           selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : 
                           selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : 
@@ -6972,8 +7107,8 @@ const Index = () => {
                     </div>
                    }
 
-                  {/* Regular Generated Options Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
+                  {/* Legacy Generated Options Grid - Hidden in new single mode */}
+                  {!singleModeOptions && <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
                     {!multiRatingOptions && generatedOptions.slice(0, 4).map((option, index) => (
                       <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50" 
                             onClick={() => {
@@ -6993,7 +7128,7 @@ const Index = () => {
                         </div>
                       </Card>
                     ))}
-                  </div>
+                  </div>}
 
                 {/* Show Write Myself input panel when selected but not confirmed */}
                 {selectedCompletionOption === "write-myself" && !isCustomTextConfirmed && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">

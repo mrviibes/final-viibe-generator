@@ -444,7 +444,8 @@ export async function generateMultiRatingLines(inputs: TextGenInput): Promise<Mu
     subcategory: coercedInputs.subcategory,
     tone: coercedInputs.tone,
     tags: { hard: hardTags, soft: softTags }, // Send as structured object
-    style: coercedInputs.style
+    style: coercedInputs.style,
+    mode: 'multi' // Default to multi-rating mode for backward compatibility
   };
 
   try {

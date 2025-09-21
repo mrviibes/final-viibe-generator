@@ -1,7 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { parseTags, validateTagUsage, type ParsedTags } from "./tags.ts";
-import { buildPrompt } from "./buildPrompt.ts";
+import { buildPrompt, buildPromptLegacy } from "./buildPrompt.ts";
+import { generateN } from "./generateN.ts";
 import { stripSoftEcho } from "./sanitize.ts";
 import { validate } from "./validate.ts";
 import { normalizeRating } from "../shared/rating.ts";
@@ -249,6 +250,26 @@ function generateFallbackJoke(rating: string, context: string, comedianName: str
   return ratingFallbacks[randomIndex];
 }
 
+// Add single-mode generation handler
+async function generateSingle(inputs: any): Promise<{ success: boolean; options: string[] }> {
+  const parsedTags = parseTags(inputs.tags);
+  
+  const ctx = {
+    category: inputs.category,
+    subcategory: inputs.subcategory,
+    tone: inputs.tone || 'Humorous',
+    style: inputs.style || 'punchline-first',
+    rating: inputs.rating || 'PG-13',
+    tags: parsedTags
+  };
+
+  console.log(`🎯 Generating single-mode: ${ctx.style} + ${ctx.rating}`);
+  
+  const lines = await generateN(ctx, 2); // exactly two
+  
+  return { success: true, options: lines };
+}
+
 serve(async (req) => {
   const requestStartTime = Date.now();
   
@@ -294,7 +315,24 @@ serve(async (req) => {
     }
 
     try {
-      // Generate multi-rating jokes
+      // Check if this is a single-mode request (style + rating provided)
+      if (inputs.style && inputs.rating && inputs.mode === 'single') {
+        const singleResult = await generateSingle(inputs);
+        
+        return new Response(JSON.stringify({
+          success: true,
+          options: singleResult.options,
+          model: MODEL,
+          timing: {
+            total_ms: Date.now() - requestStartTime
+          }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        });
+      }
+      
+      // Fall back to multi-rating mode for compatibility
       const multiRatingResult = await generateMultiRatingJokes({
         category: inputs.category,
         subcategory: inputs.subcategory,
@@ -316,9 +354,29 @@ serve(async (req) => {
       });
 
     } catch (error) {
-      console.error('❌ Multi-rating generation failed:', error);
+      console.error('❌ Generation failed:', error);
       
-      // Emergency fallback with context enforcement
+      // Simple fallback for single mode
+      if (inputs.mode === 'single') {
+        const fallbackOptions = [
+          generateFallbackJoke(inputs.rating || "PG-13", `${inputs.category} > ${inputs.subcategory}`, "System", inputs.tone, inputs.style),
+          generateFallbackJoke(inputs.rating || "PG-13", `${inputs.category} > ${inputs.subcategory}`, "System", inputs.tone, inputs.style)
+        ];
+        
+        return new Response(JSON.stringify({
+          success: true,
+          options: fallbackOptions,
+          model: 'fallback',
+          timing: {
+            total_ms: Date.now() - requestStartTime
+          }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        });
+      }
+      
+      // Emergency fallback with context enforcement for multi-rating
       const fallbackRatings: MultiRatingOutput = {
         G: [
           { voice: "Jim Gaffigan", text: generateFallbackJoke("G", `${inputs.category} > ${inputs.subcategory}`, "Jim Gaffigan", inputs.tone, inputs.style) },
