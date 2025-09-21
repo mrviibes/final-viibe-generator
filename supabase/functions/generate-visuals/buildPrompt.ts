@@ -1,4 +1,4 @@
-// Minimal prompt builder - short, lane-based, no bloat
+// Optimized prompt builder - shorter, faster, more reliable
 export function buildPrompt(i: {
   caption: string; 
   category: string; 
@@ -7,17 +7,15 @@ export function buildPrompt(i: {
   hardTags: string[]; 
   softTags: string[];
 }) {
-  const tags = i.hardTags.slice(0, 5).join(", ") || "none";
-  const themes = i.softTags.slice(0, 5).join(" | ") || "none";
+  const tags = i.hardTags.slice(0, 3).join(", ") || "none";
+  const ctx = `${i.category}/${i.sub}`;
+  
+  // Simplified prompt structure for faster processing
   return [
-    "Return 4 lines only. One sentence each. Max 18 words. No lists.",
-    "Lane1 literal from caption keywords. Lane2 category context.",
-    "Lane3 funny exaggeration. Lane4 funny absurd.",
-    "Do not echo soft tags literally.",
+    "4 visual concepts, 1 sentence each, max 15 words:",
     `Caption: "${i.caption}"`,
-    `Category: ${i.category} / ${i.sub}`,
-    `Layout: ${i.layout}`,
-    `Hard tags: ${tags}`,
-    `Themes: ${themes}`
+    `Context: ${ctx} with ${i.layout} layout`,
+    `Tags: ${tags}`,
+    "Line1: literal scene. Line2: context setting. Line3: exaggerated. Line4: absurd twist."
   ].join("\n");
 }
