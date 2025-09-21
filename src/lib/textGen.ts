@@ -458,22 +458,22 @@ export async function generateMultiRatingLines(inputs: TextGenInput): Promise<Mu
     
     // Emergency fallback - generate all ratings with simple templates
     const fallbackRatings: MultiRatingOutput = {
-      G: {
-        voice: "Jim Gaffigan",
-        text: `${coercedInputs.category} is like my sock drawer, organized chaos.`
-      },
-      "PG-13": {
-        voice: "Kevin Hart", 
-        text: `${coercedInputs.category} went sideways faster than expected, damn.`
-      },
-      R: {
-        voice: "Bill Burr",
-        text: `This ${coercedInputs.category} situation is fucked up, honestly.`
-      },
-      Explicit: {
-        voice: "Sarah Silverman",
-        text: `${coercedInputs.category} screwed me harder than my ex.`
-      }
+      G: [
+        { voice: "Jim Gaffigan", text: `${coercedInputs.category} is like my sock drawer, organized chaos.` },
+        { voice: "Ellen DeGeneres", text: `${coercedInputs.category}? Classic. I'm pretending I planned this.` }
+      ],
+      "PG-13": [
+        { voice: "Kevin Hart", text: `${coercedInputs.category} went sideways faster than expected, damn.` },
+        { voice: "Ali Wong", text: `${coercedInputs.category} really said “plot twist” and left.` }
+      ],
+      R: [
+        { voice: "Bill Burr", text: `This ${coercedInputs.category} mess is a trainwreck—and I’m the conductor.` },
+        { voice: "Dave Chappelle", text: `${coercedInputs.category} got real, real quick. Buckle up.` }
+      ],
+      Explicit: [
+        { voice: "Sarah Silverman", text: `${coercedInputs.category} screwed me harder than my ex.` },
+        { voice: "Ricky Gervais", text: `${coercedInputs.category} is a beautiful disaster—and I brought the matches.` }
+      ],
     };
     
     return {

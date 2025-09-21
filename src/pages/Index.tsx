@@ -6951,7 +6951,7 @@ const Index = () => {
                         )}
                       </div>
                     </div>
-                  </div>}
+                  }
 
                   {/* Regenerate Button */}
                   <div className="mt-6 text-center">
