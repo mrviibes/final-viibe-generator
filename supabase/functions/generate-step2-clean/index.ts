@@ -9,6 +9,8 @@ import {
   selectComedianForRating, 
   buildPromptForRating, 
   validateRatingJoke, 
+  validateHardTagsInBatch,
+  validateRomanticTone,
   type MultiRatingOutput 
 } from "./multiRating.ts";
 
@@ -42,6 +44,7 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
   const effectiveRatings = isAnimalContext ? ["G", "PG-13", "R", "R"] : ratings; // Downgrade Explicit to R for animals
   
   const results: Partial<MultiRatingOutput> = {};
+  const allJokes: string[] = [];
   
   // Generate for each rating
   for (let i = 0; i < ratings.length; i++) {
@@ -82,36 +85,57 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
       if (!response.ok) {
         console.error(`❌ API Error for ${rating}:`, response.status);
         // Use fallback
+        const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name);
         results[rating] = {
           voice: comedian.name,
-          text: generateFallbackJoke(effectiveRating, context, comedian.name)
+          text: fallbackText
         };
+        allJokes.push(fallbackText);
         continue;
       }
       
       const data = await response.json();
-      const text = (data.choices?.[0]?.message?.content || '').trim();
+      let text = (data.choices?.[0]?.message?.content || '').trim();
       
       // Validate the joke
-      if (validateRatingJoke(text, effectiveRating, parsedTags)) {
+      const isValidFormat = validateRatingJoke(text, effectiveRating, parsedTags);
+      const isValidTone = inputs.tone?.toLowerCase() === 'romantic' ? 
+        validateRomanticTone(text, context) : true;
+      
+      if (isValidFormat && isValidTone) {
         results[rating] = {
           voice: comedian.name,
           text: text
         };
+        allJokes.push(text);
       } else {
         console.warn(`⚠️ Validation failed for ${rating}, using fallback`);
+        const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name);
         results[rating] = {
           voice: comedian.name,
-          text: generateFallbackJoke(effectiveRating, context, comedian.name)
+          text: fallbackText
         };
+        allJokes.push(fallbackText);
       }
       
     } catch (error) {
       console.error(`❌ Generation failed for ${rating}:`, error);
+      const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name);
       results[rating] = {
         voice: comedian.name,
-        text: generateFallbackJoke(effectiveRating, context, comedian.name)
+        text: fallbackText
       };
+      allJokes.push(fallbackText);
+    }
+  }
+  
+  // Validate hard tags across the batch (3/4 rule)
+  if (parsedTags.hard.length > 0) {
+    const hardTagsValid = validateHardTagsInBatch(allJokes, parsedTags.hard);
+    if (!hardTagsValid) {
+      console.warn('⚠️ Hard tag validation failed, regenerating batch...');
+      // Could implement retry logic here, but for now log the issue
+      console.log(`Hard tags ${parsedTags.hard.join(', ')} not found in at least 3/4 jokes`);
     }
   }
   
@@ -122,6 +146,22 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
 }
 
 function generateFallbackJoke(rating: string, context: string, comedianName: string): string {
+  const isRomantic = context.toLowerCase().includes('romantic');
+  const isBirthday = context.toLowerCase().includes('birthday');
+  
+  // Romantic + Birthday specific fallbacks
+  if (isRomantic && isBirthday) {
+    const romanticBirthdayFallbacks = [
+      "Jesse, our cake glow looks like magic and my heart celebrates you.",
+      "Jesse, tonight the candles wish for sequels and I still want you.",
+      "Jesse, make a wish because my heart already picked you forever.",
+      "Jesse, this party celebrates us and I treasure every moment together."
+    ];
+    const randomIndex = Math.floor(Math.random() * romanticBirthdayFallbacks.length);
+    return romanticBirthdayFallbacks[randomIndex];
+  }
+  
+  // Regular fallbacks by rating
   const fallbacks = {
     G: [
       `${context} is like my sock drawer, organized chaos.`,

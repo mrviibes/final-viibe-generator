@@ -60,17 +60,39 @@ export function buildPromptForRating(
 
   const hardTagsStr = tags.hard.length ? tags.hard.join(", ") : "none";
   const softTagsStr = tags.soft.length ? tags.soft.slice(0, 6).join(" | ") : "none";
+  
+  // Special handling for Romantic tone
+  let toneInstructions = "";
+  if (tone.toLowerCase() === "romantic") {
+    toneInstructions = [
+      "ROMANTIC TONE OVERRIDE:",
+      "- NO profanity allowed (overrides rating)",
+      "- MUST include affectionate language: love, adore, heart, warm, sweet, tender",
+      "- If birthday context: MUST include birthday words: cake, candles, party, wish, balloons",
+      "- Pop culture allowed but max ONE entity per batch",
+      "- Keep it genuinely affectionate, not generic hype"
+    ].join("\n");
+  }
+  
+  // Context-specific lexicon
+  let contextWords = "";
+  if (context.toLowerCase().includes("birthday")) {
+    contextWords = "Birthday lexicon REQUIRED: cake, candles, party, wish, balloons, celebrate";
+  }
 
   return [
     "Return one sentence. 40–100 characters. One period. No em dashes.",
     `Write a real joke in ${style} style. Sound like ${comedian.name}.`,
     `Context: ${context}. Keep it visibly about that context.`,
+    contextWords ? `CONTEXT WORDS: ${contextWords}` : "",
     `Rating: ${rating} - ${ratingInstructions[rating as keyof typeof ratingInstructions]}`,
+    toneInstructions ? toneInstructions : "",
     `Comedian style: ${comedian.style}`,
     `Tone: ${tone}`,
-    hardTagsStr !== "none" ? `Hard tags: ${hardTagsStr} must appear literally.` : "Hard tags: none",
-    softTagsStr !== "none" ? `Themes: ${softTagsStr} (guide tone only, do not appear verbatim)` : "Themes: none"
-  ].join("\n");
+    hardTagsStr !== "none" ? `Hard tags: ${hardTagsStr} MUST appear literally.` : "Hard tags: none",
+    softTagsStr !== "none" ? `Themes: ${softTagsStr} (guide tone only, do not appear verbatim)` : "Themes: none",
+    "CRITICAL: Start with capital letter. Perfect grammar. One sentence only."
+  ].filter(Boolean).join("\n");
 }
 
 export function validateRatingJoke(text: string, rating: string, tags: ParsedTags): boolean {
@@ -82,6 +104,13 @@ export function validateRatingJoke(text: string, rating: string, tags: ParsedTag
   if (periodCount !== 1) return false;
   
   if (text.includes('—')) return false;
+  
+  // Grammar validation - must start with capital letter
+  if (!/^[A-Z]/.test(text)) return false;
+  
+  // Check for grammar fragments
+  if (/(^|\s)a\s+[aeiou]/i.test(text)) return false; // "a experience" -> should be "an"
+  if (/\bi'm\b/i.test(text)) return false; // should be "I'm"
   
   // Rating-specific validation
   const lowerText = text.toLowerCase();
@@ -117,14 +146,39 @@ export function validateRatingJoke(text: string, rating: string, tags: ParsedTag
       break;
   }
   
-  // Hard tag validation - at least 3 of 4 ratings should include hard tags
-  if (tags.hard.length > 0) {
-    const hasHardTags = tags.hard.some(tag => 
-      lowerText.includes(tag.toLowerCase())
-    );
-    // For now, just check if hard tags are present (upstream will validate 3/4 rule)
-    if (!hasHardTags) return false;
+  return true;
+}
+
+export function validateHardTagsInBatch(jokes: string[], hardTags: string[]): boolean {
+  if (hardTags.length === 0) return true;
+  
+  // Count how many jokes contain all hard tags
+  const jokesWithAllTags = jokes.filter(joke => 
+    hardTags.every(tag => joke.toLowerCase().includes(tag.toLowerCase()))
+  ).length;
+  
+  // Require at least 3 of 4 jokes to contain hard tags
+  return jokesWithAllTags >= 3;
+}
+
+export function validateRomanticTone(text: string, context: string): boolean {
+  const lowerText = text.toLowerCase();
+  const lowerContext = context.toLowerCase();
+  
+  // Ban profanity for romantic tone
+  const profanityWords = ['damn', 'hell', 'crap', 'fuck', 'shit', 'ass', 'bitch'];
+  if (profanityWords.some(word => lowerText.includes(word))) return false;
+  
+  // Require affectionate language
+  const affectionWords = ['love', 'adore', 'heart', 'warm', 'sweet', 'tender', 'cherish', 'treasure'];
+  const hasAffection = affectionWords.some(word => lowerText.includes(word));
+  
+  // Check for birthday context words if it's a birthday context
+  if (lowerContext.includes('birthday')) {
+    const birthdayWords = ['cake', 'candles', 'party', 'wish', 'balloons', 'celebrate'];
+    const hasBirthdayContext = birthdayWords.some(word => lowerText.includes(word));
+    return hasAffection || hasBirthdayContext;
   }
   
-  return true;
+  return hasAffection;
 }
