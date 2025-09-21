@@ -5008,7 +5008,6 @@ const Index = () => {
   // Real-time tag validation
   const handleTagInputChange = (value: string) => {
     setTagInput(value);
-    
     if (value.trim()) {
       const validation = validateTagInput(value.trim());
       if (!validation.isValid) {
@@ -5044,7 +5043,6 @@ const Index = () => {
   // Real-time subject tag validation
   const handleSubjectTagInputChange = (value: string) => {
     setSubjectTagInput(value);
-    
     if (value.trim()) {
       const validation = validateTagInput(value.trim());
       if (!validation.isValid) {
@@ -5063,14 +5061,12 @@ const Index = () => {
     setTags(prev => prev.map(tag => tag === originalTag ? newTag : tag));
     setSubjectTags(prev => prev.map(tag => tag === originalTag ? newTag : tag));
   };
-
   const handleKeepOriginalTag = (tag: string) => {
     // User wants to keep the problematic tag - we'll let them try
     sonnerToast.warning(`"${tag}" may cause generation to fail due to content policies`, {
       description: "Generation might be blocked by OpenAI's safety filters."
     });
   };
-
   const handleCancelTagSuggestions = () => {
     setTagSuggestions([]);
     setShowTagSuggestionDialog(false);
@@ -5097,7 +5093,7 @@ const Index = () => {
       setSubjectTagInput("");
     }
     setIsGeneratingSubject(true);
-    
+
     // Safety timeout to prevent infinite loading - force clear after 90 seconds
     const safetyTimeoutId = setTimeout(() => {
       console.warn('🚨 Safety timeout triggered - forcing loading state to clear');
@@ -5108,7 +5104,6 @@ const Index = () => {
         variant: 'destructive'
       });
     }, 90000);
-    
     try {
       // Build inputs using the same mapping logic as text generation
       let category = '';
@@ -5179,12 +5174,11 @@ const Index = () => {
       let result: any = null;
       try {
         console.log('Attempting visual generation with session:', session);
-        
+
         // Add timeout wrapper to prevent infinite loading
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('Visual generation timed out after 60 seconds')), 60000);
         });
-        
         const visualGenerationPromise = generateVisualOptions(session, {
           tone: tone.toLowerCase(),
           tags: finalTags,
@@ -5192,7 +5186,6 @@ const Index = () => {
           textLayoutId: selectedTextLayout || "negativeSpace",
           recommendationMode: visualSpice
         });
-        
         result = await Promise.race([visualGenerationPromise, timeoutPromise]);
         console.log('Visual generation result:', result);
 
@@ -5227,7 +5220,7 @@ const Index = () => {
       } catch (error) {
         console.error('Visual generation failed:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        
+
         // Check if it's a timeout error
         if (errorMessage.includes('timed out') || errorMessage.includes('timeout')) {
           toast({
@@ -5811,7 +5804,7 @@ const Index = () => {
     setSubjectTags([]);
     setSubjectTagInput("");
     setSubjectTagInputWarning("");
-          setSubjectDescription("");
+    setSubjectDescription("");
     setIsSubjectDescriptionConfirmed(false);
 
     // Clear generation state
@@ -6811,7 +6804,7 @@ const Index = () => {
                 {/* Show AI Assist form when selected and no options generated yet */}
                 {selectedCompletionOption === "ai-assist" && generatedOptions.length === 0 && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
-                      <p className="text-xl text-muted-foreground">Add tags (use "quotes" to put words in text, leave unquoted to guide style)</p>
+                      <p className="text-xl text-muted-foreground">Add words to help influence your final text</p>
                     </div>
 
                     <div className="max-w-md mx-auto space-y-6">
@@ -6821,20 +6814,10 @@ const Index = () => {
                             <strong>Quoted text</strong> = the exact words that will appear in the text<br />
                             <strong>Unquoted text</strong> = just influences the text
                           </p>
-                        <Input 
-                          value={tagInput} 
-                          onChange={e => handleTagInputChange(e.target.value)} 
-                          onKeyDown={handleTagInputKeyDown} 
-                          placeholder='This box is optional' 
-                          className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${
-                            tagInputWarning ? 'border-destructive' : 'border-border'
-                          }`} 
-                        />
-                        {tagInputWarning && (
-                          <p className="text-xs text-destructive text-center mt-1">
+                        <Input value={tagInput} onChange={e => handleTagInputChange(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder='This box is optional' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${tagInputWarning ? 'border-destructive' : 'border-border'}`} />
+                        {tagInputWarning && <p className="text-xs text-destructive text-center mt-1">
                             ⚠️ {tagInputWarning}
-                          </p>
-                        )}
+                          </p>}
                         
                         
                         {/* Display Tags */}
@@ -7061,20 +7044,10 @@ const Index = () => {
                          <div className="max-w-lg mx-auto space-y-6">
                             {/* Tag Input */}
                             <div className="space-y-4">
-                                <Input 
-                                  value={subjectTagInput} 
-                                  onChange={e => handleSubjectTagInputChange(e.target.value)} 
-                                  onKeyDown={handleSubjectTagInputKeyDown} 
-                                  placeholder='@Reid or "Reid" for hard tags, casual for soft tags' 
-                                  className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${
-                                    subjectTagInputWarning ? 'border-destructive' : 'border-border'
-                                  }`} 
-                                />
-                                {subjectTagInputWarning && (
-                                  <p className="text-xs text-destructive text-center mt-1">
+                                <Input value={subjectTagInput} onChange={e => handleSubjectTagInputChange(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder='@Reid or "Reid" for hard tags, casual for soft tags' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${subjectTagInputWarning ? 'border-destructive' : 'border-border'}`} />
+                                {subjectTagInputWarning && <p className="text-xs text-destructive text-center mt-1">
                                     ⚠️ {subjectTagInputWarning}
-                                  </p>
-                                )}
+                                  </p>}
                                <p className="text-xs text-muted-foreground text-center">
                                  💡 Hard tags (@Reid or "Reid") appear literally • Soft tags (casual) guide style only
                                </p>
@@ -7664,14 +7637,7 @@ const Index = () => {
       }} currentLayout={selectedTextLayout || "negativeSpace"} />
 
         {/* Tag Suggestion Dialog */}
-        <TagSuggestionDialog 
-          open={showTagSuggestionDialog}
-          onOpenChange={setShowTagSuggestionDialog}
-          suggestions={tagSuggestions}
-          onAcceptSuggestion={handleAcceptSuggestion}
-          onKeepOriginal={handleKeepOriginalTag}
-          onCancel={handleCancelTagSuggestions}
-        />
+        <TagSuggestionDialog open={showTagSuggestionDialog} onOpenChange={setShowTagSuggestionDialog} suggestions={tagSuggestions} onAcceptSuggestion={handleAcceptSuggestion} onKeepOriginal={handleKeepOriginalTag} onCancel={handleCancelTagSuggestions} />
 
         {/* Safety Validation Dialog */}
         <SafetyValidationDialog open={showSafetyValidationDialog} onOpenChange={setShowSafetyValidationDialog} onProceed={() => {
