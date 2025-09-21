@@ -7043,23 +7043,19 @@ const Index = () => {
                          <div className="max-w-lg mx-auto space-y-6">
                             {/* Tag Input */}
                             <div className="space-y-4">
-                                <Input value={subjectTagInput} onChange={e => handleSubjectTagInputChange(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder='@Reid or "Reid" for hard tags, casual for soft tags' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${subjectTagInputWarning ? 'border-destructive' : 'border-border'}`} />
+                                <Input value={subjectTagInput} onChange={e => handleSubjectTagInputChange(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder='This box is optional' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${subjectTagInputWarning ? 'border-destructive' : 'border-border'}`} />
                                 {subjectTagInputWarning && <p className="text-xs text-destructive text-center mt-1">
                                     ⚠️ {subjectTagInputWarning}
                                   </p>}
-                               <p className="text-xs text-muted-foreground text-center">
-                                 💡 Hard tags (@Reid or "Reid") appear literally • Soft tags (casual) guide style only
-                               </p>
-                               
-                               {/* Smart tagging instructions - same as text generation */}
-                               <div className="text-center space-y-1">
-                                 <p className="text-xs text-muted-foreground">
-                                   <span className="font-medium">cake</span> = literally appears in image
-                                 </p>
-                                 <p className="text-xs text-muted-foreground">
-                                   <span className="font-medium">"romantic"</span> = influences style but not literal
-                                 </p>
-                               </div>
+                               {/* Tag explanation */}
+                                <div className="text-left space-y-1">
+                                  <p className="text-sm text-muted-foreground">
+                                    <span className="font-bold">Quoted text</span> = the exact words that will appear in the visuals
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    <span className="font-bold">Unquoted text</span> = just influences the visuals
+                                  </p>
+                                </div>
                                
                                {/* Display tags - moved above toggle */}
                                {subjectTags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
