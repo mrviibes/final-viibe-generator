@@ -27,19 +27,8 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
   const startTime = Date.now();
   console.log('🎯 Starting multi-rating comedy generation');
   
-  // Parse tags - handle object format {hard, soft}
-  let parsedTags: ParsedTags;
-  if (inputs.tags && typeof inputs.tags === 'object' && !Array.isArray(inputs.tags)) {
-    // Direct object format
-    parsedTags = {
-      hard: inputs.tags.hard || [],
-      soft: inputs.tags.soft || []
-    };
-  } else {
-    // String or array format
-    const rawTagString = Array.isArray(inputs.tags) ? inputs.tags.join(',') : (inputs.tags || '');
-    parsedTags = parseTags(rawTagString);
-  }
+  // Parse tags - handle any input format
+  const parsedTags = parseTags(inputs.tags);
   
   const context = `${inputs.category} > ${inputs.subcategory}`;
   const ratings = ["G", "PG-13", "R", "Explicit"] as const;
@@ -111,11 +100,9 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
       const isValidTone = inputs.tone?.toLowerCase() === 'romantic' ? 
         validateRomanticTone(text, context) : true;
       
-      // Apply romantic + thanksgiving enforcement if needed
-      if (inputs.tone?.toLowerCase() === 'romantic' && context.toLowerCase().includes('thanksgiving')) {
-        const { enforceRomanticThanksgiving } = await import("./multiRating.ts");
-        text = enforceRomanticThanksgiving(text, context, inputs.tone, inputs.style || 'punchline-first');
-      }
+      // Apply context and tone enforcement
+      const { enforceContextAndTone } = await import("./multiRating.ts");
+      text = enforceContextAndTone(text, context, inputs.tone || 'Humorous', inputs.style || 'punchline-first');
       
       if (isValidFormat && isValidTone) {
         results[rating] = {
@@ -135,7 +122,7 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
       
     } catch (error) {
       console.error(`❌ Generation failed for ${rating}:`, error);
-      const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name);
+      const fallbackText = generateFallbackJoke(effectiveRating, context, comedian.name, inputs.tone, inputs.style);
       results[rating] = {
         voice: comedian.name,
         text: fallbackText
@@ -160,13 +147,23 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
   return results as MultiRatingOutput;
 }
 
-function generateFallbackJoke(rating: string, context: string, comedianName: string): string {
-  const isRomantic = context.toLowerCase().includes('romantic');
-  const isBirthday = context.toLowerCase().includes('birthday');
-  const isThanksgiving = context.toLowerCase().includes('thanksgiving');
+function generateFallbackJoke(rating: string, context: string, comedianName: string, tone?: string, style?: string): string {
+  const contextLower = context.toLowerCase();
+  const isRomantic = tone?.toLowerCase() === 'romantic';
+  const isPunchlineFirst = style === 'punchline-first';
   
-  // Romantic + Thanksgiving specific fallbacks
-  if (isRomantic && isThanksgiving) {
+  // Context-specific fallbacks with proper structure
+  if (contextLower.includes('soccer')) {
+    const soccerFallbacks = [
+      "Zero hustle first then Jesse ties his lace during every drill on the pitch.",
+      "Plot twist first then the keeper waves at Jesse and practice gives up.",
+      "Fine first then Jesse blames traffic and boots the cone on the field.",
+      "Spoiler first then the scrimmage whistles and Jesse still misses open goals."
+    ];
+    return soccerFallbacks[Math.floor(Math.random() * soccerFallbacks.length)];
+  }
+  
+  if (isRomantic && contextLower.includes('thanksgiving')) {
     const romanticThanksgivingFallbacks = [
       "Spoiler first then we pass the turkey and my heart passes gratitude back.",
       "Plot twist first then your laugh warms the table and my heart agrees completely.",
@@ -177,13 +174,12 @@ function generateFallbackJoke(rating: string, context: string, comedianName: str
     return romanticThanksgivingFallbacks[randomIndex];
   }
   
-  // Romantic + Birthday specific fallbacks
-  if (isRomantic && isBirthday) {
+  if (isRomantic && contextLower.includes('birthday')) {
     const romanticBirthdayFallbacks = [
-      "Jesse, our cake glow looks like magic and my heart celebrates you.",
-      "Jesse, tonight the candles wish for sequels and I still want you.",
-      "Jesse, make a wish because my heart already picked you forever.",
-      "Jesse, this party celebrates us and I treasure every moment together."
+      "Jesse our cake glow looks like magic and my heart celebrates you.",
+      "Jesse tonight the candles wish for sequels and I still want you.",
+      "Jesse make a wish because my heart already picked you forever.",
+      "Jesse this party celebrates us and I treasure every moment together."
     ];
     const randomIndex = Math.floor(Math.random() * romanticBirthdayFallbacks.length);
     return romanticBirthdayFallbacks[randomIndex];
@@ -287,23 +283,23 @@ serve(async (req) => {
     } catch (error) {
       console.error('❌ Multi-rating generation failed:', error);
       
-      // Emergency fallback
+      // Emergency fallback with context enforcement
       const fallbackRatings: MultiRatingOutput = {
         G: {
           voice: "Jim Gaffigan",
-          text: `${inputs.category} is like my sock drawer, organized chaos.`
+          text: generateFallbackJoke("G", `${inputs.category} > ${inputs.subcategory}`, "Jim Gaffigan", inputs.tone, inputs.style)
         },
         "PG-13": {
           voice: "Kevin Hart", 
-          text: `${inputs.category} went sideways faster than expected, damn.`
+          text: generateFallbackJoke("PG-13", `${inputs.category} > ${inputs.subcategory}`, "Kevin Hart", inputs.tone, inputs.style)
         },
         R: {
           voice: "Bill Burr",
-          text: `This ${inputs.category} situation is fucked up, honestly.`
+          text: generateFallbackJoke("R", `${inputs.category} > ${inputs.subcategory}`, "Bill Burr", inputs.tone, inputs.style)
         },
         Explicit: {
           voice: "Sarah Silverman",
-          text: `${inputs.category} screwed me harder than my ex.`
+          text: generateFallbackJoke("Explicit", `${inputs.category} > ${inputs.subcategory}`, "Sarah Silverman", inputs.tone, inputs.style)
         }
       };
       

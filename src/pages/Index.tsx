@@ -5397,19 +5397,24 @@ const Index = () => {
         tags: finalTagsForGeneration
       });
 
-      // Prepare tags in proper format
-      const parsedTags = getTagArrays(finalTagsForGeneration.join(','));
+      // Sanitize and normalize tags - handle curly quotes and mixed formats
+      const sanitizedTags = finalTagsForGeneration.map(tag => 
+        tag.replace(/[""]/g, '"').replace(/['']/g, "'")
+      ).join(', ');
+      
+      console.log('🏷️ Sanitized tags for generation:', sanitizedTags);
       
       // Generate using multi-rating text generator
       const result = await generateMultiRatingLines({
         category,
         subcategory,
         tone,
-        tags: parsedTags, // Pass the parsed tags object
+        tags: finalTagsForGeneration, // Send as string array
         style: textStyle,
         rating: textRating,
         mode: textMode // Keep for backward compatibility
       });
+      
       console.log('✅ Generated multi-rating text options:', result);
 
       // Clear previous selection when generating/regenerating
@@ -5426,6 +5431,9 @@ const Index = () => {
     } catch (error) {
       console.error('❌ Error generating text:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      // Clear multi-rating options on error to show proper error state
+      setMultiRatingOptions(null);
 
       // Enhanced error handling with specific network error guidance
       let actionLabel = "Retry";
@@ -5463,7 +5471,7 @@ const Index = () => {
         }
       });
     } finally {
-      setIsGenerating(false);
+      setIsGenerating(false); // Always clear spinner
     }
   };
   const handleApiKeySet = (apiKey: string) => {

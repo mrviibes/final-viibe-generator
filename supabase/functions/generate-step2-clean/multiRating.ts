@@ -176,8 +176,12 @@ export function validateHardTagsInBatch(jokes: string[], hardTags: string[]): bo
   return jokesWithAllTags >= 3;
 }
 
-// Thanksgiving context enforcement
-const THANKSGIVING_WORDS = ["turkey", "gravy", "pie", "table", "toast", "leftovers", "cranberry", "family", "stuffing"];
+// Context lexicon enforcement
+const CONTEXT_LEXICONS = {
+  "soccer practice": ["pitch", "keeper", "goal", "boot", "practice", "drill", "field", "ball"],
+  "thanksgiving": ["turkey", "gravy", "pie", "table", "toast", "leftovers", "cranberry", "family", "stuffing"],
+  "birthday": ["cake", "candles", "party", "wish", "balloons", "celebrate"]
+};
 
 function isPunchlineFirst(s: string): boolean {
   return /^(spoiler first then|plot twist first then|fine first then|zero first then)/i.test(s) || /\b first then \b/i.test(s);
@@ -187,8 +191,14 @@ function hasRomanticTone(s: string): boolean {
   return /(love|heart|warm|dear|sweet|admire|tender)/i.test(s);
 }
 
-function hasThanksgivingContext(s: string): boolean {
-  return THANKSGIVING_WORDS.some(w => s.toLowerCase().includes(w));
+function hasContextWords(s: string, context: string): boolean {
+  const contextKey = context.toLowerCase();
+  for (const [key, words] of Object.entries(CONTEXT_LEXICONS)) {
+    if (contextKey.includes(key)) {
+      return words.some(w => s.toLowerCase().includes(w));
+    }
+  }
+  return true; // If no specific lexicon, pass validation
 }
 
 function formatOK(s: string): boolean {
@@ -198,27 +208,29 @@ function formatOK(s: string): boolean {
          s.length >= 40 && s.length <= 100;
 }
 
-export function enforceRomanticThanksgiving(text: string, context: string, tone: string, style: string): string {
-  const isRomantic = tone.toLowerCase() === 'romantic';
-  const isThanksgiving = context.toLowerCase().includes('thanksgiving');
-  const isPunchlineStyle = style === 'punchline-first';
-  
-  if (!isRomantic || !isThanksgiving) return text;
-  
+export function enforceContextAndTone(text: string, context: string, tone: string, style: string): string {
   let result = text.trim().replace(/\s+\./g, ".");
   
   // Enforce punchline-first style
+  const isPunchlineStyle = style === 'punchline-first';
   if (isPunchlineStyle && !isPunchlineFirst(result)) {
     result = "Spoiler first then " + result[0].toLowerCase() + result.slice(1);
   }
   
-  // Add Thanksgiving context if missing
-  if (!hasThanksgivingContext(result)) {
-    result = result.replace(/\.$/, " at the table.");
+  // Add context words if missing
+  if (!hasContextWords(result, context)) {
+    const contextKey = context.toLowerCase();
+    if (contextKey.includes('soccer')) {
+      result = result.replace(/\.$/, " on the pitch.");
+    } else if (contextKey.includes('thanksgiving')) {
+      result = result.replace(/\.$/, " at the table.");
+    } else if (contextKey.includes('birthday')) {
+      result = result.replace(/\.$/, " at the party.");
+    }
   }
   
-  // Add romantic tone if missing
-  if (!hasRomanticTone(result)) {
+  // Add romantic tone if needed
+  if (tone.toLowerCase() === 'romantic' && !hasRomanticTone(result)) {
     result = result.replace(/\.$/, " and my heart knows it.");
   }
   
