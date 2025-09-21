@@ -7391,8 +7391,6 @@ const Index = () => {
                    alt="Generated VIIBE"
                    loading="eager"
                    className="w-full h-auto max-h-[70vh] object-contain rounded-lg shadow-lg"
-                   onLoad={() => console.log('🖼️ Image loaded successfully')}
-                   onError={(e) => console.error('❌ Image failed to load:', e, 'URL:', generatedImageUrl)}
                  />}
                     </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
                       <AlertCircle className="h-8 w-8 text-destructive" />

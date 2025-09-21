@@ -19,11 +19,12 @@ export const universalTextPlacementTemplates: TextPlacementTemplate[] = [
     label: "Meme Top/Bottom",
     description: "Bold captions in clear horizontal bands at top and/or bottom",
     positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Top/bottom band, no more than 40% of image height.
-STYLE: Modern sans-serif, bold, high contrast, fully legible.
-SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear top/bottom band for the caption.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
+PLACEMENT: MANDATORY dedicated horizontal text bands at top/bottom - NEVER on objects, cakes, balloons, or scene elements.
+TEXT BANDS: Create distinct typography layers separate from scene. Text must float above/below image content.
+STYLE: Bold sans-serif in high-contrast bands with solid backgrounds, fully legible, professional meme format.
+SCENE: [SCENE_DESCRIPTION]  
+CRITICAL: Scene objects (cakes, balloons, signs, clothing, walls) must have NO TEXT on them. Text only in dedicated bands.`,
+    negativePrompt: `NEVER write text on cakes, balloons, t-shirts, signs, walls, or any scene objects. no text on cake surfaces, no text on object surfaces, no embedded scene text, no cake writing, no balloon text, no sign text, no duplicate captions, no split captions, no fragmented text, no distorted text, no object-surface text placement`
   },
   {
     id: "negativeSpace",
