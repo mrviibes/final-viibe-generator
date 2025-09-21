@@ -7383,13 +7383,14 @@ const Index = () => {
                        </Button>
                        <TextRenderingStatus status={textRenderingStatus} className="mb-2" />
                        <p className="text-sm text-muted-foreground">This may take a few moments</p>
-                     </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
+                      </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
                         {showTextOverlay && backgroundOnlyImageUrl ? <CaptionOverlay imageUrl={backgroundOnlyImageUrl} caption={selectedGeneratedOption || stepTwoText || ""} layout={selectedTextLayout || "memeTopBottom"} onImageReady={composedImageUrl => {
                    setFinalImageWithText(composedImageUrl);
                  }} /> : <img 
                    src={generatedImageUrl} 
-                   alt="Generated VIIBE" 
-                   className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                   alt="Generated VIIBE"
+                   loading="eager"
+                   className="w-full h-auto max-h-[70vh] object-contain rounded-lg shadow-lg"
                    onLoad={() => console.log('🖼️ Image loaded successfully')}
                    onError={(e) => console.error('❌ Image failed to load:', e, 'URL:', generatedImageUrl)}
                  />}
@@ -7410,8 +7411,13 @@ const Index = () => {
                     </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
                  </div>
 
-                 
-                  {/* Text Misspelling Detection */}
+                 {generatedImageUrl && (
+                   <div className="text-center mt-2 text-xs text-muted-foreground">
+                     Having trouble seeing the preview? <a href={generatedImageUrl} target="_blank" rel="noopener noreferrer" className="underline text-primary">Open image in a new tab</a>.
+                   </div>
+                 )}
+ 
+                 {/* Text Misspelling Detection */}
                  {generatedImageUrl && textMisspellingDetected && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
                      <p className="text-sm font-medium mb-2">⚠️ Text may be misspelled in the generated image</p>
                      <div className="flex gap-2 justify-center">
