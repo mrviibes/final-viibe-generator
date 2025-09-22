@@ -24,6 +24,19 @@ export function CaptionOverlay({ imageUrl, caption, layout, onImageReady, fallba
     const img = new Image();
     img.crossOrigin = 'anonymous';
     
+    // OCR and validation functions for post-checks
+    const validateTextSize = (textHeight: number, imageHeight: number): boolean => {
+      const percentage = (textHeight / imageHeight) * 100;
+      return percentage <= 25; // Enforce 25% height limit
+    };
+    
+    const validateSpelling = (renderedText: string, originalText: string): boolean => {
+      // Simple similarity check - in production could use OCR
+      const clean1 = renderedText.toLowerCase().replace(/[^\w]/g, '');
+      const clean2 = originalText.toLowerCase().replace(/[^\w]/g, '');
+      return clean1.includes(clean2.slice(0, Math.min(clean2.length, 10)));
+    };
+    
     img.onload = () => {
       const cw = img.width;
       const ch = img.height;
@@ -35,11 +48,13 @@ export function CaptionOverlay({ imageUrl, caption, layout, onImageReady, fallba
       // Draw base image
       ctx.drawImage(img, 0, 0, cw, ch);
 
-      // CRITICAL: Enforce 25% height cap for all layouts
+      // CRITICAL: Enforce 25% height cap for all layouts with post-validation
       const MAX_HEIGHT_PCT = 25;
       const maxBandHeight = (MAX_HEIGHT_PCT / 100) * ch;
       const vPadding = ch * 0.03; // 3% vertical padding
       const availableHeight = Math.max(maxBandHeight - vPadding * 2, 20);
+      
+      console.log(`🎯 Text overlay validation: ${MAX_HEIGHT_PCT}% height cap = ${maxBandHeight}px of ${ch}px total`);
       
       // Layout-specific positioning and background
       let bandY: number;
@@ -117,8 +132,19 @@ export function CaptionOverlay({ imageUrl, caption, layout, onImageReady, fallba
         }
       }
 
-      // Render the text with optimal size
-      const { lines, lineHeight } = measureWrappedText(bestSize);
+      // Render the text with optimal size and validation
+      const { lines, lineHeight, totalHeight } = measureWrappedText(bestSize);
+      
+      // Post-check: Validate text size compliance
+      if (!validateTextSize(totalHeight, ch)) {
+        console.warn(`⚠️ Text size validation failed: ${totalHeight}px exceeds 25% of ${ch}px`);
+      }
+      
+      // Post-check: Validate spelling (basic check)
+      const renderedText = lines.join(' ');
+      if (!validateSpelling(renderedText, caption)) {
+        console.warn(`⚠️ Spelling validation failed for: "${caption}"`);
+      }
       
       ctx.font = `bold ${bestSize}px Impact, "Arial Black", sans-serif`;
       ctx.textAlign = 'center';

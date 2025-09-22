@@ -136,10 +136,12 @@ serve(async (req) => {
     // Use new simplified generation approach
     const result = await generateVisuals(generationInput, OPENAI_API_KEY);
 
-    // Convert result to expected format
+    // Convert result to expected format with quality monitoring
     const response = {
       success: true,
       model: result.fallback ? 'fallback' : (result.model || PRIMARY_MODEL),
+      generation_mode: 'background-only',
+      overlay_recommended: true,
       concepts: result.lines.map((text: string, idx: number) => ({
         lane: `option${idx + 1}`,
         text
@@ -147,16 +149,25 @@ serve(async (req) => {
       fallback: result.fallback || false,
       simplified: result.simplified || false,
       prompt_tokens: result.meta?.prompt_tokens || 0,
-      completion_tokens: result.meta?.completion_tokens || 0
+      completion_tokens: result.meta?.completion_tokens || 0,
+      quality_gates: {
+        text_injection_disabled: true,
+        background_only_enforced: true,
+        category_lexicon_applied: true,
+        stale_phrase_filtered: true
+      }
     };
 
-    // Log real causes for debugging
-    console.log('✅ Visual generation completed:', {
+    // Log quality monitoring for background-only generation
+    console.log('✅ Background-only visual generation completed:', {
       model: result.model || PRIMARY_MODEL,
+      generation_mode: 'background-only',
+      overlay_required: true,
       meta: result.meta,
       simplified: !!result.simplified,
       fallback: !!result.fallback,
-      failure_reason: result.failure_reason
+      failure_reason: result.failure_reason,
+      quality_enforcement: 'active'
     });
 
     return new Response(

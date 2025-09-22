@@ -7517,9 +7517,15 @@ const Index = () => {
                        <TextRenderingStatus status={textRenderingStatus} className="mb-2" />
                        <p className="text-sm text-muted-foreground">This may take a few moments</p>
                       </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
-                        {showTextOverlay && backgroundOnlyImageUrl ? <CaptionOverlay imageUrl={backgroundOnlyImageUrl} caption={selectedGeneratedOption || stepTwoText || ""} layout={selectedTextLayout || "memeTopBottom"} onImageReady={composedImageUrl => {
-                  setFinalImageWithText(composedImageUrl);
-                }} /> : <img src={generatedImageUrl} alt="Generated VIIBE" loading="eager" className="w-full h-auto max-h-[70vh] object-contain rounded-lg shadow-lg" />}
+                         {showTextOverlay && backgroundOnlyImageUrl ? <CaptionOverlay 
+                            imageUrl={backgroundOnlyImageUrl} 
+                            caption={selectedGeneratedOption || stepTwoText || ""} 
+                            layout={selectedTextLayout || "memeTopBottom"} 
+                            onImageReady={composedImageUrl => {
+                              setFinalImageWithText(composedImageUrl);
+                              console.log('🎯 Caption overlay completed with 25% height enforcement');
+                            }} 
+                          /> : <img src={generatedImageUrl} alt="Generated VIIBE" loading="eager" className="w-full h-auto max-h-[70vh] object-contain rounded-lg shadow-lg" />}
                     </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
                       <AlertCircle className="h-8 w-8 text-destructive" />
                       <div>

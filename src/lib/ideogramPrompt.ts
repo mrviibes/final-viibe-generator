@@ -210,7 +210,7 @@ function getLayoutInstruction(handoff: IdeogramHandoff): { composition: string; 
 }
 
 export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { injectText?: boolean; strengthLevel?: number } = {}): IdeogramPrompts {
-  const shouldInjectText = false; // ALWAYS generate background images only for perfect text overlay
+  const shouldInjectText = false; // FORCE background-only generation for clean overlay
   
   // PHASE 0: Pop culture context detection for enhanced text handling
   const popCultureContext = handoff.key_line 
@@ -359,9 +359,10 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   
   // Removed redundant text instruction to prevent over-fitting
   
-  // ALWAYS add text avoidance directive since we never inject text
+  // FORCE background-only with clean space for overlay
   if (handoff.key_line && handoff.key_line.trim()) {
-    positivePrompt += ` Clear space for text overlay. No text, no letters, no words in image.`;
+    const layoutBand = handoff.chosen_visual?.includes('top') ? 'top' : 'bottom';
+    positivePrompt += ` CRITICAL: Reserve clean ${layoutBand} band (≤25% height) for text overlay. NO embedded text, letters, or words.`;
   }
   
   // Sanitize the final prompt
