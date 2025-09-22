@@ -224,7 +224,7 @@ async function callModel(prompt: string): Promise<{ text: string }> {
       { role: 'system', content: 'You are a professional comedian performing on stage. Generate exactly one complete joke sentence.' },
       { role: 'user', content: prompt }
     ],
-    [getTokenParameter(MODEL)]: 500
+    [getTokenParameter(MODEL)]: MODEL.startsWith('gpt-5') ? 800 : 500
   };
   
   console.log(`📤 Request body:`, JSON.stringify(requestBody, null, 2));

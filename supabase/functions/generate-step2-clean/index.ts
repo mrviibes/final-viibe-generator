@@ -17,6 +17,7 @@ import {
   type MultiRatingOutput 
 } from "./multiRating.ts";
 import { MODEL_CONFIG, getTokenParameter, supportsTemperature } from "../shared/modelConfig.ts";
+import { enforceBatch } from "./enforceBatch.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

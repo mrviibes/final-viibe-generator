@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { generateVisuals } from "./generate.ts";
-import { MODEL } from "./model.ts";
+import { PRIMARY_MODEL } from "./model.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -139,7 +139,7 @@ serve(async (req) => {
     // Convert result to expected format
     const response = {
       success: true,
-      model: result.fallback ? 'fallback' : MODEL,
+      model: result.fallback ? 'fallback' : (result.model || PRIMARY_MODEL),
       concepts: result.lines.map((text: string, idx: number) => ({
         lane: `option${idx + 1}`,
         text
@@ -152,10 +152,11 @@ serve(async (req) => {
 
     // Log real causes for debugging
     console.log('✅ Visual generation completed:', {
-      model: MODEL,
+      model: result.model || PRIMARY_MODEL,
       meta: result.meta,
       simplified: !!result.simplified,
-      fallback: !!result.fallback
+      fallback: !!result.fallback,
+      failure_reason: result.failure_reason
     });
 
     return new Response(
