@@ -6971,7 +6971,7 @@ const Index = () => {
                           <p className="text-xs text-muted-foreground text-left">
                             <strong>"quoted words"</strong> put in text exactly, <strong>unquoted words</strong> just influence final text.
                           </p>
-                        <Input value={tagInput} onChange={e => handleTagInputChange(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder='"quoted" and unquoted words and sentences here' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${tagInputWarning ? 'border-destructive' : 'border-border'}`} />
+                        <Input value={tagInput} onChange={e => handleTagInputChange(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder='enter words here and hit return' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${tagInputWarning ? 'border-destructive' : 'border-border'}`} />
                         {tagInputWarning && <p className="text-xs text-destructive text-center mt-1">
                             ⚠️ {tagInputWarning}
                           </p>}
