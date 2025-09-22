@@ -15,11 +15,11 @@ export async function callModel(prompt: string, apiKey: string, retryCount = 0):
       body: JSON.stringify({
         model: MODEL,
         messages: [
-          { role: "system", content: "You return exactly 4 visual prompt lines. Each line is one sentence, max 15 words." },
+          { role: "system", content: "You generate visual prompts for AI image generation. Return exactly 4 visual concept lines. Each line is one sentence, max 15 words. CRITICAL: Text in images must be appropriately sized - never oversized or overwhelming." },
           { role: "user", content: prompt }
         ],
         max_completion_tokens: MAX_COMPLETION_TOKENS,
-        temperature: 0.7
+        // Remove temperature for gpt-5-mini (newer models don't support it)
       }),
       signal: ctrl.signal
     });

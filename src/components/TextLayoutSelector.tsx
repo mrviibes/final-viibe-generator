@@ -17,13 +17,13 @@ const layoutOptions: LayoutOption[] = [
   {
     id: "negativeSpace",
     name: "Negative Space",
-    description: "Text carved out from the background",
-    bestFor: "Bold statements, titles"
+    description: "Text carved out from background (max 25% height)",
+    bestFor: "Bold statements, readable text"
   },
   {
     id: "memeTopBottom",
     name: "Meme Top/Bottom",
-    description: "Classic meme text at top and bottom",
+    description: "Classic meme text (controlled size)",
     bestFor: "Humorous content"
   },
   {
@@ -47,7 +47,7 @@ const layoutOptions: LayoutOption[] = [
   {
     id: "subtleCaption",
     name: "Subtle Caption",
-    description: "Minimal text overlay",
+    description: "Minimal text overlay (max 15% height)",
     bestFor: "Artistic, elegant content"
   }
 ];
