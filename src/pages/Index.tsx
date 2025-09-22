@@ -7510,9 +7510,7 @@ const Index = () => {
                     </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
                  </div>
 
-                 {generatedImageUrl && <div className="text-center mt-2 text-xs text-muted-foreground">
-                     Having trouble seeing the preview? <a href={generatedImageUrl} target="_blank" rel="noopener noreferrer" className="underline text-primary">Open image in a new tab</a>.
-                   </div>}
+                 {generatedImageUrl}
  
                  {/* Text Misspelling Detection */}
                  {generatedImageUrl && textMisspellingDetected && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
