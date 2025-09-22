@@ -7,6 +7,7 @@ export function buildPrompt(input: {
   rating: "G"|"PG-13"|"R"|"Explicit";
   tags: { hard: string[]; soft: string[] };
   minLen: number; maxLen: number; simplified?: boolean; voiceHint?: string;
+  requestMultiple?: boolean;
 }) {
   const themes = input.tags.soft.slice(0,5).join(" | ") || "none";
   const hard = input.tags.hard.join(", ") || "none";
@@ -24,25 +25,45 @@ export function buildPrompt(input: {
     }
   }
 
-  // Tone-specific enforcement
-  const toneInstructions = getToneInstructions(input.tone);
-  
-  // Simplified prompt for GPT-5 reliability
-  let prompt = `Write one ${input.style} joke about ${input.category}/${input.subcategory}. `;
-  prompt += `${input.minLen}-${input.maxLen} characters. ${input.tone} tone. ${input.rating} rating. `;
-  
-  if (hard !== "none") {
-    prompt += `Include: ${hard}. `;
-  }
-  
-  prompt += voiceInstructions;
+  // Build prompt based on request type
+  if (input.requestMultiple) {
+    // Request multiple jokes in one call for better consistency
+    let prompt = `Write 4 ${input.style} jokes about ${input.category}/${input.subcategory}. `;
+    prompt += `Each joke: ${input.minLen}-${input.maxLen} characters, ${input.tone} tone, ${input.rating} rating. `;
+    prompt += `Format: One joke per line, numbered 1-4. `;
+    
+    if (hard !== "none") {
+      prompt += `REQUIRED: Include "${hard}" in each joke naturally. `;
+    }
+    
+    prompt += voiceInstructions;
+    
+    // Add pop culture if needed
+    if (popCultureEntity) {
+      prompt += ` Reference: ${popCultureEntity}.`;
+    }
+    
+    prompt += `\n\nExample format:\n1. [joke with ${hard}]\n2. [joke with ${hard}]\n3. [joke with ${hard}]\n4. [joke with ${hard}]`;
+    
+    return prompt;
+  } else {
+    // Single joke request (fallback)
+    let prompt = `Write one ${input.style} joke about ${input.category}/${input.subcategory}. `;
+    prompt += `${input.minLen}-${input.maxLen} characters. ${input.tone} tone. ${input.rating} rating. `;
+    
+    if (hard !== "none") {
+      prompt += `Include: ${hard}. `;
+    }
+    
+    prompt += voiceInstructions;
 
-  // Add pop culture if needed
-  if (popCultureEntity) {
-    prompt += ` Reference: ${popCultureEntity}.`;
+    // Add pop culture if needed
+    if (popCultureEntity) {
+      prompt += ` Reference: ${popCultureEntity}.`;
+    }
+    
+    return prompt;
   }
-  
-  return prompt;
 }
 
 // Get tone-specific instructions

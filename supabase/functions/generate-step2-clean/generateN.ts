@@ -17,9 +17,9 @@ type Ctx = {
 };
 
 const BUCKETS: Array<[number, number]> = [
-  [40,60],
-  [61,80], 
-  [81,100],
+  [30,70],
+  [50,90], 
+  [60,120],
 ];
 
 // REMOVED: No more forced cues in V3 system
@@ -109,46 +109,80 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
   // Start new batch for pop culture tracking
   startNewPopCultureBatch();
   
-  const rawLines: string[] = [];
+  console.log(`🎭 Generating ${n} jokes for: ${ctx.category}/${ctx.subcategory}, Hard tags: [${ctx.tags.hard.join(', ')}]`);
+  
+  // Generate multiple jokes in one call for better consistency
+  const prompt = buildPrompt({ 
+    ...ctx, 
+    minLen: 30, 
+    maxLen: 120,
+    requestMultiple: true
+  });
+  
+  const res = await callModel(prompt);
+  console.log(`📝 Raw GPT response (${res.text.length} chars):`, res.text);
 
-  // Generate lines with standard prompts - voice variety handled by enforceBatch
-  for (let i = 0; i < n; i++) {
-    const prompt = buildPrompt({ 
-      ...ctx, 
-      minLen: 40, 
-      maxLen: 100
-    });
+  let lines = res.text
+    .split("\n")
+    .map(s => s.trim())
+    .filter(Boolean)
+    .slice(0, n);
+
+  console.log(`📋 Parsed ${lines.length} lines from response:`, lines.map((l, i) => `${i+1}: "${l}" (${l.length} chars)`));
+
+  // Process each line with more flexible length requirements
+  const rawLines = lines.map((line, i) => {
+    let processed = line;
     
-    const res = await callModel(prompt);
-
-    let lines = res.text
-      .split("\n")
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    // Get best line from model output
-    let best = lines.find(s => s.length >= 40 && s.length <= 100) ?? lines[0] ?? "";
+    // Remove common prefixes that models add
+    processed = processed.replace(/^\d+\.\s*/, '').replace(/^Line\s*\d+:\s*/i, '');
     
     // Basic soft tag stripping
-    best = stripSoftEcho([best], ctx.tags.soft)[0];
+    processed = stripSoftEcho([processed], ctx.tags.soft)[0];
     
-    if (!best || best.length < 40) {
-      console.log(`⚠️ First attempt failed, trying simplified prompt...`);
-      // Fallback to minimal prompt
-      const simplePrompt = `Generate a ${ctx.tone.toLowerCase()} joke about ${ctx.category}. Include "${ctx.tags.hard[0] || 'someone'}" in the joke. 40-100 characters. One sentence.`;
-      const res2 = await callModel(simplePrompt);
-      let alt = res2.text.split("\n").map(s => s.trim()).find(s => s.length >= 40 && s.length <= 100) ?? "";
-      alt = stripSoftEcho([alt], ctx.tags.soft)[0];
-      
-      if (alt && alt.length >= 40) {
-        best = alt;
-        console.log(`✅ Simplified prompt worked: "${alt}"`);
-      } else {
-        console.log(`❌ Both attempts failed for generation ${i + 1}`);
+    // Flexible length handling - trim if too long, extend if too short
+    if (processed.length > 120) {
+      const cutPoint = processed.lastIndexOf(' ', 120);
+      if (cutPoint > 30) {
+        processed = processed.slice(0, cutPoint) + '.';
       }
     }
+    
+    if (processed.length < 30 && processed.length > 10) {
+      processed = processed.replace(/\.$/, ' tonight.');
+    }
+    
+    console.log(`✂️ Line ${i+1} processed: "${line}" → "${processed}" (${processed.length} chars)`);
+    
+    return processed;
+  });
 
-    rawLines.push(best || "Generated content unavailable.");
+  // If we don't have enough good lines, try a fallback
+  if (rawLines.filter(l => l.length >= 30 && l.length <= 120).length < 2) {
+    console.log(`⚠️ Not enough good lines, trying fallback approach...`);
+    
+    const fallbackPrompt = `Write 4 ${ctx.tone.toLowerCase()} jokes about ${ctx.category}/${ctx.subcategory}. Include "${ctx.tags.hard[0] || 'someone'}" in each joke. Each joke should be 30-120 characters, one sentence each.`;
+    const fallbackRes = await callModel(fallbackPrompt);
+    
+    const fallbackLines = fallbackRes.text
+      .split("\n")
+      .map(s => s.trim().replace(/^\d+\.\s*/, ''))
+      .filter(Boolean)
+      .slice(0, n);
+    
+    console.log(`🔄 Fallback generated ${fallbackLines.length} lines:`, fallbackLines);
+    
+    // Use fallback lines for empty slots
+    for (let i = 0; i < n; i++) {
+      if (!rawLines[i] || rawLines[i].length < 30) {
+        rawLines[i] = fallbackLines[i] || "Generated content unavailable.";
+      }
+    }
+  }
+
+  // Ensure we have exactly n lines
+  while (rawLines.length < n) {
+    rawLines.push("Generated content unavailable.");
   }
 
   // Apply unified enforceBatch system
@@ -231,7 +265,7 @@ function formatOKWithLength(s: string, lo: number, hi: number): boolean {
 }
 
 export function formatOK(s: string) {
-  return formatOKWithLength(s, 40, 100);
+  return formatOKWithLength(s, 30, 120);
 }
 
 function ensuredPeriod(s: string) { return s.replace(/\.+$/,"") + "."; }

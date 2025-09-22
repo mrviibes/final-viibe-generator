@@ -1,7 +1,7 @@
 // enforceBatch.ts
 type Rating = "G"|"PG-13"|"R"|"Explicit";
 
-const BUCKETS: [number,number][] = [[40,60],[61,80],[81,100],[61,80]];
+const BUCKETS: [number,number][] = [[30,70],[50,90],[60,120],[40,100]];
 const STALE = [
   "everyone nodded awkwardly",
   "man listen",                       // ban as a forced prefix
@@ -114,23 +114,39 @@ function spreadHardTag(lines:string[], tag?:string){
   if (!tag) return lines;
   const t = tag.toLowerCase();
   
+  console.log(`🏷️ Spreading tag "${tag}" across lines. Current coverage:`, 
+    lines.map((l, i) => `${i+1}: ${l.toLowerCase().includes(t) ? '✅' : '❌'}`));
+  
   return lines.map((l,i)=>{
-    if (l.toLowerCase().includes(t)) return l;
+    if (l.toLowerCase().includes(t)) {
+      console.log(`🏷️ Line ${i+1} already has tag: "${l}"`);
+      return l;
+    }
+    
+    let result = l;
     
     // Natural contextual placement
     if (i === 0) {
       // First line: integrate after opening phrase
-      return l.replace(/^(You ever notice|So apparently|Look)(\s+)/, `$1 ${tag}$2`);
+      if (/^(You ever notice|So apparently|Look)/i.test(l)) {
+        result = l.replace(/^(You ever notice|So apparently|Look)(\s+)/i, `$1 ${tag}$2`);
+      } else {
+        result = l.replace(/^(\w+)(\s+)/, `${tag} $1$2`);
+      }
     } else if (i === 1) {
       // Middle lines: find natural break point
       if (/\bbut\b|\byet\b|\bstill\b/i.test(l)) {
-        return l.replace(/(\bbut\b|\byet\b|\bstill\b)/i, `$1 ${tag}`);
+        result = l.replace(/(\bbut\b|\byet\b|\bstill\b)/i, `$1 ${tag}`);
+      } else {
+        result = l.replace(/(\w+)(\s+)/, `${tag}'s $1$2`);
       }
-      return l.replace(/(\w+)(\s+)/, `${tag}'s $1$2`);
     } else {
       // Last lines: integrate into punchline
-      return l.replace(/(\w+)\.?$/, `${tag}'s $1.`);
+      result = l.replace(/(\w+)\.?$/, `${tag}'s $1.`);
     }
+    
+    console.log(`🏷️ Line ${i+1} tag added: "${l}" → "${result}"`);
+    return result;
   });
 }
 
