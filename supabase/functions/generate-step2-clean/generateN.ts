@@ -35,7 +35,10 @@ function assignBuckets(n: number = 4): [number,number][] {
   return buckets;
 }
 
-function ensurePunchlineCue(line: string): string {
+function ensurePunchlineCue(line: string, tone: string): string {
+  // Skip cues for Romantic/Sentimental tones
+  if (tone === "Romantic" || tone === "Sentimental") return line;
+  
   // if it already has a cue, keep it but fix spacing
   if (/\bfirst\b/i.test(line)) return line.replace(/\bfirst[, ]*then\b/i, " first then ");
   
@@ -52,9 +55,9 @@ function ensurePunchlineCue(line: string): string {
   return `${cue} ${line[0].toLowerCase()}${line.slice(1)}`;
 }
 
-function completeSentence(line: string, lo: number, hi: number): string {
+function fitLengthWordSafe(line: string, lo: number, hi: number): string {
   let s = line.replace(/[—]/g, " ").replace(/,/g, "").replace(/\s+\./g, ".").trim();
-  s = s.endsWith(".") ? s : s + ".";
+  if (!s.endsWith(".")) s += ".";
   
   // Fix incomplete sentences - check for mid-thought endings
   if (/\b(the|and|was|had|with|for|but|that)\.\s*$/i.test(s)) {
@@ -73,17 +76,34 @@ function completeSentence(line: string, lo: number, hi: number): string {
   if (!/[a-z)]\.\s*$/i.test(s)) s = s.replace(/\.\s*$/, " show.");
   s = s.replace(/^\s*[a-z]/, m => m.toUpperCase());
   
-  // length adjustments
-  if (s.length > hi) s = s.slice(0, hi).replace(/\s+\S*$/, "") + ".";
-  if (s.length < lo) s = s.replace(/\.\s*$/, " and everyone cheered.");
+  // Word-safe length fitting - never cut mid-word
+  if (s.length <= hi && s.length >= lo) return s;
+  
+  if (s.length > hi) {
+    const cut = s.slice(0, hi);
+    const lastSpace = cut.lastIndexOf(" ");
+    const safe = lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
+    s = safe.replace(/\.$/, "") + ".";
+  }
+  
+  if (s.length < lo) {
+    s = s.replace(/\.$/, " tonight.");
+  }
   
   return s;
 }
 
-function diversifyLexicon(lines: string[]): string[] {
-  const pool = [...BASKETBALL_LEX];
+function diversifyContextLexicon(lines: string[], category: string): string[] {
+  const BIRTHDAY_LEX = ["cake","candles","party","balloons","wish","slice","confetti"];
+  const BASKETBALL_LEX = ["hoop","rim","court","dribble","rebound","buzzer"];
+  
+  // Choose lexicon based on category
+  const pool = category.toLowerCase().includes("birthday") || category.toLowerCase().includes("celebration") 
+    ? BIRTHDAY_LEX 
+    : BASKETBALL_LEX;
+  
   return lines.map((l, i) => {
-    const hasLex = BASKETBALL_LEX.some(w => l.toLowerCase().includes(w));
+    const hasLex = pool.some(w => l.toLowerCase().includes(w));
     if (hasLex) return l;
     const w = pool[i % pool.length];
     return l.replace(/\.\s*$/, " " + w + ".");
@@ -109,23 +129,42 @@ function enforceHardTag(lines: string[], tag: string): string[] {
   return lines;
 }
 
-function postProcessBatch(rawLines: string[], hardTag: string): string[] {
+function postProcessBatch(rawLines: string[], hardTag: string, ctx: Ctx): string[] {
   let lines = [...new Set(rawLines.map(s => s.trim()))].slice(0, 4);
   const buckets = assignBuckets(lines.length);
 
-  lines = lines.map((l, i) => completeSentence(ensurePunchlineCue(l), buckets[i][0], buckets[i][1]));
-  lines = diversifyLexicon(lines);
-  if (hardTag) lines = enforceHardTag(lines, hardTag);
-
-  // final validation
+  // Process each line with context-aware pipeline
   lines = lines.map((l, i) => {
-    let s = l.replace(/[—]/g, " ").replace(/,/g, "").replace(/\s+\./g, ".");
-    s = (s.match(/\./g) || []).length === 1 ? s : s + ".";
-    if (s.length < buckets[i][0] || s.length > buckets[i][1]) {
-      s = completeSentence(s, buckets[i][0], buckets[i][1]);
+    // 1. Normalize
+    let s = l.trim();
+    
+    // 2. Context lexicon injection
+    if (ctx.category.toLowerCase().includes("birthday") || ctx.category.toLowerCase().includes("celebration")) {
+      s = ensureBirthdayLexicon(s);
     }
+    
+    // 3. Romantic tone enforcement (strip ages, add affectionate words)
+    if (ctx.tone === "Romantic") {
+      s = s.replace(/\b\d+\b/g, ""); // strip ages
+      if (!/(love|heart|warm|dear|sweet|tender|adore)/i.test(s)) {
+        s = s.replace(/\.$/, " and my heart knows it.");
+      }
+    }
+    
+    // 4. Apply cue if needed (skip for romantic tones)
+    s = ensurePunchlineCue(s, ctx.tone);
+    
+    // 5. Word-safe length fitting
+    s = fitLengthWordSafe(s, buckets[i][0], buckets[i][1]);
+    
+    // 6. Final QC
+    s = finalQC(s);
+    
     return s;
   });
+  
+  // Apply hard tag enforcement at the end
+  if (hardTag) lines = enforceHardTag(lines, hardTag);
   
   return lines;
 }
@@ -172,7 +211,7 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
 
   // Apply post-processing to entire batch for consistency
   const hardTag = ctx.tags.hard[0] || "";
-  const processed = postProcessBatch(rawLines, hardTag);
+  const processed = postProcessBatch(rawLines, hardTag, ctx);
   
   return processed;
 }
@@ -228,6 +267,29 @@ export function formatOK(s: string) {
 }
 
 function ensuredPeriod(s: string) { return s.replace(/\.+$/,"") + "."; }
+
+function finalQC(s: string): string {
+  // Clean formatting
+  s = s.replace(/\s+\./g, ".").replace(/[—,]/g, "");
+  
+  // Ensure exactly one sentence (one period)
+  if ((s.match(/\./g) || []).length !== 1) {
+    s = s.replace(/\./g, "") + ".";
+  }
+  
+  // Fix multiple periods and spaces before period
+  s = s.replace(/\.{2,}$/, ".").replace(/\s+\.$/, ".");
+  
+  // Capitalize first letter
+  s = s.replace(/^[a-z]/, m => m.toUpperCase());
+  
+  // Must end with a whole word
+  if (!/[a-z)]\.$/.test(s)) {
+    s = s.replace(/\.$/, " now.");
+  }
+  
+  return s;
+}
 
 function ensurePunchFirst(s: string) {
   const ok = / first then /i.test(s) || /^(spoiler|plot twist|fine|zero) first then /i.test(s);
