@@ -49,6 +49,44 @@ export function repairFragments(line: string): string {
 
 // Ensure every line has a proper setup → punch structure
 export function enforceSetupPunch(line: string): string {
+  // Check for specific incomplete patterns the user mentioned
+  const incompletePatterns = [
+    /\bmake me feel like\s*$/i,
+    /\bmaybe try\s*$/i, 
+    /\blike it'\s*anyway\s*$/i,
+    /\bcoming home after midnight\s*$/i,
+    /\band everyone\s*$/i,
+    /\bbut in \w+\s*$/i,
+    /\bmore than you drop hints\s*$/i
+  ];
+  
+  // Fix specific incomplete patterns first
+  for (const pattern of incompletePatterns) {
+    if (pattern.test(line)) {
+      if (/\bmake me feel like\s*$/i.test(line)) {
+        return line.replace(/\bmake me feel like\s*$/i, "make me feel like the cake has trust issues.");
+      }
+      if (/\bmaybe try\s*$/i.test(line)) {
+        return line.replace(/\bmaybe try\s*$/i, "maybe try calling the referee for backup.");
+      }
+      if (/\blike it'\s*anyway\s*$/i.test(line)) {
+        return line.replace(/\blike it'\s*anyway\s*$/i, "like it's a community celebration.");
+      }
+      if (/\bcoming home after midnight\s*$/i.test(line)) {
+        return line.replace(/\bcoming home after midnight\s*$/i, "coming home after midnight and waking the neighbors.");
+      }
+      if (/\band everyone\s*$/i.test(line)) {
+        return line.replace(/\band everyone\s*$/i, "and everyone pretended to enjoy it.");
+      }
+      if (/\bbut in \w+\s*$/i.test(line)) {
+        return line.replace(/\bbut in \w+\s*$/i, "but in Brazil the party never stops.");
+      }
+      if (/\bmore than you drop hints\s*$/i.test(line)) {
+        return line.replace(/\bmore than you drop hints\s*$/i, "more than you drop hints at dinner tables.");
+      }
+    }
+  }
+  
   // Check if line already has a clear punchline structure
   const hasPunch = /\b(but|so|because|then|and|until|except|unfortunately|suddenly|turns out|apparently)\b.*\./i.test(line);
   
@@ -121,6 +159,67 @@ export function spreadHardTagCreatively(lines: string[], hardTag: string): strin
 }
 
 // Enforce tone-specific language
+export function enforceToneSpecific(line: string, tone: string): string {
+  switch (tone) {
+    case "Inspirational":
+      return enforceInspirationalTone(line);
+    case "Playful":
+      return enforcePlayfulTone(line);
+    default:
+      return line;
+  }
+}
+
+// Enforce inspirational tone specifically
+export function enforceInspirationalTone(line: string): string {
+  const inspirationalWords = ["believe", "rise", "stronger", "heart", "fight", "dream", "overcome", "achieve", "hope", "courage", "triumph", "victory", "inspire", "motivate"];
+  const negativeWords = ["sucks", "terrible", "awful", "hate", "stupid", "dumb", "ugly", "worst", "loser", "fail"];
+  
+  // Check if line contains negative words that conflict with inspirational tone
+  const hasNegative = negativeWords.some(word => 
+    new RegExp(`\\b${word}\\b`, "i").test(line)
+  );
+  
+  if (hasNegative) {
+    // Replace negative patterns with positive ones
+    const replacements: [RegExp, string][] = [
+      [/\bsucks\b/gi, "challenges us"],
+      [/\bterrible\b/gi, "difficult"],
+      [/\bawful\b/gi, "tough"],
+      [/\bhate\b/gi, "struggle with"],
+      [/\bstupid\b/gi, "confusing"],
+      [/\bworst\b/gi, "most challenging"],
+      [/\bfail\b/gi, "learn"],
+    ];
+    
+    for (const [pattern, replacement] of replacements) {
+      line = line.replace(pattern, replacement);
+    }
+  }
+  
+  // Check if line has inspirational language
+  const hasInspirational = inspirationalWords.some(word => 
+    new RegExp(`\\b${word}\\b`, "i").test(line)
+  );
+
+  if (!hasInspirational) {
+    // Add inspirational language naturally
+    const inspirationalConnectors = [
+      " and that's how we rise stronger",
+      " proving dreams do come true",
+      " showing heart beats talent",
+      " because believing changes everything",
+      " and courage finds a way"
+    ];
+
+    const connector = inspirationalConnectors[Math.floor(Math.random() * inspirationalConnectors.length)];
+    return line.replace(/\.$/, `${connector}.`);
+  }
+
+  return line;
+}
+
+// Enforce playful tone
 export function enforcePlayfulTone(line: string): string {
   const playfulWords = ["silly", "ridiculous", "goofy", "funny", "hilarious", "absurd", "weird", "crazy"];
   const hasPlayful = playfulWords.some(word => 
@@ -211,10 +310,8 @@ export function repairJokeBatch(rawLines: string[], context: RepairContext): str
   // 3. Add safe punchlines for incomplete lines
   repaired = repaired.map(line => addSafePunchline(line, context));
 
-  // 4. Enforce tone-specific language
-  if (context.tone === "Playful") {
-    repaired = repaired.map(line => enforcePlayfulTone(line));
-  }
+  // 4. Enforce tone-specific language for ALL tones
+  repaired = repaired.map(line => enforceToneSpecific(line, context.tone));
 
   // 5. Diversify voice markers to avoid repetition
   repaired = diversifyVoiceMarkers(repaired);

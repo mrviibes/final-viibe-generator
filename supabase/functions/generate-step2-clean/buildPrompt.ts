@@ -24,6 +24,9 @@ export function buildPrompt(input: {
     }
   }
 
+  // Tone-specific enforcement
+  const toneInstructions = getToneInstructions(input.tone);
+  
   const lines = [
     `Return one sentence only. Length ${input.minLen}-${input.maxLen} characters. One period.`,
     "No commas. No em dashes.",
@@ -31,6 +34,7 @@ export function buildPrompt(input: {
     "CRITICAL: Sound like a comedian on stage, not AI writing. Use natural conversational delivery.",
     input.voiceHint || voiceInstructions,
     "STRUCTURE: Write a complete one-sentence joke with natural comedian rhythm and clear punchline.",
+    toneInstructions,
     `Rating ${input.rating}:`,
     "G: clean wholesome humor.",
     "PG-13: allow damn or hell only, mild edge appropriate for teens.",
@@ -38,12 +42,20 @@ export function buildPrompt(input: {
     "Explicit: include a raunchy innuendo tied to context.",
     `Hard tags appear literally: ${hard}.`,
     `Soft tags guide tone only: ${themes}. Do not echo soft tags.`,
+    "CRITICAL: Complete the sentence fully. No fragments ending with incomplete thoughts.",
   ];
 
   // Add pop culture instruction if entity selected
   if (popCultureEntity) {
     lines.push(`Include fresh reference to: ${popCultureEntity}.`);
   }
+  
+  // Add category-specific lexicon requirements
+  const categoryInstructions = getCategoryInstructions(input.category, input.subcategory, input.tone);
+  if (categoryInstructions) {
+    lines.push(categoryInstructions);
+  }
+  
   if (/Thanksgiving/i.test(input.subcategory)) {
     lines.push("Use at least one of: turkey, gravy, pie, table, toast, leftovers, cranberry, family, stuffing.");
   }
@@ -52,6 +64,32 @@ export function buildPrompt(input: {
   }
 
   return lines.join("\n");
+}
+
+// Get tone-specific instructions
+function getToneInstructions(tone: string): string {
+  const toneMap: { [key: string]: string } = {
+    "Inspirational": "TONE: Inspirational means uplifting, hopeful, motivational. Use positive words like: believe, rise, stronger, heart, fight, dream, overcome, achieve. AVOID sarcasm, roasting, or negative humor.",
+    "Playful": "TONE: Playful means cheerful, lively, mischievous fun. Use words like: silly, ridiculous, goofy, funny, hilarious.",
+    "Serious": "TONE: Serious means respectful, formal, matter-of-fact. Avoid overly silly language.",
+    "Savage": "TONE: Savage means bold, edgy, roasting humor with sharp wit.",
+    "Sarcastic": "TONE: Sarcastic means witty, ironic, with subtle mockery.",
+  };
+  
+  return toneMap[tone] || `TONE: Match the ${tone} tone appropriately.`;
+}
+
+// Get category-specific instructions
+function getCategoryInstructions(category: string, subcategory: string, tone: string): string | null {
+  if (category === "Sports" && subcategory === "American Football" && tone === "Inspirational") {
+    return "REQUIRED: Include one football word (team, field, goal, yard, coach, quarterback, touchdown, plays) AND one uplifting word (believe, rise, stronger, heart, fight, dream, overcome).";
+  }
+  
+  if (category === "Celebrations" && subcategory === "Birthday") {
+    return "Use at least one of: birthday, cake, candles, balloons, party, wish, celebrate, age.";
+  }
+  
+  return null;
 }
 
 // Legacy function for compatibility
