@@ -288,14 +288,7 @@ function mapToStencilVoice(voice: ComedianVoice): StencilVoice {
   return mapping[voice.name] || "john_mulaney";
 }
 
-// Enhanced similarity checking
-function similarity(a: string, b: string): number {
-  const A = new Set(a.toLowerCase().split(/\s+/));
-  const B = new Set(b.toLowerCase().split(/\s+/));
-  const inter = [...A].filter(x => B.has(x)).length;
-  const union = new Set([...A, ...B]).size;
-  return inter / union;
-}
+// Enhanced similarity checking (removed duplicate - using original function above)
 
 function improvedDedupe(lines: string[]): string[] {
   const uniq: string[] = [];
