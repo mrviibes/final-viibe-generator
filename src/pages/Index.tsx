@@ -6113,41 +6113,6 @@ const Index = () => {
         {/* Step Progress Header */}
         <StepProgress currentStep={currentStep} />
         
-        {/* Persistent Tag Display - Show tags across all steps when they exist */}
-        {(tags.length > 0 || subjectTags.length > 0) && currentStep > 1 && (
-          <div className="max-w-6xl mx-auto mb-6 p-4 bg-muted/30 rounded-lg border">
-            <div className="text-center">
-              {tags.length > 0 && (
-                <div className="mb-2">
-                  <span className="text-sm font-medium text-muted-foreground mr-2">Text Tags:</span>
-                  <div className="inline-flex flex-wrap gap-1">
-                    {tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {subjectTags.length > 0 && (
-                <div>
-                  <span className="text-sm font-medium text-muted-foreground mr-2">Visual Tags:</span>
-                  <div className="inline-flex flex-wrap gap-1">
-                    {subjectTags.map((tag, index) => {
-                      const isQuoted = tag.startsWith('"') && tag.endsWith('"') || tag.startsWith("'") && tag.endsWith("'");
-                      return (
-                        <Badge key={index} variant={isQuoted ? "outline" : "secondary"} className={`text-xs ${isQuoted ? 'border-dashed' : ''}`}>
-                          {tag}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        
         
         {currentStep === 1 && <>
             <div className="text-center mb-12">
@@ -6992,7 +6957,25 @@ const Index = () => {
                             </CardContent>
                           </Card>)}
                       </div>}
-                  </> : null}
+                   </> : null}
+
+                {/* Show selected tags for AI Assist */}
+                {selectedCompletionOption === "ai-assist" && tags.length > 0 && (
+                  <div className="mt-6 mb-4">
+                    <div className="max-w-md mx-auto p-4 bg-muted/30 rounded-lg border">
+                      <div className="text-center">
+                        <span className="text-sm font-medium text-muted-foreground mr-2">Text Tags:</span>
+                        <div className="flex flex-wrap gap-1 justify-center mt-1">
+                          {tags.map((tag, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Show AI Assist form when selected and no options generated yet */}
                 {selectedCompletionOption === "ai-assist" && !multiRatingOptions && !singleModeOptions && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
