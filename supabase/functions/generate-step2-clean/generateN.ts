@@ -20,21 +20,34 @@ const BUCKETS: Array<[number, number]> = [
 ];
 
 const PUNCHLINE_CUES = [
-  "Spoiler first then", "Plot twist first then", "Zero defense first then", "Fine first then"
+  "Spoiler first then", "Plot twist first then", "Zero defense first then", "Fine first then",
+  "Twist first then", "Real talk first then", "Surprise first then"
 ];
 
 const BASKETBALL_LEX = ["hoop","rim","court","dribble","rebound","buzzer","foul","free throw","timeout","screen","turnover","fast break"];
 
 function assignBuckets(n: number = 4): [number,number][] {
-  const arr = [...BUCKETS];
-  while (arr.length < n) arr.push(BUCKETS[Math.floor(Math.random() * BUCKETS.length)]);
-  return arr.slice(0, n);
+  // Ensure we use all buckets for variety, cycling through them
+  const buckets: [number,number][] = [];
+  for (let i = 0; i < n; i++) {
+    buckets.push(BUCKETS[i % BUCKETS.length]);
+  }
+  return buckets;
 }
 
 function ensurePunchlineCue(line: string): string {
   // if it already has a cue, keep it but fix spacing
   if (/\bfirst\b/i.test(line)) return line.replace(/\bfirst[, ]*then\b/i, " first then ");
-  // otherwise add a random cue
+  
+  // For style="punchline-first", add natural cue 30% of time, let line be natural 70% of time
+  if (Math.random() < 0.7) {
+    // Check if line already sounds like a punchline-first joke
+    if (/^(damn|well|so|man|dude|turns out|apparently)/i.test(line.trim())) {
+      return line; // Already sounds natural
+    }
+  }
+  
+  // Add random cue
   const cue = PUNCHLINE_CUES[Math.floor(Math.random() * PUNCHLINE_CUES.length)];
   return `${cue} ${line[0].toLowerCase()}${line.slice(1)}`;
 }
@@ -43,18 +56,26 @@ function completeSentence(line: string, lo: number, hi: number): string {
   let s = line.replace(/[—]/g, " ").replace(/,/g, "").replace(/\s+\./g, ".").trim();
   s = s.endsWith(".") ? s : s + ".";
   
+  // Fix incomplete sentences - check for mid-thought endings
+  if (/\b(the|and|was|had|with|for|but|that)\.\s*$/i.test(s)) {
+    s = s.replace(/\b(the|and|was|had|with|for|but|that)\.\s*$/i, " cake.");
+  }
+  
   // fix common cut-offs like "every g." / "Jesse d." / "damn pl."
-  s = s.replace(/\b([a-z]{1,2})\.\s*$/i, " game.");
+  s = s.replace(/\b([a-z]{1,2})\.\s*$/i, " show.");
   s = s.replace(/\bpl\.\s*$/i, "play.");
   s = s.replace(/\bd\.\s*$/i, "down.");
   s = s.replace(/\bg\.\s*$/i, "game.");
+  s = s.replace(/\bcandles\s+and\.\s*$/i, "candles and made a wish.");
+  s = s.replace(/\bblew\s+out\s+and\.\s*$/i, "blew out the candles.");
   
-  if (!/[a-z)]\.\s*$/i.test(s)) s = s.replace(/\.\s*$/, " game.");
+  // Ensure it ends with a complete word + period
+  if (!/[a-z)]\.\s*$/i.test(s)) s = s.replace(/\.\s*$/, " show.");
   s = s.replace(/^\s*[a-z]/, m => m.toUpperCase());
   
   // length adjustments
   if (s.length > hi) s = s.slice(0, hi).replace(/\s+\S*$/, "") + ".";
-  if (s.length < lo) s = s.replace(/\.\s*$/, " on the court.");
+  if (s.length < lo) s = s.replace(/\.\s*$/, " and everyone cheered.");
   
   return s;
 }
