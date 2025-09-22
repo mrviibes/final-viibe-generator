@@ -2,7 +2,7 @@ import { buildPrompt } from "./buildPrompt.ts";
 import { ParsedTags } from "./tags.ts";
 import { startNewPopCultureBatch } from "../shared/popCultureV3.ts";
 import { enforceBatch } from "./enforceBatch.ts";
-import { MODEL_CONFIG, getTokenParameter, supportsTemperature } from "../../shared/modelConfig.ts";
+import { MODEL_CONFIG, getTokenParameter, supportsTemperature } from "../shared/modelConfig.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const MODEL = MODEL_CONFIG.PRIMARY;
