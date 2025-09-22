@@ -7039,22 +7039,32 @@ const Index = () => {
 
 
                  {/* Single-Mode Generated Text Options */}
-                 {singleModeOptions && <div className="space-y-6 max-w-6xl mx-auto mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                 {singleModeOptions && !selectedGeneratedOption && <div className="space-y-6 max-w-6xl mx-auto mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                      <div className="text-center">
                        <h3 className="text-xl font-semibold mb-2">Choose Your Text</h3>
                        <p className="text-muted-foreground">Select one of the generated options</p>
                      </div>
                      
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       {singleModeOptions.map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-6 hover:bg-accent/50 border-2" onClick={() => {
-                setSelectedGeneratedOption(option);
-                setSelectedGeneratedIndex(index);
-                setIsEditingSelectedText(false);
-              }}>
-                           <div className="text-center">
-                             <p className="text-lg leading-relaxed">{option}</p>
+                       {singleModeOptions.map((option, index) => (
+                         <Card key={index} className="transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-6 border-2">
+                           <div className="space-y-4">
+                             <p className="text-lg leading-relaxed text-center">{option}</p>
+                             <div className="text-center">
+                               <Button 
+                                 onClick={() => {
+                                   setSelectedGeneratedOption(option);
+                                   setSelectedGeneratedIndex(index);
+                                   setIsEditingSelectedText(false);
+                                 }}
+                                 className="w-full"
+                               >
+                                 Choose this option
+                               </Button>
+                             </div>
                            </div>
-                         </Card>)}
+                         </Card>
+                       ))}
                      </div>
 
                      {/* Regeneration Controls */}
