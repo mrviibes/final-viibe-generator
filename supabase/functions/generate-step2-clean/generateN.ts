@@ -1,8 +1,7 @@
 import { buildPrompt } from "./buildPrompt.ts";
 import { ParsedTags, normalizeTags } from "./tags.ts";
-import { startNewPopCultureBatch } from "../shared/popCultureV3.ts";
-import { enforceBatch } from "./enforceBatch.ts";
-import { MODEL_CONFIG, getTokenParameter, supportsTemperature } from "../shared/modelConfig.ts";
+import { repairWithVoiceStencils, validateStencilRepair } from './voiceStencils.ts';
+import { COMEDIAN_VOICES, ComedianVoice, getRandomVoices } from '../../../src/lib/comedianVoices.ts';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const PRIMARY_MODEL = "gpt-5-2025-08-07";
@@ -139,13 +138,17 @@ function repairJoke(s: string): string {
 }
 
 export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
-  console.log(`🎯 Generating ${n} jokes with tightened request`, {
+  console.log(`🎭 Generating ${n} jokes with voice stencil system`, {
     category: ctx.category,
     subcategory: ctx.subcategory,
     hardTags: ctx.tags.hard,
     model: PRIMARY_MODEL,
     timeout: TIMEOUT_MS
   });
+  
+  // Select 4 unique comedian voices for this batch
+  const voices = getRandomVoices(4);
+  console.log(`🎭 Selected voices:`, voices.map(v => v.name));
   
   // Normalize tags to prevent crashes
   const normalizedTags = normalizeTags(ctx.tags);
@@ -167,7 +170,7 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
       model: res.model || PRIMARY_MODEL
     });
     
-    return processAndRepairJokes(res.text, safeCtx, n);
+    return processWithVoiceStencils(res.text, safeCtx, voices, n);
     
   } catch (primaryError) {
     console.log(`❌ Primary model failed:`, {
@@ -184,7 +187,7 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
         model: res.model || FALLBACK_MODEL
       });
       
-      return processAndRepairJokes(res.text, safeCtx, n);
+      return processWithVoiceStencils(res.text, safeCtx, voices, n);
       
     } catch (fallbackError) {
       console.error(`❌ Both models failed:`, {
@@ -192,60 +195,84 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
         fallback: { model: FALLBACK_MODEL, error: fallbackError.message }
       });
       
-      // Return repaired template fallback
-      return generateTemplateFallback(safeCtx, n);
+      // Return voice stencil fallback
+      return generateVoiceStencilFallback(safeCtx, voices, n);
     }
   }
 }
 
-function processAndRepairJokes(rawText: string, ctx: Ctx, n: number): string[] {
-  const lines = rawText
-    .split("\n")
-    .map(s => s.trim().replace(/^\d+\.\s*/, ''))
-    .filter(Boolean)
+function processWithVoiceStencils(rawText: string, ctx: Ctx, voices: ComedianVoice[], n: number): string[] {
+  console.log(`🔧 Processing raw output with voice stencils: "${rawText}"`);
+  
+  // Strip category leakage first
+  const cleanText = stripCategoryLeakage(rawText);
+  console.log(`🧹 After category cleanup: "${cleanText}"`);
+  
+  // Parse individual lines
+  const rawLines = cleanText
+    .split(/[\n\r]+/)
+    .map(line => line.trim().replace(/^\d+\.\s*/, ''))
+    .filter(line => line.length > 0)
     .slice(0, n);
   
-  console.log(`📋 Processing ${lines.length} raw lines`);
+  console.log(`📝 Raw lines:`, rawLines);
   
-  // Repair each joke
-  const repairedLines = lines.map((line, i) => {
-    const repaired = repairJoke(line);
-    console.log(`🔧 Line ${i+1}: "${line}" → "${repaired}" (${repaired.length} chars)`);
-    return repaired;
+  // Apply voice stencil repair system
+  const repairedLines = repairWithVoiceStencils(rawLines, voices, ctx.rating);
+  console.log(`🎭 After voice stencil repair:`, repairedLines);
+  
+  // Validate the repair quality
+  const validation = validateStencilRepair(repairedLines);
+  console.log(`✅ Stencil validation - Score: ${validation.score}, Stage-ready: ${validation.stageReadyCount}/4`);
+  
+  if (validation.issues.length > 0) {
+    console.log(`⚠️ Validation issues:`, validation.issues);
+  }
+  
+  // Final processing with birthday lexicon
+  const processedLines = repairedLines.map(line => {
+    let processed = ensureBirthdayLexicon(line);
+    return finalQC(processed);
   });
   
-  // Fill missing slots with template fallbacks
-  while (repairedLines.length < n) {
-    repairedLines.push("The candles tried to quit but the cake still asked for overtime.");
+  console.log(`✅ Final processed lines:`, processedLines);
+  
+  // Ensure exactly n unique lines
+  const uniqueLines = [...new Set(processedLines)];
+  while (uniqueLines.length < n) {
+    uniqueLines.push("Jesse's cake had so many candles the smoke alarm filed a complaint.");
   }
   
-  // Deduplicate
-  const unique = [...new Set(repairedLines)];
-  while (unique.length < n) {
-    unique.push("Someone blew out the candles and made everyone else's wish come true.");
-  }
-  
-  return unique.slice(0, n);
+  return uniqueLines.slice(0, n);
 }
 
-function generateTemplateFallback(ctx: Ctx, n: number): string[] {
-  console.log(`🔄 Using template fallback for ${ctx.category}/${ctx.subcategory}`);
+function generateVoiceStencilFallback(ctx: Ctx, voices: ComedianVoice[], n: number): string[] {
+  console.log(`🚨 Using voice stencil fallback for ${ctx.category}/${ctx.subcategory}`);
   
-  const templates = [
-    "The birthday cake was so old it had more candles than wishes.",
-    "Someone blew out the candles and accidentally the whole party.",
-    "The birthday party was great until someone mentioned the age.",
-    "Every birthday balloon was having an existential crisis about floating."
-  ];
+  const tags = normalizeTags(ctx.tags);
+  const hardTag = tags.hard[0] || "Jesse";
   
-  return templates.slice(0, n).map(t => {
-    // Inject hard tags if present
-    if (ctx.tags.hard.length > 0) {
-      const tag = ctx.tags.hard[0];
-      return t.replace(/someone/i, tag).replace(/The/i, `The ${tag}`);
-    }
-    return t;
-  });
+  // Voice-specific fallback templates with birthday words
+  const voiceTemplates = {
+    "Kevin Hart": `Man listen, ${hardTag} blew out the candles and then the cake exploded.`,
+    "Ali Wong": `${hardTag} cut the cake like a surgeon having a breakdown.`,
+    "Chris Rock": `Everybody loves birthdays. But ${hardTag} brings chaos instead.`,
+    "John Mulaney": `${hardTag} made a wish. The candles filed for workers compensation.`,
+    "Bill Burr": `Why does ${hardTag} celebrate? Because the cake demands it apparently.`,
+    "Wanda Sykes": `So ${hardTag} blows out candles but the party fights back.`,
+    "default": `${hardTag} celebrated with cake and everyone nodded awkwardly.`
+  };
+  
+  const fallbackLines = voices.slice(0, n).map(voice => 
+    voiceTemplates[voice.name] || voiceTemplates["default"]
+  );
+  
+  // Fill remaining slots if needed
+  while (fallbackLines.length < n) {
+    fallbackLines.push(`The birthday party lasted longer than ${hardTag} expected.`);
+  }
+  
+  return fallbackLines.slice(0, n);
 }
 
 // Enhanced callModel with timeout and detailed error reporting
@@ -322,7 +349,6 @@ async function callModelWithTimeout(prompt: string, model: string): Promise<{ te
   } finally {
     clearTimeout(timeoutId);
   }
-          model
 }
 
 function stripSoftEcho(lines: string[], softTags: string[]): string[] {

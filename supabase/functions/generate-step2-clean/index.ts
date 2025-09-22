@@ -292,10 +292,9 @@ function generateFallbackJoke(rating: string, context: string, comedianName: str
   return applyVoice(fallback);
 }
 
-// Import repair functionality
-import { repairJokeBatch, validateRepairedBatch, RepairContext } from "./jokeRepair.ts";
+// Voice stencil system handles all repair functionality
 
-// Enhanced generateFour with metadata and voice rotation
+// Enhanced generateFour with voice stencil system
 async function generateFour(inputs: any): Promise<{ 
   success: boolean; 
   options: string[]; 
@@ -312,41 +311,21 @@ async function generateFour(inputs: any): Promise<{
     tags: parsedTags
   };
 
-  console.log(`🎯 Generating four-option mode: ${ctx.style} + ${ctx.rating} + ${ctx.category}/${ctx.subcategory}`);
+  console.log(`🎭 Generating four-option mode with voice stencils: ${ctx.style} + ${ctx.rating} + ${ctx.category}/${ctx.subcategory}`);
   
-  // STEP 1: Generate raw lines
-  let rawLines = await generateN(ctx, 4);
-  console.log(`🎭 Raw generation complete: ${rawLines.length} lines`);
-  
-  // STEP 2: Apply comprehensive joke repair
-  const repairContext: RepairContext = {
-    category: ctx.category,
-    subcategory: ctx.subcategory,
-    tone: ctx.tone,
-    rating: ctx.rating as any,
-    hardTag: parsedTags.hard.length > 0 ? parsedTags.hard[0] : undefined
-  };
-  
-  // Generate jokes with new optimized pipeline
+  // Generate jokes with new voice stencil system (handles everything internally)
   const finalLines = await generateN(ctx, 4);
-  
-  // Apply final voice enforcement and shaping
-  const { lines: shapedLines, voices } = enforceBatch(finalLines, {
-    rating: ctx.rating as any,
-    category: ctx.category,
-    subcategory: ctx.subcategory,
-    hardTag: parsedTags.hard.length > 0 ? parsedTags.hard[0] : undefined,
-    softTags: parsedTags.soft
-  });
+  console.log(`✅ Voice stencil generation complete: ${finalLines.length} lines`);
   
   return { 
     success: true, 
-    options: shapedLines,
+    options: finalLines,
     meta: {
       model: "gpt-5-2025-08-07", // Report actual model used
-      voices: voices,
+      voices: ["Dynamic Voice Selection"], // Voice selection is now dynamic per batch
       style: ctx.style,
-      tone: ctx.tone
+      tone: ctx.tone,
+      system: "voice-stencil-v1"
     }
   };
 }
