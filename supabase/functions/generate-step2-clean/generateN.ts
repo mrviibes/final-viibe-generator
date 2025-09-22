@@ -133,14 +133,18 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
     best = stripSoftEcho([best], ctx.tags.soft)[0];
     
     if (!best || best.length < 40) {
-      // One retry with simplified prompt
-      const prompt2 = buildPrompt({ ...ctx, minLen: 40, maxLen: 100, simplified: true });
-      const res2 = await callModel(prompt2);
+      console.log(`⚠️ First attempt failed, trying simplified prompt...`);
+      // Fallback to minimal prompt
+      const simplePrompt = `Generate a ${ctx.tone.toLowerCase()} joke about ${ctx.category}. Include "${ctx.tags.hard[0] || 'someone'}" in the joke. 40-100 characters. One sentence.`;
+      const res2 = await callModel(simplePrompt);
       let alt = res2.text.split("\n").map(s => s.trim()).find(s => s.length >= 40 && s.length <= 100) ?? "";
       alt = stripSoftEcho([alt], ctx.tags.soft)[0];
       
       if (alt && alt.length >= 40) {
         best = alt;
+        console.log(`✅ Simplified prompt worked: "${alt}"`);
+      } else {
+        console.log(`❌ Both attempts failed for generation ${i + 1}`);
       }
     }
 
@@ -161,29 +165,49 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
 }
 
 async function callModel(prompt: string): Promise<{ text: string }> {
+  console.log(`🎤 Sending prompt to ${MODEL}:`, prompt.substring(0, 200) + '...');
+  
+  const requestBody = {
+    model: MODEL,
+    messages: [
+      { role: 'system', content: 'You are a professional comedian performing on stage. Generate exactly one complete joke sentence.' },
+      { role: 'user', content: prompt }
+    ],
+    [getTokenParameter(MODEL)]: 500
+  };
+  
+  console.log(`📤 Request body:`, JSON.stringify(requestBody, null, 2));
+  
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${openAIApiKey}`,
       'Content-Type': 'application/json',
     },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: 'system', content: 'You are a professional comedian. Return exactly the requested jokes.' },
-          { role: 'user', content: prompt }
-        ],
-        [getTokenParameter(MODEL)]: 150
-      }),
-    signal: AbortSignal.timeout(15000)
+    body: JSON.stringify(requestBody),
+    signal: AbortSignal.timeout(30000)
   });
 
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status}`);
+    const errorText = await response.text();
+    console.error(`❌ API Error ${response.status}:`, errorText);
+    throw new Error(`API Error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
+  console.log(`📥 Raw API response:`, JSON.stringify(data, null, 2));
+  
   const text = (data.choices?.[0]?.message?.content || '').trim();
+  const finishReason = data.choices?.[0]?.finish_reason;
+  const usage = data.usage;
+  
+  console.log(`🎭 Generated text: "${text}" (${text.length} chars)`);
+  console.log(`📊 Finish reason: ${finishReason}, Usage:`, usage);
+  
+  if (!text) {
+    console.error(`⚠️ Empty response detected! Finish reason: ${finishReason}`);
+    throw new Error(`Empty response from OpenAI. Finish reason: ${finishReason}`);
+  }
   
   return { text };
 }

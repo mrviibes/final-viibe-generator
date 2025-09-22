@@ -27,43 +27,22 @@ export function buildPrompt(input: {
   // Tone-specific enforcement
   const toneInstructions = getToneInstructions(input.tone);
   
-  const lines = [
-    `Return one sentence only. Length ${input.minLen}-${input.maxLen} characters. One period.`,
-    "No commas. No em dashes.",
-    `Write a real joke in ${input.style}. Keep it clearly about ${input.category} > ${input.subcategory}.`,
-    "CRITICAL: Sound like a comedian on stage, not AI writing. Use natural conversational delivery.",
-    input.voiceHint || voiceInstructions,
-    "STRUCTURE: Write a complete one-sentence joke with natural comedian rhythm and clear punchline.",
-    toneInstructions,
-    `Rating ${input.rating}:`,
-    "G: clean wholesome humor.",
-    "PG-13: allow damn or hell only, mild edge appropriate for teens.",
-    "R: allow fuck or shit but no sexual content, adult language only.",
-    "Explicit: include a raunchy innuendo tied to context.",
-    `Hard tags appear literally: ${hard}.`,
-    `Soft tags guide tone only: ${themes}. Do not echo soft tags.`,
-    "CRITICAL: Complete the sentence fully. No fragments ending with incomplete thoughts.",
-  ];
+  // Simplified prompt for GPT-5 reliability
+  let prompt = `Write one ${input.style} joke about ${input.category}/${input.subcategory}. `;
+  prompt += `${input.minLen}-${input.maxLen} characters. ${input.tone} tone. ${input.rating} rating. `;
+  
+  if (hard !== "none") {
+    prompt += `Include: ${hard}. `;
+  }
+  
+  prompt += voiceInstructions;
 
-  // Add pop culture instruction if entity selected
+  // Add pop culture if needed
   if (popCultureEntity) {
-    lines.push(`Include fresh reference to: ${popCultureEntity}.`);
+    prompt += ` Reference: ${popCultureEntity}.`;
   }
   
-  // Add category-specific lexicon requirements
-  const categoryInstructions = getCategoryInstructions(input.category, input.subcategory, input.tone);
-  if (categoryInstructions) {
-    lines.push(categoryInstructions);
-  }
-  
-  if (/Thanksgiving/i.test(input.subcategory)) {
-    lines.push("Use at least one of: turkey, gravy, pie, table, toast, leftovers, cranberry, family, stuffing.");
-  }
-  if (input.simplified) {
-    lines.unshift("Be concise.");
-  }
-
-  return lines.join("\n");
+  return prompt;
 }
 
 // Get tone-specific instructions
