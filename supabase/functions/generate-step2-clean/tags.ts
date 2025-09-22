@@ -1,54 +1,43 @@
 export type ParsedTags = { hard: string[]; soft: string[] };
 
+// Robust tag normalization to prevent crashes
+export function normalizeTags(raw: string|string[]|{hard?:string[],soft?:string[]}): ParsedTags {
+  if (!raw) return { hard: [], soft: [] };
+  
+  try {
+    if (typeof raw === "string") {
+      const items = raw.split(",").map(s => s.trim()).filter(Boolean);
+      const hard = items.filter(tag => /^".+"$/.test(tag.replace(/[""]/g, '"')) || /^@/.test(tag))
+                       .map(tag => tag.replace(/^@/, "").replace(/^["']|["']$/g, "").trim());
+      const soft = items.filter(tag => !/^".+"$/.test(tag.replace(/[""]/g, '"')) && !/^@/.test(tag))
+                       .map(tag => tag.trim());
+      return { hard: [...new Set(hard)], soft: [...new Set(soft)] };
+    }
+    
+    if (Array.isArray(raw)) {
+      const hard = raw.filter(x => /^".+"$/.test(String(x)) || /^@/.test(String(x)))
+                      .map(x => String(x).replace(/^@/, "").replace(/^["']|["']$/g, "").trim());
+      const soft = raw.filter(x => !/^".+"$/.test(String(x)) && !/^@/.test(String(x)))
+                      .map(x => String(x).trim());
+      return { hard: [...new Set(hard)], soft: [...new Set(soft)] };
+    }
+    
+    if (typeof raw === "object" && raw !== null) {
+      const obj = raw as any;
+      return { 
+        hard: [...new Set(obj.hard || [])], 
+        soft: [...new Set(obj.soft || [])] 
+      };
+    }
+  } catch (error) {
+    console.error('Tag normalization error:', error);
+  }
+  
+  return { hard: [], soft: [] };
+}
+
 export function parseTags(input: unknown): ParsedTags {
-  if (input == null) return { hard: [], soft: [] };
-
-  // Normalize input to string array
-  let items: string[] = [];
-  if (typeof input === "string") {
-    items = input.split(",").map(s => s.trim()).filter(Boolean);
-  } else if (Array.isArray(input)) {
-    items = input.map(String).filter(Boolean);
-  } else if (input && typeof input === "object") {
-    const o = input as any;
-    if (Array.isArray(o.hard) || Array.isArray(o.soft)) {
-      items = [
-        ...(o.hard ?? []).map((s: string) => `"${s}"`),
-        ...(o.soft ?? [])
-      ];
-    } else {
-      items = Object.values(o).map(String).filter(Boolean);
-    }
-  }
-
-  const hard: string[] = [];
-  const soft: string[] = [];
-  
-  for (let item of items) {
-    // Normalize quotes and spaces
-    const normalized = item.replace(/[""]/g, '"').replace(/['']/g, "'").trim();
-    
-    // Determine if hard tag (quoted or @-prefixed)
-    const isHard = /^".+"$/.test(normalized) || /^@/.test(normalized);
-    
-    // Clean the tag
-    let clean = normalized.replace(/^@/, "").replace(/^["']|["']$/g, "").trim();
-    
-    // Normalize case and punctuation but preserve proper nouns
-    if (clean && !/^[A-Z]/.test(clean)) {
-      clean = clean.toLowerCase();
-    }
-    
-    if (clean) {
-      (isHard ? hard : soft).push(clean);
-    }
-  }
-  
-  // Deduplicate
-  return { 
-    hard: [...new Set(hard)], 
-    soft: [...new Set(soft)] 
-  };
+  return normalizeTags(input as any);
 }
 
 // Validate that generated text contains required tags

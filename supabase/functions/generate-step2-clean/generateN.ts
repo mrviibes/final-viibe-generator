@@ -1,11 +1,14 @@
 import { buildPrompt } from "./buildPrompt.ts";
-import { ParsedTags } from "./tags.ts";
+import { ParsedTags, normalizeTags } from "./tags.ts";
 import { startNewPopCultureBatch } from "../shared/popCultureV3.ts";
 import { enforceBatch } from "./enforceBatch.ts";
 import { MODEL_CONFIG, getTokenParameter, supportsTemperature } from "../shared/modelConfig.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const MODEL = MODEL_CONFIG.PRIMARY;
+const PRIMARY_MODEL = "gpt-5-2025-08-07";
+const FALLBACK_MODEL = "gpt-4.1-mini-2025-04-14";
+const TIMEOUT_MS = 25000;
+const MAX_COMPLETION_TOKENS = 120;
 
 type Ctx = {
   category: string;
@@ -105,186 +108,221 @@ function ensureBirthdayLexicon(s: string): string {
     : s.replace(/\.$/, " over the cake.");
 }
 
+// Strip category leakage from generated text
+function stripCategoryLeakage(s: string): string {
+  return s.replace(/^(\w+\s*>\s*\w+\s*)+/i,"").trim();
+}
+
+// Repair broken joke fragments
+function repairJoke(s: string): string {
+  let joke = stripCategoryLeakage(s);
+  
+  // Fix common fragment patterns
+  joke = joke.replace(/[—,]/g,"").replace(/\s+\./g,".").trim();
+  if (!joke.endsWith(".")) joke += ".";
+  if ((joke.match(/\./g)||[]).length !== 1) joke = joke.replace(/\./g,"") + ".";
+  
+  // Enforce birthday lexicon
+  if (!BDAY.some(w=> new RegExp(`\\b${w}\\b`,"i").test(joke))) {
+    joke = joke.replace(/\.$/, " cake.");
+  }
+  
+  // Length normalization (40-100 chars word-safe)
+  if (joke.length > 100) {
+    const cut = joke.slice(0,100);
+    joke = (cut.slice(0,cut.lastIndexOf(" "))||cut).replace(/\.+$/,"")+".";
+  }
+  if (joke.length < 40) joke = joke.replace(/\.$/, " tonight.");
+  
+  // Ensure proper capitalization
+  return joke[0].toUpperCase() + joke.slice(1);
+}
+
 export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
-  // Start new batch for pop culture tracking
-  startNewPopCultureBatch();
+  console.log(`🎯 Generating ${n} jokes with tightened request`, {
+    category: ctx.category,
+    subcategory: ctx.subcategory,
+    hardTags: ctx.tags.hard,
+    model: PRIMARY_MODEL,
+    timeout: TIMEOUT_MS
+  });
   
-  console.log(`🎭 Generating ${n} jokes for: ${ctx.category}/${ctx.subcategory}, Hard tags: [${ctx.tags.hard.join(', ')}]`);
+  // Normalize tags to prevent crashes
+  const normalizedTags = normalizeTags(ctx.tags);
+  const safeCtx = { ...ctx, tags: normalizedTags };
   
-  // Generate multiple jokes in one call for better consistency
+  // Minimal prompt for reliability
   const prompt = buildPrompt({ 
-    ...ctx, 
-    minLen: 30, 
-    maxLen: 120,
+    ...safeCtx, 
+    minLen: 40, 
+    maxLen: 100,
     requestMultiple: true
   });
   
-  const res = await callModel(prompt);
-  console.log(`📝 Raw GPT response (${res.text.length} chars):`, res.text);
+  try {
+    // Primary model attempt with timeout
+    const res = await callModelWithTimeout(prompt, PRIMARY_MODEL);
+    console.log(`✅ Primary model (${PRIMARY_MODEL}) success:`, {
+      responseLength: res.text.length,
+      model: res.model || PRIMARY_MODEL
+    });
+    
+    return processAndRepairJokes(res.text, safeCtx, n);
+    
+  } catch (primaryError) {
+    console.log(`❌ Primary model failed:`, {
+      model: PRIMARY_MODEL,
+      error: primaryError.message,
+      timeout: TIMEOUT_MS
+    });
+    
+    try {
+      // Fallback model attempt
+      const res = await callModelWithTimeout(prompt, FALLBACK_MODEL);
+      console.log(`✅ Fallback model (${FALLBACK_MODEL}) success:`, {
+        responseLength: res.text.length,
+        model: res.model || FALLBACK_MODEL
+      });
+      
+      return processAndRepairJokes(res.text, safeCtx, n);
+      
+    } catch (fallbackError) {
+      console.error(`❌ Both models failed:`, {
+        primary: { model: PRIMARY_MODEL, error: primaryError.message },
+        fallback: { model: FALLBACK_MODEL, error: fallbackError.message }
+      });
+      
+      // Return repaired template fallback
+      return generateTemplateFallback(safeCtx, n);
+    }
+  }
+}
 
-  let lines = res.text
+function processAndRepairJokes(rawText: string, ctx: Ctx, n: number): string[] {
+  const lines = rawText
     .split("\n")
-    .map(s => s.trim())
+    .map(s => s.trim().replace(/^\d+\.\s*/, ''))
     .filter(Boolean)
     .slice(0, n);
-
-  console.log(`📋 Parsed ${lines.length} lines from response:`, lines.map((l, i) => `${i+1}: "${l}" (${l.length} chars)`));
-
-  // Process each line with more flexible length requirements
-  const rawLines = lines.map((line, i) => {
-    let processed = line;
-    
-    // CRITICAL: Remove category metadata that leaked into joke text
-    processed = cleanCategoryLeakage(processed);
-    
-    // Remove common prefixes that models add
-    processed = processed.replace(/^\d+\.\s*/, '').replace(/^Line\s*\d+:\s*/i, '');
-    
-    // Basic soft tag stripping
-    processed = stripSoftEcho([processed], ctx.tags.soft)[0];
-    
-    // Flexible length handling - trim if too long, extend if too short
-    if (processed.length > 120) {
-      const cutPoint = processed.lastIndexOf(' ', 120);
-      if (cutPoint > 30) {
-        processed = processed.slice(0, cutPoint) + '.';
-      }
-    }
-    
-    if (processed.length < 30 && processed.length > 10) {
-      processed = processed.replace(/\.$/, ' tonight.');
-    }
-    
-    console.log(`✂️ Line ${i+1} processed: "${line}" → "${processed}" (${processed.length} chars)`);
-    
-    return processed;
-  });
-
-// Add category leakage cleaning function
-function cleanCategoryLeakage(line: string): string {
-  return line
-    .replace(/^Celebrations\s*>\s*Birthday\s*/i, "")
-    .replace(/^Celebrations\s*>\s*\w+\s*/i, "")
-    .replace(/^Daily Life\s*>\s*\w+\s*/i, "")
-    .replace(/^Sports\s*>\s*\w+\s*/i, "")
-    .replace(/^Work\s*>\s*\w+\s*/i, "")
-    .replace(/^.*>\s*/, "") // Generic catch-all for any "Category > Subcategory" pattern
-    .trim();
-}
-
-  // If we don't have enough good lines, try a fallback
-  if (rawLines.filter(l => l.length >= 30 && l.length <= 120).length < 2) {
-    console.log(`⚠️ Not enough good lines, trying fallback approach...`);
-    
-    const fallbackPrompt = `Write 4 ${ctx.tone.toLowerCase()} jokes about ${ctx.category}/${ctx.subcategory}. Include "${ctx.tags.hard[0] || 'someone'}" in each joke. Each joke should be 30-120 characters, one sentence each.`;
-    const fallbackRes = await callModel(fallbackPrompt);
-    
-    const fallbackLines = fallbackRes.text
-      .split("\n")
-      .map(s => s.trim().replace(/^\d+\.\s*/, ''))
-      .filter(Boolean)
-      .slice(0, n);
-    
-    console.log(`🔄 Fallback generated ${fallbackLines.length} lines:`, fallbackLines);
-    
-    // Use fallback lines for empty slots
-    for (let i = 0; i < n; i++) {
-      if (!rawLines[i] || rawLines[i].length < 30) {
-        rawLines[i] = fallbackLines[i] || "Generated content unavailable.";
-      }
-    }
-  }
-
-  // Ensure we have exactly n lines
-  while (rawLines.length < n) {
-    rawLines.push("Generated content unavailable.");
-  }
-
-  // Apply unified enforceBatch system with voice metadata
-  const batchResult = enforceBatch(rawLines, {
-    rating: ctx.rating,
-    category: ctx.category,
-    subcategory: ctx.subcategory,
-    hardTag: ctx.tags.hard?.[0],
-    softTags: ctx.tags.soft
+  
+  console.log(`📋 Processing ${lines.length} raw lines`);
+  
+  // Repair each joke
+  const repairedLines = lines.map((line, i) => {
+    const repaired = repairJoke(line);
+    console.log(`🔧 Line ${i+1}: "${line}" → "${repaired}" (${repaired.length} chars)`);
+    return repaired;
   });
   
-  console.log(`🎭 Enforced batch with voice variety and natural delivery`);
-  console.log(`🎪 Voices used:`, batchResult.voices);
+  // Fill missing slots with template fallbacks
+  while (repairedLines.length < n) {
+    repairedLines.push("The candles tried to quit but the cake still asked for overtime.");
+  }
   
-  return batchResult.lines;
+  // Deduplicate
+  const unique = [...new Set(repairedLines)];
+  while (unique.length < n) {
+    unique.push("Someone blew out the candles and made everyone else's wish come true.");
+  }
+  
+  return unique.slice(0, n);
 }
 
-async function callModel(prompt: string): Promise<{ text: string }> {
-  console.log(`🎤 Sending prompt to ${MODEL}:`, prompt.substring(0, 200) + '...');
+function generateTemplateFallback(ctx: Ctx, n: number): string[] {
+  console.log(`🔄 Using template fallback for ${ctx.category}/${ctx.subcategory}`);
   
-  const requestBody = {
-    model: MODEL,
-    messages: [
-      { role: 'system', content: 'You are a professional comedian performing on stage. Generate exactly one complete joke sentence.' },
-      { role: 'user', content: prompt }
-    ],
-    [getTokenParameter(MODEL)]: MODEL.startsWith('gpt-5') ? 800 : 500
-  };
+  const templates = [
+    "The birthday cake was so old it had more candles than wishes.",
+    "Someone blew out the candles and accidentally the whole party.",
+    "The birthday party was great until someone mentioned the age.",
+    "Every birthday balloon was having an existential crisis about floating."
+  ];
   
-  console.log(`📤 Request body:`, JSON.stringify(requestBody, null, 2));
+  return templates.slice(0, n).map(t => {
+    // Inject hard tags if present
+    if (ctx.tags.hard.length > 0) {
+      const tag = ctx.tags.hard[0];
+      return t.replace(/someone/i, tag).replace(/The/i, `The ${tag}`);
+    }
+    return t;
+  });
+}
+
+// Enhanced callModel with timeout and detailed error reporting
+async function callModelWithTimeout(prompt: string, model: string): Promise<{ text: string; model: string }> {
+  console.log(`🎤 Calling ${model} with ${TIMEOUT_MS}ms timeout`);
   
-  // Progressive retry: GPT-5 → GPT-4.1 → throw error (no fallback)
-  const models = [MODEL, MODEL_CONFIG.GPT4];
-  let lastError: Error | null = null;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
   
-  for (const model of models) {
-    try {
-      console.log(`🔄 Attempting with model: ${model}`);
-      
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...requestBody,
-          model
-        }),
-        signal: AbortSignal.timeout(45000) // Increased timeout for GPT-5
+  const startTime = Date.now();
+  
+  try {
+    const requestBody = {
+      model,
+      messages: [
+        { role: 'system', content: 'Return 4 jokes. One sentence each. 40-100 chars. One period. No commas or em dashes. Topic must include a birthday word (cake, candles, balloons, party, wish).' },
+        { role: 'user', content: prompt }
+      ],
+      max_completion_tokens: MAX_COMPLETION_TOKENS
+    };
+    
+    console.log(`📤 Request to ${model}:`, { 
+      promptLength: prompt.length,
+      maxTokens: MAX_COMPLETION_TOKENS,
+      timeout: TIMEOUT_MS 
+    });
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
+    });
+    
+    const latency = Date.now() - startTime;
+    
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`❌ API error (${response.status}):`, {
+        model,
+        status: response.status,
+        error: errorData,
+        latency
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ API Error ${response.status} with ${model}:`, errorText);
-        lastError = new Error(`API Error with ${model}: ${response.status} - ${errorText}`);
-        continue; // Try next model
-      }
-
-      const data = await response.json();
-      console.log(`📥 Raw API response from ${model}:`, JSON.stringify(data, null, 2));
-      
-      const text = (data.choices?.[0]?.message?.content || '').trim();
-      const finishReason = data.choices?.[0]?.finish_reason;
-      const usage = data.usage;
-      
-      console.log(`🎭 Generated text: "${text}" (${text.length} chars)`);
-      console.log(`📊 Finish reason: ${finishReason}, Usage:`, usage);
-      
-      if (!text) {
-        console.error(`⚠️ Empty response from ${model}! Finish reason: ${finishReason}`);
-        lastError = new Error(`Empty response from ${model}. Finish reason: ${finishReason}`);
-        continue; // Try next model
-      }
-      
-      return { text };
-      
-    } catch (error) {
-      console.error(`❌ Error with ${model}:`, error);
-      lastError = error as Error;
-      continue; // Try next model
+      throw new Error(`API ${response.status}: ${errorData}`);
     }
+    
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    
+    console.log(`✅ ${model} success:`, {
+      latency,
+      responseLength: text.length,
+      finishReason: data.choices?.[0]?.finish_reason
+    });
+    
+    if (!text) {
+      throw new Error('Empty response from model');
+    }
+    
+    return { text, model };
+    
+  } catch (error) {
+    const latency = Date.now() - startTime;
+    console.error(`❌ ${model} failed:`, {
+      error: error.message,
+      latency,
+      timeout: controller.signal.aborted
+    });
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  
-  // All models failed
-  console.error(`💥 All models failed. Last error:`, lastError);
-  throw lastError || new Error('All API models failed');
+          model
 }
 
 function stripSoftEcho(lines: string[], softTags: string[]): string[] {

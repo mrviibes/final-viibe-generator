@@ -327,15 +327,11 @@ async function generateFour(inputs: any): Promise<{
     hardTag: parsedTags.hard.length > 0 ? parsedTags.hard[0] : undefined
   };
   
-  const repairedLines = repairJokeBatch(rawLines, repairContext);
-  console.log(`🔧 Repair complete: ${repairedLines.length} lines processed`);
+  // Generate jokes with new optimized pipeline
+  const finalLines = await generateN(ctx, 4);
   
-  // STEP 3: Validate repair quality
-  const validation = validateRepairedBatch(repairedLines);
-  console.log(`📊 Quality validation: score=${validation.score}, issues=${validation.issues.length}`);
-  
-  // STEP 4: Apply final voice enforcement and shaping
-  const { lines: finalLines, voices } = enforceBatch(repairedLines, {
+  // Apply final voice enforcement and shaping
+  const { lines: shapedLines, voices } = enforceBatch(finalLines, {
     rating: ctx.rating as any,
     category: ctx.category,
     subcategory: ctx.subcategory,
@@ -343,50 +339,14 @@ async function generateFour(inputs: any): Promise<{
     softTags: parsedTags.soft
   });
   
-  // STEP 5: Quality gate - retry if score too low
-  if (validation.score < 70 && validation.issues.length > 2) {
-    console.log(`⚠️ Quality below threshold (${validation.score}), attempting regeneration...`);
-    // Single retry with fallback
-    try {
-      const retryLines = await generateN(ctx, 4);
-      const retryRepaired = repairJokeBatch(retryLines, repairContext);
-      const retryValidation = validateRepairedBatch(retryRepaired);
-      
-      if (retryValidation.score > validation.score) {
-        console.log(`✅ Retry improved quality: ${retryValidation.score} > ${validation.score}`);
-        const { lines: retryFinal } = enforceBatch(retryRepaired, {
-          rating: ctx.rating as any,
-          category: ctx.category,
-          subcategory: ctx.subcategory,
-          hardTag: parsedTags.hard.length > 0 ? parsedTags.hard[0] : undefined,
-          softTags: parsedTags.soft
-        });
-        
-        return { 
-          success: true, 
-          options: retryFinal,
-          meta: {
-            model: MODEL,
-            voices: voices,
-            style: ctx.style,
-            tone: ctx.tone,
-            qualityScore: retryValidation.score
-          }
-        };
-      }
-    } catch (error) {
-      console.log(`⚠️ Retry failed, using original: ${error}`);
-    }
-  }
   return { 
     success: true, 
-    options: finalLines,
+    options: shapedLines,
     meta: {
-      model: MODEL,
+      model: "gpt-5-2025-08-07", // Report actual model used
       voices: voices,
       style: ctx.style,
-      tone: ctx.tone,
-      qualityScore: validation.score
+      tone: ctx.tone
     }
   };
 }

@@ -2,6 +2,7 @@ import { ParsedTags } from "./tags.ts";
 import { selectComedianVoiceV3, getVoiceInstructionsV3 } from "../shared/viibe_config_v3.ts";
 import { selectFreshPopCultureEntity, formatEntityForJoke, isPopCultureRequiredForStyle } from "../shared/popCultureV3.ts";
 
+// Minimal prompt builder for maximum reliability
 export function buildPrompt(input: {
   category: string; subcategory: string; tone: string; style: string;
   rating: "G"|"PG-13"|"R"|"Explicit";
@@ -9,76 +10,15 @@ export function buildPrompt(input: {
   minLen: number; maxLen: number; simplified?: boolean; voiceHint?: string;
   requestMultiple?: boolean;
 }) {
-  const themes = input.tags.soft.slice(0,5).join(" | ") || "none";
   const hard = input.tags.hard.join(", ") || "none";
 
-  // Select comedian voice for this line
-  const comedianVoice = selectComedianVoiceV3(input.rating);
-  const voiceInstructions = getVoiceInstructionsV3(comedianVoice);
-
-  // Get pop culture entity if needed
-  let popCultureEntity = "";
-  if (isPopCultureRequiredForStyle(input.style)) {
-    const entity = selectFreshPopCultureEntity();
-    if (entity) {
-      popCultureEntity = formatEntityForJoke(entity);
-    }
-  }
-
-  // Build prompt based on request type
+  // Ultra-minimal system message for reliability
   if (input.requestMultiple) {
-    // Request multiple jokes in one call for better consistency
-    // Use clean subcategory as context, NEVER as literal text
-    let prompt = `Write 4 ${input.style} jokes about ${input.subcategory.toLowerCase()} celebrations. `;
-    prompt += `Context: This is about ${input.subcategory.toLowerCase()} events (part of ${input.category}). `;
-    prompt += `Each joke: ${input.minLen}-${input.maxLen} characters, ${input.tone} tone, ${input.rating} rating. `;
-    prompt += `Format: One joke per line, numbered 1-4. Do NOT include category names in the joke text. `;
-    
-    // Add category-specific lexicon requirements
-    if (input.subcategory.toLowerCase().includes('birthday')) {
-      prompt += `REQUIRED: Each joke must include at least one birthday word: cake, candles, balloons, party, wish, celebrate. `;
-    }
-    
-    if (hard !== "none") {
-      prompt += `REQUIRED: Include "${hard}" in each joke naturally. `;
-    }
-    
-    prompt += voiceInstructions;
-    
-    // Add pop culture if needed
-    if (popCultureEntity) {
-      prompt += ` Reference: ${popCultureEntity}.`;
-    }
-    
-    prompt += `\n\nExample format:\n1. [joke with ${hard}]\n2. [joke with ${hard}]\n3. [joke with ${hard}]\n4. [joke with ${hard}]`;
-    prompt += `\n\nDO NOT start jokes with category names like "Celebrations >" or "Birthday >".`;
-    
-    return prompt;
+    return `Return 4 jokes. One sentence each. 40-100 chars. One period. No commas or em dashes. Topic must include a birthday word (cake, candles, balloons, party, wish).
+Hard tags (must appear literally): ${hard}.`;
   } else {
-    // Single joke request (fallback)
-    // Use clean subcategory as context, NEVER as literal text
-    let prompt = `Write one ${input.style} joke about ${input.subcategory.toLowerCase()} celebrations. `;
-    prompt += `Context: This is about ${input.subcategory.toLowerCase()} events (part of ${input.category}). `;
-    prompt += `${input.minLen}-${input.maxLen} characters. ${input.tone} tone. ${input.rating} rating. `;
-    prompt += `Do NOT include category names in the joke text. `;
-    
-    // Add category-specific lexicon requirements
-    if (input.subcategory.toLowerCase().includes('birthday')) {
-      prompt += `Include at least one birthday word: cake, candles, balloons, party, wish, celebrate. `;
-    }
-    
-    if (hard !== "none") {
-      prompt += `Include: ${hard}. `;
-    }
-    
-    prompt += voiceInstructions;
-
-    // Add pop culture if needed
-    if (popCultureEntity) {
-      prompt += ` Reference: ${popCultureEntity}.`;
-    }
-    
-    return prompt;
+    return `Return 1 joke. One sentence. 40-100 chars. One period. No commas or em dashes. Topic must include a birthday word (cake, candles, balloons, party, wish).
+Hard tags (must appear literally): ${hard}.`;
   }
 }
 
