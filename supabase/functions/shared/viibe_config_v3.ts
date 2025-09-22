@@ -237,8 +237,8 @@ export function selectComedianVoiceV3(rating: string): string {
 export function getVoiceInstructionsV3(voice: string): string {
   const profile = VIIBE_CONFIG_V3.comedianVoices.voiceProfiles[voice as keyof typeof VIIBE_CONFIG_V3.comedianVoices.voiceProfiles];
   if (!profile) {
-    return "Write natural comedy with strong structure.";
+    return "Write natural comedy with authentic comedian delivery.";
   }
   
-  return `Channel ${voice.replace('_', ' ')}: ${profile.signature}. Write with ${profile.style} delivery.`;
+  return `Write as ${voice.replace('_', ' ')} would: ${profile.signature}. Use ${profile.style} approach but keep it natural.`;
 }

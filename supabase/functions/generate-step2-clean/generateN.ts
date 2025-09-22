@@ -4,10 +4,8 @@ import { startNewPopCultureBatch } from "../shared/popCultureV3.ts";
 import { VIIBE_CONFIG_V3 } from "../shared/viibe_config_v3.ts";
 import { validateAndRepairBatch, scoreBatchQuality, shouldRetryBatch } from "./advancedValidator.ts";
 import { 
-  applyDeliveryTemplate, 
   validateNaturalDelivery, 
   detectAndRepairFragments,
-  enhanceVoiceSignature,
   selectComedianForRating
 } from "./deliveryTemplates.ts";
 
@@ -44,21 +42,13 @@ function assignBuckets(n: number = 4): [number,number][] {
 }
 
 function ensureNaturalDelivery(line: string, tone: string, lineIndex: number, rating: string, comedianVoice?: string): string {
-  // V4: Apply delivery templates for authentic comedian rhythm
+  // V5: Focus on fragment repair and quality validation only
   let cleaned = line.trim();
   
-  // First detect and repair any fragments
+  // Detect and repair any fragments
   cleaned = detectAndRepairFragments(cleaned);
   
-  // Apply delivery template for natural comedian cadence
-  cleaned = applyDeliveryTemplate(cleaned, rating, comedianVoice);
-  
-  // Enhance with comedian-specific voice signature
-  if (comedianVoice) {
-    cleaned = enhanceVoiceSignature(cleaned, comedianVoice);
-  }
-  
-  // Validate natural delivery
+  // Validate natural delivery but don't force templates
   const naturalCheck = validateNaturalDelivery(cleaned);
   if (!naturalCheck.isNatural) {
     console.log(`⚠️ Line ${lineIndex}: ${naturalCheck.issues.join(', ')} (score: ${naturalCheck.score})`);
@@ -77,14 +67,17 @@ function fitLengthWordSafe(line: string, lo: number, hi: number): string {
   
   // Enhanced fragment detection for common incomplete patterns
   const fragmentPatterns = [
-    [/\b(the|and|was|had|with|for|but|that|to|at|in|on|so|even)\.\s*$/i, " party."],
-    [/\bcome to\.\s*$/i, " come to the party."],
-    [/\bso bad even the\.\s*$/i, " so bad even the cake complained."],
-    [/\bfirst then the real reason\.\s*$/i, " first then the real reason was obvious."],
-    [/\bcake was so bad even the\.\s*$/i, " cake was so bad even the candles refused to stay lit."],
-    [/\bpeople come to\.\s*$/i, " people come to the party."],
-    [/\bmake Jesse any\.\s*$/i, " make Jesse any happier."],
-    [/\bdidn't make Jesse any\.\s*$/i, " didn't make Jesse any younger."]
+    [/\b(the|and|was|had|with|for|but|that|to|at|in|on|so|even)\.\s*$/i, " tonight."],
+    [/\bcome to\.\s*$/i, " come to celebrate."],
+    [/\bso bad even the\.\s*$/i, " so bad even the cake left early."],
+    [/\bfirst then the real reason\.\s*$/i, " first then reality hit hard."],
+    [/\bcake was so bad even the\.\s*$/i, " cake was so bad the candles quit."],
+    [/\bpeople come to\.\s*$/i, " people come to party."],
+    [/\bmake Jesse any\.\s*$/i, " make Jesse happy."],
+    [/\bdidn't make Jesse any\.\s*$/i, " didn't make Jesse smile."],
+    [/\bYou ever tonight\.\s*$/i, " You ever notice parties get weird."],
+    [/\bMan listen Jesse in America\.\s*$/i, " Man listen Jesse parties hard."],
+    [/\bSo I walk into my tonight\.\s*$/i, " So I walk into this party confused."]
   ];
   
   // Apply fragment repairs
