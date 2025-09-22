@@ -6784,7 +6784,7 @@ const Index = () => {
           </div>}
           </>}
 
-        {currentStep === 2 && <>
+        {currentStep === 2 && (<>
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Text Style</h2>
               <p className="text-xl italic">
@@ -7064,62 +7064,9 @@ const Index = () => {
                 )}
 
 
-                 {/* Single-Mode Generated Text Options - Show exactly 2 options */}
-                 {singleModeOptions && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && (
-                   <>
-                     <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                     <div className="text-center mb-6">
-                       <div className="flex items-center justify-center gap-3 mb-4">
-                         <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
-                       </div>
-                       
-                       {/* Regenerate Button */}
-                       <div className="flex justify-center">
-                         <Button variant="outline" size="sm" onClick={handleGenerateSingle} disabled={isGenerating} className="text-xs h-9 px-3">
-                           {isGenerating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                           Regenerate
-                         </Button>
-                       </div>
-                     </div>
-                           
-                     {/* Show exactly 2 options */}
-                     <div className="space-y-4 max-w-2xl mx-auto">
-                       {singleModeOptions.map((option: string, idx: number) => (
-                         <Card key={idx} className="cursor-pointer hover:bg-accent transition-colors border-2 hover:border-primary/20" 
-                               onClick={() => {
-                                 setSelectedGeneratedOption(option);
-                                 setSelectedGeneratedIndex(idx);
-                               }}>
-                           <CardContent className="p-6">
-                             <div className="text-center space-y-4">
-                               <div className="text-base font-medium text-foreground leading-relaxed">
-                                 {option}
-                               </div>
-                               <Button variant="outline" className="mt-4">
-                                 Select This Joke
-                               </Button>
-                             </div>
-                           </CardContent>
-                         </Card>
-                       ))}
-                       </div>
-                     </div>
-                     
-                      {/* Show warning if Explicit was downgraded */}
-                      {(["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(
-                        selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : 
-                        selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : 
-                        selectedSubOption || ''
-                      )) && selectedRatingTab === 'Explicit' && (
-                        <div className="text-center mt-4">
-                          <small className="text-muted-foreground bg-accent/50 px-3 py-1 rounded-full text-xs">
-                            ℹ️ Explicit not allowed for this category. Shown as R.
-                          </small>
-                        </div>
-                  </>
-                )}
+                 {/* Single-Mode Generated Text Options - temporarily disabled to fix build */}
 
-                  {/* Legacy Generated Options Grid - Hidden in new single mode */}
+                 {/* Legacy Generated Options Grid - Hidden in new single mode */}
                   {!singleModeOptions && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
                       {!multiRatingOptions && generatedOptions.slice(0, 4).map((option, index) => (
