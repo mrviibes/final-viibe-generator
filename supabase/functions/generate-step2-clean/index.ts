@@ -1,23 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { parseTags, validateTagUsage, type ParsedTags } from "./tags.ts";
-import { buildPrompt, buildPromptLegacy } from "./buildPrompt.ts";
-import { generateN } from "./generateN.ts";
-import { stripSoftEcho } from "./sanitize.ts";
-import { validate } from "./validate.ts";
-import { validateAndRepairBatch, scoreBatchQuality } from "./advancedValidator.ts";
-import { normalizeRating } from "../shared/rating.ts";
-import { 
-  selectComedianForRating, 
-  buildPromptForRating, 
-  validateRatingJoke, 
-  validateHardTagsInBatch,
-  validateRomanticTone,
-  enforceContextAndTone,
-  type MultiRatingOutput 
-} from "./multiRating.ts";
-import { MODEL_CONFIG, getTokenParameter, supportsTemperature } from "../shared/modelConfig.ts";
-import { enforceBatch } from "./enforceBatch.ts";
+import { parseTags, type ParsedTags } from "./tags.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,325 +9,202 @@ const corsHeaders = {
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const MODEL = MODEL_CONFIG.PRIMARY;
+const MODEL_PRIMARY = "gpt-5-2025-08-07";
+const MODEL_BACKUP = "gpt-4.1-2025-04-14";
+const TIMEOUT_MS = 25000;
+const MAX_OUT = 120;
 
-async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput> {
-  const startTime = Date.now();
-  console.log('🎯 Starting multi-rating comedy generation');
-  
-  // Parse tags - handle any input format
-  const parsedTags = parseTags(inputs.tags);
-  
-  const context = `${inputs.category} > ${inputs.subcategory}`;
-  const RATINGS: Rating[] = ["G", "PG-13", "R", "Explicit"];
-  
-  const results: Partial<MultiRatingOutput> = {};
-  const allJokes: string[] = [];
-  
-  // Generate for each rating (2 options each)  
-  for (const rating of RATINGS) {
-    const normalizedRating = normalizeRating(inputs.category, inputs.tone, rating);
-    results[rating] = [];
-    
-    // Generate 2 options per rating
-    for (let optionIndex = 0; optionIndex < 2; optionIndex++) {
-      const comedian = selectComedianForRating(normalizedRating);
-      
-      console.log(`🎭 Generating ${rating} joke ${optionIndex + 1}/2 with ${comedian.name} voice`);
-      
-      const prompt = buildPromptForRating(
-        normalizedRating,
-        comedian,
-        context,
-        inputs.tone || 'Humorous',
-        inputs.style || 'punchline-first',
-        parsedTags
-      );
-      
-      try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: MODEL,
-            messages: [
-              { role: 'system', content: 'You are a professional comedian. Return exactly one joke sentence.' },
-              { role: 'user', content: prompt }
-            ],
-            [getTokenParameter(MODEL)]: 100
-          }),
-          signal: AbortSignal.timeout(10000)
-        });
-        
-        if (!response.ok) {
-          console.error(`❌ API Error for ${rating} option ${optionIndex + 1}:`, response.status);
-          // Use fallback
-          const fallbackText = generateFallbackJoke(normalizedRating, context, comedian.name);
-          results[rating].push({
-            voice: comedian.name,
-            text: fallbackText
-          });
-          allJokes.push(fallbackText);
-          continue;
-        }
-        
-        const data = await response.json();
-        let text = (data.choices?.[0]?.message?.content || '').trim();
-        
-        // Apply context and tone enforcement BEFORE validation so fixes are considered
-        text = enforceContextAndTone(text, context, inputs.tone || 'Humorous', inputs.style || 'punchline-first');
-        
-        // Validate tag usage for hard tags - inject if missing
-        const tagValidation = validateTagUsage(text, parsedTags.hard);
-        if (!tagValidation.valid && parsedTags.hard.length > 0) {
-          console.log(`❌ Joke missing required tags. Found: [${tagValidation.foundTags.join(", ")}], Missing: [${tagValidation.missingTags.join(", ")}]`);
-          
-          // Try to inject missing tag into the joke
-          if (tagValidation.missingTags.length > 0) {
-            const missingTag = tagValidation.missingTags[0];
-            text = injectTagIntoJoke(text, missingTag);
-            console.log(`✅ Injected tag "${missingTag}" into joke: "${text}"`);
-          }
-        }
-        
-        // Validate the joke (romantic tone overrides rating-specific profanity requirements)
-        let isValidFormat = false;
-        if (inputs.tone?.toLowerCase() === 'romantic') {
-          // Use "G" rules for format + profanity ban, then romantic-specific checks
-          isValidFormat = validateRatingJoke(text, 'G', parsedTags) && validateRomanticTone(text, context);
-        } else {
-          isValidFormat = validateRatingJoke(text, normalizedRating, parsedTags);
-        }
-        
-        // Apply advanced validation before accepting the joke
-        const advancedValidation = validateAndRepairBatch([text], {
-          rating: normalizedRating,
-          category: inputs.category,
-          subcategory: inputs.subcategory,
-          hardTags: parsedTags.hard,
-          softTags: parsedTags.soft,
-          comedianVoice: comedian.name,
-          requirePop: inputs.style === "pop-culture"
-        });
-        
-        const validatedText = advancedValidation[0];
-        const qualityScore = scoreBatchQuality([validatedText], {
-          rating: normalizedRating,
-          category: inputs.category,
-          subcategory: inputs.subcategory,
-          hardTags: parsedTags.hard,
-          comedianVoice: comedian.name
-        });
-        
-        if (isValidFormat && qualityScore.overallScore >= 75) {
-          results[rating].push({
-            voice: comedian.name,
-            text: validatedText
-          });
-          allJokes.push(validatedText);
-          console.log(`✅ ${rating} joke validated (score: ${qualityScore.overallScore}%)`);
-        } else {
-          console.warn(`⚠️ Validation failed for ${rating} option ${optionIndex + 1} (score: ${qualityScore.overallScore}%), using fallback`);
-          const fallbackText = generateFallbackJoke(normalizedRating, context, comedian.name, inputs.tone, inputs.style);
-          results[rating].push({
-            voice: comedian.name,
-            text: fallbackText
-          });
-          allJokes.push(fallbackText);
-        }
-        
-      } catch (error) {
-        console.error(`❌ Generation failed for ${rating} option ${optionIndex + 1}:`, error);
-        const fallbackText = generateFallbackJoke(normalizedRating, context, comedian.name, inputs.tone, inputs.style);
-        results[rating].push({
-          voice: comedian.name,
-          text: fallbackText
-        });
-        allJokes.push(fallbackText);
-      }
-    }
-  }
-  
-  // Validate hard tags across the batch (3/4 rule)
-  if (parsedTags.hard.length > 0) {
-    const hardTagsValid = validateHardTagsInBatch(allJokes, parsedTags.hard);
-    if (!hardTagsValid) {
-      console.warn('⚠️ Hard tag validation failed, regenerating batch...');
-      // Could implement retry logic here, but for now log the issue
-      console.log(`Hard tags ${parsedTags.hard.join(', ')} not found in at least 3/4 jokes`);
-    }
-  }
-  
-  const latencyMs = Date.now() - startTime;
-  console.log(`📊 Multi-rating generation completed in ${latencyMs}ms`);
-  
-  return results as MultiRatingOutput;
-}
-
-function generateFallbackJoke(rating: string, context: string, comedianName: string, tone?: string, style?: string): string {
-  // Clean context - remove category leakage
-  const cleanContext = context.replace(/.*>\s*/, '').replace(/^(Celebrations|Birthday)\s*/i, '').toLowerCase();
-  const isRomantic = tone?.toLowerCase() === 'romantic';
-  const isPunchlineFirst = style === 'punchline-first';
-  
-  // Apply voice patterns to fallback jokes
-  const VOICE_PATTERNS: Record<string, (text: string) => string> = {
-    "Hart": (text) => `Look ${text.replace(/^[A-Z]/, m => m.toLowerCase())}`,
-    "Wong": (text) => `${text.replace(/\.$/, ', which is basically my entire life story.')}`,
-    "Burr": (text) => `${text.replace(/\.$/, ', I mean come on.')}`,
-    "Hedberg": (text) => `${text.replace(/\.$/, ', or maybe not, I don\'t know.')}`
-  };
-  
-  const applyVoice = VOICE_PATTERNS[comedianName] || ((text) => text);
-  
-  // Context-specific fallbacks with birthday lexicon enforcement
-  if (cleanContext.includes('birthday')) {
-    const birthdayFallbacks = isRomantic ? [
-      "Jesse our cake candles look magical and my heart celebrates you.",
-      "Jesse tonight the party wishes come true and I still want you.",
-      "Jesse make a wish because my heart already picked you forever.",
-      "Jesse this birthday cake celebrates us and I treasure every moment."
-    ] : [
-      "Jesse's birthday cake had so many candles the smoke alarm RSVP'd.",
-      "Birthdays are like diets, Jesse's always fail before the cake.",
-      "Jesse's party went sideways faster than the birthday balloons.",
-      "They sang happy birthday but Jesse's candles filed for hazard pay."
-    ];
-    
-    const fallback = birthdayFallbacks[Math.floor(Math.random() * birthdayFallbacks.length)];
-    return applyVoice(fallback);
-  }
-  
-  if (cleanContext.includes('soccer')) {
-    const soccerFallbacks = [
-      "Jesse ties his cleats during every drill on the pitch.",
-      "The keeper waves at Jesse and practice gives up completely.",
-      "Jesse blames traffic and boots the cone on the field.",
-      "The scrimmage whistles and Jesse still misses open goals."
-    ];
-    const fallback = soccerFallbacks[Math.floor(Math.random() * soccerFallbacks.length)];
-    return applyVoice(fallback);
-  }
-  
-  if (isRomantic && cleanContext.includes('thanksgiving')) {
-    const romanticThanksgivingFallbacks = [
-      "We pass the turkey and my heart passes gratitude back.",
-      "Your laugh warms the table and my heart agrees completely.",
-      "I love your chaos and the gravy finds peace with us.",
-      "Your smile butters the rolls and my heart begs for seconds."
-    ];
-    const fallback = romanticThanksgivingFallbacks[Math.floor(Math.random() * romanticThanksgivingFallbacks.length)];
-    return applyVoice(fallback);
-  }
-  
-  if (isRomantic && cleanContext.includes('christmas')) {
-    const romanticChristmasFallbacks = [
-      "Your smile is my favorite gift under every tree.",
-      "Cocoa tastes sweeter when your hand warms mine by the tree.",
-      "Lights twinkle slower because my heart saves the best for you.",
-      "The quiet after wrapping is louder than how much I love you."
-    ];
-    const fallback = romanticChristmasFallbacks[Math.floor(Math.random() * romanticChristmasFallbacks.length)];
-    return applyVoice(fallback);
-  }
-  
-  // Generic romantic fallback if tone demands it
-  if (isRomantic) {
-    const romanticGeneric = [
-      "I love how this moment makes us feel like home.",
-      "My heart picks you every single time.",
-      "The world slows down whenever you laugh near me.",
-      "I keep finding new ways to love you here."
-    ];
-    const fallback = romanticGeneric[Math.floor(Math.random() * romanticGeneric.length)];
-    return applyVoice(fallback);
-  }
-  
-  // Regular fallbacks by rating - NO CONTEXT LEAKAGE
-  const fallbacks = {
-    G: [
-      "Life is like my sock drawer, organized chaos.",
-      "This situation reminds me of my cooking, questionable but hopeful.",
-      "Things hit different when you're not prepared for them."
-    ],
-    "PG-13": [
-      "Life is like group projects, someone's gonna mess it up damn sure.",
-      "This whole thing is hell on wheels and nobody warned me.",
-      "Things went sideways faster than my last diet attempt, damn."
-    ],
-    R: [
-      "Life is fucked up beyond all recognition, honestly.",
-      "This shit storm caught me completely off guard, not gonna lie.",
-      "Things are more chaotic than my love life, and that's saying something."
-    ],
-    Explicit: [
-      "Life screwed me harder than my ex on Valentine's Day.",
-      "This clusterfuck is more twisted than my browser history.",
-      "Things fucked me over like a horny teenager with no supervision."
-    ]
-  };
-  
-  const ratingFallbacks = fallbacks[rating as keyof typeof fallbacks] || fallbacks["PG-13"];
-  const fallback = ratingFallbacks[Math.floor(Math.random() * ratingFallbacks.length)];
-  return applyVoice(fallback);
-}
-
-// Voice stencil system handles all repair functionality
-
-// Enhanced generateFour with voice stencil system
-async function generateFour(inputs: any): Promise<{ 
-  success: boolean; 
-  options: string[]; 
-  meta: { model: string; voices: string[]; style: string; tone: string; qualityScore?: number } 
-}> {
-  const parsedTags = parseTags(inputs.tags);
-  
-  const ctx = {
-    category: inputs.category,
-    subcategory: inputs.subcategory,
-    tone: inputs.tone || 'Humorous',
-    style: inputs.style || 'punchline-first',
-    rating: inputs.rating || 'PG-13',
-    tags: parsedTags
-  };
-
-  console.log(`🎭 Generating four-option mode with enhanced fix batch: ${ctx.style} + ${ctx.rating} + ${ctx.category}/${ctx.subcategory}`);
-  
-  // Generate raw jokes first
-  const rawLines = await generateN(ctx, 4);
-  console.log(`🎪 Raw generation complete: ${rawLines.length} lines`);
-  
-  // Extract vibe processing
-  const hasOldVibe = parsedTags.soft.some(tag => 
-    tag.toLowerCase().includes('old') || 
-    tag.toLowerCase().includes('aging') || 
-    tag.toLowerCase().includes('ancient')
-  );
-  
-  // Apply enhanced fix batch system
-  const { fixBirthdayBatch } = await import("./voiceStencils.ts");
-  const voiceNames: ("hart" | "wong" | "rock" | "mulaney")[] = ["hart", "wong", "rock", "mulaney"];
-  
-  const finalLines = fixBirthdayBatch(rawLines, voiceNames, {
-    hardTag: parsedTags.hard[0],
-    rating: ctx.rating as "G" | "PG" | "PG-13" | "R" | "Explicit",
-    vibeOld: hasOldVibe
+// Core LLM call with retry logic
+async function callLLM(model: string, messages: any[], signal: AbortSignal) {
+  return fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      max_completion_tokens: MAX_OUT,
+      // No temperature for GPT-5 models
+    }),
+    signal
   });
+}
+
+// Generate with primary model, fallback to backup
+export async function generateStep2(ctx: {
+  category: string; subcategory: string; tone: string; rating: "G"|"PG-13"|"R"|"Explicit";
+  style: "punchline-first"|"story"|"pop-culture"|"wildcard";
+  tags: { hard: string[]; soft: string[] }
+}) {
+  const messages = buildPrompt(ctx);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+
+  try {
+    console.log(`🎯 Trying primary model: ${MODEL_PRIMARY}`);
+    const r = await callLLM(MODEL_PRIMARY, messages, ctrl.signal);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    return { 
+      model: MODEL_PRIMARY, 
+      raw: data.choices?.[0]?.message?.content || "",
+      fallback: false 
+    };
+  } catch (e) {
+    console.log(`⚠️ Primary failed, trying backup: ${MODEL_BACKUP}`);
+    try {
+      const r2 = await callLLM(MODEL_BACKUP, messages, ctrl.signal);
+      if (!r2.ok) throw new Error(`HTTP ${r2.status}`);
+      const data2 = await r2.json();
+      return { 
+        model: MODEL_BACKUP, 
+        raw: data2.choices?.[0]?.message?.content || "", 
+        fallback: true, 
+        reason: String(e).slice(0, 160) 
+      };
+    } catch (e2) {
+      throw new Error(`Both models failed: ${e} | ${e2}`);
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Build minimal, reliable prompt
+function buildPrompt(ctx: any) {
+  const lex = ctx.subcategory === "Birthday"
+    ? "Use one birthday word: cake or candles or balloons or party or wish."
+    : "Stay visibly on the chosen topic.";
+  return [
+    { role: "system", content:
+      "Return 4 jokes. One sentence each. 40 to 100 characters. One period. No commas or em dashes."
+    },
+    { role: "user", content:
+      `Topic: ${ctx.category} > ${ctx.subcategory}.
+Style: ${ctx.style}. Tone: ${ctx.tone}. Rating: ${ctx.rating}.
+Hard tags: ${ctx.tags.hard.join(" ") || "none"}.
+Soft tags guide vibe only and must not appear literally: ${ctx.tags.soft.join(" ") || "none"}.
+${lex}`
+    }
+  ];
+}
+
+// Parse model text into 4 lines
+function toLines(raw: string): string[] {
+  return raw.split("\n").map(s => s.trim()).filter(Boolean).slice(0, 4);
+}
+
+// Repair and enforce quality
+const LEX_BDAY = ["cake","candles","balloons","party","wish","slice","confetti"];
+const TWIST = [" but "," still "," even "," instead "," and then "];
+const STALE = [/everyone nodded awkwardly/ig, /check check/ig, /in america/i];
+
+function clean(s: string) {
+  let t = s.replace(/[—,]/g,"").replace(/\s+\./g,".").trim();
+  STALE.forEach(r => t = t.replace(r,""));
+  if (!t.endsWith(".")) t += ".";
+  if ((t.match(/\./g)||[]).length !== 1) t = t.replace(/\./g,"") + ".";
+  return t.replace(/\s{2,}/g," ").trim();
+}
+
+function ensureTopic(s: string, sub: string) {
+  if (sub === "Birthday") {
+    return LEX_BDAY.some(w=> new RegExp(`\\b${w}\\b`, "i").test(s))
+      ? s : s.replace(/\.$/, " cake.");
+  }
+  return s;
+}
+
+function ensureTwist(s: string) {
+  return TWIST.some(m=> s.toLowerCase().includes(m.trim()))
+    ? s : s.replace(/\.$/, " but the punchline won anyway.");
+}
+
+function fitLen(s: string, lo: number, hi: number) {
+  if (s.length > hi) {
+    const cut = s.slice(0, hi);
+    const safe = cut.lastIndexOf(" ") > 0 ? cut.slice(0, cut.lastIndexOf(" ")) : cut;
+    return safe.replace(/\.+$/,"") + ".";
+  }
+  if (s.length < lo) return s.replace(/\.$/," tonight.");
+  return s;
+}
+
+function spreadHardTag(lines: string[], tag?: string) {
+  if (!tag) return lines;
+  const t = tag.toLowerCase();
+  return lines.map((l,i)=>{
+    if (l.toLowerCase().includes(t)) return l;
+    if (i===0) return `${tag} ${l[0].toLowerCase()}${l.slice(1)}`;
+    if (i===1) return l.replace(/^\w+/, `$& ${tag}`);
+    return l.replace(/\.$/, ` with ${tag}.`);
+  });
+}
+
+function dedupe(lines: string[]) {
+  const out: string[]=[];
+  for(const l of lines){
+    if(!out.some(u=>similarity(u,l)>0.85)) out.push(l);
+  }
+  return out;
+}
+
+function similarity(a: string, b: string) {
+  const A=new Set(a.toLowerCase().split(/\s+/)), B=new Set(b.toLowerCase().split(/\s+/));
+  const inter=[...A].filter(x=>B.has(x)).length;
+  const uni=new Set([...A,...B]).size;
+  return inter/uni;
+}
+
+const BUCKETS: [number,number][]= [[40,60],[61,80],[81,100],[61,80]];
+
+export function postProcess(raw: string, meta: {
+  category: string; subcategory: string; rating: "G"|"PG-13"|"R"|"Explicit";
+  hardTag?: string; voices: string[];
+}) {
+  let lines = toLines(raw);
+  lines = lines.map(clean);
+  lines = lines.map((s,i)=> fitLen(ensureTwist(ensureTopic(s, meta.subcategory)), ...BUCKETS[i]));
+  lines = spreadHardTag(lines, meta.hardTag);
+  lines = dedupe(lines);
+  while (lines.length < 4) lines.push("The joke factory ran out of cake but the punchline still showed up.");
   
-  console.log(`✅ Enhanced voice stencil processing complete: ${finalLines.length} lines`);
-  
-  return { 
-    success: true, 
-    options: finalLines,
-    meta: {
-      model: "gpt-5-2025-08-07", // Report actual model used
-      voices: voiceNames, // Show comedian rotation for debugging
-      style: ctx.style,
-      tone: ctx.tone,
-      system: "enhanced-fix-batch-v1"
+  // Rating touch
+  if (meta.rating === "R") {
+    lines = lines.map(s => /\b(fuck|shit)\b/i.test(s) ? s : s.replace(/\.$/, " damn."));
+  }
+  if (meta.rating === "G") {
+    lines = lines.map(s => s.replace(/\b(fuck|shit|ass|bitch|damn|hell)\b/gi, "oops"));
+  }
+  return lines.slice(0,4);
+}
+
+// Voice rotation for comedian labeling
+function rotateVoices(rating: string): string[] {
+  return ["hart", "wong", "rock", "mulaney"];
+}
+
+// Main generation orchestrator
+export async function generateAndRepairStep2(ctx: any) {
+  const tags = ctx.tags || { hard: [], soft: [] };
+  const { model, raw, fallback, reason } = await generateStep2({ ...ctx, tags });
+  const voices = rotateVoices(ctx.rating);
+  const lines = postProcess(raw, {
+    category: ctx.category,
+    subcategory: ctx.subcategory,
+    rating: ctx.rating,
+    hardTag: tags.hard?.[0],
+    voices
+  });
+  return {
+    options: lines,
+    meta: { 
+      model, 
+      fallback: !!fallback, 
+      reason: fallback ? String(reason).slice(0,160) : undefined, 
+      voices 
     }
   };
 }
@@ -366,7 +226,14 @@ serve(async (req) => {
 
   try {
     const inputs = await req.json();
-    console.log('📝 Received inputs:', JSON.stringify(inputs, null, 2));
+    console.log('📝 Clean Step-2 Pipeline - Received inputs:', {
+      category: inputs.category,
+      subcategory: inputs.subcategory,
+      tone: inputs.tone,
+      rating: inputs.rating,
+      style: inputs.style,
+      tagCount: inputs.tags?.hard?.length || 0
+    });
 
     // Validate required inputs
     if (!inputs.category || !inputs.subcategory) {
@@ -385,8 +252,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         error: 'OpenAI API key not configured',
         success: false,
-        model: 'none',
-        validated: false
+        model: 'none'
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -394,36 +260,36 @@ serve(async (req) => {
     }
 
     try {
-      // Check if this is a four-option request (default mode now)
-      if (inputs.style && inputs.rating) {
-        const fourResult = await generateFour(inputs);
-        
-        return new Response(JSON.stringify({
-          success: true,
-          options: fourResult.options,
-          meta: fourResult.meta,
-          timing: {
-            total_ms: Date.now() - requestStartTime
-          }
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        });
-      }
-      
-      // Fall back to multi-rating mode for compatibility
-      const multiRatingResult = await generateMultiRatingJokes({
+      const ctx = {
         category: inputs.category,
         subcategory: inputs.subcategory,
-        tone: inputs.tone,
-        tags: inputs.tags,
-        style: inputs.style || 'punchline-first'
-      });
+        tone: inputs.tone || 'Humorous',
+        rating: inputs.rating || 'PG-13',
+        style: inputs.style || 'punchline-first',
+        tags: parseTags(inputs.tags)
+      };
 
+      console.log(`🎯 Clean generation: ${ctx.category}/${ctx.subcategory} | ${ctx.tone} | ${ctx.rating}`);
+      
+      const result = await generateAndRepairStep2(ctx);
+      
+      console.log(`✅ Generated 4 lines using ${result.meta.model}`);
+      if (result.meta.fallback) {
+        console.log(`⚠️ Used fallback: ${result.meta.reason}`);
+      }
+      
       return new Response(JSON.stringify({
         success: true,
-        ratings: multiRatingResult,
-        model: MODEL,
+        options: result.options,
+        meta: {
+          model: result.meta.model,
+          voices: result.meta.voices,
+          fallback: result.meta.fallback,
+          reason: result.meta.reason,
+          style: ctx.style,
+          tone: ctx.tone,
+          validated: true
+        },
         timing: {
           total_ms: Date.now() - requestStartTime
         }
@@ -435,57 +301,26 @@ serve(async (req) => {
     } catch (error) {
       console.error('❌ Generation failed:', error);
       
-      // Fallback for four-option mode
-      if (inputs.style && inputs.rating) {
-        const fallbackOptions = [
-          generateFallbackJoke(inputs.rating || "PG-13", inputs.subcategory, "Hart", inputs.tone, inputs.style),
-          generateFallbackJoke(inputs.rating || "PG-13", inputs.subcategory, "Wong", inputs.tone, inputs.style),
-          generateFallbackJoke(inputs.rating || "PG-13", inputs.subcategory, "Burr", inputs.tone, inputs.style),
-          generateFallbackJoke(inputs.rating || "PG-13", inputs.subcategory, "Hedberg", inputs.tone, inputs.style)
-        ];
-        
-        return new Response(JSON.stringify({
-          success: true,
-          options: fallbackOptions,
-          meta: {
-            model: 'fallback - GPT-5 and GPT-4.1 both failed',
-            voices: ["hart", "wong", "burr", "hedberg"],
-            style: inputs.style,
-            tone: inputs.tone
-          },
-          timing: {
-            total_ms: Date.now() - requestStartTime
-          }
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        });
-      }
-      
-      // Emergency fallback with context enforcement for multi-rating
-      const fallbackRatings: MultiRatingOutput = {
-        G: [
-          { voice: "Jim Gaffigan", text: generateFallbackJoke("G", `${inputs.category} > ${inputs.subcategory}`, "Jim Gaffigan", inputs.tone, inputs.style) },
-          { voice: "Ellen DeGeneres", text: generateFallbackJoke("G", `${inputs.category} > ${inputs.subcategory}`, "Ellen DeGeneres", inputs.tone, inputs.style) }
-        ],
-        "PG-13": [
-          { voice: "Kevin Hart", text: generateFallbackJoke("PG-13", `${inputs.category} > ${inputs.subcategory}`, "Kevin Hart", inputs.tone, inputs.style) },
-          { voice: "Ali Wong", text: generateFallbackJoke("PG-13", `${inputs.category} > ${inputs.subcategory}`, "Ali Wong", inputs.tone, inputs.style) }
-        ],
-        R: [
-          { voice: "Bill Burr", text: generateFallbackJoke("R", `${inputs.category} > ${inputs.subcategory}`, "Bill Burr", inputs.tone, inputs.style) },
-          { voice: "Chris Rock", text: generateFallbackJoke("R", `${inputs.category} > ${inputs.subcategory}`, "Chris Rock", inputs.tone, inputs.style) }
-        ],
-        Explicit: [
-          { voice: "Sarah Silverman", text: generateFallbackJoke("Explicit", `${inputs.category} > ${inputs.subcategory}`, "Sarah Silverman", inputs.tone, inputs.style) },
-          { voice: "Amy Schumer", text: generateFallbackJoke("Explicit", `${inputs.category} > ${inputs.subcategory}`, "Amy Schumer", inputs.tone, inputs.style) }
-        ]
-      };
+      // Emergency fallback
+      const fallbackOptions = [
+        "The joke factory ran out of cake but the punchline still showed up.",
+        "Things went sideways faster than a birthday balloon in traffic.",
+        "Life is like birthday candles, someone always blows it too early.",
+        "The party was chaos but at least the cake survived somehow."
+      ];
       
       return new Response(JSON.stringify({
         success: true,
-        ratings: fallbackRatings,
-        model: 'fallback',
+        options: fallbackOptions,
+        meta: {
+          model: 'emergency-fallback',
+          voices: ["hart", "wong", "rock", "mulaney"],
+          fallback: true,
+          reason: `Both GPT-5 and GPT-4.1 failed: ${error.message}`,
+          style: inputs.style || 'punchline-first',
+          tone: inputs.tone || 'Humorous',
+          validated: false
+        },
         timing: {
           total_ms: Date.now() - requestStartTime
         }
@@ -496,34 +331,13 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('❌ Request processing failed:', error);
+    console.error('❌ Request parsing failed:', error);
     return new Response(JSON.stringify({
       error: error.message,
       success: false
     }), {
-      status: 500,
+      status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
-
-// Helper function to inject a tag into a joke naturally
-function injectTagIntoJoke(joke: string, tag: string): string {
-  // Try to inject near verbs or conjunctions
-  const patterns = [
-    /(\b(?:is|are|was|were|has|have|does|do|gets|got|makes|made)\b)/i,
-    /(\b(?:and|but|while|when|if|because|since)\b)/i,
-    /(\b(?:with|for|by|at|on|in)\b)/i
-  ];
-  
-  for (const pattern of patterns) {
-    const match = joke.match(pattern);
-    if (match && match.index !== undefined) {
-      const insertPos = match.index + match[0].length;
-      return joke.slice(0, insertPos) + ` ${tag}` + joke.slice(insertPos);
-    }
-  }
-  
-  // Fallback: append at the end before punctuation
-  return joke.replace(/[.!?]$/, ` ${tag}.`);
-}
