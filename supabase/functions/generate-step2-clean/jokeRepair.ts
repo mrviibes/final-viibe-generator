@@ -14,6 +14,14 @@ export function repairFragments(line: string): string {
 
   // Fix specific problematic patterns from user feedback
   const specificRepairs: [RegExp, string][] = [
+    // Fix the exact patterns from user feedback
+    [/\bbut but\b/gi, "but"],
+    [/([a-z])([A-Z])/g, "$1 $2"], // Fix "expensivejust" spacing issues
+    [/\bNext thing I know but still\.\s*$/i, "Next thing I know the cake exploded."],
+    [/\bbut still\.\s*$/i, "but still holds up."],
+    [/\blet alone his sad little\.\s*$/i, "let alone his pathetic birthday attempt."],
+    [/\bhelium's too expensivejust stick him\b/gi, "helium's too expensive so stick him"],
+    
     // Double phrases like "the cake and the cake"
     [/\b(\w+)\s+and\s+the\s+\1\b/gi, "$1"],
     
@@ -28,20 +36,21 @@ export function repairFragments(line: string): string {
     [/\blike I'm trying to blow out a tiny wildfire\.\s*$/i, " like I'm trying to blow out a tiny wildfire and losing badly."],
     
     // Generic incomplete endings
-    [/\b(Why is|What happens when|How does)\s+.*…\s*$/i, "Silas blows out candles like he's performing CPR on birthday wishes."],
+    [/\b(Why is|What happens when|How does)\s+.*…\s*$/i, "Jesse blows out candles like he's performing CPR on birthday wishes."],
     
     // Common fragments we've seen
     [/\bcoming home after midnight\.\s*$/i, " coming home after midnight and waking up the neighbors."],
     [/\bmake me feel like\s*$/i, " make me feel like the cake has trust issues."],
-    [/\band everyone\s*$/i, " and everyone pretended to enjoy it."]
+    [/\band everyone\s*$/i, " and everyone pretended to enjoy it."],
+    
+    // Fix spacing and punctuation issues
+    [/\s+/g, " "], // Multiple spaces to single space
+    [/\s+\./g, "."], // Space before period
   ];
 
   // Apply specific repairs
   for (const [pattern, replacement] of specificRepairs) {
-    if (pattern.test(repaired)) {
-      repaired = repaired.replace(pattern, replacement);
-      break;
-    }
+    repaired = repaired.replace(pattern, replacement);
   }
 
   return repaired;

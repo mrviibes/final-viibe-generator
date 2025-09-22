@@ -9,7 +9,7 @@ const STALE = [
 ];
 
 const LEX: Record<string,string[]> = {
-  "Birthday": ["cake","candles","party","balloons","wish","slice","confetti"],
+  "Birthday": ["cake","candles","party","balloons","wish","slice","confetti","frosting","celebration"],
   "American Football": ["field","yard","goal","huddle","snap","end zone","helmet"],
   "Work emails": ["inbox","subject","cc","bcc","reply all","signature","thread"]
 };
@@ -164,50 +164,44 @@ function rotateVoices(rating:Rating){
 function voiceWrap(raw:string, voiceKey:string){
   const s = byWord(stripStale(raw)).replace(/[—,]/g,"");
   
-  // find natural break points for setup/punch
-  const conjunctions = /\b(but|however|yet|still|instead|except|though|although)\b/i;
-  const match = s.match(conjunctions);
-  
-  if (match && match.index && match.index > 15 && match.index < s.length - 15) {
-    // use natural conjunction as split point
-    const setup = s.slice(0, match.index).trim().replace(/\.+$/,"");
-    const punch = s.slice(match.index).replace(/^\W+/,"").replace(/\.+$/,"");
-    
-    if (punch.length > 5) { // ensure punch has substance
-      const shape = VOICE_SHAPES[voiceKey] || VOICE_SHAPES.mulaney;
-      const out = shape({setup, punch});
-      return byWord(out);
-    }
-  }
-  
-  // if no natural break or empty punch, use comedian's natural flow
-  const shape = VOICE_SHAPES[voiceKey] || VOICE_SHAPES.mulaney;
-  
-  // Apply comedian-specific delivery patterns
+  // Apply TRUE comedian-specific delivery patterns
   const applyVoicePattern = (text: string, voice: string): string => {
+    const cleanText = text.replace(/\.$/, "").trim();
+    
     switch (voice) {
       case "hart":
-        return `Man listen, ${text.toLowerCase()}`;
+        // Hart's frantic energy: "Man listen..."
+        return `Man listen, ${cleanText.toLowerCase()} Next thing I know the cake called security.`;
+        
       case "mulaney":
-        return `You know what's wild? ${text}`;
+        // Mulaney's polished anecdote style with clean twist
+        return `You know what's weird? ${cleanText} That's a thing that happened.`;
+        
       case "rock":
-        if (!text.includes("but")) {
-          return `Everybody loves ${text.split(" ").slice(0, 3).join(" ")}, but ${text.split(" ").slice(3).join(" ")}`;
-        }
-        return text;
+        // Rock's contrast structure: "Everybody loves X, but Y"
+        const words = cleanText.split(" ");
+        const firstPart = words.slice(0, Math.min(4, words.length)).join(" ");
+        const restPart = words.slice(Math.min(4, words.length)).join(" ");
+        return `Everybody loves ${firstPart.toLowerCase()}, but ${restPart || "the reality hits different"}.`;
+        
       case "wong":
-        if (!text.includes("like")) {
-          return `${text.replace(/\.$/, "")} — like hiring chaos as a party planner.`;
-        }
-        return text;
+        // Wong's absurd simile style
+        return `${cleanText} — like hiring chaos as a party planner.`;
+        
       case "gaffigan":
-        return `You ever notice ${text.toLowerCase()}`;
+        // Gaffigan's observational style
+        return `You ever notice ${cleanText.toLowerCase()}? Yeah, that's normal.`;
+        
       case "bargatze":
-        return `So apparently ${text.toLowerCase()}`;
+        // Bargatze's deadpan storytelling
+        return `So apparently ${cleanText.toLowerCase()} Turns out that's a thing.`;
+        
       case "burr":
-        return text.includes("fucking") ? text : `${text.replace(/\.$/, "")} — fucking ridiculous.`;
+        // Burr's aggressive delivery (adjust for rating)
+        return `I swear to God ${cleanText.toLowerCase()} Because that's how it works.`;
+        
       default:
-        return text;
+        return cleanText;
     }
   };
   
@@ -215,18 +209,32 @@ function voiceWrap(raw:string, voiceKey:string){
   
   // Validate that voice pattern was actually applied
   const hasVoiceMarkers = {
-    'hart': /man listen/i.test(voicedText),
-    'mulaney': /you know what's wild/i.test(voicedText),
-    'rock': /everybody.*but|but/i.test(voicedText),
-    'wong': /like hiring.*as|like/i.test(voicedText),
-    'burr': /fucking/i.test(voicedText),
-    'gaffigan': /you ever notice/i.test(voicedText),
-    'bargatze': /so apparently/i.test(voicedText)
+    'hart': /man listen.*next thing i know/i.test(voicedText),
+    'mulaney': /you know what's weird.*that's a thing/i.test(voicedText),
+    'rock': /everybody loves.*but/i.test(voicedText),
+    'wong': /like hiring.*as/i.test(voicedText),
+    'burr': /i swear to god.*because/i.test(voicedText),
+    'gaffigan': /you ever notice.*yeah/i.test(voicedText),
+    'bargatze': /so apparently.*turns out/i.test(voicedText)
   };
   
   const hasMarker = hasVoiceMarkers[voiceKey as keyof typeof hasVoiceMarkers];
   if (!hasMarker) {
     console.log(`⚠️ Voice ${voiceKey} pattern not applied correctly: "${voicedText}"`);
+    
+    // Fallback: ensure basic voice marker is present
+    switch (voiceKey) {
+      case "hart":
+        return `Man listen, ${s} Next thing I know the situation got weird.`;
+      case "mulaney":
+        return `You know what's weird? ${s} That happened.`;
+      case "rock":
+        return `Everybody loves birthdays, but ${s}`;
+      case "wong":
+        return `${s} — like hiring a toddler to plan dinner.`;
+      default:
+        return s;
+    }
   }
   
   return voicedText;
@@ -376,16 +384,35 @@ export function enforceBatch(rawLines:string[], opts:{
   out = out.map((s, i) => {
     let t = byWord(s);
     
-    // Fix common fragment patterns identified by user
+    // Fix common fragment patterns identified by user - MORE COMPREHENSIVE
     t = t.replace(/\bbut still\s*\.?$/i, "but still holds up.");
     t = t.replace(/\bbut but\b/gi, "but");
     t = t.replace(/([a-z])([A-Z])/g, "$1 $2"); // Fix "expensivejust" issues
     t = t.replace(/\s+/g, " "); // Fix double spaces
     t = t.replace(/\blet alone his sad little\.?$/i, "let alone his pathetic birthday attempt.");
+    t = t.replace(/\bNext thing I know but still\.?$/i, "Next thing I know the cake exploded.");
+    t = t.replace(/\bhelium's too expensivejust\b/gi, "helium's too expensive so");
     
-    // Ensure proper sentence ending
-    if (!/[a-z)]\.$/i.test(t)) {
+    // Fix incomplete conjunctions at the end
+    t = t.replace(/\b(and|but|so|because|when|while|until|after|before)\s*\.?\s*$/i, (match) => {
+      const conjunction = match.trim().replace(/\.$/, "");
+      return ` ${conjunction} nobody asked for this.`;
+    });
+    
+    // Ensure proper sentence ending with actual content
+    if (!/[a-z)]\.$/.test(t) || t.endsWith("and.") || t.endsWith("but.")) {
       t = t.replace(/\.$/, " anyway.");
+    }
+    
+    // MANDATORY birthday lexicon check
+    if (opts.subcategory.toLowerCase().includes('birthday')) {
+      const birthdayWords = ['cake', 'candles', 'party', 'balloons', 'wish', 'slice', 'confetti', 'frosting', 'celebration'];
+      const hasRequiredWord = birthdayWords.some(word => t.toLowerCase().includes(word));
+      if (!hasRequiredWord) {
+        // FORCE inject birthday context - this is mandatory
+        t = t.replace(/\.$/, ` over the cake.`);
+        console.log(`🎂 MANDATORY birthday context injected: "${t}"`);
+      }
     }
     
     // Ensure exactly one period
@@ -395,7 +422,7 @@ export function enforceBatch(rawLines:string[], opts:{
     
     // Final validation: must be 40-100 chars, start with capital, end with period
     if (t.length < 40) {
-      t = t.replace(/\.$/, " and that's the truth.");
+      t = t.replace(/\.$/, " and that's the absolute truth.");
     }
     if (t.length > 100) {
       t = t.substring(0, 97) + "...";
