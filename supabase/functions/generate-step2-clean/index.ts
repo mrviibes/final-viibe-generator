@@ -101,6 +101,61 @@ const LEX_BDAY = ["cake","candles","balloons","party","wish","slice","confetti"]
 const TWIST = [" but "," still "," even "," instead "," and then "];
 const STALE = [/everyone nodded awkwardly/ig, /check check/ig, /in america/i];
 
+// Diversified fallback pools by category and tone
+const FALLBACK_POOLS = {
+  "celebrations.Birthday.savage": [
+    "Jesse's cake had so many candles the fire marshal RSVP'd.",
+    "Jesse blew out the candles and the smoke alarm quit.",
+    "The balloons quit early but Jesse still called it a party.",
+    "Even the frosting filed for hazard pay.",
+    "Jesse's age hit triple digits but the cake stayed optimistic.",
+    "The candles cost more than the cake but priorities.",
+    "Jesse's party was so lit the neighbors called NASA.",
+    "The birthday song lasted longer than some marriages."
+  ],
+  "celebrations.Birthday.humorous": [
+    "Jesse's cake came with a roadmap to find the frosting.",
+    "The birthday candles doubled as emergency lighting.",
+    "Jesse's party had more leftovers than guests.",
+    "The cake was so sweet it filed for dental coverage.",
+    "Jesse's wishes came true but the candles stayed skeptical.",
+    "The party favors included aspirin and regret.",
+    "Jesse's age became a math problem nobody wanted to solve.",
+    "The birthday song got an encore nobody asked for."
+  ],
+  "celebrations.Birthday.playful": [
+    "Jesse's cake was happier than most wedding cakes.",
+    "The birthday candles formed their own support group.",
+    "Jesse's party was so fun even the decorations smiled.",
+    "The cake slice wanted to stay for the whole party.",
+    "Jesse's wishes were reasonable but the cake disagreed.",
+    "The balloons stayed longer than some relatives.",
+    "Jesse's party made the neighbors jealous of the fun.",
+    "The birthday song got a standing ovation from the frosting."
+  ]
+};
+
+// Voice-specific stencils
+const VOICE_STENCILS = {
+  hart: (line: string) => {
+    if (line.toLowerCase().startsWith("man listen")) return line;
+    return `Man listen ${line.charAt(0).toLowerCase()}${line.slice(1)}`;
+  },
+  wong: (line: string) => {
+    const similes = ["like hiring a raccoon", "faster than my optimism", "like watching paint cry"];
+    const randomSimile = similes[Math.floor(Math.random() * similes.length)];
+    return line.includes("like") ? line : line.replace(/\.$/, ` ${randomSimile}.`);
+  },
+  rock: (line: string) => {
+    if (line.toLowerCase().includes("everybody") || line.toLowerCase().includes("everyone")) return line;
+    return `Everybody loves birthdays. But ${line.charAt(0).toLowerCase()}${line.slice(1)}`;
+  },
+  mulaney: (line: string) => {
+    if (line.toLowerCase().includes("the last time")) return line;
+    return `The last time this happened ${line.charAt(0).toLowerCase()}${line.slice(1)}`;
+  }
+};
+
 function clean(s: string) {
   let t = s.replace(/[—,]/g,"").replace(/\s+\./g,".").trim();
   STALE.forEach(r => t = t.replace(r,""));
@@ -160,16 +215,64 @@ function similarity(a: string, b: string) {
 
 const BUCKETS: [number,number][]= [[40,60],[61,80],[81,100],[61,80]];
 
-export function postProcess(raw: string, meta: {
+// Smart fallback selection from diversified pools
+function getFallbackJokes(category: string, subcategory: string, tone: string, neededCount: number): string[] {
+  const poolKey = `${category.toLowerCase()}.${subcategory}.${tone.toLowerCase()}`;
+  const pool = FALLBACK_POOLS[poolKey] || FALLBACK_POOLS["celebrations.Birthday.humorous"];
+  
+  // Randomly select without replacement
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, neededCount);
+}
+
+// Apply voice stencils to lines
+function applyVoiceStencils(lines: string[], voices: string[]): string[] {
+  return lines.map((line, i) => {
+    const voice = voices[i] || "mulaney";
+    const stencil = VOICE_STENCILS[voice];
+    return stencil ? stencil(line) : line;
+  });
+}
+
+export async function postProcess(raw: string, meta: {
   category: string; subcategory: string; rating: "G"|"PG-13"|"R"|"Explicit";
-  hardTag?: string; voices: string[];
-}) {
+  hardTag?: string; voices: string[]; regenerationAttempt?: boolean;
+}, originalCtx?: any) {
   let lines = toLines(raw);
   lines = lines.map(clean);
   lines = lines.map((s,i)=> fitLen(ensureTwist(ensureTopic(s, meta.subcategory)), ...BUCKETS[i]));
   lines = spreadHardTag(lines, meta.hardTag);
   lines = dedupe(lines);
-  while (lines.length < 4) lines.push("The joke factory ran out of cake but the punchline still showed up.");
+  
+  let fallbacksUsed = 0;
+  
+  // If we need more lines and haven't tried regeneration yet, attempt one retry
+  if (lines.length < 4 && !meta.regenerationAttempt && originalCtx) {
+    console.log(`🔄 Only ${lines.length} unique lines, attempting regeneration...`);
+    try {
+      const retryResult = await generateStep2({
+        ...originalCtx,
+        style: "wildcard" // Change style for different output
+      });
+      const retryLines = toLines(retryResult.raw).map(clean);
+      lines = dedupe([...lines, ...retryLines]);
+      console.log(`✨ After regeneration: ${lines.length} unique lines`);
+    } catch (e) {
+      console.log(`⚠️ Regeneration failed: ${e}`);
+    }
+  }
+  
+  // Fill remaining slots with diversified fallbacks
+  if (lines.length < 4) {
+    const needed = 4 - lines.length;
+    const fallbacks = getFallbackJokes(meta.category, meta.subcategory, "humorous", needed);
+    lines.push(...fallbacks);
+    fallbacksUsed = needed;
+    console.log(`📦 Used ${fallbacksUsed} fallback jokes from pool`);
+  }
+  
+  // Apply voice stencils to make each line sound different
+  lines = applyVoiceStencils(lines.slice(0, 4), meta.voices);
   
   // Rating touch
   if (meta.rating === "R") {
@@ -178,7 +281,8 @@ export function postProcess(raw: string, meta: {
   if (meta.rating === "G") {
     lines = lines.map(s => s.replace(/\b(fuck|shit|ass|bitch|damn|hell)\b/gi, "oops"));
   }
-  return lines.slice(0,4);
+  
+  return { lines: lines.slice(0,4), fallbacksUsed };
 }
 
 // Voice rotation for comedian labeling
@@ -191,20 +295,23 @@ export async function generateAndRepairStep2(ctx: any) {
   const tags = ctx.tags || { hard: [], soft: [] };
   const { model, raw, fallback, reason } = await generateStep2({ ...ctx, tags });
   const voices = rotateVoices(ctx.rating);
-  const lines = postProcess(raw, {
+  const result = await postProcess(raw, {
     category: ctx.category,
     subcategory: ctx.subcategory,
     rating: ctx.rating,
     hardTag: tags.hard?.[0],
-    voices
-  });
+    voices,
+    regenerationAttempt: false
+  }, ctx);
+  
   return {
-    options: lines,
+    options: result.lines,
     meta: { 
       model, 
       fallback: !!fallback, 
       reason: fallback ? String(reason).slice(0,160) : undefined, 
-      voices 
+      voices,
+      fallbacksUsed: result.fallbacksUsed
     }
   };
 }
@@ -286,6 +393,7 @@ serve(async (req) => {
           voices: result.meta.voices,
           fallback: result.meta.fallback,
           reason: result.meta.reason,
+          fallbacksUsed: result.meta.fallbacksUsed,
           style: ctx.style,
           tone: ctx.tone,
           validated: true
