@@ -7045,25 +7045,25 @@ const Index = () => {
                        <p className="text-muted-foreground">Select one of the generated options</p>
                      </div>
                      
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
                        {singleModeOptions.map((option, index) => (
-                         <Card key={index} className="transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-6 border-2">
-                           <div className="space-y-4">
-                             <p className="text-lg leading-relaxed text-center">{option}</p>
-                             <div className="text-center">
-                               <Button 
-                                 onClick={() => {
-                                   setSelectedGeneratedOption(option);
-                                   setSelectedGeneratedIndex(index);
-                                   setIsEditingSelectedText(false);
-                                 }}
-                                 className="w-full"
-                               >
-                                 Choose this option
-                               </Button>
-                             </div>
+                         <div key={index} className="h-full rounded-xl border border-border p-5 shadow-sm flex flex-col justify-between transition-all duration-200 hover:shadow-lg">
+                           <p className="whitespace-normal break-words overflow-visible leading-snug text-base">
+                             {option}
+                           </p>
+                           <div className="mt-4 flex justify-end">
+                             <button
+                               className="text-foreground hover:text-foreground/80 underline underline-offset-2 bg-transparent border-0 p-0 h-auto transition-colors"
+                               onClick={() => {
+                                 setSelectedGeneratedOption(option);
+                                 setSelectedGeneratedIndex(index);
+                                 setIsEditingSelectedText(false);
+                               }}
+                             >
+                               Choose this option
+                             </button>
                            </div>
-                         </Card>
+                         </div>
                        ))}
                      </div>
 
