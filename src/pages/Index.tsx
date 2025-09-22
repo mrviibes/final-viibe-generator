@@ -6835,10 +6835,50 @@ const Index = () => {
                       </CardDescription>
                     </CardContent>
                   </Card>)}
-              </div> : (/* Show StackedSelectionCard when any selection is made */
-        <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    {/* Show stacked selections when any selection is made */}
-                    {(selectedTextStyle || selectedCompletionOption || selectedGeneratedOption || isCustomTextConfirmed) && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              </div> : (
+                <div className="flex flex-col items-stretch animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  {/* Show selected tone in table style */}
+                  {selectedTextStyle && !selectedCompletionOption && (
+                    <div className="space-y-6">
+                      <div className="bg-accent/20 rounded-lg p-4 border border-border">
+                        <div className="text-sm text-muted-foreground mb-2">Selected Tone</div>
+                        <div className="text-lg font-semibold text-foreground">
+                          {textStyleOptions.find(s => s.id === selectedTextStyle)?.name}
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {textStyleOptions.find(s => s.id === selectedTextStyle)?.description}
+                        </div>
+                      </div>
+                      
+                      {/* Writing preference question */}
+                      <div className="text-center space-y-4">
+                        <h3 className="text-xl font-semibold text-foreground">Choose your writing preference</h3>
+                        
+                        {/* 3 square buttons in a row for mobile */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+                          {completionOptions.map(option => (
+                            <Card 
+                              key={option.id} 
+                              className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 aspect-square flex flex-col justify-center items-center p-4"
+                              onClick={() => setSelectedCompletionOption(option.id)}
+                            >
+                              <CardContent className="p-0 text-center">
+                                <div className="text-lg font-semibold text-foreground mb-2">
+                                  {option.name}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {option.description}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Show StackedSelectionCard when completion option is selected */}
+                  {(selectedTextStyle && selectedCompletionOption) && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <StackedSelectionCard selections={(() => {
               const selections = [];
 
@@ -7176,7 +7216,8 @@ const Index = () => {
 
 
                 {/* TODO: Add additional sub-options here after text style is selected */}
-              </div>)}
+              </div>
+            )}
           </>}
 
         {currentStep === 3 && <>
