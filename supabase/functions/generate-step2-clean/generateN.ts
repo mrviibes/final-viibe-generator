@@ -35,23 +35,25 @@ function assignBuckets(n: number = 4): [number,number][] {
   return buckets;
 }
 
-function ensurePunchlineCue(line: string, tone: string): string {
+function ensurePunchlineCue(line: string, tone: string, lineIndex: number): string {
   // Skip cues for Romantic/Sentimental tones
   if (tone === "Romantic" || tone === "Sentimental") return line;
   
   // if it already has a cue, keep it but fix spacing
   if (/\bfirst\b/i.test(line)) return line.replace(/\bfirst[, ]*then\b/i, " first then ");
   
-  // For style="punchline-first", add natural cue 30% of time, let line be natural 70% of time
-  if (Math.random() < 0.7) {
-    // Check if line already sounds like a punchline-first joke
-    if (/^(damn|well|so|man|dude|turns out|apparently)/i.test(line.trim())) {
-      return line; // Already sounds natural
-    }
+  // Smart cue distribution: only apply to 50% of lines (2 out of 4)
+  // Use line index to ensure variety - apply to lines 0 and 2, skip 1 and 3
+  if (lineIndex % 2 !== 0) return line;
+  
+  // Check if line already sounds like a punchline-first joke
+  if (/^(damn|well|so|man|dude|turns out|apparently)/i.test(line.trim())) {
+    return line; // Already sounds natural
   }
   
-  // Add random cue
-  const cue = PUNCHLINE_CUES[Math.floor(Math.random() * PUNCHLINE_CUES.length)];
+  // Add rotating cue based on line index to ensure variety
+  const cueIndex = Math.floor(lineIndex / 2) % PUNCHLINE_CUES.length;
+  const cue = PUNCHLINE_CUES[cueIndex];
   return `${cue} ${line[0].toLowerCase()}${line.slice(1)}`;
 }
 
@@ -59,12 +61,27 @@ function fitLengthWordSafe(line: string, lo: number, hi: number): string {
   let s = line.replace(/[—]/g, " ").replace(/,/g, "").replace(/\s+\./g, ".").trim();
   if (!s.endsWith(".")) s += ".";
   
-  // Fix incomplete sentences - check for mid-thought endings
-  if (/\b(the|and|was|had|with|for|but|that)\.\s*$/i.test(s)) {
-    s = s.replace(/\b(the|and|was|had|with|for|but|that)\.\s*$/i, " cake.");
+  // Enhanced fragment detection for common incomplete patterns
+  const fragmentPatterns = [
+    [/\b(the|and|was|had|with|for|but|that|to|at|in|on|so|even)\.\s*$/i, " party."],
+    [/\bcome to\.\s*$/i, " come to the party."],
+    [/\bso bad even the\.\s*$/i, " so bad even the cake complained."],
+    [/\bfirst then the real reason\.\s*$/i, " first then the real reason was obvious."],
+    [/\bcake was so bad even the\.\s*$/i, " cake was so bad even the candles refused to stay lit."],
+    [/\bpeople come to\.\s*$/i, " people come to the party."],
+    [/\bmake Jesse any\.\s*$/i, " make Jesse any happier."],
+    [/\bdidn't make Jesse any\.\s*$/i, " didn't make Jesse any younger."]
+  ];
+  
+  // Apply fragment repairs
+  for (const [pattern, replacement] of fragmentPatterns) {
+    if (pattern.test(s)) {
+      s = s.replace(pattern, replacement);
+      break;
+    }
   }
   
-  // fix common cut-offs like "every g." / "Jesse d." / "damn pl."
+  // Fix common cut-offs like "every g." / "Jesse d." / "damn pl."
   s = s.replace(/\b([a-z]{1,2})\.\s*$/i, " show.");
   s = s.replace(/\bpl\.\s*$/i, "play.");
   s = s.replace(/\bd\.\s*$/i, "down.");
@@ -84,6 +101,11 @@ function fitLengthWordSafe(line: string, lo: number, hi: number): string {
     const lastSpace = cut.lastIndexOf(" ");
     const safe = lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
     s = safe.replace(/\.$/, "") + ".";
+    
+    // After cutting, check if we created a new fragment
+    if (/\b(the|and|was|had|with|for|but|that|to|at|in|on)\.\s*$/i.test(s)) {
+      s = s.replace(/\b(the|and|was|had|with|for|but|that|to|at|in|on)\.\s*$/i, " tonight.");
+    }
   }
   
   if (s.length < lo) {
@@ -138,26 +160,33 @@ function postProcessBatch(rawLines: string[], hardTag: string, ctx: Ctx): string
     // 1. Normalize
     let s = l.trim();
     
-    // 2. Context lexicon injection
+    // 2. Universal age filter for Birthday content (not just Romantic tone)
     if (ctx.category.toLowerCase().includes("birthday") || ctx.category.toLowerCase().includes("celebration")) {
+      s = s.replace(/\b\d+\b/g, ""); // strip all numbers/ages
+      s = s.replace(/\b(older|younger|age|years old|turning)\b/gi, ""); // strip age-related words
+      s = s.replace(/\s+/g, " ").trim(); // clean up extra spaces
       s = ensureBirthdayLexicon(s);
     }
     
-    // 3. Romantic tone enforcement (strip ages, add affectionate words)
+    // 3. Romantic tone enforcement (add affectionate words)
     if (ctx.tone === "Romantic") {
-      s = s.replace(/\b\d+\b/g, ""); // strip ages
       if (!/(love|heart|warm|dear|sweet|tender|adore)/i.test(s)) {
         s = s.replace(/\.$/, " and my heart knows it.");
       }
     }
     
-    // 4. Apply cue if needed (skip for romantic tones)
-    s = ensurePunchlineCue(s, ctx.tone);
-    
-    // 5. Word-safe length fitting
+    // 4. Word-safe length fitting BEFORE cue application
     s = fitLengthWordSafe(s, buckets[i][0], buckets[i][1]);
     
-    // 6. Final QC
+    // 5. Apply cue if needed (after length fitting to prevent cut-offs)
+    s = ensurePunchlineCue(s, ctx.tone, i);
+    
+    // 6. Final length check and repair after cue addition
+    if (s.length > buckets[i][1]) {
+      s = fitLengthWordSafe(s, buckets[i][0], buckets[i][1]);
+    }
+    
+    // 7. Final QC
     s = finalQC(s);
     
     return s;
