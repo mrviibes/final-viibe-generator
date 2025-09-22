@@ -6962,18 +6962,15 @@ const Index = () => {
                 {/* Show selected tags for AI Assist */}
                 {selectedCompletionOption === "ai-assist" && tags.length > 0 && (
                   <div className="mt-6 mb-4">
-                    <div className="max-w-md mx-auto p-4 bg-muted/30 rounded-lg border">
-                      <div className="text-center">
-                        <span className="text-sm font-medium text-muted-foreground mr-2">Text Tags:</span>
-                        <div className="flex flex-wrap gap-1 justify-center mt-1">
-                          {tags.map((tag, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                    <StackedSelectionCard selections={[{
+                      title: "Text Tags",
+                      subtitle: tags.join(", "),
+                      onChangeSelection: () => {
+                        // Allow user to modify tags
+                        setTags([]);
+                        setTagInput("");
+                      }
+                    }]} />
                   </div>
                 )}
 
