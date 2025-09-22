@@ -265,7 +265,7 @@ async function generateSingle(inputs: any): Promise<{ success: boolean; options:
 
   console.log(`🎯 Generating single-mode: ${ctx.style} + ${ctx.rating}`);
   
-  const lines = await generateN(ctx, 2); // exactly two
+  const lines = await generateN(ctx, 4); // Generate 4 options
   
   return { success: true, options: lines };
 }

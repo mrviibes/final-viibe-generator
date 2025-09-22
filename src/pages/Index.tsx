@@ -5432,7 +5432,7 @@ const Index = () => {
 
       clearTimeout(safetyTimeoutId);
 
-      if (result.success && result.options?.length === 2) {
+      if (result.success && result.options?.length >= 2) {
         setSingleModeOptions(result.options);
         console.log('✅ Single mode generation successful:', result.options);
       } else {
@@ -7068,13 +7068,13 @@ const Index = () => {
 
                  {/* Single-Mode Generated Text Options */}
                  {singleModeOptions && (
-                   <div className="space-y-6 max-w-4xl mx-auto mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                   <div className="space-y-6 max-w-6xl mx-auto mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                      <div className="text-center">
                        <h3 className="text-xl font-semibold mb-2">Choose Your Text</h3>
                        <p className="text-muted-foreground">Select one of the generated options</p>
                      </div>
                      
-                     <div className="grid grid-cols-1 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        {singleModeOptions.map((option, index) => (
                          <Card 
                            key={index} 
@@ -7090,6 +7090,47 @@ const Index = () => {
                            </div>
                          </Card>
                        ))}
+                     </div>
+
+                     {/* Regeneration Controls */}
+                     <div className="text-center space-y-4">
+                       <div className="flex flex-wrap gap-4 justify-center items-center">
+                         <Button 
+                           variant="outline" 
+                           onClick={() => handleGenerateSingle()}
+                           disabled={isGenerating}
+                           className="flex items-center gap-2"
+                         >
+                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                           </svg>
+                           {isGenerating ? 'Generating...' : 'Regenerate'}
+                         </Button>
+                         
+                         <div className="text-sm text-muted-foreground">
+                           Current: {textStyle} · {selectedRatingTab}
+                         </div>
+                       </div>
+                       
+                       <p className="text-sm text-muted-foreground">
+                         Want different results? Change your <button 
+                           className="text-primary hover:underline" 
+                           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                         >
+                           text style
+                         </button> or <button 
+                           className="text-primary hover:underline"
+                           onClick={() => {
+                             // Find and focus rating tabs
+                             const ratingSection = document.querySelector('[role="tablist"]');
+                             if (ratingSection) {
+                               ratingSection.scrollIntoView({ behavior: 'smooth' });
+                             }
+                           }}
+                         >
+                           rating
+                         </button> above, then regenerate.
+                       </p>
                      </div>
                    </div>
                  )}
