@@ -5331,7 +5331,6 @@ const Index = () => {
       sonnerToast.error("AI text generation is disabled in barebones mode. Please use 'Write my own line' option.");
       return;
     }
-
     if (!openAIService.hasApiKey()) {
       setShowApiKeyDialog(true);
       return;
@@ -5342,7 +5341,6 @@ const Index = () => {
       setTags([...tags, tagInput.trim()]);
       setTagInput("");
     }
-
     setIsGenerating(true);
     setGeneratedOptions([]);
     setSingleModeOptions(null);
@@ -5357,7 +5355,6 @@ const Index = () => {
         variant: 'destructive'
       });
     }, 90000);
-
     try {
       let category = '';
       let subcategory = '';
@@ -5411,7 +5408,6 @@ const Index = () => {
       // Get tone from text style
       const selectedTextStyleObj = textStyleOptions.find(ts => ts.id === selectedTextStyle);
       const tone = selectedTextStyleObj?.name || 'Humorous';
-
       console.log('🎯 Single mode generation with:', {
         category,
         subcategory,
@@ -5420,7 +5416,6 @@ const Index = () => {
         rating: selectedRatingTab,
         tags: finalTags
       });
-
       const result = await generateSingleMode({
         category,
         subcategory,
@@ -5429,32 +5424,25 @@ const Index = () => {
         rating: selectedRatingTab,
         tags: finalTags
       });
-
       clearTimeout(safetyTimeoutId);
-
       if (result.success && result.options?.length >= 2) {
         setSingleModeOptions(result.options);
         console.log('✅ Single mode generation successful:', result.options);
       } else {
         throw new Error('Invalid response format');
       }
-
     } catch (error: any) {
       clearTimeout(safetyTimeoutId);
       console.error('❌ Single mode generation failed:', error);
-      
       const errorMessage = error?.message || 'Unknown error occurred';
       setSingleModeOptions(null);
-
       toast({
         title: "Generation Failed",
         description: `${errorMessage}. Try again or check your settings.`,
         variant: "destructive",
-        action: (
-          <Button variant="outline" size="sm" onClick={() => handleGenerateSingle()}>
+        action: <Button variant="outline" size="sm" onClick={() => handleGenerateSingle()}>
             Retry
           </Button>
-        )
       });
     } finally {
       setIsGenerating(false);
@@ -5542,23 +5530,20 @@ const Index = () => {
       });
 
       // Sanitize and normalize tags - handle curly quotes and mixed formats
-      const sanitizedTags = finalTagsForGeneration.map(tag => 
-        tag.replace(/[""]/g, '"').replace(/['']/g, "'")
-      ).join(', ');
-      
+      const sanitizedTags = finalTagsForGeneration.map(tag => tag.replace(/[""]/g, '"').replace(/['']/g, "'")).join(', ');
       console.log('🏷️ Sanitized tags for generation:', sanitizedTags);
-      
+
       // Generate using multi-rating text generator
       const result = await generateMultiRatingLines({
         category,
         subcategory,
         tone,
-        tags: finalTagsForGeneration, // Send as string array
+        tags: finalTagsForGeneration,
+        // Send as string array
         style: textStyle,
         rating: textRating,
         mode: textMode // Keep for backward compatibility
       });
-      
       console.log('✅ Generated multi-rating text options:', result);
 
       // Clear previous selection when generating/regenerating
@@ -5574,12 +5559,15 @@ const Index = () => {
       });
       // Smoothly scroll results into view
       setTimeout(() => {
-        document.getElementById('multi-rating-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById('multi-rating-results')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
       }, 0);
     } catch (error) {
       console.error('❌ Error generating text:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
+
       // Clear multi-rating options on error to show proper error state
       setMultiRatingOptions(null);
 
@@ -6119,8 +6107,7 @@ const Index = () => {
       }
     }, 150);
   };
-  return (
-    <div className="min-h-screen bg-background py-12 px-4 pb-32">
+  return <div className="min-h-screen bg-background py-12 px-4 pb-32">
       <div className="max-w-6xl mx-auto">
         
         {/* Step Progress Header */}
@@ -6786,7 +6773,7 @@ const Index = () => {
           </div>}
           </>}
 
-        {currentStep === 2 && (<>
+        {currentStep === 2 && <>
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Text Style</h2>
               <p className="text-xl italic">
@@ -6932,17 +6919,16 @@ const Index = () => {
                       </div>}
 
                 {/* Completion Options */}
-                {!selectedCompletionOption ? (
-                  <>
+                {!selectedCompletionOption ? <>
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">
                         {barebonesMode ? "Write your custom text directly" : "Choose your option for completing your text"}
                       </p>
                      </div>
 
-                    {barebonesMode ? (
-                      // Barebones mode: Show only write-myself option
-                      <div className="max-w-md mx-auto">
+                    {barebonesMode ?
+            // Barebones mode: Show only write-myself option
+            <div className="max-w-md mx-auto">
                         <Card className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption("write-myself")}>
                           <CardHeader className="pb-3">
                             <CardTitle className="text-lg font-semibold text-card-foreground">
@@ -6955,12 +6941,10 @@ const Index = () => {
                             </CardDescription>
                           </CardContent>
                         </Card>
-                      </div>
-                    ) : (
-                      // Normal mode: Show all options
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center max-w-4xl mx-auto">
-                        {completionOptions.map(option => (
-                          <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption(option.id)}>
+                      </div> :
+            // Normal mode: Show all options
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center max-w-4xl mx-auto">
+                        {completionOptions.map(option => <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption(option.id)}>
                             <CardHeader className="pb-3">
                               <CardTitle className="text-lg font-semibold text-card-foreground">
                                 {option.name}
@@ -6971,18 +6955,14 @@ const Index = () => {
                                 {option.description}
                               </CardDescription>
                             </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                ) : null}
+                          </Card>)}
+                      </div>}
+                  </> : null}
 
                 {/* Show AI Assist form when selected and no options generated yet */}
-                {selectedCompletionOption === "ai-assist" && !multiRatingOptions && !singleModeOptions && (
-                  <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {selectedCompletionOption === "ai-assist" && !multiRatingOptions && !singleModeOptions && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
-                      <p className="text-xl text-muted-foreground">Add words to help influence your final text</p>
+                      <p className="text-xl text-muted-foreground">Add words to guide your final text (optional)</p>
                     </div>
 
                     <div className="max-w-md mx-auto space-y-6">
@@ -6999,16 +6979,12 @@ const Index = () => {
                         
                         
                         {/* Display Tags */}
-                        {tags.length > 0 && (
-                          <div className="flex flex-wrap gap-2 justify-center">
-                            {tags.map((tag, index) => (
-                              <Badge key={index} variant="secondary" className="px-3 py-1 text-sm flex items-center gap-1">
+                        {tags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
+                            {tags.map((tag, index) => <Badge key={index} variant="secondary" className="px-3 py-1 text-sm flex items-center gap-1">
                                 {tag}
                                 <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => removeTag(tag)} />
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+                              </Badge>)}
+                          </div>}
                       </div>
 
                       {/* Style and Rating Selection - Then Generate Button */}
@@ -7057,50 +7033,35 @@ const Index = () => {
                         </div>
                       </div>}
                     </div>
-                  </div>
-                )}
+                  </div>}
 
                 {/* Show generated options box when options exist but no selection made yet */}
-                {selectedCompletionOption === "ai-assist" && multiRatingOptions && !selectedGeneratedOption && (
-                  <></>
-                )}
+                {selectedCompletionOption === "ai-assist" && multiRatingOptions && !selectedGeneratedOption && <></>}
 
 
                  {/* Single-Mode Generated Text Options */}
-                 {singleModeOptions && (
-                   <div className="space-y-6 max-w-6xl mx-auto mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                 {singleModeOptions && <div className="space-y-6 max-w-6xl mx-auto mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                      <div className="text-center">
                        <h3 className="text-xl font-semibold mb-2">Choose Your Text</h3>
                        <p className="text-muted-foreground">Select one of the generated options</p>
                      </div>
                      
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       {singleModeOptions.map((option, index) => (
-                         <Card 
-                           key={index} 
-                           className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-6 hover:bg-accent/50 border-2" 
-                           onClick={() => {
-                             setSelectedGeneratedOption(option);
-                             setSelectedGeneratedIndex(index);
-                             setIsEditingSelectedText(false);
-                           }}
-                         >
+                       {singleModeOptions.map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-6 hover:bg-accent/50 border-2" onClick={() => {
+                setSelectedGeneratedOption(option);
+                setSelectedGeneratedIndex(index);
+                setIsEditingSelectedText(false);
+              }}>
                            <div className="text-center">
                              <p className="text-lg leading-relaxed">{option}</p>
                            </div>
-                         </Card>
-                       ))}
+                         </Card>)}
                      </div>
 
                      {/* Regeneration Controls */}
                      <div className="text-center space-y-4">
                        <div className="flex flex-wrap gap-4 justify-center items-center">
-                         <Button 
-                           variant="outline" 
-                           onClick={() => handleGenerateSingle()}
-                           disabled={isGenerating}
-                           className="flex items-center gap-2"
-                         >
+                         <Button variant="outline" onClick={() => handleGenerateSingle()} disabled={isGenerating} className="flex items-center gap-2">
                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                            </svg>
@@ -7113,38 +7074,33 @@ const Index = () => {
                        </div>
                        
                        <p className="text-sm text-muted-foreground">
-                         Want different results? Change your <button 
-                           className="text-primary hover:underline" 
-                           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                         >
+                         Want different results? Change your <button className="text-primary hover:underline" onClick={() => window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+                })}>
                            text style
-                         </button> or <button 
-                           className="text-primary hover:underline"
-                           onClick={() => {
-                             // Find and focus rating tabs
-                             const ratingSection = document.querySelector('[role="tablist"]');
-                             if (ratingSection) {
-                               ratingSection.scrollIntoView({ behavior: 'smooth' });
-                             }
-                           }}
-                         >
+                         </button> or <button className="text-primary hover:underline" onClick={() => {
+                  // Find and focus rating tabs
+                  const ratingSection = document.querySelector('[role="tablist"]');
+                  if (ratingSection) {
+                    ratingSection.scrollIntoView({
+                      behavior: 'smooth'
+                    });
+                  }
+                }}>
                            rating
                          </button> above, then regenerate.
                        </p>
                      </div>
-                   </div>
-                 )}
+                   </div>}
 
                  {/* Legacy Generated Options Grid - Hidden in new single mode */}
-                  {!singleModeOptions && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
-                      {!multiRatingOptions && generatedOptions.slice(0, 4).map((option, index) => (
-                      <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50" 
-                            onClick={() => {
-                              setSelectedGeneratedOption(option);
-                              setSelectedGeneratedIndex(index);
-                              setIsEditingSelectedText(false);
-                            }}>
+                  {!singleModeOptions && <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
+                      {!multiRatingOptions && generatedOptions.slice(0, 4).map((option, index) => <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50" onClick={() => {
+              setSelectedGeneratedOption(option);
+              setSelectedGeneratedIndex(index);
+              setIsEditingSelectedText(false);
+            }}>
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-muted-foreground">
@@ -7155,10 +7111,8 @@ const Index = () => {
                             {option}
                           </p>
                         </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+                      </Card>)}
+                  </div>}
 
                 {/* Show Write Myself input panel when selected but not confirmed */}
                 {selectedCompletionOption === "write-myself" && !isCustomTextConfirmed && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -7208,13 +7162,10 @@ const Index = () => {
 
 
                 {/* TODO: Add additional sub-options here after text style is selected */}
-              </div>
-            )}
-          </>
-        )}
+              </div>)}
+          </>}
 
-        {currentStep === 3 && (
-          <>
+        {currentStep === 3 && <>
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Visual Style</h2>
               <p className="text-xl text-muted-foreground">
@@ -7529,8 +7480,7 @@ const Index = () => {
                       </div>}
                   </div>}
               </div>)}
-          </>
-        )}
+          </>}
 
         {currentStep === 4 && <>
             
@@ -7554,13 +7504,8 @@ const Index = () => {
                        <p className="text-sm text-muted-foreground">This may take a few moments</p>
                       </div> : generatedImageUrl ? <div className="max-w-full max-h-full">
                         {showTextOverlay && backgroundOnlyImageUrl ? <CaptionOverlay imageUrl={backgroundOnlyImageUrl} caption={selectedGeneratedOption || stepTwoText || ""} layout={selectedTextLayout || "memeTopBottom"} onImageReady={composedImageUrl => {
-                   setFinalImageWithText(composedImageUrl);
-                 }} /> : <img 
-                   src={generatedImageUrl} 
-                   alt="Generated VIIBE"
-                   loading="eager"
-                   className="w-full h-auto max-h-[70vh] object-contain rounded-lg shadow-lg"
-                 />}
+                  setFinalImageWithText(composedImageUrl);
+                }} /> : <img src={generatedImageUrl} alt="Generated VIIBE" loading="eager" className="w-full h-auto max-h-[70vh] object-contain rounded-lg shadow-lg" />}
                     </div> : imageGenerationError ? <div className="flex flex-col items-center gap-4 text-center max-w-md">
                       <AlertCircle className="h-8 w-8 text-destructive" />
                       <div>
@@ -7578,11 +7523,9 @@ const Index = () => {
                     </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
                  </div>
 
-                 {generatedImageUrl && (
-                   <div className="text-center mt-2 text-xs text-muted-foreground">
+                 {generatedImageUrl && <div className="text-center mt-2 text-xs text-muted-foreground">
                      Having trouble seeing the preview? <a href={generatedImageUrl} target="_blank" rel="noopener noreferrer" className="underline text-primary">Open image in a new tab</a>.
-                   </div>
-                 )}
+                   </div>}
  
                  {/* Text Misspelling Detection */}
                  {generatedImageUrl && textMisspellingDetected && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
@@ -7898,8 +7841,6 @@ const Index = () => {
       }} originalPrompt="" sanitizedPrompt="" />
 
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
