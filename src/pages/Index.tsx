@@ -7042,7 +7042,7 @@ const Index = () => {
                  {singleModeOptions && !selectedGeneratedOption && <div className="space-y-6 max-w-6xl mx-auto mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                      <div className="text-center">
                        <h3 className="text-xl font-semibold mb-2">Choose Your Text</h3>
-                       <p className="text-muted-foreground">Select one of the generated options</p>
+                       
                      </div>
                      
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
