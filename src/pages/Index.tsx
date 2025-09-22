@@ -6930,7 +6930,8 @@ const Index = () => {
                       </div>}
 
                 {/* Completion Options */}
-                {!selectedCompletionOption ? <>
+                {!selectedCompletionOption ? (
+                  <>
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">
                         {barebonesMode ? "Write your custom text directly" : "Choose your option for completing your text"}
@@ -6972,7 +6973,8 @@ const Index = () => {
                         ))}
                       </div>
                     )}
-                  </>) : null}
+                  </>
+                ) : null}
 
                 {/* Show AI Assist form when selected and no options generated yet */}
                 {selectedCompletionOption === "ai-assist" && !multiRatingOptions && !singleModeOptions && (
@@ -7050,7 +7052,8 @@ const Index = () => {
                         </div>
                       </div>}
                     </div>
-                  </div>}
+                  </div>
+                )}
 
                 {/* Show generated options box when options exist but no selection made yet */}
                 {selectedCompletionOption === "ai-assist" && multiRatingOptions && !selectedGeneratedOption && (
@@ -7059,7 +7062,8 @@ const Index = () => {
 
 
                  {/* Single-Mode Generated Text Options - Show exactly 2 options */}
-                 {singleModeOptions && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                 {singleModeOptions && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && (
+                   <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                      <div className="text-center mb-6">
                        <div className="flex items-center justify-center gap-3 mb-4">
                          <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
@@ -7507,7 +7511,8 @@ const Index = () => {
                       </div>}
                   </div>}
               </div>)}
-          </>}
+          </>
+        )}
 
         {currentStep === 4 && <>
             
