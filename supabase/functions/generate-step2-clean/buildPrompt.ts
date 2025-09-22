@@ -28,10 +28,11 @@ export function buildPrompt(input: {
   // Build prompt based on request type
   if (input.requestMultiple) {
     // Request multiple jokes in one call for better consistency
-    // Use clean subcategory only, never full "Category > Subcategory" format
-    let prompt = `Write 4 ${input.style} jokes about ${input.subcategory.toLowerCase()}. `;
+    // Use clean subcategory as context, NEVER as literal text
+    let prompt = `Write 4 ${input.style} jokes about ${input.subcategory.toLowerCase()} celebrations. `;
+    prompt += `Context: This is about ${input.subcategory.toLowerCase()} events (part of ${input.category}). `;
     prompt += `Each joke: ${input.minLen}-${input.maxLen} characters, ${input.tone} tone, ${input.rating} rating. `;
-    prompt += `Format: One joke per line, numbered 1-4. `;
+    prompt += `Format: One joke per line, numbered 1-4. Do NOT include category names in the joke text. `;
     
     // Add category-specific lexicon requirements
     if (input.subcategory.toLowerCase().includes('birthday')) {
@@ -50,13 +51,16 @@ export function buildPrompt(input: {
     }
     
     prompt += `\n\nExample format:\n1. [joke with ${hard}]\n2. [joke with ${hard}]\n3. [joke with ${hard}]\n4. [joke with ${hard}]`;
+    prompt += `\n\nDO NOT start jokes with category names like "Celebrations >" or "Birthday >".`;
     
     return prompt;
   } else {
     // Single joke request (fallback)
-    // Use clean subcategory only, never full "Category > Subcategory" format
-    let prompt = `Write one ${input.style} joke about ${input.subcategory.toLowerCase()}. `;
+    // Use clean subcategory as context, NEVER as literal text
+    let prompt = `Write one ${input.style} joke about ${input.subcategory.toLowerCase()} celebrations. `;
+    prompt += `Context: This is about ${input.subcategory.toLowerCase()} events (part of ${input.category}). `;
     prompt += `${input.minLen}-${input.maxLen} characters. ${input.tone} tone. ${input.rating} rating. `;
+    prompt += `Do NOT include category names in the joke text. `;
     
     // Add category-specific lexicon requirements
     if (input.subcategory.toLowerCase().includes('birthday')) {

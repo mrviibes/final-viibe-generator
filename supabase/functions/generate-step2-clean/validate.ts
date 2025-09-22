@@ -1,6 +1,16 @@
 import { ParsedTags } from "./tags.ts";
 
 export function validate(lines: string[], tags: ParsedTags) {
+  // FIRST: Reject any lines that start with category metadata
+  const hasLeakage = lines.some(l => 
+    /^(Celebrations|Daily Life|Sports|Work|Entertainment)\s*>/i.test(l) ||
+    /^.*>\s*\w+/i.test(l)
+  );
+  if (hasLeakage) {
+    console.log('❌ Validation failed: Category metadata leaked into joke text');
+    return false;
+  }
+
   // Basic format: 40-100 chars, one sentence, no commas, no em dashes, starts with capital
   const basic = lines.length === 4 && lines.every(l =>
     /^[A-Z]/.test(l) &&

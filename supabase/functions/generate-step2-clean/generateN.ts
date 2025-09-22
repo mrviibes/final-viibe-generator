@@ -134,6 +134,9 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
   const rawLines = lines.map((line, i) => {
     let processed = line;
     
+    // CRITICAL: Remove category metadata that leaked into joke text
+    processed = cleanCategoryLeakage(processed);
+    
     // Remove common prefixes that models add
     processed = processed.replace(/^\d+\.\s*/, '').replace(/^Line\s*\d+:\s*/i, '');
     
@@ -156,6 +159,18 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
     
     return processed;
   });
+
+// Add category leakage cleaning function
+function cleanCategoryLeakage(line: string): string {
+  return line
+    .replace(/^Celebrations\s*>\s*Birthday\s*/i, "")
+    .replace(/^Celebrations\s*>\s*\w+\s*/i, "")
+    .replace(/^Daily Life\s*>\s*\w+\s*/i, "")
+    .replace(/^Sports\s*>\s*\w+\s*/i, "")
+    .replace(/^Work\s*>\s*\w+\s*/i, "")
+    .replace(/^.*>\s*/, "") // Generic catch-all for any "Category > Subcategory" pattern
+    .trim();
+}
 
   // If we don't have enough good lines, try a fallback
   if (rawLines.filter(l => l.length >= 30 && l.length <= 120).length < 2) {
