@@ -19,18 +19,94 @@ const BUCKETS: Array<[number, number]> = [
   [81,100],
 ];
 
-function pickBucket(): [number,number] {
-  return BUCKETS[Math.floor(Math.random()*BUCKETS.length)];
+const PUNCHLINE_CUES = [
+  "Spoiler first then", "Plot twist first then", "Zero defense first then", "Fine first then"
+];
+
+const BASKETBALL_LEX = ["hoop","rim","court","dribble","rebound","buzzer","foul","free throw","timeout","screen","turnover","fast break"];
+
+function assignBuckets(n: number = 4): [number,number][] {
+  const arr = [...BUCKETS];
+  while (arr.length < n) arr.push(BUCKETS[Math.floor(Math.random() * BUCKETS.length)]);
+  return arr.slice(0, n);
 }
 
-function enforceHardTagFront(s: string, hard: string[], forceFront: boolean): string {
-  if (!hard.length) return s;
-  const tag = hard[0]; // first hard tag
-  const has = s.toLowerCase().includes(tag.toLowerCase());
-  if (!has) s = `${tag} ${s[0].toLowerCase()}${s.slice(1)}`;
-  if (forceFront && !s.toLowerCase().startsWith(tag.toLowerCase()))
-    s = `${tag} ${s[0].toLowerCase()}${s.slice(1)}`;
+function ensurePunchlineCue(line: string): string {
+  // if it already has a cue, keep it but fix spacing
+  if (/\bfirst\b/i.test(line)) return line.replace(/\bfirst[, ]*then\b/i, " first then ");
+  // otherwise add a random cue
+  const cue = PUNCHLINE_CUES[Math.floor(Math.random() * PUNCHLINE_CUES.length)];
+  return `${cue} ${line[0].toLowerCase()}${line.slice(1)}`;
+}
+
+function completeSentence(line: string, lo: number, hi: number): string {
+  let s = line.replace(/[—]/g, " ").replace(/,/g, "").replace(/\s+\./g, ".").trim();
+  s = s.endsWith(".") ? s : s + ".";
+  
+  // fix common cut-offs like "every g." / "Jesse d." / "damn pl."
+  s = s.replace(/\b([a-z]{1,2})\.\s*$/i, " game.");
+  s = s.replace(/\bpl\.\s*$/i, "play.");
+  s = s.replace(/\bd\.\s*$/i, "down.");
+  s = s.replace(/\bg\.\s*$/i, "game.");
+  
+  if (!/[a-z)]\.\s*$/i.test(s)) s = s.replace(/\.\s*$/, " game.");
+  s = s.replace(/^\s*[a-z]/, m => m.toUpperCase());
+  
+  // length adjustments
+  if (s.length > hi) s = s.slice(0, hi).replace(/\s+\S*$/, "") + ".";
+  if (s.length < lo) s = s.replace(/\.\s*$/, " on the court.");
+  
   return s;
+}
+
+function diversifyLexicon(lines: string[]): string[] {
+  const pool = [...BASKETBALL_LEX];
+  return lines.map((l, i) => {
+    const hasLex = BASKETBALL_LEX.some(w => l.toLowerCase().includes(w));
+    if (hasLex) return l;
+    const w = pool[i % pool.length];
+    return l.replace(/\.\s*$/, " " + w + ".");
+  });
+}
+
+function enforceHardTag(lines: string[], tag: string): string[] {
+  if (!tag) return lines;
+  const t = tag.toLowerCase();
+  let withTag = lines.map(l => l.toLowerCase().includes(t));
+  
+  // inject where missing
+  lines = lines.map((l, i) => withTag[i] ? l : `${tag} ${l[0].toLowerCase()}${l.slice(1)}`);
+  
+  // put tag at front on the first two lines only
+  lines = lines.map((l, i) => {
+    if (i < 2 && !l.toLowerCase().startsWith(t)) {
+      return `${tag} ${l[0].toLowerCase()}${l.slice(1)}`;
+    }
+    return l;
+  });
+  
+  return lines;
+}
+
+function postProcessBatch(rawLines: string[], hardTag: string): string[] {
+  let lines = [...new Set(rawLines.map(s => s.trim()))].slice(0, 4);
+  const buckets = assignBuckets(lines.length);
+
+  lines = lines.map((l, i) => completeSentence(ensurePunchlineCue(l), buckets[i][0], buckets[i][1]));
+  lines = diversifyLexicon(lines);
+  if (hardTag) lines = enforceHardTag(lines, hardTag);
+
+  // final validation
+  lines = lines.map((l, i) => {
+    let s = l.replace(/[—]/g, " ").replace(/,/g, "").replace(/\s+\./g, ".");
+    s = (s.match(/\./g) || []).length === 1 ? s : s + ".";
+    if (s.length < buckets[i][0] || s.length > buckets[i][1]) {
+      s = completeSentence(s, buckets[i][0], buckets[i][1]);
+    }
+    return s;
+  });
+  
+  return lines;
 }
 
 const BDAY = ["cake","candles","party","balloons","wish","slice"];
@@ -41,12 +117,11 @@ function ensureBirthdayLexicon(s: string): string {
 }
 
 export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
-  const outs: string[] = [];
-  const used = new Set<string>(); // avoid exact dupes
+  const rawLines: string[] = [];
 
-  for (let i=0; i<n; i++) {
-    const [minLen, maxLen] = pickBucket();
-    const prompt = buildPrompt({ ...ctx, minLen, maxLen });
+  // Generate all lines first
+  for (let i = 0; i < n; i++) {
+    const prompt = buildPrompt({ ...ctx, minLen: 40, maxLen: 100 });
     const res = await callModel(prompt);
 
     let lines = res.text
@@ -54,30 +129,31 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
       .map(s => s.trim())
       .filter(Boolean);
 
-    // allow model to return 1 or many; we keep first usable
-    let best = lines.find(s => s.length>=minLen && s.length<=maxLen) ?? lines[0] ?? "";
-
-    // sanitize soft tags, enforce context and style, validate
+    // get best line from model output
+    let best = lines.find(s => s.length >= 40 && s.length <= 100) ?? lines[0] ?? "";
+    
+    // basic soft tag stripping
     best = stripSoftEcho([best], ctx.tags.soft)[0];
-    best = enforceBirthdayLine(best, ctx.tags.hard, minLen, maxLen, i); // birthday enforcement with hard tags
-
-    if (!formatOK(best) || used.has(best)) {
-      // one retry with shorter prompt
-      const prompt2 = buildPrompt({ ...ctx, minLen, maxLen, simplified: true });
+    
+    if (!best || !formatOK(best)) {
+      // one retry with simplified prompt
+      const prompt2 = buildPrompt({ ...ctx, minLen: 40, maxLen: 100, simplified: true });
       const res2 = await callModel(prompt2);
-      const alt = res2.text.split("\n").map(s=>s.trim()).find(s => s.length>=minLen && s.length<=maxLen) ?? "";
-      let cleaned = stripSoftEcho([alt], ctx.tags.soft)[0];
-      cleaned = enforceBirthdayLine(cleaned, ctx.tags.hard, minLen, maxLen, i);
-      if (formatOK(cleaned) && !used.has(cleaned)) {
+      const alt = res2.text.split("\n").map(s => s.trim()).find(s => s.length >= 40 && s.length <= 100) ?? "";
+      const cleaned = stripSoftEcho([alt], ctx.tags.soft)[0];
+      if (formatOK(cleaned)) {
         best = cleaned;
       }
     }
 
-    outs.push(best);
-    used.add(best);
+    rawLines.push(best || "Generated content unavailable.");
   }
 
-  return outs;
+  // Apply post-processing to entire batch for consistency
+  const hardTag = ctx.tags.hard[0] || "";
+  const processed = postProcessBatch(rawLines, hardTag);
+  
+  return processed;
 }
 
 async function callModel(prompt: string): Promise<{ text: string }> {
