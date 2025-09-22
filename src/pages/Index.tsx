@@ -7554,23 +7554,23 @@ const Index = () => {
 
 
                  {/* Action Buttons */}
-                {generatedImageUrl && !showTextOverlay && <div className="flex flex-wrap gap-4 justify-center">
-                    <Button variant="outline" className="flex items-center gap-2" onClick={handleDownloadImage}>
+                 {generatedImageUrl && !showTextOverlay && <div className="flex flex-wrap gap-4 justify-center">
+                    <Button variant="brand" className="flex items-center gap-2" onClick={handleDownloadImage}>
                       <Download className="h-4 w-4" />
                       Download Image
                     </Button>
-                    <Button variant="brand" className="flex items-center gap-2" onClick={handleGenerateImage} disabled={isGeneratingImage}>
+                    <Button variant="outline" className="flex items-center gap-2" onClick={handleGenerateImage} disabled={isGeneratingImage}>
                       {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>}
                       Generate Again
                     </Button>
-                    <Button variant="outline" onClick={handleStartOverReset}>
-                      <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                      </svg>
+                    <button
+                      className="text-muted-foreground hover:text-foreground underline underline-offset-2 bg-transparent border-0 p-0 h-auto transition-colors"
+                      onClick={handleStartOverReset}
+                    >
                       Start Over
-                    </Button>
+                    </button>
                   </div>}
               </div>
               
@@ -7667,7 +7667,16 @@ const Index = () => {
 
               {/* Design Summary */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-foreground">Design Summary</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-foreground">Design Summary</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                  >
+                    {showAdvanced ? "Hide" : "Show"} Advanced Details
+                  </Button>
+                </div>
                 <div className="bg-muted/30 rounded-lg overflow-hidden">
                   <table className="w-full">
                     <thead>
@@ -7682,96 +7691,114 @@ const Index = () => {
                         <td className="p-3 text-sm">{selectedStyle ? styleOptions.find(s => s.id === selectedStyle)?.name : "Not selected"}</td>
                       </tr>
                       <tr>
-                        <td className="p-3 text-sm">Subcategory</td>
-                        <td className="p-3 text-sm">
-                          {(() => {
-                        if (selectedStyle === 'celebrations' && selectedSubOption) {
-                          const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
-                          return celebOption?.name || selectedSubOption;
-                        } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
-                          const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
-                          return popOption?.name || selectedSubOption;
-                        }
-                        return selectedSubOption || "Not selected";
-                      })()}
-                        </td>
-                      </tr>
-                      {selectedStyle === 'pop-culture' && selectedPick && <tr>
-                          <td className="p-3 text-sm">Pop Culture Pick</td>
-                          <td className="p-3 text-sm">{selectedPick}</td>
-                        </tr>}
-                      {selectedStyle === 'vibes-punchlines' && selectedSubOption === 'Career Jokes' && selectedPick && <tr>
-                          <td className="p-3 text-sm">Career Pick</td>
-                          <td className="p-3 text-sm">{selectedPick}</td>
-                        </tr>}
-                      <tr>
                         <td className="p-3 text-sm">Tone</td>
                         <td className="p-3 text-sm">{selectedTextStyle ? textStyleOptions.find(ts => ts.id === selectedTextStyle)?.name : "Not selected"}</td>
                       </tr>
                       <tr>
                         <td className="p-3 text-sm">Final Text</td>
-                        <td className="p-3 text-sm">{selectedGeneratedOption || stepTwoText || "Not generated"}</td>
+                        <td className="p-3 text-sm whitespace-normal break-words leading-snug">{(() => {
+                          const text = selectedGeneratedOption || stepTwoText || "Not generated";
+                          // Validate text format
+                          if (text && text !== "Not generated") {
+                            // Check for proper ending
+                            if (!text.trim().endsWith('.') && !text.trim().endsWith('!') && !text.trim().endsWith('?')) {
+                              return text.trim() + '.';
+                            }
+                            // Check for truncation
+                            if (text.endsWith('ri.') || text.includes('...')) {
+                              return text.replace(/\s*ri\.$/, '.').replace(/\.{3,}/g, '.');
+                            }
+                          }
+                          return text;
+                        })()}</td>
                       </tr>
-                      {(selectedGeneratedOption || stepTwoText) && selectedTextLayout && <>
-                          <tr>
-                            <td className="p-3 text-sm">Text Placement</td>
-                            <td className="p-3 text-sm">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.label || selectedTextLayout}</td>
-                          </tr>
-                           <tr>
-                             <td className="p-3 text-sm">Layout Description</td>
-                             <td className="p-3 text-sm font-mono text-xs">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.description || "Unknown layout"}</td>
-                           </tr>
-                        </>}
                       <tr>
                         <td className="p-3 text-sm">Visual Style</td>
                         <td className="p-3 text-sm">{selectedVisualStyle || "Not selected"}</td>
                       </tr>
-                       <tr>
-                         <td className="p-3 text-sm">Visual AI Recommendations</td>
-                         <td className="p-3 text-sm whitespace-normal break-words">
-                           {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? `Option ${selectedVisualIndex + 1}: ${cleanVisualDescription(visualOptions[selectedVisualIndex].subject)}` : "Not selected"}
-                         </td>
-                       </tr>
-                       <tr>
-                         <td className="p-3 text-sm">Used Visual Answer</td>
-                         <td className="p-3 text-sm">
-                           {selectedSubjectOption !== "ai-assist" ? "N/A" : selectedVisualIndex !== null ? "Yes" : "No"}
-                         </td>
-                       </tr>
-                       <tr>
-                         <td className="p-3 text-sm">Aspect Ratio</td>
-                        <td className="p-3 text-sm">
-                          {selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Not selected"}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Text Tags</td>
-                        <td className="p-3 text-sm">{tags.length > 0 ? tags.join(", ") : "None"}</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 text-sm">Visual Tags</td>
-                        <td className="p-3 text-sm">{subjectTags.length > 0 ? subjectTags.join(", ") : "None"}</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 text-sm">AI Text Assist</td>
-                        <td className="p-3 text-sm">{selectedCompletionOption === "ai-assist" ? "Yes" : "No"}</td>
-                      </tr>
-                       <tr>
-                         <td className="p-3 text-sm">AI Visual Assist</td>
-                         <td className="p-3 text-sm">{selectedSubjectOption === "ai-assist" ? "Yes" : "No"}</td>
-                       </tr>
-                        <tr>
-                          <td className="p-3 text-sm">Positive Prompt</td>
-                          <td className="p-3 text-sm font-mono text-xs whitespace-normal break-words">
-                            {lastIdeogramPrompt || debugPrompts.positive_prompt || "No prompt generated yet"}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="p-3 text-sm">Negative Prompt</td>
-                          <td className="p-3 text-sm font-mono text-xs whitespace-normal break-words">
-                            {lastIdeogramNegativePrompt || debugPrompts.negative_prompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe"}
-                          </td>
-                        </tr>
+                      {showAdvanced && (
+                        <>
+                          <tr>
+                            <td className="p-3 text-sm">Subcategory</td>
+                            <td className="p-3 text-sm">
+                              {(() => {
+                                if (selectedStyle === 'celebrations' && selectedSubOption) {
+                                  const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                                  return celebOption?.name || selectedSubOption;
+                                } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                                  const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                                  return popOption?.name || selectedSubOption;
+                                }
+                                return selectedSubOption || "Not selected";
+                              })()}
+                            </td>
+                          </tr>
+                          {selectedStyle === 'pop-culture' && selectedPick && <tr>
+                              <td className="p-3 text-sm">Pop Culture Pick</td>
+                              <td className="p-3 text-sm">{selectedPick}</td>
+                            </tr>}
+                          {selectedStyle === 'vibes-punchlines' && selectedSubOption === 'Career Jokes' && selectedPick && <tr>
+                              <td className="p-3 text-sm">Career Pick</td>
+                              <td className="p-3 text-sm">{selectedPick}</td>
+                            </tr>}
+                          {(selectedGeneratedOption || stepTwoText) && selectedTextLayout && <>
+                              <tr>
+                                <td className="p-3 text-sm">Text Placement</td>
+                                <td className="p-3 text-sm">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.label || selectedTextLayout}</td>
+                              </tr>
+                               <tr>
+                                 <td className="p-3 text-sm">Layout Description</td>
+                                 <td className="p-3 text-sm font-mono text-xs">{layoutMappings[selectedTextLayout as keyof typeof layoutMappings]?.description || "Unknown layout"}</td>
+                               </tr>
+                            </>}
+                           <tr>
+                             <td className="p-3 text-sm">Visual AI Recommendations</td>
+                             <td className="p-3 text-sm whitespace-normal break-words">
+                               {selectedVisualIndex !== null && visualOptions[selectedVisualIndex] ? `Option ${selectedVisualIndex + 1}: ${cleanVisualDescription(visualOptions[selectedVisualIndex].subject)}` : "Not selected"}
+                             </td>
+                           </tr>
+                           <tr>
+                             <td className="p-3 text-sm">Used Visual Answer</td>
+                             <td className="p-3 text-sm">
+                               {selectedSubjectOption !== "ai-assist" ? "N/A" : selectedVisualIndex !== null ? "Yes" : "No"}
+                             </td>
+                           </tr>
+                           <tr>
+                             <td className="p-3 text-sm">Aspect Ratio</td>
+                            <td className="p-3 text-sm">
+                              {selectedDimension === "custom" ? `${customWidth}x${customHeight}` : dimensionOptions.find(d => d.id === selectedDimension)?.name || "Not selected"}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="p-3 text-sm">Text Tags</td>
+                            <td className="p-3 text-sm">{tags.length > 0 ? tags.join(", ") : "None"}</td>
+                          </tr>
+                          <tr>
+                            <td className="p-3 text-sm">Visual Tags</td>
+                            <td className="p-3 text-sm">{subjectTags.length > 0 ? subjectTags.join(", ") : "None"}</td>
+                          </tr>
+                          <tr>
+                            <td className="p-3 text-sm">AI Text Assist</td>
+                            <td className="p-3 text-sm">{selectedCompletionOption === "ai-assist" ? "Yes" : "No"}</td>
+                          </tr>
+                           <tr>
+                             <td className="p-3 text-sm">AI Visual Assist</td>
+                             <td className="p-3 text-sm">{selectedSubjectOption === "ai-assist" ? "Yes" : "No"}</td>
+                           </tr>
+                            <tr>
+                              <td className="p-3 text-sm">Positive Prompt</td>
+                              <td className="p-3 text-sm font-mono text-xs whitespace-normal break-words">
+                                {lastIdeogramPrompt || debugPrompts.positive_prompt || "No prompt generated yet"}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-3 text-sm">Negative Prompt</td>
+                              <td className="p-3 text-sm font-mono text-xs whitespace-normal break-words">
+                                {lastIdeogramNegativePrompt || debugPrompts.negative_prompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe"}
+                              </td>
+                            </tr>
+                        </>
+                      )}
                     </tbody>
                   </table>
                 </div>

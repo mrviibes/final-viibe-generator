@@ -44,12 +44,12 @@ SPACE: Preserve clear empty space for the caption.`,
     label: "Lower Third Banner",
     description: "Clean banner-style caption across bottom third",
     positivePrompt: `TEXT: Render this caption once: "[FINAL_TEXT]".
-PLACEMENT: Single dedicated bottom band, away from people's faces.
-STYLE: Bold sans-serif, high contrast, fully legible.
-Keep all text outside subject bounding box, away from faces, heads, eyes, or bodies.
-SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear bottom third for the caption.`,
-    negativePrompt: `no duplicate captions, no extra captions, no bottom text, no extra text bands, no split captions, never place text over faces, heads, eyes, or bodies, keep all text outside subject bounding box, no text on objects (cake, balloons, walls, clothing)`
+PLACEMENT: Place caption in one dedicated band at the bottom margin only. 
+Never float text over the subject, ball, hoop, cake, or crowd.
+STYLE: Bold sans-serif, high contrast, fully legible, professional format.
+Keep text completely outside of faces, heads, bodies, and props.
+SCENE: [SCENE_DESCRIPTION]`,
+    negativePrompt: `no duplicate captions, no extra text or random characters, no garbled or partial words, no text at top, mid-frame, or floating anywhere, no text over faces, heads, eyes, or bodies, no text on objects (ball, hoop, cake, crowd, bleachers), no split captions, no distorted text, no watermarks or logos`
   },
   {
     id: "sideBarLeft",
