@@ -12,7 +12,12 @@ interface SingleGenerationInputs {
 interface SingleGenerationResult {
   success: boolean;
   options: string[];
-  model?: string;
+  meta?: {
+    model: string;
+    voices: string[];
+    style: string;
+    tone: string;
+  };
   timing?: {
     total_ms: number;
   };
@@ -69,8 +74,7 @@ export async function generateSingleMode(inputs: SingleGenerationInputs): Promis
     tone: inputs.tone,
     style: inputs.style,
     rating: inputs.rating,
-    tags: { hard: hardTags, soft: softTags },
-    mode: 'single'
+    tags: { hard: hardTags, soft: softTags }
   };
 
   console.log('📤 Sending single-mode payload:', payload);

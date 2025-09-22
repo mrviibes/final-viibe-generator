@@ -4366,6 +4366,7 @@ const Index = () => {
   const [generatedOptions, setGeneratedOptions] = useState<string[]>([]);
   const [multiRatingOptions, setMultiRatingOptions] = useState<MultiRatingResult | null>(null);
   const [singleModeOptions, setSingleModeOptions] = useState<string[] | null>(null);
+  const [singleModeMeta, setSingleModeMeta] = useState<{model: string; voices: string[]; style: string; tone: string} | null>(null);
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
   const [selectedRatingTab, setSelectedRatingTab] = useState<"G" | "PG-13" | "R" | "Explicit">("PG-13");
@@ -5344,6 +5345,7 @@ const Index = () => {
     setIsGenerating(true);
     setGeneratedOptions([]);
     setSingleModeOptions(null);
+    setSingleModeMeta(null);
 
     // Safety timeout
     const safetyTimeoutId = setTimeout(() => {
@@ -5425,17 +5427,20 @@ const Index = () => {
         tags: finalTags
       });
       clearTimeout(safetyTimeoutId);
-      if (result.success && result.options?.length >= 2) {
+      if (result.success && result.options?.length >= 4) {
         setSingleModeOptions(result.options);
+        setSingleModeMeta(result.meta || null);
         console.log('✅ Single mode generation successful:', result.options);
+        console.log('✅ Metadata:', result.meta);
       } else {
-        throw new Error('Invalid response format');
+        throw new Error('Invalid response format - expected 4 options');
       }
     } catch (error: any) {
       clearTimeout(safetyTimeoutId);
       console.error('❌ Single mode generation failed:', error);
       const errorMessage = error?.message || 'Unknown error occurred';
       setSingleModeOptions(null);
+      setSingleModeMeta(null);
       toast({
         title: "Generation Failed",
         description: `${errorMessage}. Try again or check your settings.`,
@@ -7057,7 +7062,11 @@ const Index = () => {
                  {singleModeOptions && !selectedGeneratedOption && <div className="space-y-6 max-w-6xl mx-auto mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                      <div className="text-center">
                        <h3 className="text-xl font-semibold mb-2">Choose Your Text</h3>
-                       
+                       {singleModeMeta && (
+                         <div className="text-xs text-muted-foreground mb-4">
+                           Model: {singleModeMeta.model} • Voices: {singleModeMeta.voices.join(", ")}
+                         </div>
+                       )}
                      </div>
                      
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
@@ -7065,15 +7074,18 @@ const Index = () => {
                            <p className="whitespace-normal break-words overflow-visible leading-snug text-base">
                              {option}
                            </p>
-                           <div className="mt-4 flex justify-end">
-                             <button className="text-foreground hover:text-foreground/80 underline underline-offset-2 bg-transparent border-0 p-0 h-auto transition-colors" onClick={() => {
-                    setSelectedGeneratedOption(option);
-                    setSelectedGeneratedIndex(index);
-                    setIsEditingSelectedText(false);
-                  }}>
-                               Choose this option
-                             </button>
-                           </div>
+                            <div className="mt-4 flex justify-between items-center">
+                              {singleModeMeta?.voices?.[index] && (
+                                <small className="text-muted-foreground">Style: {singleModeMeta.voices[index]}</small>
+                              )}
+                              <button className="text-foreground hover:text-foreground/80 underline underline-offset-2 bg-transparent border-0 p-0 h-auto transition-colors" onClick={() => {
+                     setSelectedGeneratedOption(option);
+                     setSelectedGeneratedIndex(index);
+                     setIsEditingSelectedText(false);
+                   }}>
+                                Choose this option
+                              </button>
+                            </div>
                          </div>)}
                      </div>
 

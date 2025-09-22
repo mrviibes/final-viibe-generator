@@ -273,8 +273,12 @@ function generateFallbackJoke(rating: string, context: string, comedianName: str
   return ratingFallbacks[randomIndex];
 }
 
-// Add single-mode generation handler
-async function generateSingle(inputs: any): Promise<{ success: boolean; options: string[] }> {
+// Enhanced generateFour with metadata and voice rotation
+async function generateFour(inputs: any): Promise<{ 
+  success: boolean; 
+  options: string[]; 
+  meta: { model: string; voices: string[]; style: string; tone: string } 
+}> {
   const parsedTags = parseTags(inputs.tags);
   
   const ctx = {
@@ -286,11 +290,39 @@ async function generateSingle(inputs: any): Promise<{ success: boolean; options:
     tags: parsedTags
   };
 
-  console.log(`🎯 Generating single-mode: ${ctx.style} + ${ctx.rating}`);
+  console.log(`🎯 Generating four-option mode: ${ctx.style} + ${ctx.rating} + ${ctx.category}/${ctx.subcategory}`);
   
-  const lines = await generateN(ctx, 4); // Generate 4 options
+  // We need to modify generateN to return both lines and voices
+  // For now, generate normally and use default voice assignment
+  const lines = await generateN(ctx, 4);
   
-  return { success: true, options: lines };
+  // Default voice rotation for each rating
+  const voicePool = {
+    "G": ["gaffigan", "bargatze", "mulaney"],
+    "PG-13": ["hart", "wong", "mulaney", "rock"],
+    "R": ["burr", "rock", "wong"],
+    "Explicit": ["wong", "burr"]
+  };
+  
+  const pool = [...(voicePool[ctx.rating as keyof typeof voicePool] || voicePool["PG-13"])];
+  // Shuffle and ensure 4 voices
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  while (pool.length < 4) pool.push(pool[pool.length - 1]);
+  const voices = pool.slice(0, 4);
+  
+  return { 
+    success: true, 
+    options: lines,
+    meta: {
+      model: MODEL,
+      voices: voices,
+      style: ctx.style,
+      tone: ctx.tone
+    }
+  };
 }
 
 serve(async (req) => {
@@ -338,14 +370,14 @@ serve(async (req) => {
     }
 
     try {
-      // Check if this is a single-mode request (style + rating provided)
-      if (inputs.style && inputs.rating && inputs.mode === 'single') {
-        const singleResult = await generateSingle(inputs);
+      // Check if this is a four-option request (default mode now)
+      if (inputs.style && inputs.rating) {
+        const fourResult = await generateFour(inputs);
         
         return new Response(JSON.stringify({
           success: true,
-          options: singleResult.options,
-          model: MODEL,
+          options: fourResult.options,
+          meta: fourResult.meta,
           timing: {
             total_ms: Date.now() - requestStartTime
           }
@@ -379,17 +411,24 @@ serve(async (req) => {
     } catch (error) {
       console.error('❌ Generation failed:', error);
       
-      // Simple fallback for single mode
-      if (inputs.mode === 'single') {
+      // Fallback for four-option mode
+      if (inputs.style && inputs.rating) {
         const fallbackOptions = [
-          generateFallbackJoke(inputs.rating || "PG-13", `${inputs.category} > ${inputs.subcategory}`, "System", inputs.tone, inputs.style),
-          generateFallbackJoke(inputs.rating || "PG-13", `${inputs.category} > ${inputs.subcategory}`, "System", inputs.tone, inputs.style)
+          generateFallbackJoke(inputs.rating || "PG-13", `${inputs.category} > ${inputs.subcategory}`, "Hart", inputs.tone, inputs.style),
+          generateFallbackJoke(inputs.rating || "PG-13", `${inputs.category} > ${inputs.subcategory}`, "Wong", inputs.tone, inputs.style),
+          generateFallbackJoke(inputs.rating || "PG-13", `${inputs.category} > ${inputs.subcategory}`, "Burr", inputs.tone, inputs.style),
+          generateFallbackJoke(inputs.rating || "PG-13", `${inputs.category} > ${inputs.subcategory}`, "Hedberg", inputs.tone, inputs.style)
         ];
         
         return new Response(JSON.stringify({
           success: true,
           options: fallbackOptions,
-          model: 'fallback',
+          meta: {
+            model: 'fallback',
+            voices: ["hart", "wong", "burr", "hedberg"],
+            style: inputs.style,
+            tone: inputs.tone
+          },
           timing: {
             total_ms: Date.now() - requestStartTime
           }

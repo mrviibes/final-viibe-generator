@@ -185,17 +185,19 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
     rawLines.push("Generated content unavailable.");
   }
 
-  // Apply unified enforceBatch system
-  const enforcedLines = enforceBatch(rawLines, {
+  // Apply unified enforceBatch system with voice metadata
+  const batchResult = enforceBatch(rawLines, {
     rating: ctx.rating,
     category: ctx.category,
     subcategory: ctx.subcategory,
-    hardTag: ctx.tags.hard[0] || ""
+    hardTag: ctx.tags.hard?.[0],
+    softTags: ctx.tags.soft
   });
   
   console.log(`🎭 Enforced batch with voice variety and natural delivery`);
+  console.log(`🎪 Voices used:`, batchResult.voices);
   
-  return enforcedLines;
+  return batchResult.lines;
 }
 
 async function callModel(prompt: string): Promise<{ text: string }> {

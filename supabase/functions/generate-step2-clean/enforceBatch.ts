@@ -1,7 +1,7 @@
 // enforceBatch.ts
 type Rating = "G"|"PG-13"|"R"|"Explicit";
 
-const BUCKETS: [number,number][] = [[30,70],[50,90],[60,120],[40,100]];
+const BUCKETS: [number,number][] = [[40,60],[61,80],[81,100],[61,80]];
 const STALE = [
   "everyone nodded awkwardly",
   "man listen",                       // ban as a forced prefix
@@ -69,14 +69,16 @@ function fitLen(s:string, lo:number, hi:number){
   return s;
 }
 
-// ensure comedic structure with actual punchlines
+// ensure comedic structure with actual punchlines - strengthened humor validation
 function ensureTwist(s:string){
-  if (/\bbut\b|\byet\b|\bstill\b|\binstead\b|\bexcept\b|\beven\b|\bjust\b/i.test(s)) return s;
+  // Check for existing twist markers
+  if (/\b(but|yet|still|instead|except|even|and then|turns out|apparently|which is)\b/i.test(s)) return s;
   
   // Add context-appropriate twist based on content
-  if (/birthday|candle/i.test(s)) return s.replace(/\.$/, " but fire safety disagreed.");
-  if (/old|age/i.test(s)) return s.replace(/\.$/, " which explains the hip replacement.");
-  if (/young/i.test(s)) return s.replace(/\.$/, " classic Gen Z move.");
+  if (/birthday|candle|cake/i.test(s)) return s.replace(/\.$/, " but the cake disagreed.");
+  if (/old|age|senior/i.test(s)) return s.replace(/\.$/, " which explains the hip replacement.");
+  if (/young|millennial|gen z/i.test(s)) return s.replace(/\.$/, " classic Gen Z move.");
+  if (/work|email|job/i.test(s)) return s.replace(/\.$/, " but HR had other plans.");
   
   return s.replace(/\.$/, " but reality had other plans.");
 }
@@ -200,7 +202,7 @@ export function enforceBatch(rawLines:string[], opts:{
   subcategory: string,
   hardTag?: string,
   softTags?: string[]
-}): string[] {
+}): { lines: string[], voices: string[] } {
   console.log(`🎭 Processing batch with ${rawLines.length} raw lines:`, rawLines);
   
   // 1) rotate voices and wrap each raw line
@@ -247,5 +249,5 @@ export function enforceBatch(rawLines:string[], opts:{
     }
   }
 
-  return out;
+  return { lines: out, voices };
 }
