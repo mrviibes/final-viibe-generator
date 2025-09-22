@@ -4365,6 +4365,7 @@ const Index = () => {
   const [showTagSuggestionDialog, setShowTagSuggestionDialog] = useState<boolean>(false);
   const [generatedOptions, setGeneratedOptions] = useState<string[]>([]);
   const [multiRatingOptions, setMultiRatingOptions] = useState<MultiRatingResult | null>(null);
+  const [singleModeOptions, setSingleModeOptions] = useState<string[] | null>(null);
   const [selectedGeneratedOption, setSelectedGeneratedOption] = useState<string | null>(null);
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null);
   const [selectedRatingTab, setSelectedRatingTab] = useState<"G" | "PG-13" | "R" | "Explicit">("PG-13");
@@ -6118,7 +6119,8 @@ const Index = () => {
       }
     }, 150);
   };
-  return <div className="min-h-screen bg-background py-12 px-4 pb-32">
+  return (
+    <div className="min-h-screen bg-background py-12 px-4 pb-32">
       <div className="max-w-6xl mx-auto">
         
         {/* Step Progress Header */}
