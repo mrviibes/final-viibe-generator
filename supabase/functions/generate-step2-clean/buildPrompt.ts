@@ -6,7 +6,7 @@ export function buildPrompt(input: {
   category: string; subcategory: string; tone: string; style: string;
   rating: "G"|"PG-13"|"R"|"Explicit";
   tags: { hard: string[]; soft: string[] };
-  minLen: number; maxLen: number; simplified?: boolean;
+  minLen: number; maxLen: number; simplified?: boolean; voiceHint?: string;
 }) {
   const themes = input.tags.soft.slice(0,5).join(" | ") || "none";
   const hard = input.tags.hard.join(", ") || "none";
@@ -29,8 +29,8 @@ export function buildPrompt(input: {
     "No commas. No em dashes.",
     `Write a real joke in ${input.style}. Keep it clearly about ${input.category} > ${input.subcategory}.`,
     "CRITICAL: Sound like a comedian on stage, not AI writing. Use natural conversational delivery.",
-    voiceInstructions,
-    "STRUCTURE: Write a complete one-sentence joke with natural comedian rhythm.",
+    input.voiceHint || voiceInstructions,
+    "STRUCTURE: Write a complete one-sentence joke with natural comedian rhythm and clear punchline.",
     `Rating ${input.rating}:`,
     "G: clean wholesome humor.",
     "PG-13: allow damn or hell only, mild edge appropriate for teens.",
