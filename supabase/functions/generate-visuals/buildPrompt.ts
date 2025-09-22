@@ -16,17 +16,17 @@ export function buildPrompt(i: {
   const textSizeInstructions = buildTextSizeInstructions(i.layout);
   const textSizeNegative = buildTextSizeNegativePrompt();
   
-  // Enhanced prompt structure with text size controls
+  // Streamlined prompt for better model performance
   return [
-    "Generate 4 visual concepts for image generation, 1 sentence each, max 15 words:",
-    `Caption to include: "${i.caption}"`,
-    `Context: ${ctx} with ${i.layout} layout`,
+    `Caption: "${i.caption}"`,
+    `Scene: ${ctx} (${i.layout} layout)`,
     `Tags: ${tags}`,
     textSizeInstructions,
-    "Line1: literal scene with appropriately sized text.",
-    "Line2: context setting with balanced text placement.", 
-    "Line3: exaggerated scene with controlled text size.",
-    "Line4: creative twist with complementary text sizing.",
-    `AVOID: ${textSizeNegative}`
+    "Generate 4 distinct visual scene descriptions:",
+    "1. Literal scene matching the caption",
+    "2. Setting that complements the action", 
+    "3. Exaggerated version for humor",
+    "4. Creative artistic interpretation",
+    `Avoid: ${textSizeNegative}`
   ].join("\n");
 }

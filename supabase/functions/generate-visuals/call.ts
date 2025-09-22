@@ -1,7 +1,7 @@
-import { MODEL, TIMEOUT_MS, MAX_COMPLETION_TOKENS } from "./model.ts";
+import { PRIMARY_MODEL, FALLBACK_MODEL, TIMEOUT_MS, MAX_COMPLETION_TOKENS } from "./model.ts";
 
 // Enhanced API call with retries and better error handling
-export async function callModel(prompt: string, apiKey: string, retryCount = 0): Promise<any> {
+export async function callModel(prompt: string, apiKey: string, model: string = PRIMARY_MODEL, retryCount = 0): Promise<any> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   
@@ -13,13 +13,13 @@ export async function callModel(prompt: string, apiKey: string, retryCount = 0):
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: model,
         messages: [
-          { role: "system", content: "You generate visual prompts for AI image generation. Return exactly 4 visual concept lines. Each line is one sentence, max 15 words. CRITICAL: Text in images must be appropriately sized - never oversized or overwhelming." },
+          { role: "system", content: "Generate exactly 4 distinct visual scene descriptions. Each line: one complete sentence, max 15 words. Focus on creative, specific imagery." },
           { role: "user", content: prompt }
         ],
         max_completion_tokens: MAX_COMPLETION_TOKENS,
-        // Remove temperature for gpt-5-mini (newer models don't support it)
+        // Remove temperature for gpt-5 models (newer models don't support it)
       }),
       signal: ctrl.signal
     });
@@ -32,7 +32,7 @@ export async function callModel(prompt: string, apiKey: string, retryCount = 0):
       if ((r.status === 429 || r.status >= 500) && retryCount < 2) {
         console.log(`Retrying API call (attempt ${retryCount + 1}/3) after ${r.status}: ${errorMsg}`);
         await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
-        return callModel(prompt, apiKey, retryCount + 1);
+        return callModel(prompt, apiKey, model, retryCount + 1);
       }
       
       return { 
@@ -49,6 +49,7 @@ export async function callModel(prompt: string, apiKey: string, retryCount = 0):
     return { 
       ok: true, 
       text, 
+      model: model,
       meta: { 
         prompt_tokens: data.usage?.prompt_tokens, 
         completion_tokens: data.usage?.completion_tokens 
@@ -60,7 +61,7 @@ export async function callModel(prompt: string, apiKey: string, retryCount = 0):
       console.log(`Retrying API call (attempt ${retryCount + 1}/3) after timeout`);
       clearTimeout(t);
       await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
-      return callModel(prompt, apiKey, retryCount + 1);
+      return callModel(prompt, apiKey, model, retryCount + 1);
     }
     
     return { 
