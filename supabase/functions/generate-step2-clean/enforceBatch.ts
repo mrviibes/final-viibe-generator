@@ -14,6 +14,13 @@ const LEX: Record<string,string[]> = {
   "Work emails": ["inbox","subject","cc","bcc","reply all","signature","thread"]
 };
 
+const SOFT_TAG_LEX: Record<string, string[]> = {
+  "so old": ["ancient", "fossil", "senior", "wrinkles", "fire hazard", "AARP", "hip replacement"],
+  "young": ["millennial", "Gen Z", "TikTok", "fresh", "inexperienced"],
+  "rich": ["mansion", "yacht", "caviar", "trust fund", "platinum"],
+  "poor": ["ramen", "broke", "coupon", "discount", "clearance"]
+};
+
 const VOICE_SHAPES: Record<string, (s:{setup:string,punch:string})=>string> = {
   // minimalist stencils so outputs sound human
   gaffigan:   ({setup,punch}) => `You ever notice ${setup}? Yeah ${punch}.`,
@@ -40,9 +47,15 @@ const capFirst  = (s:string)=> s.replace(/^\s*[a-z]/, m=>m.toUpperCase());
 const endDot    = (s:string)=> s.endsWith(".") ? s : s + ".";
 const byWord    = (s:string)=> s.replace(/\s+\./g,".").replace(/\s{2,}/g," ").trim();
 
-// repair dangling endings
+// repair dangling endings and fragments
 function repairTail(s:string){
-  return s.replace(/\b(and|the|to|for|with|of|on)\.\s*$/i," now.");
+  // Handle common fragment endings
+  s = s.replace(/\b(and|the|to|for|with|of|on)\.\s*$/i, " anyway.");
+  s = s.replace(/\b(my|his|her|their)\.\s*$/i, " life story.");
+  s = s.replace(/\b(when|while|since|because)\.\s*$/i, " obviously.");
+  s = s.replace(/\b(which is basically)\.\s*$/i, " which is basically my autobiography.");
+  s = s.replace(/\b(the candles)\.\s*$/i, " the candles filed a complaint.");
+  return s;
 }
 
 // fit length without cutting a word
@@ -56,10 +69,16 @@ function fitLen(s:string, lo:number, hi:number){
   return s;
 }
 
-// simple setup→punch detector; fallback if missing
+// ensure comedic structure with actual punchlines
 function ensureTwist(s:string){
-  if (/\bbut\b|\byet\b|\bstill\b|\binstead\b|\bexcept\b/i.test(s)) return s;
-  return s.replace(/\.$/," but the punchline won anyway.");
+  if (/\bbut\b|\byet\b|\bstill\b|\binstead\b|\bexcept\b|\beven\b|\bjust\b/i.test(s)) return s;
+  
+  // Add context-appropriate twist based on content
+  if (/birthday|candle/i.test(s)) return s.replace(/\.$/, " but fire safety disagreed.");
+  if (/old|age/i.test(s)) return s.replace(/\.$/, " which explains the hip replacement.");
+  if (/young/i.test(s)) return s.replace(/\.$/, " classic Gen Z move.");
+  
+  return s.replace(/\.$/, " but reality had other plans.");
 }
 
 function stripStale(s:string){
@@ -68,26 +87,50 @@ function stripStale(s:string){
   return t.replace(/\s{2,}/g," ").trim();
 }
 
-// ensure a lexicon word from the subcategory
-function ensureContext(s:string, sub:string){
+// ensure a lexicon word from the subcategory and soft tags
+function ensureContext(s:string, sub:string, softTags: string[] = []){
   const words = LEX[sub] || [];
-  if (!words.length) return s;
-  return words.some(w=> new RegExp(`\\b${w}\\b`,"i").test(s))
-    ? s
-    : s.replace(/\.$/, ` ${words[0]}.`);
+  let result = s;
+  
+  // Ensure subcategory context
+  if (words.length && !words.some(w=> new RegExp(`\\b${w}\\b`,"i").test(result))) {
+    result = result.replace(/\.$/, ` with ${words[0]}.`);
+  }
+  
+  // Ensure soft tag context
+  for (const tag of softTags) {
+    const tagWords = SOFT_TAG_LEX[tag.toLowerCase()] || [];
+    if (tagWords.length && !tagWords.some(w=> new RegExp(`\\b${w}\\b`,"i").test(result))) {
+      result = result.replace(/\.$/, ` like a ${tagWords[0]}.`);
+      break; // Only add one soft tag context
+    }
+  }
+  
+  return result;
 }
 
-// spread the hard tag across start, middle, end
+// spread the hard tag naturally across lines
 function spreadHardTag(lines:string[], tag?:string){
   if (!tag) return lines;
   const t = tag.toLowerCase();
+  
   return lines.map((l,i)=>{
     if (l.toLowerCase().includes(t)) return l;
-    // more natural placement
-    if (i === 0) return l.replace(/^(\w+)/, `$1 ${tag}`);                    // after first word
-    if (i === 1) return l.replace(/(\w+)\.?$/, `${tag} $1.`);                // before last word
-    if (i === 2) return l.replace(/\s(\w+)\.$/, ` ${tag} $1.`);              // before last word
-    else         return l.replace(/\.?$/, ` with ${tag}.`);                   // tail for last
+    
+    // Natural contextual placement
+    if (i === 0) {
+      // First line: integrate after opening phrase
+      return l.replace(/^(You ever notice|So apparently|Look)(\s+)/, `$1 ${tag}$2`);
+    } else if (i === 1) {
+      // Middle lines: find natural break point
+      if (/\bbut\b|\byet\b|\bstill\b/i.test(l)) {
+        return l.replace(/(\bbut\b|\byet\b|\bstill\b)/i, `$1 ${tag}`);
+      }
+      return l.replace(/(\w+)(\s+)/, `${tag}'s $1$2`);
+    } else {
+      // Last lines: integrate into punchline
+      return l.replace(/(\w+)\.?$/, `${tag}'s $1.`);
+    }
   });
 }
 
@@ -111,14 +154,26 @@ function voiceWrap(raw:string, voiceKey:string){
     // use natural conjunction as split point
     const setup = s.slice(0, match.index).trim().replace(/\.+$/,"");
     const punch = s.slice(match.index).replace(/^\W+/,"").replace(/\.+$/,"");
-    const shape = VOICE_SHAPES[voiceKey] || VOICE_SHAPES.mulaney;
-    const out = shape({setup, punch});
-    return byWord(out);
+    
+    if (punch.length > 5) { // ensure punch has substance
+      const shape = VOICE_SHAPES[voiceKey] || VOICE_SHAPES.mulaney;
+      const out = shape({setup, punch});
+      return byWord(out);
+    }
+  }
+  
+  // if no natural break or empty punch, use comedian's natural flow
+  const shape = VOICE_SHAPES[voiceKey] || VOICE_SHAPES.mulaney;
+  
+  // Don't force setup/punch structure - use the comedian's natural style
+  if (voiceKey === "gaffigan") {
+    return `You ever notice ${s}`;
+  } else if (voiceKey === "bargatze") {
+    return `So apparently ${s}`;
+  } else if (voiceKey === "hart") {
+    return `Look ${s}`;
   } else {
-    // if no natural break, use the raw text with minimal voice wrapper
-    const shape = VOICE_SHAPES[voiceKey] || VOICE_SHAPES.mulaney;
-    const out = shape({setup: s.replace(/\.+$/,""), punch: ""});
-    return byWord(out).replace(/\.\s*\.$/, ".");
+    return s; // Keep original for others
   }
 }
 
@@ -127,7 +182,8 @@ export function enforceBatch(rawLines:string[], opts:{
   rating: Rating,
   category: string,
   subcategory: string,
-  hardTag?: string
+  hardTag?: string,
+  softTags?: string[]
 }): string[] {
   console.log(`🎭 Processing batch with ${rawLines.length} raw lines:`, rawLines);
   
@@ -143,7 +199,7 @@ export function enforceBatch(rawLines:string[], opts:{
   // 2) context + twist + cleanup per bucket
   out = out.map((l,i)=>{
     let s = l.trim();
-    s = ensureContext(s, opts.subcategory);
+    s = ensureContext(s, opts.subcategory, opts.softTags || []);
     s = ensureTwist(s);
     s = endDot(s);
     s = repairTail(s);
