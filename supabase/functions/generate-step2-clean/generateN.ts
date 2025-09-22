@@ -243,7 +243,8 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
     hardTags: ctx.tags.hard,
     softTags: ctx.tags.soft,
     requirePop: ctx.style === "pop-culture",
-    comedianVoice: selectComedianVoice(ctx.rating)
+    comedianVoice: selectComedianVoice(ctx.rating),
+    tone: ctx.tone
   });
   
   // Score the batch quality
@@ -273,7 +274,8 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
       hardTags: ctx.tags.hard,
       softTags: ctx.tags.soft,
       requirePop: ctx.style === "pop-culture",
-      comedianVoice: selectComedianVoice(ctx.rating)
+      comedianVoice: selectComedianVoice(ctx.rating),
+      tone: ctx.tone
     });
     
     return fallbackValidated;

@@ -182,6 +182,32 @@ function enhanceVoiceMatch(line: string, voice: string): string {
 }
 
 // ---------- hard/soft tags ----------
+function enforceHardTagFront(line: string, hard: string[]): string {
+  if (!hard.length) return line;
+  const tag = hard[0];
+  return `${tag} ${line.charAt(0).toLowerCase()}${line.slice(1)}`;
+}
+
+function spreadHardTag(line: string, tag: string, idx: number): string {
+  if (!tag) return line;
+  
+  // Check if tag already present
+  if (line.toLowerCase().includes(tag.toLowerCase())) return line;
+  
+  switch (idx) {
+    case 0: // Line 1: front placement
+      return `${tag} ${line.charAt(0).toLowerCase()}${line.slice(1)}`;
+    case 1: // Line 2: after first word
+      const words = line.split(' ');
+      if (words.length > 1) {
+        return `${words[0]} ${tag} ${words.slice(1).join(' ')}`;
+      }
+      return `${tag} ${line}`;
+    default: // Lines 3-4: tail placement
+      return line.replace(/\.$/, ` with ${tag}.`);
+  }
+}
+
 function enforceHard(line: string, hard: string[]): string {
   if (!hard.length) return line;
   const tag = hard[0];
@@ -234,6 +260,88 @@ function ensureContextAnchor(line: string, subcategory: string): string {
   return line.replace(/\.$/, ` ${contextWord}.`);
 }
 
+// ---------- tone enforcement ----------
+function ensureToneWords(line: string, tone: string): string {
+  const toneWords = {
+    "Romantic": ["love", "heart", "warm", "dear", "sweet", "tender", "cherish", "adore"],
+    "Savage": ["brutal", "destroy", "savage", "ruthless", "devastate", "annihilate"],
+    "Playful": ["silly", "fun", "playful", "goofy", "mischief", "giggly"],
+    "Sentimental": ["memories", "nostalgia", "touching", "emotional", "heartfelt", "precious"]
+  };
+  
+  const words = toneWords[tone] || [];
+  if (!words.length) return line;
+  
+  const hasTone = words.some(word => 
+    new RegExp(`\\b${word}\\b`, "i").test(line)
+  );
+  
+  if (hasTone) return line;
+  
+  // Inject tone word naturally
+  const toneWord = words[Math.floor(Math.random() * words.length)];
+  
+  if (tone === "Romantic") {
+    return line.replace(/\.$/, ` and my ${toneWord} knew it.`);
+  } else if (tone === "Savage") {
+    return line.replace(/\.$/, ` ${toneWord} style.`);
+  } else if (tone === "Playful") {
+    return line.replace(/\.$/, ` in a ${toneWord} way.`);
+  } else if (tone === "Sentimental") {
+    return line.replace(/\.$/, ` like a precious ${toneWord}.`);
+  }
+  
+  return line;
+}
+
+// ---------- ending variety enforcement ----------
+const ENDING_POOL = ["tonight.", "after all.", "at the party.", "for real.", "honestly.", "apparently.", "somehow."];
+let usedEndings: string[] = [];
+
+function enforceEndingVariety(line: string): string {
+  // Check if line has repetitive ending
+  const repetitiveEndings = ["man.", "dude.", "bro.", "yo."];
+  const hasRepetitive = repetitiveEndings.some(ending => line.endsWith(ending));
+  
+  if (!hasRepetitive) return line;
+  
+  // Find available ending
+  const availableEndings = ENDING_POOL.filter(ending => !usedEndings.includes(ending));
+  const selectedEnding = availableEndings.length > 0 
+    ? availableEndings[Math.floor(Math.random() * availableEndings.length)]
+    : ENDING_POOL[Math.floor(Math.random() * ENDING_POOL.length)];
+  
+  usedEndings.push(selectedEnding);
+  if (usedEndings.length > 3) usedEndings = usedEndings.slice(-3); // Keep last 3
+  
+  // Replace ending
+  return line.replace(/\s+(man|dude|bro|yo)\.$/, ` ${selectedEnding}`);
+}
+
+// ---------- sentence structure validation ----------
+function validateJokeStructure(line: string): string {
+  // Check if line is just setup without punchline
+  const setupPatterns = [
+    /^Why does .+\?$/i,
+    /^What .+ when .+\?$/i,
+    /^How .+ like .+\?$/i
+  ];
+  
+  const isOnlySetup = setupPatterns.some(pattern => pattern.test(line));
+  
+  if (isOnlySetup) {
+    // Convert question to statement with punchline
+    return line.replace(/\?$/, " like even Santa nodded in agreement.");
+  }
+  
+  // Check for incomplete thoughts ending with prepositions
+  if (/\b(to|at|with|for|by|in|on|of|and|but|so)\.$/.test(line)) {
+    return line.replace(/\s+\w+\.$/, " right now.");
+  }
+  
+  return line;
+}
+
 // ---------- main orchestrator ----------
 export function validateAndRepairBatch(raw: string[], opts: {
   rating: Rating,
@@ -242,10 +350,12 @@ export function validateAndRepairBatch(raw: string[], opts: {
   hardTags: string[],
   softTags: string[],
   comedianVoice?: string,
-  requirePop?: boolean
+  requirePop?: boolean,
+  tone?: string
 }): string[] {
   // Reset batch tracking
   currentBatchEntities = [];
+  usedEndings = []; // Reset ending variety tracker
   
   // Assign length buckets for variety
   const buckets = [...BUCKETS, BUCKETS[Math.floor(Math.random() * BUCKETS.length)]];
@@ -259,22 +369,33 @@ export function validateAndRepairBatch(raw: string[], opts: {
     // 2. Ensure context anchoring
     s = ensureContextAnchor(s, opts.subcategory);
     
-    // 3. Optional pop culture injection
+    // 3. Tone enforcement (if specified)
+    if (opts.tone) {
+      s = ensureToneWords(s, opts.tone);
+    }
+    
+    // 4. Optional pop culture injection
     if (opts.requirePop) {
       const entity = pickFreshEntity();
       s = injectPop(s, entity);
     }
     
-    // 4. Format and fit to length bucket
+    // 5. Format and fit to length bucket
     const [lo, hi] = buckets[i];
     s = formatLine(s, lo, hi);
     
-    // 5. Enhance comedian voice match if specified
+    // 6. Enhance comedian voice match if specified
     if (opts.comedianVoice) {
       s = enhanceVoiceMatch(s, opts.comedianVoice);
     }
     
-    // 6. Final validation and repair
+    // 7. Enforce ending variety
+    s = enforceEndingVariety(s);
+    
+    // 8. Validate joke structure
+    s = validateJokeStructure(s);
+    
+    // 9. Final validation and repair
     if (!noBanned(s) || !onePeriod(s)) {
       s = formatLine(s, lo, hi);
     }
@@ -282,15 +403,15 @@ export function validateAndRepairBatch(raw: string[], opts: {
     return s;
   });
   
-  // Enforce hard tag presence in at least 3/4 lines
+  // Enforce hard tag presence in at least 3/4 lines with creative placement
   if (opts.hardTags.length > 0) {
-    const tag = opts.hardTags[0].toLowerCase();
-    let hits = out.filter(l => l.toLowerCase().includes(tag)).length;
+    const tag = opts.hardTags[0];
+    let hits = out.filter(l => l.toLowerCase().includes(tag.toLowerCase())).length;
     
     if (hits < 3) {
       for (let i = 0; i < out.length && hits < 3; i++) {
-        if (!out[i].toLowerCase().includes(tag)) {
-          out[i] = enforceHard(out[i], opts.hardTags);
+        if (!out[i].toLowerCase().includes(tag.toLowerCase())) {
+          out[i] = spreadHardTag(out[i], tag, i);
           hits++;
         }
       }
