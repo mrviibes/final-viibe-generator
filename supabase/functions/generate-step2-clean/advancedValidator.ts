@@ -1,4 +1,5 @@
 import { ParsedTags } from "./tags.ts";
+import { validateNaturalDelivery, detectAndRepairFragments, applyDeliveryTemplate } from "./deliveryTemplates.ts";
 
 type Rating = "G"|"PG-13"|"R"|"Explicit";
 
@@ -159,26 +160,38 @@ function validateVoiceMatch(line: string, voice: string): boolean {
   return pattern.test(line);
 }
 
-function enhanceVoiceMatch(line: string, voice: string): string {
-  // If line doesn't match voice pattern, try to enhance it subtly
-  if (validateVoiceMatch(line, voice)) return line;
+function enhanceVoiceMatch(line: string, voice: string, rating: string): string {
+  // First, apply delivery template for natural comedian rhythm
+  let enhanced = applyDeliveryTemplate(line, rating, voice);
   
-  const voiceEnhancements = {
-    "kevin hart": [" man", " yo", " short"],
-    "trevor noah": [" you know", " different", " society"],
-    "ali wong": [" weird", " crazy", " bizarre"],
-    "bill burr": [" angry", " stupid", " mad"],
-    "chris rock": [" people", " relationship", " money"],
-    "sarah silverman": [" inappropriate", " twisted", " cute"]
-  };
-  
-  const enhancements = voiceEnhancements[voice.toLowerCase()];
-  if (enhancements) {
-    const enhancement = enhancements[Math.floor(Math.random() * enhancements.length)];
-    return line.replace(/\.$/, `${enhancement}.`);
+  // Check if enhanced line sounds natural
+  const naturalCheck = validateNaturalDelivery(enhanced);
+  if (!naturalCheck.isNatural) {
+    console.log(`⚠️ Enhanced voice line not natural: ${naturalCheck.issues.join(', ')}`);
+    
+    // If still not natural, try fragment repair
+    enhanced = detectAndRepairFragments(enhanced);
   }
   
-  return line;
+  // Legacy enhancements for compatibility
+  if (!validateVoiceMatch(enhanced, voice)) {
+    const voiceEnhancements = {
+      "kevin hart": [" man", " yo", " short"],
+      "trevor noah": [" you know", " different", " society"],
+      "ali wong": [" weird", " crazy", " bizarre"],
+      "bill burr": [" angry", " stupid", " mad"],
+      "chris rock": [" people", " relationship", " money"],
+      "sarah silverman": [" inappropriate", " twisted", " cute"]
+    };
+    
+    const enhancements = voiceEnhancements[voice.toLowerCase()];
+    if (enhancements) {
+      const enhancement = enhancements[Math.floor(Math.random() * enhancements.length)];
+      enhanced = enhanced.replace(/\.$/, `${enhancement}.`);
+    }
+  }
+  
+  return enhanced;
 }
 
 // ---------- hard/soft tags ----------
@@ -386,7 +399,7 @@ export function validateAndRepairBatch(raw: string[], opts: {
     
     // 6. Enhance comedian voice match if specified
     if (opts.comedianVoice) {
-      s = enhanceVoiceMatch(s, opts.comedianVoice);
+      s = enhanceVoiceMatch(s, opts.comedianVoice, opts.rating);
     }
     
     // 7. Enforce ending variety
@@ -439,6 +452,7 @@ export function scoreBatchQuality(lines: string[], opts: {
   contextScore: number,
   voiceScore: number,
   tagScore: number,
+  naturalityScore: number,
   issues: string[]
 } {
   const issues: string[] = [];
@@ -497,7 +511,18 @@ export function scoreBatchQuality(lines: string[], opts: {
     tagScore = 100; // No tag requirement
   }
   
-  const overallScore = Math.round((formatScore + contextScore + voiceScore + tagScore) / 4);
+  // Natural delivery validation
+  let naturalityScore = 0;
+  lines.forEach((line, i) => {
+    const naturalCheck = validateNaturalDelivery(line);
+    if (naturalCheck.isNatural) {
+      naturalityScore += 25;
+    } else {
+      issues.push(`Line ${i+1}: Sounds robotic (${naturalCheck.score}%)`);
+    }
+  });
+  
+  const overallScore = Math.round((formatScore + contextScore + voiceScore + tagScore + naturalityScore) / 5);
   
   return {
     overallScore,
@@ -505,6 +530,7 @@ export function scoreBatchQuality(lines: string[], opts: {
     contextScore,
     voiceScore,
     tagScore,
+    naturalityScore,
     issues
   };
 }

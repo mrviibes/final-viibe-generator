@@ -3,6 +3,13 @@ import { ParsedTags } from "./tags.ts";
 import { startNewPopCultureBatch } from "../shared/popCultureV3.ts";
 import { VIIBE_CONFIG_V3 } from "../shared/viibe_config_v3.ts";
 import { validateAndRepairBatch, scoreBatchQuality, shouldRetryBatch } from "./advancedValidator.ts";
+import { 
+  applyDeliveryTemplate, 
+  validateNaturalDelivery, 
+  detectAndRepairFragments,
+  enhanceVoiceSignature,
+  selectComedianForRating
+} from "./deliveryTemplates.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const MODEL = 'gpt-4.1-2025-04-14';
@@ -36,10 +43,26 @@ function assignBuckets(n: number = 4): [number,number][] {
   return buckets;
 }
 
-function ensureNaturalDelivery(line: string, tone: string, lineIndex: number): string {
-  // V3: Let comedian voice drive delivery, no forced cues
-  // Just ensure proper sentence structure
+function ensureNaturalDelivery(line: string, tone: string, lineIndex: number, rating: string, comedianVoice?: string): string {
+  // V4: Apply delivery templates for authentic comedian rhythm
   let cleaned = line.trim();
+  
+  // First detect and repair any fragments
+  cleaned = detectAndRepairFragments(cleaned);
+  
+  // Apply delivery template for natural comedian cadence
+  cleaned = applyDeliveryTemplate(cleaned, rating, comedianVoice);
+  
+  // Enhance with comedian-specific voice signature
+  if (comedianVoice) {
+    cleaned = enhanceVoiceSignature(cleaned, comedianVoice);
+  }
+  
+  // Validate natural delivery
+  const naturalCheck = validateNaturalDelivery(cleaned);
+  if (!naturalCheck.isNatural) {
+    console.log(`⚠️ Line ${lineIndex}: ${naturalCheck.issues.join(', ')} (score: ${naturalCheck.score})`);
+  }
   
   // Ensure proper capitalization and punctuation
   if (!cleaned.endsWith('.')) cleaned += '.';
@@ -145,6 +168,10 @@ function enforceHardTag(lines: string[], tag: string): string[] {
 function postProcessBatch(rawLines: string[], hardTag: string, ctx: Ctx): string[] {
   let lines = [...new Set(rawLines.map(s => s.trim()))].slice(0, 4);
   const buckets = assignBuckets(lines.length);
+  
+  // Select comedian for consistent voice across batch
+  const selectedComedian = selectComedianForRating(ctx.rating);
+  console.log(`🎭 Using comedian voice: ${selectedComedian} for ${ctx.rating} rating`);
 
   // Process each line with context-aware pipeline
   lines = lines.map((l, i) => {
@@ -169,10 +196,10 @@ function postProcessBatch(rawLines: string[], hardTag: string, ctx: Ctx): string
     // 4. Word-safe length fitting FIRST
     s = fitLengthWordSafe(s, buckets[i][0], buckets[i][1]);
     
-    // 5. V3: Natural delivery (no forced cues)
-    s = ensureNaturalDelivery(s, ctx.tone, i);
+    // 5. V4: Natural delivery with comedian templates
+    s = ensureNaturalDelivery(s, ctx.tone, i, ctx.rating, selectedComedian);
     
-    // 6. Final length check (V3: no cues to worry about)
+    // 6. Final length check (ensure templates didn't exceed limits)
     if (s.length > buckets[i][1]) {
       s = fitLengthWordSafe(s, buckets[i][0], buckets[i][1]);
     }
@@ -235,6 +262,9 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
   // Apply enhanced validation and repair
   const hardTag = ctx.tags.hard[0] || "";
   
+  // Select comedian voice for the batch
+  const batchComedian = selectComedianForRating(ctx.rating);
+  
   // Use advanced validator for comprehensive quality control
   const validated = validateAndRepairBatch(rawLines, {
     rating: ctx.rating,
@@ -243,7 +273,7 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
     hardTags: ctx.tags.hard,
     softTags: ctx.tags.soft,
     requirePop: ctx.style === "pop-culture",
-    comedianVoice: selectComedianVoice(ctx.rating),
+    comedianVoice: batchComedian,
     tone: ctx.tone
   });
   
@@ -253,7 +283,7 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
     category: ctx.category,
     subcategory: ctx.subcategory,
     hardTags: ctx.tags.hard,
-    comedianVoice: selectComedianVoice(ctx.rating)
+    comedianVoice: batchComedian
   });
   
   console.log(`📊 Batch quality score: ${qualityScore.overallScore}%`);
@@ -274,7 +304,7 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
       hardTags: ctx.tags.hard,
       softTags: ctx.tags.soft,
       requirePop: ctx.style === "pop-culture",
-      comedianVoice: selectComedianVoice(ctx.rating),
+      comedianVoice: batchComedian,
       tone: ctx.tone
     });
     
@@ -359,13 +389,13 @@ function finalQC(s: string): string {
   return s;
 }
 
-// Helper function to select comedian voice based on rating
-function selectComedianVoice(rating: string): string {
+// Helper function to select comedian voice based on rating (legacy mapping)
+function selectComedianVoiceLegacy(rating: string): string {
   const voices = {
-    "G": ["jim gaffigan", "nate bargatze", "ellen degeneres"],
-    "PG-13": ["kevin hart", "trevor noah", "ali wong"],
-    "R": ["bill burr", "chris rock", "wanda sykes"],
-    "Explicit": ["sarah silverman", "joan rivers", "amy schumer"]
+    "G": ["jim_gaffigan", "nate_bargatze", "ellen_degeneres"],
+    "PG-13": ["kevin_hart", "trevor_noah", "ali_wong"],
+    "R": ["bill_burr", "chris_rock", "wanda_sykes"],
+    "Explicit": ["sarah_silverman", "joan_rivers", "amy_schumer"]
   };
   
   const ratingVoices = voices[rating as keyof typeof voices] || voices["PG-13"];
