@@ -25,66 +25,167 @@ export function CaptionOverlay({ imageUrl, caption, layout, onImageReady, fallba
     img.crossOrigin = 'anonymous';
     
     img.onload = () => {
+      const cw = img.width;
+      const ch = img.height;
+      
       // Set canvas size to match image
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = cw;
+      canvas.height = ch;
 
       // Draw base image
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, cw, ch);
 
-      // Enhanced text properties for fallback mode
-      const fontSize = fallbackMode ? Math.max(24, Math.min(48, canvas.width / 20)) : Math.max(img.width * 0.05, 24);
-      ctx.font = `bold ${fontSize}px Impact, "Arial Black", sans-serif`;
-      ctx.fillStyle = 'white';
-      ctx.strokeStyle = 'black';
-      ctx.lineWidth = fallbackMode ? Math.max(2, fontSize / 16) : fontSize * 0.1;
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#FFFFFF';
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = fontSize * 0.1;
-
-      // Position text based on layout
-      let x = img.width / 2;
-      let y: number;
-
+      // CRITICAL: Enforce 25% height cap for all layouts
+      const MAX_HEIGHT_PCT = 25;
+      const maxBandHeight = (MAX_HEIGHT_PCT / 100) * ch;
+      const vPadding = ch * 0.03; // 3% vertical padding
+      const availableHeight = Math.max(maxBandHeight - vPadding * 2, 20);
+      
+      // Layout-specific positioning and background
+      let bandY: number;
+      let placement: 'top' | 'bottom' | 'center';
+      let showBand = true;
+      
       switch (layout) {
         case 'memeTopBottom':
-          // Top placement
-          y = fontSize * 1.5;
+          placement = 'top';
+          bandY = vPadding;
           break;
         case 'lowerThird':
-          y = img.height - (img.height * 0.25);
+          placement = 'bottom';
+          bandY = ch - maxBandHeight;
           break;
         case 'subtleCaption':
+          placement = 'bottom';
+          bandY = ch - maxBandHeight;
+          showBand = false; // No background band for subtle
+          break;
         case 'negativeSpace':
         default:
-          y = img.height - fontSize * 1.5;
+          placement = 'bottom';
+          bandY = ch - maxBandHeight;
           break;
       }
 
-      // Draw text with stroke for better visibility
-      ctx.strokeText(caption, x, y);
-      ctx.fillText(caption, x, y);
+      // Draw background band if needed
+      if (showBand) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        ctx.fillRect(0, bandY, cw, maxBandHeight);
+      }
 
-      // If memeTopBottom and long text, also add bottom text
+      // Binary search for optimal font size that fits within height and width constraints
+      const maxWidth = cw * 0.92; // 92% width for margins
+      let lo = 8;
+      let hi = Math.floor(availableHeight);
+      let bestSize = lo;
+
+      const measureWrappedText = (fontSize: number) => {
+        ctx.font = `bold ${fontSize}px Impact, "Arial Black", sans-serif`;
+        const words = caption.trim().split(/\s+/);
+        const lines: string[] = [];
+        let line = '';
+        
+        for (const word of words) {
+          const testLine = line ? line + ' ' + word : word;
+          if (ctx.measureText(testLine).width <= maxWidth) {
+            line = testLine;
+          } else {
+            if (line) lines.push(line);
+            line = word;
+          }
+        }
+        if (line) lines.push(line);
+
+        // Calculate total height needed
+        const lineHeight = fontSize * 1.1;
+        const totalHeight = lines.length * lineHeight;
+        
+        return { lines, lineHeight, totalHeight };
+      };
+
+      // Binary search for font size
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        const measurement = measureWrappedText(mid);
+        
+        if (measurement.totalHeight <= availableHeight && 
+            measurement.lines.every(line => ctx.measureText(line).width <= maxWidth)) {
+          bestSize = mid;
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+
+      // Render the text with optimal size
+      const { lines, lineHeight } = measureWrappedText(bestSize);
+      
+      ctx.font = `bold ${bestSize}px Impact, "Arial Black", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      // Position text within the band
+      const textAreaCenterY = bandY + maxBandHeight / 2;
+      const totalTextHeight = lines.length * lineHeight;
+      let currentY = textAreaCenterY - totalTextHeight / 2 + lineHeight / 2;
+
+      // Draw each line with outline for contrast
+      for (const line of lines) {
+        // Stroke for outline
+        ctx.lineWidth = Math.max(2, Math.floor(bestSize * 0.1));
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.strokeText(line, cw / 2, currentY);
+        
+        // Fill for main text
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(line, cw / 2, currentY);
+        
+        currentY += lineHeight;
+      }
+
+      // Handle memeTopBottom split text
       if (layout === 'memeTopBottom' && caption.length > 30) {
         const words = caption.split(' ');
         const midPoint = Math.ceil(words.length / 2);
         const topText = words.slice(0, midPoint).join(' ');
         const bottomText = words.slice(midPoint).join(' ');
         
-        // Clear and redraw with split text
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Clear and redraw
+        ctx.clearRect(0, 0, cw, ch);
         ctx.drawImage(img, 0, 0);
         
-        // Top text
-        ctx.strokeText(topText, x, fontSize * 1.5);
-        ctx.fillText(topText, x, fontSize * 1.5);
+        // Top band
+        if (showBand) {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+          ctx.fillRect(0, vPadding, cw, maxBandHeight);
+        }
         
-        // Bottom text
-        const bottomY = img.height - fontSize * 1.5;
-        ctx.strokeText(bottomText, x, bottomY);
-        ctx.fillText(bottomText, x, bottomY);
+        // Bottom band
+        if (showBand) {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+          ctx.fillRect(0, ch - maxBandHeight - vPadding, cw, maxBandHeight);
+        }
+        
+        // Render top text
+        const topMeasurement = measureWrappedText(bestSize);
+        ctx.font = `bold ${bestSize}px Impact, "Arial Black", sans-serif`;
+        let topY = vPadding + maxBandHeight / 2;
+        
+        for (const line of topMeasurement.lines) {
+          ctx.strokeText(line, cw / 2, topY);
+          ctx.fillText(line, cw / 2, topY);
+          topY += lineHeight;
+        }
+        
+        // Render bottom text  
+        const bottomMeasurement = measureWrappedText(bestSize);
+        let bottomY = ch - maxBandHeight - vPadding + maxBandHeight / 2;
+        
+        for (const line of bottomMeasurement.lines) {
+          ctx.strokeText(line, cw / 2, bottomY);
+          ctx.fillText(line, cw / 2, bottomY);
+          bottomY += lineHeight;
+        }
       }
 
       setIsReady(true);
