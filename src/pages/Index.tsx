@@ -7510,8 +7510,6 @@ const Index = () => {
                     </div> : <p className="text-muted-foreground text-lg">Click "Generate with Ideogram" to create your image</p>}
                  </div>
 
-                 {generatedImageUrl}
- 
                  {/* Text Misspelling Detection */}
                  {generatedImageUrl && textMisspellingDetected && <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-lg mb-4 text-center">
                      <p className="text-sm font-medium mb-2">⚠️ Text may be misspelled in the generated image</p>
