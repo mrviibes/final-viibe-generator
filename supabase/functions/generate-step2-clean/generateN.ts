@@ -1,15 +1,7 @@
 import { buildPrompt } from "./buildPrompt.ts";
 import { ParsedTags } from "./tags.ts";
 import { startNewPopCultureBatch } from "../shared/popCultureV3.ts";
-import { VIIBE_CONFIG_V3 } from "../shared/viibe_config_v3.ts";
-import { validateAndRepairBatch, scoreBatchQuality, shouldRetryBatch } from "./advancedValidator.ts";
-import { 
-  validateNaturalDelivery, 
-  detectAndRepairFragments,
-  createVoiceRotation,
-  getVoiceHint
-} from "./deliveryTemplates.ts";
-import { repairJokeBatch, validateRepairedBatch } from "./jokeRepair.ts";
+import { enforceBatch } from "./enforceBatch.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const MODEL = 'gpt-4.1-2025-04-14';
@@ -34,37 +26,9 @@ const BUCKETS: Array<[number, number]> = [
 
 const BASKETBALL_LEX = ["hoop","rim","court","dribble","rebound","buzzer","foul","free throw","timeout","screen","turnover","fast break"];
 
-function assignBuckets(n: number = 4): [number,number][] {
-  // Ensure we use all buckets for variety, cycling through them
-  const buckets: [number,number][] = [];
-  for (let i = 0; i < n; i++) {
-    buckets.push(BUCKETS[i % BUCKETS.length]);
-  }
-  return buckets;
-}
+// Removed: assignBuckets - handled by enforceBatch
 
-function ensureNaturalDelivery(line: string, tone: string, lineIndex: number, rating: string, comedianVoice?: string): string {
-  // V5: Focus on repair and validation only - no forced templates
-  let cleaned = line.trim();
-  
-  // Detect and repair fragments first
-  cleaned = detectAndRepairFragments(cleaned);
-  
-  // Apply category-specific fallback completion if needed
-  cleaned = applyFallbackCompletion(cleaned, "Birthday");
-  
-  // Validate natural delivery
-  const naturalCheck = validateNaturalDelivery(cleaned);
-  if (!naturalCheck.isNatural) {
-    console.log(`⚠️ Line ${lineIndex}: ${naturalCheck.issues.join(', ')} (score: ${naturalCheck.score})`);
-  }
-  
-  // Ensure proper capitalization and punctuation
-  if (!cleaned.endsWith('.')) cleaned += '.';
-  cleaned = cleaned.replace(/^[a-z]/, m => m.toUpperCase());
-  
-  return cleaned;
-}
+// Removed: ensureNaturalDelivery - replaced by enforceBatch voice system
 
 function fitLengthWordSafe(line: string, lo: number, hi: number): string {
   let s = line.replace(/[—]/g, " ").replace(/,/g, "").replace(/\s+\./g, ".").trim();
@@ -127,92 +91,11 @@ function fitLengthWordSafe(line: string, lo: number, hi: number): string {
   return s;
 }
 
-function diversifyContextLexicon(lines: string[], category: string): string[] {
-  const BIRTHDAY_LEX = ["cake","candles","party","balloons","wish","slice","confetti"];
-  const BASKETBALL_LEX = ["hoop","rim","court","dribble","rebound","buzzer"];
-  
-  // Choose lexicon based on category
-  const pool = category.toLowerCase().includes("birthday") || category.toLowerCase().includes("celebration") 
-    ? BIRTHDAY_LEX 
-    : BASKETBALL_LEX;
-  
-  return lines.map((l, i) => {
-    const hasLex = pool.some(w => l.toLowerCase().includes(w));
-    if (hasLex) return l;
-    const w = pool[i % pool.length];
-    return l.replace(/\.\s*$/, " " + w + ".");
-  });
-}
+// Removed: diversifyContextLexicon - handled by enforceBatch ensureContext
 
-function enforceHardTag(lines: string[], tag: string): string[] {
-  if (!tag) return lines;
-  const t = tag.toLowerCase();
-  let withTag = lines.map(l => l.toLowerCase().includes(t));
-  
-  // inject where missing
-  lines = lines.map((l, i) => withTag[i] ? l : `${tag} ${l[0].toLowerCase()}${l.slice(1)}`);
-  
-  // put tag at front on the first two lines only
-  lines = lines.map((l, i) => {
-    if (i < 2 && !l.toLowerCase().startsWith(t)) {
-      return `${tag} ${l[0].toLowerCase()}${l.slice(1)}`;
-    }
-    return l;
-  });
-  
-  return lines;
-}
+// Removed: enforceHardTag - replaced by enforceBatch spreadHardTag
 
-function postProcessBatch(rawLines: string[], hardTag: string, ctx: Ctx): string[] {
-  let lines = [...new Set(rawLines.map(s => s.trim()))].slice(0, 4);
-  const buckets = assignBuckets(lines.length);
-  
-  // Select comedian for consistent voice across batch
-  const selectedComedian = selectComedianForRating(ctx.rating);
-  console.log(`🎭 Using comedian voice: ${selectedComedian} for ${ctx.rating} rating`);
-
-  // Process each line with context-aware pipeline
-  lines = lines.map((l, i) => {
-    // 1. Normalize
-    let s = l.trim();
-    
-    // 2. Universal age filter for Birthday content (V3: all birthday content, not just Romantic)
-    if (ctx.category.toLowerCase().includes("birthday") || ctx.category.toLowerCase().includes("celebration")) {
-      s = s.replace(/\b\d+\b/g, ""); // strip all numbers/ages
-      s = s.replace(/\b(older|younger|age|years old|turning)\b/gi, ""); // strip age-related words
-      s = s.replace(/\s+/g, " ").trim(); // clean up extra spaces
-      s = ensureBirthdayLexicon(s);
-    }
-    
-    // 3. Romantic tone enforcement (add affectionate words)
-    if (ctx.tone === "Romantic") {
-      if (!/(love|heart|warm|dear|sweet|tender|adore)/i.test(s)) {
-        s = s.replace(/\.$/, " and my heart knows it.");
-      }
-    }
-    
-    // 4. Word-safe length fitting FIRST
-    s = fitLengthWordSafe(s, buckets[i][0], buckets[i][1]);
-    
-    // 5. V4: Natural delivery with comedian templates
-    s = ensureNaturalDelivery(s, ctx.tone, i, ctx.rating, selectedComedian);
-    
-    // 6. Final length check (ensure templates didn't exceed limits)
-    if (s.length > buckets[i][1]) {
-      s = fitLengthWordSafe(s, buckets[i][0], buckets[i][1]);
-    }
-    
-    // 7. Final QC
-    s = finalQC(s);
-    
-    return s;
-  });
-  
-  // Apply hard tag enforcement at the end
-  if (hardTag) lines = enforceHardTag(lines, hardTag);
-  
-  return lines;
-}
+// Removed: postProcessBatch - replaced by enforceBatch unified system
 
 const BDAY = ["cake","candles","party","balloons","wish","slice"];
 function ensureBirthdayLexicon(s: string): string {
@@ -225,23 +108,14 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
   // Start new batch for pop culture tracking
   startNewPopCultureBatch();
   
-  // V5: Create voice rotation for variety
-  const voiceRotation = createVoiceRotation(ctx.rating, n);
-  console.log(`🎭 Voice rotation for ${ctx.rating}: ${voiceRotation.join(', ')}`);
-  
   const rawLines: string[] = [];
 
-  // Generate lines with voice hints (not forced templates)
+  // Generate lines with standard prompts - voice variety handled by enforceBatch
   for (let i = 0; i < n; i++) {
-    const comedianVoice = voiceRotation[i];
-    const voiceHint = getVoiceHint(comedianVoice);
-    
-    // Build prompt with voice hint
     const prompt = buildPrompt({ 
       ...ctx, 
       minLen: 40, 
-      maxLen: 100,
-      voiceHint // Add voice hint without forcing templates
+      maxLen: 100
     });
     
     const res = await callModel(prompt);
@@ -254,9 +128,8 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
     // Get best line from model output
     let best = lines.find(s => s.length >= 40 && s.length <= 100) ?? lines[0] ?? "";
     
-    // Basic soft tag stripping and repair
+    // Basic soft tag stripping
     best = stripSoftEcho([best], ctx.tags.soft)[0];
-    best = detectAndRepairFragments(best);
     
     if (!best || best.length < 40) {
       // One retry with simplified prompt
@@ -264,7 +137,6 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
       const res2 = await callModel(prompt2);
       let alt = res2.text.split("\n").map(s => s.trim()).find(s => s.length >= 40 && s.length <= 100) ?? "";
       alt = stripSoftEcho([alt], ctx.tags.soft)[0];
-      alt = detectAndRepairFragments(alt);
       
       if (alt && alt.length >= 40) {
         best = alt;
@@ -274,39 +146,17 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
     rawLines.push(best || "Generated content unavailable.");
   }
 
-  // V5: Use comprehensive joke repair system
-  const repairContext = {
+  // Apply unified enforceBatch system
+  const enforcedLines = enforceBatch(rawLines, {
+    rating: ctx.rating,
     category: ctx.category,
     subcategory: ctx.subcategory,
-    tone: ctx.tone,
-    rating: ctx.rating,
     hardTag: ctx.tags.hard[0] || ""
-  };
-
-  // Apply comprehensive repair
-  let repairedLines = repairJokeBatch(rawLines, repairContext);
-  
-  // Validate the repaired batch
-  const validation = validateRepairedBatch(repairedLines);
-  console.log(`🔧 Repair quality score: ${validation.score}%`);
-  
-  if (validation.issues.length > 0) {
-    console.log(`⚠️ Remaining issues: ${validation.issues.join(", ")}`);
-  }
-
-  // Use advanced validator as final quality check
-  const validated = validateAndRepairBatch(repairedLines, {
-    rating: ctx.rating,
-    category: ctx.category,
-    subcategory: ctx.subcategory,
-    hardTags: ctx.tags.hard,
-    softTags: ctx.tags.soft,
-    requirePop: ctx.style === "pop-culture",
-    comedianVoice: voiceRotation[0],
-    tone: ctx.tone
   });
   
-  return validated;
+  console.log(`🎭 Enforced batch with voice variety and natural delivery`);
+  
+  return enforcedLines;
 }
 
 async function callModel(prompt: string): Promise<{ text: string }> {
