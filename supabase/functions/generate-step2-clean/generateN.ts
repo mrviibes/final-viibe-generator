@@ -15,12 +15,29 @@ type Ctx = {
 
 const BUCKETS: Array<[number, number]> = [
   [40,60],
-  [61,80],
+  [61,80], 
   [81,100],
 ];
 
 function pickBucket(): [number,number] {
   return BUCKETS[Math.floor(Math.random()*BUCKETS.length)];
+}
+
+function enforceHardTagFront(s: string, hard: string[], forceFront: boolean): string {
+  if (!hard.length) return s;
+  const tag = hard[0]; // first hard tag
+  const has = s.toLowerCase().includes(tag.toLowerCase());
+  if (!has) s = `${tag} ${s[0].toLowerCase()}${s.slice(1)}`;
+  if (forceFront && !s.toLowerCase().startsWith(tag.toLowerCase()))
+    s = `${tag} ${s[0].toLowerCase()}${s.slice(1)}`;
+  return s;
+}
+
+const BDAY = ["cake","candles","party","balloons","wish","slice"];
+function ensureBirthdayLexicon(s: string): string {
+  return BDAY.some(w=>s.toLowerCase().includes(w))
+    ? s
+    : s.replace(/\.$/, " over the cake.");
 }
 
 export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
@@ -42,7 +59,7 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
 
     // sanitize soft tags, enforce context and style, validate
     best = stripSoftEcho([best], ctx.tags.soft)[0];
-    best = enforceContextToneStyle(best, ctx); // adds lexicon word, punchline-first cue, romantic word, etc.
+    best = enforceBirthdayLine(best, ctx.tags.hard, minLen, maxLen, i); // birthday enforcement with hard tags
 
     if (!formatOK(best) || used.has(best)) {
       // one retry with shorter prompt
@@ -50,7 +67,7 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
       const res2 = await callModel(prompt2);
       const alt = res2.text.split("\n").map(s=>s.trim()).find(s => s.length>=minLen && s.length<=maxLen) ?? "";
       let cleaned = stripSoftEcho([alt], ctx.tags.soft)[0];
-      cleaned = enforceContextToneStyle(cleaned, ctx);
+      cleaned = enforceBirthdayLine(cleaned, ctx.tags.hard, minLen, maxLen, i);
       if (formatOK(cleaned) && !used.has(cleaned)) {
         best = cleaned;
       }
@@ -102,11 +119,15 @@ function stripSoftEcho(lines: string[], softTags: string[]): string[] {
   });
 }
 
-export function formatOK(s: string) {
+function formatOK(s: string, lo: number, hi: number): boolean {
   return /^[A-Z]/.test(s)
     && !/,|—/.test(s)
-    && (s.match(/\./g) || []).length === 1
-    && s.length >= 40 && s.length <= 100;
+    && (s.match(/\./g)||[]).length===1
+    && s.length>=lo && s.length<=hi;
+}
+
+export function formatOK(s: string) {
+  return formatOK(s, 40, 100);
 }
 
 function ensuredPeriod(s: string) { return s.replace(/\.+$/,"") + "."; }
@@ -137,6 +158,15 @@ function ensureLexicon(s: string, category: string, sub: string) {
   const words = LEX[sub] ?? LEX[category] ?? [];
   const hit = words.some(w => s.toLowerCase().includes(w));
   return hit && words.length ? s : (words.length ? s.replace(/\.$/," " + words[0] + ".") : s);
+}
+
+// main post-process for Birthday enforcement 
+function enforceBirthdayLine(s: string, hard: string[], lo: number, hi: number, i: number): string {
+  s = ensureBirthdayLexicon(s);                       // add birthday word if missing
+  s = enforceHardTagFront(s, hard, i % 2 === 0);      // start with tag on 1st/3rd lines
+  s = s.replace(/\s+\./g,".").replace(/^[a-z]/,m=>m.toUpperCase());
+  if (!formatOK(s, lo, hi)) s = s.slice(0, Math.max(lo, Math.min(hi, s.length-1))).replace(/\.$/,"") + ".";
+  return s;
 }
 
 export function enforceContextToneStyle(s: string, ctx: {
