@@ -1,4 +1,6 @@
 import { ParsedTags } from "./tags.ts";
+import { selectComedianVoiceV3, getVoiceInstructionsV3 } from "../shared/viibe_config_v3.ts";
+import { selectFreshPopCultureEntity, formatEntityForJoke, isPopCultureRequiredForStyle } from "../shared/popCultureV3.ts";
 
 export function buildPrompt(input: {
   category: string; subcategory: string; tone: string; style: string;
@@ -9,21 +11,36 @@ export function buildPrompt(input: {
   const themes = input.tags.soft.slice(0,5).join(" | ") || "none";
   const hard = input.tags.hard.join(", ") || "none";
 
+  // Select comedian voice for this line
+  const comedianVoice = selectComedianVoiceV3(input.rating);
+  const voiceInstructions = getVoiceInstructionsV3(comedianVoice);
+
+  // Get pop culture entity if needed
+  let popCultureEntity = "";
+  if (isPopCultureRequiredForStyle(input.style)) {
+    const entity = selectFreshPopCultureEntity();
+    if (entity) {
+      popCultureEntity = formatEntityForJoke(entity);
+    }
+  }
+
   const lines = [
     `Return one sentence only. Length ${input.minLen}-${input.maxLen} characters. One period.`,
     "No commas. No em dashes.",
     `Write a real joke in ${input.style}. Keep it clearly about ${input.category} > ${input.subcategory}.`,
+    voiceInstructions,
     `Rating ${input.rating}:`,
-    "G: clean.",
-    "PG-13: allow damn or hell only.",
-    "R: allow fuck or shit but no sexual content.",
+    "G: clean wholesome humor.",
+    "PG-13: allow damn or hell only, mild edge appropriate for teens.",
+    "R: allow fuck or shit but no sexual content, adult language only.",
     "Explicit: include a raunchy innuendo tied to context.",
     `Hard tags appear literally: ${hard}.`,
     `Soft tags guide tone only: ${themes}. Do not echo soft tags.`,
   ];
 
-  if (input.style === "punchline-first") {
-    lines.push('Start with a punchline-first cue like "Spoiler first then" or "Plot twist first then".');
+  // Add pop culture instruction if entity selected
+  if (popCultureEntity) {
+    lines.push(`Include fresh reference to: ${popCultureEntity}.`);
   }
   if (/Thanksgiving/i.test(input.subcategory)) {
     lines.push("Use at least one of: turkey, gravy, pie, table, toast, leftovers, cranberry, family, stuffing.");

@@ -1,5 +1,7 @@
 import { buildPrompt } from "./buildPrompt.ts";
 import { ParsedTags } from "./tags.ts";
+import { startNewPopCultureBatch } from "../shared/popCultureV3.ts";
+import { VIIBE_CONFIG_V3 } from "../shared/viibe_config_v3.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const MODEL = 'gpt-4.1-2025-04-14';
@@ -19,10 +21,8 @@ const BUCKETS: Array<[number, number]> = [
   [81,100],
 ];
 
-const PUNCHLINE_CUES = [
-  "Spoiler first then", "Plot twist first then", "Zero defense first then", "Fine first then",
-  "Twist first then", "Real talk first then", "Surprise first then"
-];
+// REMOVED: No more forced cues in V3 system
+// Comedian voices will drive natural punchline-first delivery
 
 const BASKETBALL_LEX = ["hoop","rim","court","dribble","rebound","buzzer","foul","free throw","timeout","screen","turnover","fast break"];
 
@@ -35,26 +35,16 @@ function assignBuckets(n: number = 4): [number,number][] {
   return buckets;
 }
 
-function ensurePunchlineCue(line: string, tone: string, lineIndex: number): string {
-  // Skip cues for Romantic/Sentimental tones
-  if (tone === "Romantic" || tone === "Sentimental") return line;
+function ensureNaturalDelivery(line: string, tone: string, lineIndex: number): string {
+  // V3: Let comedian voice drive delivery, no forced cues
+  // Just ensure proper sentence structure
+  let cleaned = line.trim();
   
-  // if it already has a cue, keep it but fix spacing
-  if (/\bfirst\b/i.test(line)) return line.replace(/\bfirst[, ]*then\b/i, " first then ");
+  // Ensure proper capitalization and punctuation
+  if (!cleaned.endsWith('.')) cleaned += '.';
+  cleaned = cleaned.replace(/^[a-z]/, m => m.toUpperCase());
   
-  // Smart cue distribution: only apply to 50% of lines (2 out of 4)
-  // Use line index to ensure variety - apply to lines 0 and 2, skip 1 and 3
-  if (lineIndex % 2 !== 0) return line;
-  
-  // Check if line already sounds like a punchline-first joke
-  if (/^(damn|well|so|man|dude|turns out|apparently)/i.test(line.trim())) {
-    return line; // Already sounds natural
-  }
-  
-  // Add rotating cue based on line index to ensure variety
-  const cueIndex = Math.floor(lineIndex / 2) % PUNCHLINE_CUES.length;
-  const cue = PUNCHLINE_CUES[cueIndex];
-  return `${cue} ${line[0].toLowerCase()}${line.slice(1)}`;
+  return cleaned;
 }
 
 function fitLengthWordSafe(line: string, lo: number, hi: number): string {
@@ -160,7 +150,7 @@ function postProcessBatch(rawLines: string[], hardTag: string, ctx: Ctx): string
     // 1. Normalize
     let s = l.trim();
     
-    // 2. Universal age filter for Birthday content (not just Romantic tone)
+    // 2. Universal age filter for Birthday content (V3: all birthday content, not just Romantic)
     if (ctx.category.toLowerCase().includes("birthday") || ctx.category.toLowerCase().includes("celebration")) {
       s = s.replace(/\b\d+\b/g, ""); // strip all numbers/ages
       s = s.replace(/\b(older|younger|age|years old|turning)\b/gi, ""); // strip age-related words
@@ -175,13 +165,13 @@ function postProcessBatch(rawLines: string[], hardTag: string, ctx: Ctx): string
       }
     }
     
-    // 4. Word-safe length fitting BEFORE cue application
+    // 4. Word-safe length fitting FIRST
     s = fitLengthWordSafe(s, buckets[i][0], buckets[i][1]);
     
-    // 5. Apply cue if needed (after length fitting to prevent cut-offs)
-    s = ensurePunchlineCue(s, ctx.tone, i);
+    // 5. V3: Natural delivery (no forced cues)
+    s = ensureNaturalDelivery(s, ctx.tone, i);
     
-    // 6. Final length check and repair after cue addition
+    // 6. Final length check (V3: no cues to worry about)
     if (s.length > buckets[i][1]) {
       s = fitLengthWordSafe(s, buckets[i][0], buckets[i][1]);
     }
@@ -206,6 +196,9 @@ function ensureBirthdayLexicon(s: string): string {
 }
 
 export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
+  // Start new batch for pop culture tracking
+  startNewPopCultureBatch();
+  
   const rawLines: string[] = [];
 
   // Generate all lines first
