@@ -18,82 +18,57 @@ export const universalTextPlacementTemplates: TextPlacementTemplate[] = [
     id: "memeTopBottom",
     label: "Meme Top/Bottom",
     description: "Bold captions in clear horizontal bands at top and/or bottom",
-    positivePrompt: `TEXT: Render this caption once: "[FINAL_TEXT]".
-PLACEMENT: Place the caption in a single dedicated band at the top OR bottom margin. 
-STYLE: Bold, sans-serif, high contrast, fully legible. 
-Keep the caption completely outside the subject's face, head, eyes, or body. 
-Keep the caption away from cake, balloons, clothing, and other objects. 
-Caption must sit in empty background space or margin only.
+    positivePrompt: `TEXT: "[FINAL_TEXT]" in meme format. Bold sans-serif, high contrast.
 SCENE: [SCENE_DESCRIPTION]`,
-    negativePrompt: `no duplicate captions, no extra captions, no split or fragmented captions, no text at both top and bottom, no text on faces, heads, eyes, or bodies, no text on objects (cake, balloons, clothing, walls, props), no distorted text, no low-contrast text`
+    negativePrompt: `no duplicate text, no distorted letters, no extra captions`
   },
   {
     id: "negativeSpace",
     label: "Negative Space",
     description: "Text integrated seamlessly into natural empty areas",
-    positivePrompt: `TEXT: Render this caption once: "[FINAL_TEXT]".
-PLACEMENT: Place caption in empty margins, away from people's faces.
-STYLE: Bold sans-serif, high contrast, fully legible.
-Keep all text outside subject bounding box, away from faces, heads, eyes, or bodies.
-SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear empty space for the caption.`,
-    negativePrompt: `no duplicate captions, no extra captions, no bottom text, no extra text bands, no split captions, never place text over faces, heads, eyes, or bodies, keep all text outside subject bounding box, no text on objects (cake, balloons, walls, clothing)`
+    positivePrompt: `TEXT: "[FINAL_TEXT]" in negative space. Clean sans-serif, high contrast.
+SCENE: [SCENE_DESCRIPTION]`,
+    negativePrompt: `no duplicate text, no distorted letters, no extra captions`
   },
   {
     id: "lowerThird",
     label: "Lower Third Banner",
     description: "Clean banner-style caption across bottom third",
-    positivePrompt: `TEXT: Render this caption once: "[FINAL_TEXT]".
-PLACEMENT: Place caption in one dedicated band at the bottom margin only. 
-Never float text over the subject, ball, hoop, cake, or crowd.
-STYLE: Bold sans-serif, high contrast, fully legible, professional format.
-Keep text completely outside of faces, heads, bodies, and props.
+    positivePrompt: `TEXT: "[FINAL_TEXT]" in lower third banner. Bold sans-serif, high contrast.
 SCENE: [SCENE_DESCRIPTION]`,
-    negativePrompt: `no duplicate captions, no extra text or random characters, no garbled or partial words, no text at top, mid-frame, or floating anywhere, no text over faces, heads, eyes, or bodies, no text on objects (ball, hoop, cake, crowd, bleachers), no split captions, no distorted text, no watermarks or logos`
+    negativePrompt: `no duplicate text, no distorted letters, no extra captions`
   },
   {
     id: "sideBarLeft",
     label: "Side Bar (Left)",
     description: "Vertical caption panel on the left side",
-    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Left side panel, within 25% of canvas width, aligned cleanly.
-STYLE: Modern sans-serif, bold, high contrast, fully legible.
-SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear left panel for the caption.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
+    positivePrompt: `TEXT: "[FINAL_TEXT]" on left side. Bold sans-serif, high contrast.
+SCENE: [SCENE_DESCRIPTION]`,
+    negativePrompt: `no duplicate text, no distorted letters, no extra captions`
   },
   {
     id: "sideBarRight",
     label: "Side Bar (Right)",
     description: "Vertical caption panel on the right side",
-    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Right side panel, within 25% of canvas width, aligned cleanly.
-STYLE: Modern sans-serif, bold, high contrast, fully legible.
-SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear right panel for the caption.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
+    positivePrompt: `TEXT: "[FINAL_TEXT]" on right side. Bold sans-serif, high contrast.
+SCENE: [SCENE_DESCRIPTION]`,
+    negativePrompt: `no duplicate text, no distorted letters, no extra captions`
   },
   {
     id: "badgeSticker",
     label: "Badge/Sticker Callout",
     description: "Text inside a clean modern badge or sticker element",
-    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Inside contained badge or sticker element, no larger than 20% of canvas area.
-STYLE: Modern sans-serif, bold, high contrast, fully legible.
-SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear badge area for the caption.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
+    positivePrompt: `TEXT: "[FINAL_TEXT]" in badge format. Bold sans-serif, high contrast.
+SCENE: [SCENE_DESCRIPTION]`,
+    negativePrompt: `no duplicate text, no distorted letters, no extra captions`
   },
   {
     id: "subtleCaption",
     label: "Subtle Caption",
     description: "Minimal caption overlay, unobtrusive but legible",
-    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Small, unobtrusive, less than 10% of image height, but fully legible.
-STYLE: Modern sans-serif, bold, high contrast, fully legible.
-SCENE: [SCENE_DESCRIPTION]
-SPACE: Preserve clear corner space for the caption.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
+    positivePrompt: `TEXT: "[FINAL_TEXT]" as subtle caption. Clean sans-serif, high contrast.
+SCENE: [SCENE_DESCRIPTION]`,
+    negativePrompt: `no duplicate text, no distorted letters, no extra captions`
   }
 ];
 

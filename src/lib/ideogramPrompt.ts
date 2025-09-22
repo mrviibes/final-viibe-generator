@@ -357,10 +357,7 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const allParts = [...textParts, ...sceneParts];
   let positivePrompt = allParts.join(' ');
   
-  // Add multiple redundant text requirements for better success
-  if (shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
-    positivePrompt += ` Text visible: "${handoff.key_line}".`;
-  }
+  // Removed redundant text instruction to prevent over-fitting
   
   // Add overlay-mode text avoidance directive only when explicitly avoiding text
   if (!shouldInjectText && handoff.key_line && handoff.key_line.trim()) {
@@ -372,10 +369,10 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const promptSanitization = sanitizePrompt(positivePrompt);
   positivePrompt = promptSanitization.cleaned;
   
-  // PHASE 3 (Legacy): Enhanced negative prompt for better text handling
+  // Simplified negative prompt to prevent over-instruction
   const baseNegativePrompt = shouldInjectText 
-    ? "no duplicate captions, no extra captions, no split or fragmented captions, no text at both top and bottom, no text on faces, heads, eyes, or bodies, no text on objects (cake, balloons, clothing, walls, props), no distorted text, no low-contrast text, no filler props, no empty rooms, no abstract shapes, no watermarks, no logos, no extra on image text, no broken or garbled letters, no multiple text boxes" 
-    : "no embedded text, no letters, no words, no signage, no watermarks, no logos";
+    ? "no duplicate text, no distorted letters, no extra captions" 
+    : "no embedded text, no letters, no words, no signage";
   
   let enhancedNegativePrompt = baseNegativePrompt;
   
