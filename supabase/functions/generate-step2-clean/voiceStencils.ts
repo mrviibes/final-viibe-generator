@@ -1,5 +1,5 @@
 // Advanced Voice Stencil System - Guarantee comedian-specific structures
-import { ComedianVoice } from "../../../src/lib/comedianVoices.ts";
+import { ComedianVoice } from "../shared/comedianVoices.ts";
 
 export type StencilVoice = "kevin_hart" | "ali_wong" | "chris_rock" | "john_mulaney" | "bill_burr" | "wanda_sykes" | "sebastian_maniscalco" | "jo_koy" | "dave_chappelle" | "taylor_tomlinson" | "nate_bargatze" | "sarah_silverman" | "trevor_noah" | "hasan_minhaj" | "ricky_gervais" | "norm_macdonald" | "mitch_hedberg" | "amy_schumer" | "george_carlin" | "joan_rivers";
 

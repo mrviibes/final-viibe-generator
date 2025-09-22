@@ -1,110 +1,211 @@
-// Comedian voice selection system
-import { VIIBE_CONFIG } from './config.ts';
+// 20 Comedian Voice Bank for randomized humor styles
 
-export function selectComedianVoice(style: string, rating: string): string | null {
-  if (!VIIBE_CONFIG.comedianVoices.enabledForAllStyles) {
-    return null;
-  }
-  
-  const voices = VIIBE_CONFIG.comedianVoices.banks[style];
-  if (!voices || voices.length === 0) {
-    // Fallback to punchline-first bank if style-specific bank not found
-    const fallbackVoices = VIIBE_CONFIG.comedianVoices.banks['punchline-first'];
-    if (!fallbackVoices || fallbackVoices.length === 0) {
-      return null;
-    }
-    return fallbackVoices[Math.floor(Math.random() * fallbackVoices.length)];
-  }
-  
-  // Select random voice from appropriate bank
-  const randomIndex = Math.floor(Math.random() * voices.length);
-  return voices[randomIndex];
+export interface ComedianVoice {
+  id: string;
+  name: string;
+  style: string;
+  beats: string[];
+  tone: string;
+  signature: string;
 }
 
-export function selectVoicesForAllLines(style: string, rating: string, lineCount: number): string[] {
-  if (!VIIBE_CONFIG.comedianVoices.alwaysRandomizePerLine) {
-    const singleVoice = selectComedianVoice(style, rating);
-    return Array(lineCount).fill(singleVoice || 'default');
+export const COMEDIAN_VOICES: ComedianVoice[] = [
+  {
+    id: "kevin_hart",
+    name: "Kevin Hart",
+    style: "energetic_storytelling",
+    beats: ["fast riff", "self own", "exaggeration", "physical comedy"],
+    tone: "high-energy",
+    signature: "Fast-paced, self-deprecating energy with physical references"
+  },
+  {
+    id: "ali_wong",
+    name: "Ali Wong",
+    style: "raw_fearless",
+    beats: ["raunchy", "brazen", "family digs", "pregnancy humor"],
+    tone: "brutally honest",
+    signature: "Raw, unapologetic family and relationship humor"
+  },
+  {
+    id: "dave_chappelle",
+    name: "Dave Chappelle",
+    style: "sharp_commentary",
+    beats: ["cultural turn", "understatement", "social observation"],
+    tone: "sly and pointed",
+    signature: "Sharp cultural commentary with sly delivery"
+  },
+  {
+    id: "taylor_tomlinson",
+    name: "Taylor Tomlinson",
+    style: "relatable_millennial",
+    beats: ["dating anxiety", "self roast", "millennial struggles"],
+    tone: "self-aware",
+    signature: "Relatable millennial anxiety and dating disasters"
+  },
+  {
+    id: "ricky_gervais",
+    name: "Ricky Gervais",
+    style: "edgy_wit",
+    beats: ["mocking", "dark humor", "celebrity roast"],
+    tone: "sardonic",
+    signature: "Edgy, mocking wit with zero filter"
+  },
+  {
+    id: "trevor_noah",
+    name: "Trevor Noah",
+    style: "global_cultural",
+    beats: ["immigrant pov", "soft jab", "cultural comparison"],
+    tone: "worldly",
+    signature: "Global perspective with gentle but pointed observations"
+  },
+  {
+    id: "sebastian_maniscalco",
+    name: "Sebastian Maniscalco",
+    style: "physical_family",
+    beats: ["exasperated", "gesture words", "family dysfunction"],
+    tone: "animated",
+    signature: "Exasperated family humor with physical storytelling"
+  },
+  {
+    id: "bill_burr",
+    name: "Bill Burr",
+    style: "blunt_observational",
+    beats: ["angry tag", "no filter", "brutal honesty"],
+    tone: "unfiltered rage",
+    signature: "Blunt, angry observations with zero apologies"
+  },
+  {
+    id: "hasan_minhaj",
+    name: "Hasan Minhaj",
+    style: "narrative_political",
+    beats: ["setup pivot", "political wink", "storytelling"],
+    tone: "smart and smooth",
+    signature: "Storytelling with political undertones and smooth delivery"
+  },
+  {
+    id: "nate_bargatze",
+    name: "Nate Bargatze",
+    style: "deadpan_clean",
+    beats: ["clean obvious", "slow twist", "understated"],
+    tone: "deadpan innocent",
+    signature: "Deadpan delivery with innocent but clever observations"
+  },
+  {
+    id: "sarah_silverman",
+    name: "Sarah Silverman",
+    style: "dark_cute",
+    beats: ["wrong but playful", "twisted logic", "innocent delivery"],
+    tone: "deceptively sweet",
+    signature: "Dark humor delivered with childlike innocence"
+  },
+  {
+    id: "louis_ck",
+    name: "Louis CK",
+    style: "confessional",
+    beats: ["inappropriate admit", "self-hatred", "oversharing"],
+    tone: "self-loathing",
+    signature: "Uncomfortable confessions and inappropriate admissions"
+  },
+  {
+    id: "wanda_sykes",
+    name: "Wanda Sykes",
+    style: "sassy",
+    beats: ["snap line", "social edge", "attitude"],
+    tone: "no-nonsense sass",
+    signature: "Sassy attitude with sharp social commentary"
+  },
+  {
+    id: "chris_rock",
+    name: "Chris Rock",
+    style: "loud",
+    beats: ["relationship heat", "social truth", "animated delivery"],
+    tone: "loud and pointed",
+    signature: "Loud, pointed observations about relationships and society"
+  },
+  {
+    id: "jo_koy",
+    name: "Jo Koy",
+    style: "family",
+    beats: ["mom jokes", "act out", "family dynamics"],
+    tone: "family-focused",
+    signature: "Family dynamics with physical acting and mom impressions"
+  },
+  {
+    id: "norm_macdonald",
+    name: "Norm MacDonald",
+    style: "odd_deadpan",
+    beats: ["weird left turn", "anti-joke", "unexpected"],
+    tone: "bizarrely deadpan",
+    signature: "Bizarre deadpan delivery with unexpected twists"
+  },
+  {
+    id: "mitch_hedberg",
+    name: "Mitch Hedberg",
+    style: "surreal_one_liner",
+    beats: ["misdirection", "wordplay", "absurd logic"],
+    tone: "dreamy surreal",
+    signature: "Surreal one-liners with unexpected misdirection"
+  },
+  {
+    id: "amy_schumer",
+    name: "Amy Schumer",
+    style: "dirty_selfaware",
+    beats: ["raunchy self", "sexual honesty", "body humor"],
+    tone: "unapologetically dirty",
+    signature: "Unapologetically dirty and self-aware sexual humor"
+  },
+  {
+    id: "george_carlin",
+    name: "George Carlin",
+    style: "cynic",
+    beats: ["societal rant shard", "linguistic", "philosophical"],
+    tone: "cynical philosopher",
+    signature: "Cynical philosophical rants about society and language"
+  },
+  {
+    id: "joan_rivers",
+    name: "Joan Rivers",
+    style: "savage_glam",
+    beats: ["fashion roast", "celebrity drag", "glamorous cruelty"],
+    tone: "glamorously savage",
+    signature: "Savage celebrity and fashion roasts with glamorous cruelty"
   }
-  
-  // Select different voice for each line with structure variety enforcement
-  const voices: string[] = [];
-  const usedVoices = new Set<string>();
-  
-  for (let i = 0; i < lineCount; i++) {
-    let selectedVoice = selectComedianVoice(style, rating) || 'default';
-    
-    // Ensure unique voices per batch if enforcement is enabled
-    if (VIIBE_CONFIG.comedianVoices.enforceUniqueVoicesPerBatch) {
-      let attempts = 0;
-      while (usedVoices.has(selectedVoice) && attempts < 10) {
-        selectedVoice = selectComedianVoice(style, rating) || 'default';
-        attempts++;
-      }
-      usedVoices.add(selectedVoice);
-    }
-    
-    voices.push(selectedVoice);
-  }
-  
-  return voices;
+];
+
+// Random voice selection functions
+export function getRandomVoices(count: number = 4): ComedianVoice[] {
+  const shuffled = [...COMEDIAN_VOICES].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
 }
 
-export function selectVoicesForStructures(structures: string[]): string[] {
-  const structureMapping = VIIBE_CONFIG.comedianVoices.structureMapping;
-  const voices: string[] = [];
-  const usedVoices = new Set<string>();
-  
-  for (const structure of structures) {
-    const availableVoices = structureMapping[structure] || structureMapping['punchline_first'];
-    let selectedVoice = availableVoices[Math.floor(Math.random() * availableVoices.length)];
-    
-    // Ensure unique voices
-    let attempts = 0;
-    while (usedVoices.has(selectedVoice) && attempts < 10) {
-      selectedVoice = availableVoices[Math.floor(Math.random() * availableVoices.length)];
-      attempts++;
-    }
-    
-    usedVoices.add(selectedVoice);
-    voices.push(selectedVoice);
-  }
-  
-  return voices;
+export function getVoiceById(id: string): ComedianVoice | undefined {
+  return COMEDIAN_VOICES.find(voice => voice.id === id);
 }
 
-export function getVoiceInstructions(voice: string, style: string): string {
-  if (voice === 'default' || !voice) {
-    return `Write in ${style} style with strong comedic structure.`;
+export function getVoicesByStyle(style: string): ComedianVoice[] {
+  return COMEDIAN_VOICES.filter(voice => voice.style.includes(style));
+}
+
+// Generate comedian-specific prompt instructions
+export function generateVoicePrompt(voice: ComedianVoice, rating: string): string {
+  const ratingModifier = getRatingModifier(rating);
+  
+  return `Channel ${voice.name}'s ${voice.signature}. ${voice.beats.join(', ')}. ${ratingModifier}`;
+}
+
+function getRatingModifier(rating: string): string {
+  switch (rating) {
+    case 'G':
+      return 'Keep it wholesome and family-friendly.';
+    case 'PG':
+      return 'Add light sass but stay clean.';
+    case 'PG-13':
+      return 'Include mild profanity (damn, hell) or sharp attitude.';
+    case 'R':
+      return 'Use strong profanity (fuck, shit, ass) and savage roasts.';
+    case 'XXX':
+      return 'Go full NSFW with explicit language and brutal content.';
+    default:
+      return 'Include some edge and attitude.';
   }
-  
-  const voiceInstructions: Record<string, string> = {
-    'kevin_hart': 'Channel Kevin Hart: high energy panic, animated physical reactions, self-roast first then roast others. "Man, listen!" openings.',
-    'ali_wong': 'Channel Ali Wong: brutal honest observations, raw family/sex humor, unapologetic bold delivery with vivid imagery.',
-    'bill_burr': 'Channel Bill Burr: working-class rant energy with "fuck off" attitude, confrontational truth-telling, gruff Boston edge.',
-    'taylor_tomlinson': 'Channel Taylor Tomlinson: millennial anxiety storytelling with dating disaster punchlines and quarter-life crisis timing.',
-    'chris_rock': 'Channel Chris Rock: sharp relationship observations with loud social commentary, clear setup-punchline structure.',
-    'joan_rivers': 'Channel Joan Rivers: glamorous savage roasts with no sacred cows, cutting Hollywood insider wit with visual imagery.',
-    'ricky_gervais': 'Channel Ricky Gervais: provocative boundary-pushing with deadpan British cruelty, irreverent mocking delivery.',
-    'dave_chappelle': 'Channel Dave Chappelle: storytelling with social insights, character voices, vivid scene-setting with cultural perspective.',
-    'wanda_sykes': 'Channel Wanda Sykes: dry sassy social commentary with everyday observations, sharp maternal wisdom delivery.',
-    'anthony_jeselnik': 'Channel Anthony Jeselnik: dark deadpan one-liners with shocking twists, clinical precision in brutal punchlines.',
-    'jim_gaffigan': 'Channel Jim Gaffigan: self-deprecating food and family humor with internal voice asides, relatable dad observations.',
-    'hasan_minhaj': 'Channel Hasan Minhaj: cultural immigrant experience storytelling with political undertones, animated earnest delivery.',
-    'nate_bargatze': 'Channel Nate Bargatze: clean folksy storytelling with innocent Southern observations, deadpan confused delivery.',
-    'james_acaster': 'Channel James Acaster: absurd British tangents with quirky observations, theatrical confused storytelling energy.',
-    'john_early': 'Channel John Early: theatrical dramatic over-reactions with camp delivery, exaggerated emotional breakdowns for comedy.',
-    'john_mulaney': 'Channel John Mulaney: nostalgic precise storytelling with childlike wonder, clear narrative structure and timing.',
-    'bo_burnham_clean': 'Channel Bo Burnham (clean): clever meta-humor wordplay with musical timing, self-aware performance anxiety.',
-    'mike_birbiglia': 'Channel Mike Birbiglia: vulnerable awkward storytelling with conversational pacing, self-aware neurotic observations.',
-    'demetri_martin': 'Channel Demetri Martin: dry one-liner wordplay with mathematical precision, observational wit with visual elements.',
-    'patrice_oneal': 'Channel Patrice O\'Neal: brutally honest relationship observations with confrontational truth-telling, raw masculine perspective.',
-    'sarah_silverman': 'Channel Sarah Silverman: dark humor with childlike innocent delivery, shocking content with sweet presentation.',
-    'amy_schumer': 'Channel Amy Schumer: unapologetically dirty self-aware humor with relationship disasters and body-positive raunch.',
-    'trevor_noah_clean': 'Channel Trevor Noah (clean): global cultural observations with accent humor, thoughtful social commentary delivery.',
-    'norm_macdonald': 'Channel Norm MacDonald: bizarre deadpan with weird unexpected twists, anti-comedy timing with surreal logic.',
-    'mitch_hedberg': 'Channel Mitch Hedberg: surreal one-liners with misdirection wordplay, stoned philosophical observations with rhythm.'
-  };
-  
-  return voiceInstructions[voice] || `Write in ${style} style with ${voice} comedic approach.`;
 }

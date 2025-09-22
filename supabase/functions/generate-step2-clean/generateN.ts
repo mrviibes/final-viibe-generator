@@ -1,7 +1,7 @@
 import { buildPrompt } from "./buildPrompt.ts";
 import { ParsedTags, normalizeTags } from "./tags.ts";
 import { repairWithVoiceStencils, validateStencilRepair } from './voiceStencils.ts';
-import { COMEDIAN_VOICES, ComedianVoice, getRandomVoices } from '../../../src/lib/comedianVoices.ts';
+import { COMEDIAN_VOICES, ComedianVoice, getRandomVoices } from '../shared/comedianVoices.ts';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const PRIMARY_MODEL = "gpt-5-2025-08-07";
