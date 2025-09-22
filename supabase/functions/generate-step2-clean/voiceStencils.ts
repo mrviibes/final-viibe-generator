@@ -199,10 +199,36 @@ function fitLength(s: string, lo: number, hi: number): string {
 
 function splitHalf(raw: string): { setup: string; punch: string } {
   const s = raw.replace(/\s+/g, " ").trim();
-  const idx = Math.max(15, Math.min(s.length - 15, s.indexOf(" ", Math.floor(s.length * 0.55))));
+  
+  // More intelligent split - avoid breaking at awkward points
+  const length = s.length;
+  let bestIdx = Math.floor(length * 0.55);
+  
+  // Look for natural break points around the target position
+  const searchStart = Math.max(15, bestIdx - 15);
+  const searchEnd = Math.min(length - 15, bestIdx + 15);
+  
+  // Prefer breaking after conjunctions, prepositions, or articles
+  const breakWords = [" but ", " and ", " so ", " because ", " when ", " after ", " the ", " a "];
+  for (const breakWord of breakWords) {
+    const idx = s.indexOf(breakWord, searchStart);
+    if (idx >= searchStart && idx <= searchEnd) {
+      bestIdx = idx + breakWord.length;
+      break;
+    }
+  }
+  
+  // Fallback to word boundary
+  if (bestIdx === Math.floor(length * 0.55)) {
+    const spaceIdx = s.indexOf(" ", bestIdx);
+    if (spaceIdx > 0 && spaceIdx < length - 10) {
+      bestIdx = spaceIdx;
+    }
+  }
+  
   return { 
-    setup: s.slice(0, idx), 
-    punch: s.slice(idx).replace(/^[^\w]+/, "") 
+    setup: s.slice(0, bestIdx).trim(), 
+    punch: s.slice(bestIdx).trim().replace(/^[^\w]+/, "") 
   };
 }
 
@@ -261,10 +287,11 @@ export function repairWithVoiceStencils(
     let s = clean(r);
     const { setup, punch } = splitHalf(s);
 
-    // 2. Apply voice stencil
+    // 2. Apply voice stencil with correct rating mapping
     const voice = voices[i] || voices[0];
     const stencilVoice = mapToStencilVoice(voice);
-    const ratingKey = rating === "G" ? "G" : rating === "PG" ? "PG" : rating.includes("R") ? "R" : "XXX";
+    const ratingKey = rating === "G" ? "G" : rating === "PG-13" ? "PG" : rating.includes("R") || rating === "Explicit" ? "R" : "XXX";
+    console.log(`🎭 Applying ${stencilVoice} voice with ${ratingKey} rating for line ${i+1}`);
     s = VOICE_STENCILS[stencilVoice][ratingKey](setup, punch);
 
     // 3. Humor and birthday enforcement
@@ -338,9 +365,19 @@ export function validateStencilRepair(lines: string[]): {
       lineScore -= 20;
     }
 
-    // Fragment detection
-    if (/\b(and|but|so|because|when|while|until|after|before)\s*\.?\s*$/i.test(line)) {
-      issues.push(`Line ${i + 1}: Incomplete fragment`);
+    // Enhanced fragment detection
+    const fragmentPatterns = [
+      /\b(and|but|so|because|when|while|until|after|before|the|was|had|with|for|that|to|at|in|on|even)\s*\.?\s*$/i,
+      /\bcome to\.\s*$/i,
+      /\bso bad even the\.\s*$/i,
+      /\bmake Jesse any\.\s*$/i,
+      /\bpeople come to\.\s*$/i,
+      /\bend up with but a\.\s*$/i
+    ];
+    
+    const hasFragment = fragmentPatterns.some(pattern => pattern.test(line));
+    if (hasFragment) {
+      issues.push(`Line ${i + 1}: Incomplete fragment or cut-off ending`);
       lineScore -= 30;
     }
 
@@ -349,8 +386,16 @@ export function validateStencilRepair(lines: string[]): {
     score = Math.min(score, lineScore);
   });
 
+  // Emergency quality gate - reject if too many issues
+  const qualityGate = score >= 70 && stageReadyCount >= 3;
+  
+  if (!qualityGate) {
+    console.warn(`🚨 Quality gate failed - Score: ${score}, Stage-ready: ${stageReadyCount}/4`);
+    console.warn(`Issues found:`, issues);
+  }
+
   return {
-    isValid: score >= 70 && stageReadyCount >= 3,
+    isValid: qualityGate,
     issues,
     score: Math.max(score, 0),
     stageReadyCount

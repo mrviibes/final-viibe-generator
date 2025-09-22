@@ -322,7 +322,7 @@ async function generateFour(inputs: any): Promise<{
     options: finalLines,
     meta: {
       model: "gpt-5-2025-08-07", // Report actual model used
-      voices: ["Dynamic Voice Selection"], // Voice selection is now dynamic per batch
+      voices: ["hart", "wong", "rock", "mulaney"], // Show comedian rotation for debugging
       style: ctx.style,
       tone: ctx.tone,
       system: "voice-stencil-v1"

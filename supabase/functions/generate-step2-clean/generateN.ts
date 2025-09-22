@@ -221,12 +221,18 @@ function processWithVoiceStencils(rawText: string, ctx: Ctx, voices: ComedianVoi
   const repairedLines = repairWithVoiceStencils(rawLines, voices, ctx.rating);
   console.log(`🎭 After voice stencil repair:`, repairedLines);
   
-  // Validate the repair quality
+  // Validate the repair quality with emergency regeneration
   const validation = validateStencilRepair(repairedLines);
   console.log(`✅ Stencil validation - Score: ${validation.score}, Stage-ready: ${validation.stageReadyCount}/4`);
   
   if (validation.issues.length > 0) {
     console.log(`⚠️ Validation issues:`, validation.issues);
+  }
+  
+  // Emergency quality gate - regenerate with fallback if quality is too low
+  if (validation.score < 70 || validation.stageReadyCount < 3) {
+    console.warn(`🚨 Quality below threshold - using enhanced fallback`);
+    return generateVoiceStencilFallback(ctx, voices, n);
   }
   
   // Final processing with birthday lexicon
