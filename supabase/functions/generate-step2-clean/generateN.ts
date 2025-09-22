@@ -7,11 +7,9 @@ import {
   validateNaturalDelivery, 
   detectAndRepairFragments,
   createVoiceRotation,
-  spreadHardTagCreatively,
-  applyFallbackCompletion,
-  validateCompleteJoke,
   getVoiceHint
 } from "./deliveryTemplates.ts";
+import { repairJokeBatch, validateRepairedBatch } from "./jokeRepair.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const MODEL = 'gpt-4.1-2025-04-14';
@@ -256,23 +254,19 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
     // Get best line from model output
     let best = lines.find(s => s.length >= 40 && s.length <= 100) ?? lines[0] ?? "";
     
-    // Basic soft tag stripping
+    // Basic soft tag stripping and repair
     best = stripSoftEcho([best], ctx.tags.soft)[0];
-    
-    // Repair and validate
     best = detectAndRepairFragments(best);
-    best = applyFallbackCompletion(best, ctx.category);
     
-    if (!validateCompleteJoke(best)) {
+    if (!best || best.length < 40) {
       // One retry with simplified prompt
       const prompt2 = buildPrompt({ ...ctx, minLen: 40, maxLen: 100, simplified: true });
       const res2 = await callModel(prompt2);
       let alt = res2.text.split("\n").map(s => s.trim()).find(s => s.length >= 40 && s.length <= 100) ?? "";
       alt = stripSoftEcho([alt], ctx.tags.soft)[0];
       alt = detectAndRepairFragments(alt);
-      alt = applyFallbackCompletion(alt, ctx.category);
       
-      if (validateCompleteJoke(alt)) {
+      if (alt && alt.length >= 40) {
         best = alt;
       }
     }
@@ -280,60 +274,37 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
     rawLines.push(best || "Generated content unavailable.");
   }
 
-  // Apply creative hard tag spreading (avoid all front placement)
-  const hardTag = ctx.tags.hard[0] || "";
-  let processedLines = spreadHardTagCreatively(rawLines, hardTag);
-  
-  // Final processing: length fitting and quality control
-  const buckets = assignBuckets(processedLines.length);
-  processedLines = processedLines.map((line, i) => {
-    let processed = line;
-    
-    // Apply context and tone enforcement
-    if (ctx.category.toLowerCase().includes("birthday")) {
-      processed = ensureBirthdayLexicon(processed);
-    }
-    
-    if (ctx.tone === "Romantic") {
-      if (!/(love|heart|warm|dear|sweet|tender|adore)/i.test(processed)) {
-        processed = processed.replace(/\.$/, " and my heart knows it.");
-      }
-    }
-    
-    // Word-safe length fitting
-    processed = fitLengthWordSafe(processed, buckets[i][0], buckets[i][1]);
-    
-    // Final QC
-    processed = finalQC(processed);
-    
-    return processed;
-  });
+  // V5: Use comprehensive joke repair system
+  const repairContext = {
+    category: ctx.category,
+    subcategory: ctx.subcategory,
+    tone: ctx.tone,
+    rating: ctx.rating,
+    hardTag: ctx.tags.hard[0] || ""
+  };
 
-  // Use advanced validator for final quality check
-  const validated = validateAndRepairBatch(processedLines, {
+  // Apply comprehensive repair
+  let repairedLines = repairJokeBatch(rawLines, repairContext);
+  
+  // Validate the repaired batch
+  const validation = validateRepairedBatch(repairedLines);
+  console.log(`🔧 Repair quality score: ${validation.score}%`);
+  
+  if (validation.issues.length > 0) {
+    console.log(`⚠️ Remaining issues: ${validation.issues.join(", ")}`);
+  }
+
+  // Use advanced validator as final quality check
+  const validated = validateAndRepairBatch(repairedLines, {
     rating: ctx.rating,
     category: ctx.category,
     subcategory: ctx.subcategory,
     hardTags: ctx.tags.hard,
     softTags: ctx.tags.soft,
     requirePop: ctx.style === "pop-culture",
-    comedianVoice: voiceRotation[0], // Pass first voice as reference
+    comedianVoice: voiceRotation[0],
     tone: ctx.tone
   });
-  
-  // Score the batch quality
-  const qualityScore = scoreBatchQuality(validated, {
-    rating: ctx.rating,
-    category: ctx.category,
-    subcategory: ctx.subcategory,
-    hardTags: ctx.tags.hard,
-    comedianVoice: voiceRotation[0]
-  });
-  
-  console.log(`📊 Batch quality score: ${qualityScore.overallScore}%`);
-  if (qualityScore.issues.length > 0) {
-    console.log(`⚠️ Quality issues: ${qualityScore.issues.join(", ")}`);
-  }
   
   return validated;
 }

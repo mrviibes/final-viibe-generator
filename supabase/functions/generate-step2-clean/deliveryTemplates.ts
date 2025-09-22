@@ -134,19 +134,35 @@ export function validateNaturalDelivery(line: string): {
 export function detectAndRepairFragments(line: string): string {
   let repaired = line.trim();
 
-  // Common fragment patterns with specific repairs
+  // Enhanced fragment patterns targeting specific issues from user feedback
   const fragmentRepairs: [RegExp, string][] = [
-    [/^Man listen Jesse in America\b.*$/i, "Man listen Jesse parties so hard even the cake gets nervous."],
-    [/^You ever tonight\.?\s*$/i, "You ever notice parties always end with regret."],
-    [/^So I walk into my tonight\.?\s*$/i, "So I walk into this party and immediately want to leave."],
-    [/\b(the|and|was|had|with|for|but|that|to|at|in|on|so|even|is|my)\.\s*$/i, " and the cake still looked confused."],
-    [/\bcome to\.\s*$/i, " come to celebrate."],
-    [/\bmake Jesse any\.\s*$/i, " make Jesse happy."],
-    [/\bpeople come to\.\s*$/i, " people come to party."],
-    [/\bcake was so bad even the\.\s*$/i, " cake was so bad the candles quit."],
-    [/\bfirst then the real reason\.\s*$/i, " first then reality hit hard."],
-    [/\bdidn't make Jesse any\.\s*$/i, " didn't make Jesse smile."],
-    [/\bso bad even the\.\s*$/i, " so bad even the decorations left early."]
+    // Specific patterns we've seen in the user's feedback
+    [/^Man listen Jesse in America\b.*$/i, "Man listen Jesse parties like the cake owes him money."],
+    [/^You ever tonight\.?\s*$/i, "You ever notice parties end with cleanup regret."],
+    [/^So I walk into my tonight\.?\s*$/i, "So I walk into this party confused and leave more confused."],
+    
+    // Double word patterns like "the cake and the cake"
+    [/\b(\w+)\s+and\s+the\s+\1\b/gi, "$1"],
+    
+    // Incomplete comparisons
+    [/\bbut in \w+\.\s*$/i, " but in Brazil the party never stops."],
+    [/\bin \w+ \w+ are \w+ and \w+ but in \w+\.\s*$/i, " in Germany birthdays are polite but in Brazil they explode with joy."],
+    
+    // Common incomplete endings
+    [/\b(the|and|was|had|with|for|but|that|to|at|in|on|so|even|is|my)\.\s*$/i, " and everyone nodded awkwardly."],
+    [/\bcome to\.\s*$/i, " come to celebrate chaos."],
+    [/\bmake Jesse any\.\s*$/i, " make Jesse question everything."],
+    [/\bpeople come to\.\s*$/i, " people come to witness the spectacle."],
+    [/\bcake was so bad even the\.\s*$/i, " cake was so bad the candles refused to cooperate."],
+    [/\bfirst then the real reason\.\s*$/i, " first then reality slapped everyone awake."],
+    [/\bdidn't make Jesse any\.\s*$/i, " didn't make Jesse any wiser."],
+    [/\bso bad even the\.\s*$/i, " so bad even the decorations gave up."],
+    
+    // Wildfire metaphor fixes
+    [/\blike I'm trying to blow out a tiny wildfire\.\s*$/i, " like trying to blow out a tiny wildfire and losing."],
+    
+    // Forced voice cue fixes
+    [/^Silas man listen\b/i, "Man listen, Silas"],
   ];
 
   // Apply repairs
@@ -158,7 +174,7 @@ export function detectAndRepairFragments(line: string): string {
   }
 
   // Fix dangling single letters
-  repaired = repaired.replace(/\b[a-z]\.\s*$/i, " show.");
+  repaired = repaired.replace(/\b[a-z]\.\s*$/i, " anyway.");
 
   // Ensure proper ending
   if (!repaired.endsWith('.')) {
@@ -166,84 +182,4 @@ export function detectAndRepairFragments(line: string): string {
   }
 
   return repaired;
-}
-
-export function spreadHardTagCreatively(lines: string[], hardTag: string): string[] {
-  if (!hardTag || lines.length === 0) return lines;
-
-  const tag = hardTag.trim();
-  const tagLower = tag.toLowerCase();
-  
-  // Check which lines already have the tag
-  const hasTag = lines.map(line => line.toLowerCase().includes(tagLower));
-  const needsTag = hasTag.filter(Boolean).length < 3; // Need at least 3/4 lines
-  
-  if (!needsTag) return lines; // Already sufficient coverage
-
-  return lines.map((line, index) => {
-    if (hasTag[index]) return line; // Already has tag
-
-    // Creative placement strategies
-    switch (index % 4) {
-      case 0: // Front placement
-        return `${tag} ${line.charAt(0).toLowerCase()}${line.slice(1)}`;
-      
-      case 1: // After first word
-        const words = line.split(' ');
-        if (words.length > 1) {
-          return `${words[0]} ${tag} ${words.slice(1).join(' ')}`;
-        }
-        return `${tag} ${line.toLowerCase()}`;
-      
-      case 2: // Before last word
-        const beforeLast = line.replace(/\s+([^\s]+)\.\s*$/, ` with ${tag} $1.`);
-        return beforeLast !== line ? beforeLast : `${tag} ${line.toLowerCase()}`;
-      
-      case 3: // End placement
-        return line.replace(/\.\s*$/, ` and ${tag} knows it.`);
-      
-      default:
-        return `${tag} ${line.toLowerCase()}`;
-    }
-  });
-}
-
-export function applyFallbackCompletion(line: string, category: string): string {
-  const contextWords = {
-    "Birthday": ["cake", "candles", "party", "balloons", "wish"],
-    "Basketball": ["court", "hoop", "dribble", "rebound", "buzzer"],
-    "Christmas": ["tree", "lights", "stocking", "wrapping", "carols"]
-  };
-
-  const words = contextWords[category] || ["show"];
-  const fallbackWord = words[Math.floor(Math.random() * words.length)];
-
-  // If line seems incomplete, add safe completion
-  if (line.length < 45 || /\b(and|the|to|for|with|of|on|so|but)\.\s*$/i.test(line)) {
-    return line.replace(/\.\s*$/, ` and the ${fallbackWord} doesn't care.`);
-  }
-
-  return line;
-}
-
-export function validateCompleteJoke(line: string): boolean {
-  // Must be 40-100 chars
-  if (line.length < 40 || line.length > 100) return false;
-  
-  // Must have exactly one period
-  if ((line.match(/\./g) || []).length !== 1) return false;
-  
-  // Must not have commas or em dashes
-  if (/[,—]/.test(line)) return false;
-  
-  // Must start with capital letter
-  if (!/^[A-Z]/.test(line)) return false;
-  
-  // Must end with complete word + period
-  if (!/[a-z)]\.\s*$/.test(line)) return false;
-  
-  // Must have reasonable word count (6+ words for natural flow)
-  if (line.split(/\s+/).length < 6) return false;
-  
-  return true;
 }
