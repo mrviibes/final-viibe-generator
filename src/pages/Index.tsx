@@ -6961,7 +6961,7 @@ const Index = () => {
 
                 {/* Show selected tags for AI Assist */}
                 {selectedCompletionOption === "ai-assist" && tags.length > 0 && (
-                  <div className="mt-6 mb-4">
+                  <div className="mt-2 mb-4">
                     <StackedSelectionCard selections={[{
                       title: "Text Tags",
                       subtitle: tags.join(", "),
