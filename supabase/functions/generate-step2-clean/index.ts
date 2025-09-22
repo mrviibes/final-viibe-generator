@@ -311,21 +311,40 @@ async function generateFour(inputs: any): Promise<{
     tags: parsedTags
   };
 
-  console.log(`🎭 Generating four-option mode with voice stencils: ${ctx.style} + ${ctx.rating} + ${ctx.category}/${ctx.subcategory}`);
+  console.log(`🎭 Generating four-option mode with enhanced fix batch: ${ctx.style} + ${ctx.rating} + ${ctx.category}/${ctx.subcategory}`);
   
-  // Generate jokes with new voice stencil system (handles everything internally)
-  const finalLines = await generateN(ctx, 4);
-  console.log(`✅ Voice stencil generation complete: ${finalLines.length} lines`);
+  // Generate raw jokes first
+  const rawLines = await generateN(ctx, 4);
+  console.log(`🎪 Raw generation complete: ${rawLines.length} lines`);
+  
+  // Extract vibe processing
+  const hasOldVibe = parsedTags.soft.some(tag => 
+    tag.toLowerCase().includes('old') || 
+    tag.toLowerCase().includes('aging') || 
+    tag.toLowerCase().includes('ancient')
+  );
+  
+  // Apply enhanced fix batch system
+  const { fixBirthdayBatch } = await import("./voiceStencils.ts");
+  const voiceNames: ("hart" | "wong" | "rock" | "mulaney")[] = ["hart", "wong", "rock", "mulaney"];
+  
+  const finalLines = fixBirthdayBatch(rawLines, voiceNames, {
+    hardTag: parsedTags.hard[0],
+    rating: ctx.rating as "G" | "PG" | "PG-13" | "R" | "Explicit",
+    vibeOld: hasOldVibe
+  });
+  
+  console.log(`✅ Enhanced voice stencil processing complete: ${finalLines.length} lines`);
   
   return { 
     success: true, 
     options: finalLines,
     meta: {
       model: "gpt-5-2025-08-07", // Report actual model used
-      voices: ["hart", "wong", "rock", "mulaney"], // Show comedian rotation for debugging
+      voices: voiceNames, // Show comedian rotation for debugging
       style: ctx.style,
       tone: ctx.tone,
-      system: "voice-stencil-v1"
+      system: "enhanced-fix-batch-v1"
     }
   };
 }
