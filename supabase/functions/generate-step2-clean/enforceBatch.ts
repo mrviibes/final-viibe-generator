@@ -5,7 +5,6 @@ const BUCKETS: [number,number][] = [[40,60],[61,80],[81,100],[61,80]];
 const STALE = [
   "everyone nodded awkwardly",
   "man listen",                       // ban as a forced prefix
-  "plot twist", "spoiler first",
   "in america", "like it anyway"
 ];
 
@@ -84,9 +83,11 @@ function spreadHardTag(lines:string[], tag?:string){
   const t = tag.toLowerCase();
   return lines.map((l,i)=>{
     if (l.toLowerCase().includes(t)) return l;
-    if (i===0)   return `${tag} ${l[0].toLowerCase()}${l.slice(1)}`;          // front once
-    if (i===1)   return l.replace(/^\w+/, `$& ${tag}`);                       // after first word
-    else         return l.replace(/\.$/, ` with ${tag}.`);                    // tail for others
+    // more natural placement
+    if (i === 0) return l.replace(/^(\w+)/, `$1 ${tag}`);                    // after first word
+    if (i === 1) return l.replace(/(\w+)\.?$/, `${tag} $1.`);                // before last word
+    if (i === 2) return l.replace(/\s(\w+)\.$/, ` ${tag} $1.`);              // before last word
+    else         return l.replace(/\.?$/, ` with ${tag}.`);                   // tail for last
   });
 }
 
@@ -101,13 +102,24 @@ function rotateVoices(rating:Rating){
 // build a human-sounding line from raw model text using a voice stencil
 function voiceWrap(raw:string, voiceKey:string){
   const s = byWord(stripStale(raw)).replace(/[—,]/g,"");
-  // naive split to simulate setup/punch extraction
-  const mid = Math.max(20, Math.min(s.length-20, s.indexOf(" ", Math.floor(s.length*0.55))));
-  const setup = s.slice(0, mid).replace(/\.+$/,"");
-  const punch = s.slice(mid).replace(/^\W+/,"").replace(/\.+$/,"");
-  const shape = VOICE_SHAPES[voiceKey] || VOICE_SHAPES.mulaney;
-  const out = shape({setup, punch});
-  return byWord(out);
+  
+  // find natural break points for setup/punch
+  const conjunctions = /\b(but|however|yet|still|instead|except|though|although)\b/i;
+  const match = s.match(conjunctions);
+  
+  if (match && match.index && match.index > 15 && match.index < s.length - 15) {
+    // use natural conjunction as split point
+    const setup = s.slice(0, match.index).trim().replace(/\.+$/,"");
+    const punch = s.slice(match.index).replace(/^\W+/,"").replace(/\.+$/,"");
+    const shape = VOICE_SHAPES[voiceKey] || VOICE_SHAPES.mulaney;
+    const out = shape({setup, punch});
+    return byWord(out);
+  } else {
+    // if no natural break, use the raw text with minimal voice wrapper
+    const shape = VOICE_SHAPES[voiceKey] || VOICE_SHAPES.mulaney;
+    const out = shape({setup: s.replace(/\.+$/,""), punch: ""});
+    return byWord(out).replace(/\.\s*\.$/, ".");
+  }
 }
 
 // ---------- main entry ----------
@@ -117,9 +129,16 @@ export function enforceBatch(rawLines:string[], opts:{
   subcategory: string,
   hardTag?: string
 }): string[] {
+  console.log(`🎭 Processing batch with ${rawLines.length} raw lines:`, rawLines);
+  
   // 1) rotate voices and wrap each raw line
   const voices = rotateVoices(opts.rating);
-  let out = rawLines.slice(0,4).map((r,i)=> voiceWrap(r, voices[i]));
+  console.log(`🎪 Using voices: ${voices.join(', ')}`);
+  let out = rawLines.slice(0,4).map((r,i)=> {
+    const wrapped = voiceWrap(r, voices[i]);
+    console.log(`Voice ${voices[i]}: "${r}" → "${wrapped}"`);
+    return wrapped;
+  });
 
   // 2) context + twist + cleanup per bucket
   out = out.map((l,i)=>{
