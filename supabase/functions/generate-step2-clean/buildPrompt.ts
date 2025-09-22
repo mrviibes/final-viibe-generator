@@ -28,9 +28,15 @@ export function buildPrompt(input: {
   // Build prompt based on request type
   if (input.requestMultiple) {
     // Request multiple jokes in one call for better consistency
-    let prompt = `Write 4 ${input.style} jokes about ${input.category}/${input.subcategory}. `;
+    // Use clean subcategory only, never full "Category > Subcategory" format
+    let prompt = `Write 4 ${input.style} jokes about ${input.subcategory.toLowerCase()}. `;
     prompt += `Each joke: ${input.minLen}-${input.maxLen} characters, ${input.tone} tone, ${input.rating} rating. `;
     prompt += `Format: One joke per line, numbered 1-4. `;
+    
+    // Add category-specific lexicon requirements
+    if (input.subcategory.toLowerCase().includes('birthday')) {
+      prompt += `REQUIRED: Each joke must include at least one birthday word: cake, candles, balloons, party, wish, celebrate. `;
+    }
     
     if (hard !== "none") {
       prompt += `REQUIRED: Include "${hard}" in each joke naturally. `;
@@ -48,8 +54,14 @@ export function buildPrompt(input: {
     return prompt;
   } else {
     // Single joke request (fallback)
-    let prompt = `Write one ${input.style} joke about ${input.category}/${input.subcategory}. `;
+    // Use clean subcategory only, never full "Category > Subcategory" format
+    let prompt = `Write one ${input.style} joke about ${input.subcategory.toLowerCase()}. `;
     prompt += `${input.minLen}-${input.maxLen} characters. ${input.tone} tone. ${input.rating} rating. `;
+    
+    // Add category-specific lexicon requirements
+    if (input.subcategory.toLowerCase().includes('birthday')) {
+      prompt += `Include at least one birthday word: cake, candles, balloons, party, wish, celebrate. `;
+    }
     
     if (hard !== "none") {
       prompt += `Include: ${hard}. `;

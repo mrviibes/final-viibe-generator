@@ -184,93 +184,111 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
 }
 
 function generateFallbackJoke(rating: string, context: string, comedianName: string, tone?: string, style?: string): string {
-  const contextLower = context.toLowerCase();
+  // Clean context - remove category leakage
+  const cleanContext = context.replace(/.*>\s*/, '').replace(/^(Celebrations|Birthday)\s*/i, '').toLowerCase();
   const isRomantic = tone?.toLowerCase() === 'romantic';
   const isPunchlineFirst = style === 'punchline-first';
   
-  // Context-specific fallbacks with proper structure
-  if (contextLower.includes('soccer')) {
-    const soccerFallbacks = [
-      "Zero hustle first then Jesse ties his lace during every drill on the pitch.",
-      "Plot twist first then the keeper waves at Jesse and practice gives up.",
-      "Fine first then Jesse blames traffic and boots the cone on the field.",
-      "Spoiler first then the scrimmage whistles and Jesse still misses open goals."
-    ];
-    return soccerFallbacks[Math.floor(Math.random() * soccerFallbacks.length)];
-  }
+  // Apply voice patterns to fallback jokes
+  const VOICE_PATTERNS: Record<string, (text: string) => string> = {
+    "Hart": (text) => `Look ${text.replace(/^[A-Z]/, m => m.toLowerCase())}`,
+    "Wong": (text) => `${text.replace(/\.$/, ', which is basically my entire life story.')}`,
+    "Burr": (text) => `${text.replace(/\.$/, ', I mean come on.')}`,
+    "Hedberg": (text) => `${text.replace(/\.$/, ', or maybe not, I don\'t know.')}`
+  };
   
-  if (isRomantic && contextLower.includes('thanksgiving')) {
-    const romanticThanksgivingFallbacks = [
-      "Spoiler first then we pass the turkey and my heart passes gratitude back.",
-      "Plot twist first then your laugh warms the table and my heart agrees completely.",
-      "Fine first then I love your chaos and the gravy finds peace with us.",
-      "Zero first then your smile butters the rolls and my heart begs for seconds."
-    ];
-    const randomIndex = Math.floor(Math.random() * romanticThanksgivingFallbacks.length);
-    return romanticThanksgivingFallbacks[randomIndex];
-  }
+  const applyVoice = VOICE_PATTERNS[comedianName] || ((text) => text);
   
-  if (isRomantic && contextLower.includes('birthday')) {
-    const romanticBirthdayFallbacks = [
-      "Jesse our cake glow looks like magic and my heart celebrates you.",
-      "Jesse tonight the candles wish for sequels and I still want you.",
+  // Context-specific fallbacks with birthday lexicon enforcement
+  if (cleanContext.includes('birthday')) {
+    const birthdayFallbacks = isRomantic ? [
+      "Jesse our cake candles look magical and my heart celebrates you.",
+      "Jesse tonight the party wishes come true and I still want you.",
       "Jesse make a wish because my heart already picked you forever.",
-      "Jesse this party celebrates us and I treasure every moment together."
+      "Jesse this birthday cake celebrates us and I treasure every moment."
+    ] : [
+      "Jesse's birthday cake had so many candles the smoke alarm RSVP'd.",
+      "Birthdays are like diets, Jesse's always fail before the cake.",
+      "Jesse's party went sideways faster than the birthday balloons.",
+      "They sang happy birthday but Jesse's candles filed for hazard pay."
     ];
-    const randomIndex = Math.floor(Math.random() * romanticBirthdayFallbacks.length);
-    return romanticBirthdayFallbacks[randomIndex];
+    
+    const fallback = birthdayFallbacks[Math.floor(Math.random() * birthdayFallbacks.length)];
+    return applyVoice(fallback);
   }
   
-  if (isRomantic && contextLower.includes('christmas')) {
-    const romanticChristmasFallbacks = [
-      "Spoiler first then your smile is my favorite gift under every tree.",
-      "Plot twist first then cocoa tastes sweeter when your hand warms mine by the tree.",
-      "Fine first then lights twinkle slower because my heart saves the best for you.",
-      "Zero first then the quiet after wrapping is louder than how much I love you."
+  if (cleanContext.includes('soccer')) {
+    const soccerFallbacks = [
+      "Jesse ties his cleats during every drill on the pitch.",
+      "The keeper waves at Jesse and practice gives up completely.",
+      "Jesse blames traffic and boots the cone on the field.",
+      "The scrimmage whistles and Jesse still misses open goals."
     ];
-    const randomIndex = Math.floor(Math.random() * romanticChristmasFallbacks.length);
-    return romanticChristmasFallbacks[randomIndex];
+    const fallback = soccerFallbacks[Math.floor(Math.random() * soccerFallbacks.length)];
+    return applyVoice(fallback);
+  }
+  
+  if (isRomantic && cleanContext.includes('thanksgiving')) {
+    const romanticThanksgivingFallbacks = [
+      "We pass the turkey and my heart passes gratitude back.",
+      "Your laugh warms the table and my heart agrees completely.",
+      "I love your chaos and the gravy finds peace with us.",
+      "Your smile butters the rolls and my heart begs for seconds."
+    ];
+    const fallback = romanticThanksgivingFallbacks[Math.floor(Math.random() * romanticThanksgivingFallbacks.length)];
+    return applyVoice(fallback);
+  }
+  
+  if (isRomantic && cleanContext.includes('christmas')) {
+    const romanticChristmasFallbacks = [
+      "Your smile is my favorite gift under every tree.",
+      "Cocoa tastes sweeter when your hand warms mine by the tree.",
+      "Lights twinkle slower because my heart saves the best for you.",
+      "The quiet after wrapping is louder than how much I love you."
+    ];
+    const fallback = romanticChristmasFallbacks[Math.floor(Math.random() * romanticChristmasFallbacks.length)];
+    return applyVoice(fallback);
   }
   
   // Generic romantic fallback if tone demands it
   if (isRomantic) {
     const romanticGeneric = [
-      "Spoiler first then I love how this moment makes us feel like home.",
-      "Plot twist first then my heart picks you every single time.",
-      "Fine first then the world slows down whenever you laugh near me.",
-      "Zero first then I keep finding new ways to love you here."
+      "I love how this moment makes us feel like home.",
+      "My heart picks you every single time.",
+      "The world slows down whenever you laugh near me.",
+      "I keep finding new ways to love you here."
     ];
-    const randomIndex = Math.floor(Math.random() * romanticGeneric.length);
-    return romanticGeneric[randomIndex];
+    const fallback = romanticGeneric[Math.floor(Math.random() * romanticGeneric.length)];
+    return applyVoice(fallback);
   }
   
-  // Regular fallbacks by rating
+  // Regular fallbacks by rating - NO CONTEXT LEAKAGE
   const fallbacks = {
     G: [
-      `${context} is like my sock drawer, organized chaos.`,
-      `This situation reminds me of my cooking, questionable but hopeful.`,
-      `${context} hits different when you're not prepared for it.`
+      "Life is like my sock drawer, organized chaos.",
+      "This situation reminds me of my cooking, questionable but hopeful.",
+      "Things hit different when you're not prepared for them."
     ],
     "PG-13": [
-      `${context} is like group projects, someone's gonna mess it up damn sure.`,
-      `This whole thing is hell on wheels and nobody warned me.`,
-      `${context} went sideways faster than my last diet attempt, damn.`
+      "Life is like group projects, someone's gonna mess it up damn sure.",
+      "This whole thing is hell on wheels and nobody warned me.",
+      "Things went sideways faster than my last diet attempt, damn."
     ],
     R: [
-      `${context} is fucked up beyond all recognition, honestly.`,
-      `This shit storm caught me completely off guard, not gonna lie.`,
-      `${context} is more chaotic than my love life, and that's saying something.`
+      "Life is fucked up beyond all recognition, honestly.",
+      "This shit storm caught me completely off guard, not gonna lie.",
+      "Things are more chaotic than my love life, and that's saying something."
     ],
     Explicit: [
-      `${context} screwed me harder than my ex on Valentine's Day.`,
-      `This clusterfuck is more twisted than my browser history.`,
-      `${context} fucked me over like a horny teenager with no supervision.`
+      "Life screwed me harder than my ex on Valentine's Day.",
+      "This clusterfuck is more twisted than my browser history.",
+      "Things fucked me over like a horny teenager with no supervision."
     ]
   };
   
   const ratingFallbacks = fallbacks[rating as keyof typeof fallbacks] || fallbacks["PG-13"];
-  const randomIndex = Math.floor(Math.random() * ratingFallbacks.length);
-  return ratingFallbacks[randomIndex];
+  const fallback = ratingFallbacks[Math.floor(Math.random() * ratingFallbacks.length)];
+  return applyVoice(fallback);
 }
 
 // Enhanced generateFour with metadata and voice rotation
@@ -414,17 +432,17 @@ serve(async (req) => {
       // Fallback for four-option mode
       if (inputs.style && inputs.rating) {
         const fallbackOptions = [
-          generateFallbackJoke(inputs.rating || "PG-13", `${inputs.category} > ${inputs.subcategory}`, "Hart", inputs.tone, inputs.style),
-          generateFallbackJoke(inputs.rating || "PG-13", `${inputs.category} > ${inputs.subcategory}`, "Wong", inputs.tone, inputs.style),
-          generateFallbackJoke(inputs.rating || "PG-13", `${inputs.category} > ${inputs.subcategory}`, "Burr", inputs.tone, inputs.style),
-          generateFallbackJoke(inputs.rating || "PG-13", `${inputs.category} > ${inputs.subcategory}`, "Hedberg", inputs.tone, inputs.style)
+          generateFallbackJoke(inputs.rating || "PG-13", inputs.subcategory, "Hart", inputs.tone, inputs.style),
+          generateFallbackJoke(inputs.rating || "PG-13", inputs.subcategory, "Wong", inputs.tone, inputs.style),
+          generateFallbackJoke(inputs.rating || "PG-13", inputs.subcategory, "Burr", inputs.tone, inputs.style),
+          generateFallbackJoke(inputs.rating || "PG-13", inputs.subcategory, "Hedberg", inputs.tone, inputs.style)
         ];
         
         return new Response(JSON.stringify({
           success: true,
           options: fallbackOptions,
           meta: {
-            model: 'fallback',
+            model: 'fallback - GPT-5 and GPT-4.1 both failed',
             voices: ["hart", "wong", "burr", "hedberg"],
             style: inputs.style,
             tone: inputs.tone

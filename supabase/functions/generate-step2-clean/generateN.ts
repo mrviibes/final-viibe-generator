@@ -214,38 +214,62 @@ async function callModel(prompt: string): Promise<{ text: string }> {
   
   console.log(`📤 Request body:`, JSON.stringify(requestBody, null, 2));
   
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestBody),
-    signal: AbortSignal.timeout(30000)
-  });
+  // Progressive retry: GPT-5 → GPT-4.1 → throw error (no fallback)
+  const models = [MODEL, MODEL_CONFIG.GPT4];
+  let lastError: Error | null = null;
+  
+  for (const model of models) {
+    try {
+      console.log(`🔄 Attempting with model: ${model}`);
+      
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...requestBody,
+          model
+        }),
+        signal: AbortSignal.timeout(45000) // Increased timeout for GPT-5
+      });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`❌ API Error ${response.status}:`, errorText);
-    throw new Error(`API Error: ${response.status} - ${errorText}`);
-  }
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ API Error ${response.status} with ${model}:`, errorText);
+        lastError = new Error(`API Error with ${model}: ${response.status} - ${errorText}`);
+        continue; // Try next model
+      }
 
-  const data = await response.json();
-  console.log(`📥 Raw API response:`, JSON.stringify(data, null, 2));
-  
-  const text = (data.choices?.[0]?.message?.content || '').trim();
-  const finishReason = data.choices?.[0]?.finish_reason;
-  const usage = data.usage;
-  
-  console.log(`🎭 Generated text: "${text}" (${text.length} chars)`);
-  console.log(`📊 Finish reason: ${finishReason}, Usage:`, usage);
-  
-  if (!text) {
-    console.error(`⚠️ Empty response detected! Finish reason: ${finishReason}`);
-    throw new Error(`Empty response from OpenAI. Finish reason: ${finishReason}`);
+      const data = await response.json();
+      console.log(`📥 Raw API response from ${model}:`, JSON.stringify(data, null, 2));
+      
+      const text = (data.choices?.[0]?.message?.content || '').trim();
+      const finishReason = data.choices?.[0]?.finish_reason;
+      const usage = data.usage;
+      
+      console.log(`🎭 Generated text: "${text}" (${text.length} chars)`);
+      console.log(`📊 Finish reason: ${finishReason}, Usage:`, usage);
+      
+      if (!text) {
+        console.error(`⚠️ Empty response from ${model}! Finish reason: ${finishReason}`);
+        lastError = new Error(`Empty response from ${model}. Finish reason: ${finishReason}`);
+        continue; // Try next model
+      }
+      
+      return { text };
+      
+    } catch (error) {
+      console.error(`❌ Error with ${model}:`, error);
+      lastError = error as Error;
+      continue; // Try next model
+    }
   }
   
-  return { text };
+  // All models failed
+  console.error(`💥 All models failed. Last error:`, lastError);
+  throw lastError || new Error('All API models failed');
 }
 
 function stripSoftEcho(lines: string[], softTags: string[]): string[] {

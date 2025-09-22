@@ -195,6 +195,82 @@ function voiceWrap(raw:string, voiceKey:string){
   }
 }
 
+// Add deduplication logic
+function calculateSimilarity(str1: string, str2: string): number {
+  const longer = str1.length > str2.length ? str1 : str2;
+  const shorter = str1.length > str2.length ? str2 : str1;
+  
+  if (longer.length === 0) return 1.0;
+  
+  const editDistance = levenshteinDistance(longer, shorter);
+  return (longer.length - editDistance) / longer.length;
+}
+
+function levenshteinDistance(str1: string, str2: string): number {
+  const matrix = [];
+  
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  
+  return matrix[str2.length][str1.length];
+}
+
+function deduplicateLines(lines: string[]): string[] {
+  const deduplicated = [...lines];
+  
+  for (let i = 0; i < deduplicated.length; i++) {
+    for (let j = i + 1; j < deduplicated.length; j++) {
+      const similarity = calculateSimilarity(deduplicated[i], deduplicated[j]);
+      
+      if (similarity > 0.8) {
+        console.log(`🔄 High similarity (${Math.round(similarity * 100)}%) detected between lines ${i+1} and ${j+1}`);
+        
+        // Regenerate the duplicate with variation
+        const original = deduplicated[j];
+        const variations = [
+          original.replace(/went sideways/, "got weird"),
+          original.replace(/faster than/, "quicker than"),
+          original.replace(/my last/, "every"),
+          original.replace(/damn/, "honestly"),
+          original.replace(/attempt/, "try"),
+          original.replace(/diet/, "workout"),
+          original.replace(/life/, "existence")
+        ];
+        
+        // Pick a variation that's sufficiently different
+        for (const variation of variations) {
+          if (calculateSimilarity(deduplicated[i], variation) < 0.7) {
+            deduplicated[j] = variation;
+            console.log(`✅ Replaced duplicate with: "${variation}"`);
+            break;
+          }
+        }
+      }
+    }
+  }
+  
+  return deduplicated;
+}
+
 // ---------- main entry ----------
 export function enforceBatch(rawLines:string[], opts:{
   rating: Rating,
@@ -205,20 +281,32 @@ export function enforceBatch(rawLines:string[], opts:{
 }): { lines: string[], voices: string[] } {
   console.log(`🎭 Processing batch with ${rawLines.length} raw lines:`, rawLines);
   
+  // 0) Remove category leakage - clean any metadata that leaked into text
+  let cleanedLines = rawLines.map(line => {
+    return line
+      .replace(/^.*>\s*/, '') // Remove "Category > Subcategory" prefixes
+      .replace(/^Celebrations\s*>\s*Birthday/i, '')
+      .replace(/^Birthday\s*>/i, '')
+      .replace(/^Celebrations\s*>\s*/i, '')
+      .trim();
+  });
+  
+  console.log(`🧹 Cleaned category leakage:`, cleanedLines);
+  
   // 1) rotate voices and wrap each raw line
   const voices = rotateVoices(opts.rating);
   console.log(`🎪 Using voices: ${voices.join(', ')}`);
-  let out = rawLines.slice(0,4).map((r,i)=> {
+  let out = cleanedLines.slice(0,4).map((r,i)=> {
     const wrapped = voiceWrap(r, voices[i]);
     console.log(`Voice ${voices[i]}: "${r}" → "${wrapped}"`);
     return wrapped;
   });
 
-  // 2) context + twist + cleanup per bucket
+  // 2) context + twist + cleanup per bucket - ENFORCE LEXICON FIRST
   out = out.map((l,i)=>{
     let s = l.trim();
-    s = ensureContext(s, opts.subcategory, opts.softTags || []);
-    s = ensureTwist(s);
+    s = ensureContext(s, opts.subcategory, opts.softTags || []); // Context FIRST
+    s = ensureTwist(s); // Humor validation
     s = endDot(s);
     s = repairTail(s);
     const [lo,hi] = BUCKETS[i];
@@ -229,10 +317,13 @@ export function enforceBatch(rawLines:string[], opts:{
     return s;
   });
 
-  // 3) spread hard tag creatively
+  // 3) Deduplication check
+  out = deduplicateLines(out);
+
+  // 4) spread hard tag creatively
   out = spreadHardTag(out, opts.hardTag);
 
-  // 4) final guard: one sentence, readable end
+  // 5) final guard: one sentence, readable end
   out = out.map(s=>{
     let t = byWord(s);
     if (!/[a-z)]\.$/i.test(t)) t = t.replace(/\.$/, " for real.");
@@ -240,7 +331,7 @@ export function enforceBatch(rawLines:string[], opts:{
     return t;
   });
 
-  // 5) ensure tag is in ≥3 lines if provided
+  // 6) ensure tag is in ≥3 lines if provided
   if (opts.hardTag){
     const t = opts.hardTag.toLowerCase();
     const hits = out.filter(x=> x.toLowerCase().includes(t)).length;
@@ -249,5 +340,6 @@ export function enforceBatch(rawLines:string[], opts:{
     }
   }
 
+  console.log(`✅ enforceBatch complete: ${out.length} lines shaped with voices ${voices.join(', ')}`);
   return { lines: out, voices };
 }
