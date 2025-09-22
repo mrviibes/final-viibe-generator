@@ -119,7 +119,7 @@ function stripSoftEcho(lines: string[], softTags: string[]): string[] {
   });
 }
 
-function formatOK(s: string, lo: number, hi: number): boolean {
+function formatOKWithLength(s: string, lo: number, hi: number): boolean {
   return /^[A-Z]/.test(s)
     && !/,|—/.test(s)
     && (s.match(/\./g)||[]).length===1
@@ -127,7 +127,7 @@ function formatOK(s: string, lo: number, hi: number): boolean {
 }
 
 export function formatOK(s: string) {
-  return formatOK(s, 40, 100);
+  return formatOKWithLength(s, 40, 100);
 }
 
 function ensuredPeriod(s: string) { return s.replace(/\.+$/,"") + "."; }
@@ -165,7 +165,7 @@ function enforceBirthdayLine(s: string, hard: string[], lo: number, hi: number, 
   s = ensureBirthdayLexicon(s);                       // add birthday word if missing
   s = enforceHardTagFront(s, hard, i % 2 === 0);      // start with tag on 1st/3rd lines
   s = s.replace(/\s+\./g,".").replace(/^[a-z]/,m=>m.toUpperCase());
-  if (!formatOK(s, lo, hi)) s = s.slice(0, Math.max(lo, Math.min(hi, s.length-1))).replace(/\.$/,"") + ".";
+  if (!formatOKWithLength(s, lo, hi)) s = s.slice(0, Math.max(lo, Math.min(hi, s.length-1))).replace(/\.$/,"") + ".";
   return s;
 }
 
