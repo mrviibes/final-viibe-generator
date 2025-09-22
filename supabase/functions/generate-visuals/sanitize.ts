@@ -1,8 +1,13 @@
-// Prevent leaks of unquoted soft tags
+// Prevent leaks of unquoted soft tags and clean line numbering
 export function stripSoft(lines: string[], soft: string[]) {
-  if (!soft.length) return lines;
+  let cleaned = lines;
+  
+  // Remove "Line X:" prefixes
+  cleaned = cleaned.map(line => line.replace(/^Line\s+\d+:\s*/i, ''));
+  
+  if (!soft.length) return cleaned;
   const re = new RegExp(`\\b(${soft.map(escape).join("|")})\\b`, "ig");
-  return lines.map(x => x.replace(re, "that"));
+  return cleaned.map(x => x.replace(re, "that"));
 }
 
 function escape(s: string) { 
