@@ -7243,9 +7243,7 @@ const Index = () => {
                     {/* Subject generation form for AI Assist - show only if no visual is selected yet */}
                     {selectedSubjectOption === "ai-assist" && selectedVisualIndex === null && showSubjectTagEditor && <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="text-center mb-8">
-                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add text for visual generation (optional)
-
-                </h2>
+                          <h2 className="text-2xl font-semibold text-muted-foreground mb-4">Add words to guide the visuals (optional)</h2>
                         </div>
 
                          <div className="max-w-lg mx-auto space-y-6">
@@ -7254,10 +7252,7 @@ const Index = () => {
                                {/* Tag explanation */}
                                  <div className="text-left space-y-1">
                                    <p className="text-sm text-muted-foreground">
-                                     <span className="font-bold">Add keywords or names</span>
-                                   </p>
-                                   <p className="text-sm text-muted-foreground">
-                                     <span className="font-bold">Words in quotes</span> appear in the visual. <span className="font-bold">Words without quotes</span> guide the style.
+                                     <span className="font-bold">"quoted words"</span> put in visuals exactly, <span className="font-bold">unquoted words</span> just influence the visuals
                                    </p>
                                  </div>
                                  <Input value={subjectTagInput} onChange={e => handleSubjectTagInputChange(e.target.value)} onKeyDown={handleSubjectTagInputKeyDown} placeholder='"Jesse", traffic, late' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${subjectTagInputWarning ? 'border-destructive' : 'border-border'}`} />
