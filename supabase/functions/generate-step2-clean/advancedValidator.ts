@@ -1,5 +1,5 @@
 import { ParsedTags } from "./tags.ts";
-import { validateNaturalDelivery, detectAndRepairFragments, applyDeliveryTemplate } from "./deliveryTemplates.ts";
+import { validateNaturalDelivery, detectAndRepairFragments } from "./deliveryTemplates.ts";
 
 type Rating = "G"|"PG-13"|"R"|"Explicit";
 
@@ -161,16 +161,16 @@ function validateVoiceMatch(line: string, voice: string): boolean {
 }
 
 function enhanceVoiceMatch(line: string, voice: string, rating: string): string {
-  // First, apply delivery template for natural comedian rhythm
-  let enhanced = applyDeliveryTemplate(line, rating, voice);
+  // V5: No more forced templates - just fragment repair and validation
+  let enhanced = line;
+  
+  // Apply fragment repair first
+  enhanced = detectAndRepairFragments(enhanced);
   
   // Check if enhanced line sounds natural
   const naturalCheck = validateNaturalDelivery(enhanced);
   if (!naturalCheck.isNatural) {
     console.log(`⚠️ Enhanced voice line not natural: ${naturalCheck.issues.join(', ')}`);
-    
-    // If still not natural, try fragment repair
-    enhanced = detectAndRepairFragments(enhanced);
   }
   
   // Legacy enhancements for compatibility
