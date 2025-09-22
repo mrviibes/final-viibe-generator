@@ -6936,11 +6936,10 @@ const Index = () => {
                         {barebonesMode ? "Write your custom text directly" : "Choose your option for completing your text"}
                       </p>
                      </div>
-                 </div>}
 
-                    {barebonesMode ?
-            // Barebones mode: Show only write-myself option
-            <div className="max-w-md mx-auto">
+                    {barebonesMode ? (
+                      // Barebones mode: Show only write-myself option
+                      <div className="max-w-md mx-auto">
                         <Card className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption("write-myself")}>
                           <CardHeader className="pb-3">
                             <CardTitle className="text-lg font-semibold text-card-foreground">
@@ -6953,10 +6952,12 @@ const Index = () => {
                             </CardDescription>
                           </CardContent>
                         </Card>
-                      </div> :
-            // Normal mode: Show all options
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center max-w-4xl mx-auto">
-                        {completionOptions.map(option => <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption(option.id)}>
+                      </div>
+                    ) : (
+                      // Normal mode: Show all options
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center max-w-4xl mx-auto">
+                        {completionOptions.map(option => (
+                          <Card key={option.id} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:bg-accent/50 w-full" onClick={() => setSelectedCompletionOption(option.id)}>
                             <CardHeader className="pb-3">
                               <CardTitle className="text-lg font-semibold text-card-foreground">
                                 {option.name}
@@ -6967,12 +6968,15 @@ const Index = () => {
                                 {option.description}
                               </CardDescription>
                             </CardContent>
-                          </Card>)}
-                      </div>}
-                  </> : null}
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </>) : null}
 
                 {/* Show AI Assist form when selected and no options generated yet */}
-                {selectedCompletionOption === "ai-assist" && !multiRatingOptions && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {selectedCompletionOption === "ai-assist" && !multiRatingOptions && !singleModeOptions && (
+                  <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center mb-6">
                       <p className="text-xl text-muted-foreground">Add words to help influence your final text</p>
                     </div>
@@ -6996,7 +7000,8 @@ const Index = () => {
                                 {tag}
                                 <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => removeTag(tag)} />
                               </Badge>)}
-                          </div>}
+                          </div>
+                        )}
                       </div>
 
                       {/* Style and Rating Selection - Then Generate Button */}
@@ -7048,8 +7053,9 @@ const Index = () => {
                   </div>}
 
                 {/* Show generated options box when options exist but no selection made yet */}
-                {selectedCompletionOption === "ai-assist" && multiRatingOptions && !selectedGeneratedOption && <>
-                  </>}
+                {selectedCompletionOption === "ai-assist" && multiRatingOptions && !selectedGeneratedOption && (
+                  <></>
+                )}
 
 
                  {/* Single-Mode Generated Text Options - Show exactly 2 options */}
@@ -7088,28 +7094,29 @@ const Index = () => {
                            </CardContent>
                          </Card>
                        ))}
-                        </div>
+                       </div>
                      </div>
                      
                      {/* Show warning if Explicit was downgraded */}
-                        {(["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(
-                          selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : 
-                          selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : 
-                          selectedSubOption || ''
-                        )) && selectedRatingTab === 'Explicit' && (
-                          <div className="text-center mt-4">
-                            <small className="text-muted-foreground bg-accent/50 px-3 py-1 rounded-full text-xs">
-                              ℹ️ Explicit not allowed for this category. Shown as R.
-                            </small>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                   }
+                     {(["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(
+                       selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : 
+                       selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : 
+                       selectedSubOption || ''
+                     )) && selectedRatingTab === 'Explicit' && (
+                       <div className="text-center mt-4">
+                         <small className="text-muted-foreground bg-accent/50 px-3 py-1 rounded-full text-xs">
+                           ℹ️ Explicit not allowed for this category. Shown as R.
+                         </small>
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               )}
 
                   {/* Legacy Generated Options Grid - Hidden in new single mode */}
-                  {!singleModeOptions && <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
-                    {!multiRatingOptions && generatedOptions.slice(0, 4).map((option, index) => (
+                  {!singleModeOptions && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-6">
+                      {!multiRatingOptions && generatedOptions.slice(0, 4).map((option, index) => (
                       <Card key={index} className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 p-4 hover:bg-accent/50" 
                             onClick={() => {
                               setSelectedGeneratedOption(option);
@@ -7128,7 +7135,8 @@ const Index = () => {
                         </div>
                       </Card>
                     ))}
-                  </div>}
+                  </div>
+                )}
 
                 {/* Show Write Myself input panel when selected but not confirmed */}
                 {selectedCompletionOption === "write-myself" && !isCustomTextConfirmed && <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -7178,10 +7186,13 @@ const Index = () => {
 
 
                 {/* TODO: Add additional sub-options here after text style is selected */}
-              </div>)}
-          </>}
+              </div>
+            )}
+          </>
+        )}
 
-        {currentStep === 3 && <>
+        {currentStep === 3 && (
+          <>
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-4">Choose Your Visual Style</h2>
               <p className="text-xl text-muted-foreground">
@@ -7864,6 +7875,8 @@ const Index = () => {
       }} originalPrompt="" sanitizedPrompt="" />
 
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
