@@ -291,11 +291,14 @@ function generateFallbackJoke(rating: string, context: string, comedianName: str
   return applyVoice(fallback);
 }
 
+// Import repair functionality
+import { repairJokeBatch, validateRepairedBatch, RepairContext } from "./jokeRepair.ts";
+
 // Enhanced generateFour with metadata and voice rotation
 async function generateFour(inputs: any): Promise<{ 
   success: boolean; 
   options: string[]; 
-  meta: { model: string; voices: string[]; style: string; tone: string } 
+  meta: { model: string; voices: string[]; style: string; tone: string; qualityScore?: number } 
 }> {
   const parsedTags = parseTags(inputs.tags);
   
@@ -310,35 +313,79 @@ async function generateFour(inputs: any): Promise<{
 
   console.log(`🎯 Generating four-option mode: ${ctx.style} + ${ctx.rating} + ${ctx.category}/${ctx.subcategory}`);
   
-  // We need to modify generateN to return both lines and voices
-  // For now, generate normally and use default voice assignment
-  const lines = await generateN(ctx, 4);
+  // STEP 1: Generate raw lines
+  let rawLines = await generateN(ctx, 4);
+  console.log(`🎭 Raw generation complete: ${rawLines.length} lines`);
   
-  // Default voice rotation for each rating
-  const voicePool = {
-    "G": ["gaffigan", "bargatze", "mulaney"],
-    "PG-13": ["hart", "wong", "mulaney", "rock"],
-    "R": ["burr", "rock", "wong"],
-    "Explicit": ["wong", "burr"]
+  // STEP 2: Apply comprehensive joke repair
+  const repairContext: RepairContext = {
+    category: ctx.category,
+    subcategory: ctx.subcategory,
+    tone: ctx.tone,
+    rating: ctx.rating as any,
+    hardTag: parsedTags.hard.length > 0 ? parsedTags.hard[0] : undefined
   };
   
-  const pool = [...(voicePool[ctx.rating as keyof typeof voicePool] || voicePool["PG-13"])];
-  // Shuffle and ensure 4 voices
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  while (pool.length < 4) pool.push(pool[pool.length - 1]);
-  const voices = pool.slice(0, 4);
+  const repairedLines = repairJokeBatch(rawLines, repairContext);
+  console.log(`🔧 Repair complete: ${repairedLines.length} lines processed`);
   
+  // STEP 3: Validate repair quality
+  const validation = validateRepairedBatch(repairedLines);
+  console.log(`📊 Quality validation: score=${validation.score}, issues=${validation.issues.length}`);
+  
+  // STEP 4: Apply final voice enforcement and shaping
+  const { lines: finalLines, voices } = enforceBatch(repairedLines, {
+    rating: ctx.rating as any,
+    category: ctx.category,
+    subcategory: ctx.subcategory,
+    hardTag: parsedTags.hard.length > 0 ? parsedTags.hard[0] : undefined,
+    softTags: parsedTags.soft
+  });
+  
+  // STEP 5: Quality gate - retry if score too low
+  if (validation.score < 70 && validation.issues.length > 2) {
+    console.log(`⚠️ Quality below threshold (${validation.score}), attempting regeneration...`);
+    // Single retry with fallback
+    try {
+      const retryLines = await generateN(ctx, 4);
+      const retryRepaired = repairJokeBatch(retryLines, repairContext);
+      const retryValidation = validateRepairedBatch(retryRepaired);
+      
+      if (retryValidation.score > validation.score) {
+        console.log(`✅ Retry improved quality: ${retryValidation.score} > ${validation.score}`);
+        const { lines: retryFinal } = enforceBatch(retryRepaired, {
+          rating: ctx.rating as any,
+          category: ctx.category,
+          subcategory: ctx.subcategory,
+          hardTag: parsedTags.hard.length > 0 ? parsedTags.hard[0] : undefined,
+          softTags: parsedTags.soft
+        });
+        
+        return { 
+          success: true, 
+          options: retryFinal,
+          meta: {
+            model: MODEL,
+            voices: voices,
+            style: ctx.style,
+            tone: ctx.tone,
+            qualityScore: retryValidation.score
+          }
+        };
+      }
+    } catch (error) {
+      console.log(`⚠️ Retry failed, using original: ${error}`);
+    }
+  }
   return { 
     success: true, 
-    options: lines,
+    options: finalLines,
     meta: {
       model: MODEL,
       voices: voices,
       style: ctx.style,
-      tone: ctx.tone
+      tone: ctx.tone,
+      qualityScore: validation.score
     }
   };
 }

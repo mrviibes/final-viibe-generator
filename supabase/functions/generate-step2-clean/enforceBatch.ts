@@ -183,16 +183,53 @@ function voiceWrap(raw:string, voiceKey:string){
   // if no natural break or empty punch, use comedian's natural flow
   const shape = VOICE_SHAPES[voiceKey] || VOICE_SHAPES.mulaney;
   
-  // Don't force setup/punch structure - use the comedian's natural style
-  if (voiceKey === "gaffigan") {
-    return `You ever notice ${s}`;
-  } else if (voiceKey === "bargatze") {
-    return `So apparently ${s}`;
-  } else if (voiceKey === "hart") {
-    return `Look ${s}`;
-  } else {
-    return s; // Keep original for others
+  // Apply comedian-specific delivery patterns
+  const applyVoicePattern = (text: string, voice: string): string => {
+    switch (voice) {
+      case "hart":
+        return `Man listen, ${text.toLowerCase()}`;
+      case "mulaney":
+        return `You know what's wild? ${text}`;
+      case "rock":
+        if (!text.includes("but")) {
+          return `Everybody loves ${text.split(" ").slice(0, 3).join(" ")}, but ${text.split(" ").slice(3).join(" ")}`;
+        }
+        return text;
+      case "wong":
+        if (!text.includes("like")) {
+          return `${text.replace(/\.$/, "")} — like hiring chaos as a party planner.`;
+        }
+        return text;
+      case "gaffigan":
+        return `You ever notice ${text.toLowerCase()}`;
+      case "bargatze":
+        return `So apparently ${text.toLowerCase()}`;
+      case "burr":
+        return text.includes("fucking") ? text : `${text.replace(/\.$/, "")} — fucking ridiculous.`;
+      default:
+        return text;
+    }
+  };
+  
+  const voicedText = applyVoicePattern(s, voiceKey);
+  
+  // Validate that voice pattern was actually applied
+  const hasVoiceMarkers = {
+    'hart': /man listen/i.test(voicedText),
+    'mulaney': /you know what's wild/i.test(voicedText),
+    'rock': /everybody.*but|but/i.test(voicedText),
+    'wong': /like hiring.*as|like/i.test(voicedText),
+    'burr': /fucking/i.test(voicedText),
+    'gaffigan': /you ever notice/i.test(voicedText),
+    'bargatze': /so apparently/i.test(voicedText)
+  };
+  
+  const hasMarker = hasVoiceMarkers[voiceKey as keyof typeof hasVoiceMarkers];
+  if (!hasMarker) {
+    console.log(`⚠️ Voice ${voiceKey} pattern not applied correctly: "${voicedText}"`);
   }
+  
+  return voicedText;
 }
 
 // Add deduplication logic
@@ -302,10 +339,22 @@ export function enforceBatch(rawLines:string[], opts:{
     return wrapped;
   });
 
-  // 2) context + twist + cleanup per bucket - ENFORCE LEXICON FIRST
+// 2) context + twist + cleanup per bucket - ENFORCE LEXICON AGGRESSIVELY
   out = out.map((l,i)=>{
     let s = l.trim();
-    s = ensureContext(s, opts.subcategory, opts.softTags || []); // Context FIRST
+    
+    // CRITICAL: Enforce birthday lexicon more aggressively
+    if (opts.subcategory.toLowerCase().includes('birthday')) {
+      const birthdayWords = ['cake', 'candles', 'party', 'balloons', 'wish', 'slice', 'confetti', 'frosting', 'celebration'];
+      const hasRequiredWord = birthdayWords.some(word => s.toLowerCase().includes(word));
+      if (!hasRequiredWord) {
+        // Force inject birthday context
+        s = s.replace(/\.$/, ` over the cake.`);
+        console.log(`🎂 Injected birthday context: "${s}"`);
+      }
+    }
+    
+    s = ensureContext(s, opts.subcategory, opts.softTags || []); // Context enforcement
     s = ensureTwist(s); // Humor validation
     s = endDot(s);
     s = repairTail(s);
@@ -323,11 +372,39 @@ export function enforceBatch(rawLines:string[], opts:{
   // 4) spread hard tag creatively
   out = spreadHardTag(out, opts.hardTag);
 
-  // 5) final guard: one sentence, readable end
-  out = out.map(s=>{
+  // 5) final guard: comprehensive sentence structure validation
+  out = out.map((s, i) => {
     let t = byWord(s);
-    if (!/[a-z)]\.$/i.test(t)) t = t.replace(/\.$/, " for real.");
-    if (!onePeriod(t)) t = t.replace(/\./g,"") + ".";
+    
+    // Fix common fragment patterns identified by user
+    t = t.replace(/\bbut still\s*\.?$/i, "but still holds up.");
+    t = t.replace(/\bbut but\b/gi, "but");
+    t = t.replace(/([a-z])([A-Z])/g, "$1 $2"); // Fix "expensivejust" issues
+    t = t.replace(/\s+/g, " "); // Fix double spaces
+    t = t.replace(/\blet alone his sad little\.?$/i, "let alone his pathetic birthday attempt.");
+    
+    // Ensure proper sentence ending
+    if (!/[a-z)]\.$/i.test(t)) {
+      t = t.replace(/\.$/, " anyway.");
+    }
+    
+    // Ensure exactly one period
+    if (!onePeriod(t)) {
+      t = t.replace(/\./g, "") + ".";
+    }
+    
+    // Final validation: must be 40-100 chars, start with capital, end with period
+    if (t.length < 40) {
+      t = t.replace(/\.$/, " and that's the truth.");
+    }
+    if (t.length > 100) {
+      t = t.substring(0, 97) + "...";
+    }
+    if (!/^[A-Z]/.test(t)) {
+      t = t.charAt(0).toUpperCase() + t.slice(1);
+    }
+    
+    console.log(`🔍 Final validation line ${i+1}: "${t}" (${t.length} chars)`);
     return t;
   });
 
