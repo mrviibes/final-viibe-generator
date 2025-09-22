@@ -372,9 +372,9 @@ export function buildIdeogramPrompts(handoff: IdeogramHandoff, options: { inject
   const promptSanitization = sanitizePrompt(positivePrompt);
   positivePrompt = promptSanitization.cleaned;
   
-  // PHASE 3 (Legacy): Simple negative prompt
+  // PHASE 3 (Legacy): Enhanced negative prompt for better text handling
   const baseNegativePrompt = shouldInjectText 
-    ? "no filler props, no empty rooms, no abstract shapes, no watermarks, no logos, no extra on image text, no broken or garbled letters, no multiple text boxes, no duplicate captions" 
+    ? "no duplicate captions, no extra captions, no split or fragmented captions, no text at both top and bottom, no text on faces, heads, eyes, or bodies, no text on objects (cake, balloons, clothing, walls, props), no distorted text, no low-contrast text, no filler props, no empty rooms, no abstract shapes, no watermarks, no logos, no extra on image text, no broken or garbled letters, no multiple text boxes" 
     : "no embedded text, no letters, no words, no signage, no watermarks, no logos";
   
   let enhancedNegativePrompt = baseNegativePrompt;

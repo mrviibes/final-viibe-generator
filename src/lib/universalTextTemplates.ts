@@ -18,35 +18,38 @@ export const universalTextPlacementTemplates: TextPlacementTemplate[] = [
     id: "memeTopBottom",
     label: "Meme Top/Bottom",
     description: "Bold captions in clear horizontal bands at top and/or bottom",
-    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: MANDATORY dedicated horizontal text bands at top/bottom - NEVER on objects, cakes, balloons, or scene elements.
-TEXT BANDS: Create distinct typography layers separate from scene. Text must float above/below image content.
-STYLE: Bold sans-serif in high-contrast bands with solid backgrounds, fully legible, professional meme format.
-SCENE: [SCENE_DESCRIPTION]  
-CRITICAL: Scene objects (cakes, balloons, signs, clothing, walls) must have NO TEXT on them. Text only in dedicated bands.`,
-    negativePrompt: `NEVER write text on cakes, balloons, t-shirts, signs, walls, or any scene objects. no text on cake surfaces, no text on object surfaces, no embedded scene text, no cake writing, no balloon text, no sign text, no duplicate captions, no split captions, no fragmented text, no distorted text, no object-surface text placement`
+    positivePrompt: `TEXT: Render this caption once: "[FINAL_TEXT]".
+PLACEMENT: Place the caption in a single dedicated band at the top OR bottom margin. 
+STYLE: Bold, sans-serif, high contrast, fully legible. 
+Keep the caption completely outside the subject's face, head, eyes, or body. 
+Keep the caption away from cake, balloons, clothing, and other objects. 
+Caption must sit in empty background space or margin only.
+SCENE: [SCENE_DESCRIPTION]`,
+    negativePrompt: `no duplicate captions, no extra captions, no split or fragmented captions, no text at both top and bottom, no text on faces, heads, eyes, or bodies, no text on objects (cake, balloons, clothing, walls, props), no distorted text, no low-contrast text`
   },
   {
     id: "negativeSpace",
     label: "Negative Space",
     description: "Text integrated seamlessly into natural empty areas",
-    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Natural empty margin space, no more than 25% of image height.
-STYLE: Modern sans-serif, bold, high contrast, fully legible.
+    positivePrompt: `TEXT: Render this caption once: "[FINAL_TEXT]".
+PLACEMENT: Place caption in empty margins, away from people's faces.
+STYLE: Bold sans-serif, high contrast, fully legible.
+Keep all text outside subject bounding box, away from faces, heads, eyes, or bodies.
 SCENE: [SCENE_DESCRIPTION]
 SPACE: Preserve clear empty space for the caption.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
+    negativePrompt: `no duplicate captions, no extra captions, no bottom text, no extra text bands, no split captions, never place text over faces, heads, eyes, or bodies, keep all text outside subject bounding box, no text on objects (cake, balloons, walls, clothing)`
   },
   {
     id: "lowerThird",
     label: "Lower Third Banner",
     description: "Clean banner-style caption across bottom third",
-    positivePrompt: `TEXT: Render this exact caption once: "[FINAL_TEXT]".
-PLACEMENT: Clean banner across bottom third, no more than 25% of image height.
-STYLE: Modern sans-serif, bold, high contrast, fully legible.
+    positivePrompt: `TEXT: Render this caption once: "[FINAL_TEXT]".
+PLACEMENT: Single dedicated bottom band, away from people's faces.
+STYLE: Bold sans-serif, high contrast, fully legible.
+Keep all text outside subject bounding box, away from faces, heads, eyes, or bodies.
 SCENE: [SCENE_DESCRIPTION]
 SPACE: Preserve clear bottom third for the caption.`,
-    negativePrompt: `no duplicate captions, no split or fragmented captions, no extra background words, no distorted or garbled text, no filler text or random names, no watermarks or logos`
+    negativePrompt: `no duplicate captions, no extra captions, no bottom text, no extra text bands, no split captions, never place text over faces, heads, eyes, or bodies, keep all text outside subject bounding box, no text on objects (cake, balloons, walls, clothing)`
   },
   {
     id: "sideBarLeft",
