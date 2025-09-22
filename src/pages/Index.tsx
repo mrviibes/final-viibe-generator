@@ -6990,7 +6990,7 @@ const Index = () => {
                       <div className="space-y-3">
                           <p className="text-xs text-muted-foreground text-left">
                             <strong>Add keywords or names</strong><br />
-                            <strong>Words in quotes</strong> appear in the joke. <strong>Words without quotes</strong> guide the vibe.
+                            <strong>"quoted words"</strong> put in text exactly, <strong>unquoted words</strong> just influence final text.
                           </p>
                         <Input value={tagInput} onChange={e => handleTagInputChange(e.target.value)} onKeyDown={handleTagInputKeyDown} placeholder='"Jesse", traffic, late' className={`text-center border-2 bg-card hover:bg-accent/50 transition-colors p-6 h-auto min-h-[60px] text-base font-medium rounded-lg ${tagInputWarning ? 'border-destructive' : 'border-border'}`} />
                         {tagInputWarning && <p className="text-xs text-destructive text-center mt-1">
