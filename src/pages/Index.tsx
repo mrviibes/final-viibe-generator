@@ -7046,25 +7046,20 @@ const Index = () => {
                      </div>
                      
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-                       {singleModeOptions.map((option, index) => (
-                         <div key={index} className="h-full rounded-xl border border-border p-5 shadow-sm flex flex-col justify-between transition-all duration-200 hover:shadow-lg">
+                       {singleModeOptions.map((option, index) => <div key={index} className="h-full rounded-xl border border-border p-5 shadow-sm flex flex-col justify-between transition-all duration-200 hover:shadow-lg">
                            <p className="whitespace-normal break-words overflow-visible leading-snug text-base">
                              {option}
                            </p>
                            <div className="mt-4 flex justify-end">
-                             <button
-                               className="text-foreground hover:text-foreground/80 underline underline-offset-2 bg-transparent border-0 p-0 h-auto transition-colors"
-                               onClick={() => {
-                                 setSelectedGeneratedOption(option);
-                                 setSelectedGeneratedIndex(index);
-                                 setIsEditingSelectedText(false);
-                               }}
-                             >
+                             <button className="text-foreground hover:text-foreground/80 underline underline-offset-2 bg-transparent border-0 p-0 h-auto transition-colors" onClick={() => {
+                    setSelectedGeneratedOption(option);
+                    setSelectedGeneratedIndex(index);
+                    setIsEditingSelectedText(false);
+                  }}>
                                Choose this option
                              </button>
                            </div>
-                         </div>
-                       ))}
+                         </div>)}
                      </div>
 
                      {/* Regeneration Controls */}
@@ -7082,24 +7077,7 @@ const Index = () => {
                          </div>
                        </div>
                        
-                       <p className="text-sm text-muted-foreground">
-                         Want different results? Change your <button className="text-primary hover:underline" onClick={() => window.scrollTo({
-                  top: 0,
-                  behavior: 'smooth'
-                })}>
-                           text style
-                         </button> or <button className="text-primary hover:underline" onClick={() => {
-                  // Find and focus rating tabs
-                  const ratingSection = document.querySelector('[role="tablist"]');
-                  if (ratingSection) {
-                    ratingSection.scrollIntoView({
-                      behavior: 'smooth'
-                    });
-                  }
-                }}>
-                           rating
-                         </button> above, then regenerate.
-                       </p>
+                       
                      </div>
                    </div>}
 
@@ -7565,10 +7543,7 @@ const Index = () => {
                         </svg>}
                       Generate Again
                     </Button>
-                    <button
-                      className="text-muted-foreground hover:text-foreground underline underline-offset-2 bg-transparent border-0 p-0 h-auto transition-colors"
-                      onClick={handleStartOverReset}
-                    >
+                    <button className="text-muted-foreground hover:text-foreground underline underline-offset-2 bg-transparent border-0 p-0 h-auto transition-colors" onClick={handleStartOverReset}>
                       Start Over
                     </button>
                   </div>}
@@ -7669,11 +7644,7 @@ const Index = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium text-foreground">Design Summary</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAdvanced(!showAdvanced)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setShowAdvanced(!showAdvanced)}>
                     {showAdvanced ? "Hide" : "Show"} Advanced Details
                   </Button>
                 </div>
@@ -7697,40 +7668,39 @@ const Index = () => {
                       <tr>
                         <td className="p-3 text-sm">Final Text</td>
                         <td className="p-3 text-sm whitespace-normal break-words leading-snug">{(() => {
-                          const text = selectedGeneratedOption || stepTwoText || "Not generated";
-                          // Validate text format
-                          if (text && text !== "Not generated") {
-                            // Check for proper ending
-                            if (!text.trim().endsWith('.') && !text.trim().endsWith('!') && !text.trim().endsWith('?')) {
-                              return text.trim() + '.';
-                            }
-                            // Check for truncation
-                            if (text.endsWith('ri.') || text.includes('...')) {
-                              return text.replace(/\s*ri\.$/, '.').replace(/\.{3,}/g, '.');
-                            }
+                        const text = selectedGeneratedOption || stepTwoText || "Not generated";
+                        // Validate text format
+                        if (text && text !== "Not generated") {
+                          // Check for proper ending
+                          if (!text.trim().endsWith('.') && !text.trim().endsWith('!') && !text.trim().endsWith('?')) {
+                            return text.trim() + '.';
                           }
-                          return text;
-                        })()}</td>
+                          // Check for truncation
+                          if (text.endsWith('ri.') || text.includes('...')) {
+                            return text.replace(/\s*ri\.$/, '.').replace(/\.{3,}/g, '.');
+                          }
+                        }
+                        return text;
+                      })()}</td>
                       </tr>
                       <tr>
                         <td className="p-3 text-sm">Visual Style</td>
                         <td className="p-3 text-sm">{selectedVisualStyle || "Not selected"}</td>
                       </tr>
-                      {showAdvanced && (
-                        <>
+                      {showAdvanced && <>
                           <tr>
                             <td className="p-3 text-sm">Subcategory</td>
                             <td className="p-3 text-sm">
                               {(() => {
-                                if (selectedStyle === 'celebrations' && selectedSubOption) {
-                                  const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
-                                  return celebOption?.name || selectedSubOption;
-                                } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
-                                  const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
-                                  return popOption?.name || selectedSubOption;
-                                }
-                                return selectedSubOption || "Not selected";
-                              })()}
+                          if (selectedStyle === 'celebrations' && selectedSubOption) {
+                            const celebOption = celebrationOptions.find(c => c.id === selectedSubOption);
+                            return celebOption?.name || selectedSubOption;
+                          } else if (selectedStyle === 'pop-culture' && selectedSubOption) {
+                            const popOption = popCultureOptions.find(p => p.id === selectedSubOption);
+                            return popOption?.name || selectedSubOption;
+                          }
+                          return selectedSubOption || "Not selected";
+                        })()}
                             </td>
                           </tr>
                           {selectedStyle === 'pop-culture' && selectedPick && <tr>
@@ -7797,8 +7767,7 @@ const Index = () => {
                                 {lastIdeogramNegativePrompt || debugPrompts.negative_prompt || "no flat stock photo, no generic studio portrait, no bland empty background, no overexposed lighting, no clipart, no watermarks, no washed-out colors, no awkward posing, no corporate vibe"}
                               </td>
                             </tr>
-                        </>
-                      )}
+                        </>}
                     </tbody>
                   </table>
                 </div>
