@@ -2,9 +2,10 @@ import { buildPrompt } from "./buildPrompt.ts";
 import { ParsedTags } from "./tags.ts";
 import { startNewPopCultureBatch } from "../shared/popCultureV3.ts";
 import { enforceBatch } from "./enforceBatch.ts";
+import { MODEL_CONFIG, getTokenParameter, supportsTemperature } from "../../shared/modelConfig.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const MODEL = 'gpt-4.1-2025-04-14';
+const MODEL = MODEL_CONFIG.PRIMARY;
 
 type Ctx = {
   category: string;
@@ -166,14 +167,14 @@ async function callModel(prompt: string): Promise<{ text: string }> {
       'Authorization': `Bearer ${openAIApiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        { role: 'system', content: 'You are a professional comedian. Return exactly the requested jokes.' },
-        { role: 'user', content: prompt }
-      ],
-      max_completion_tokens: 150
-    }),
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: 'system', content: 'You are a professional comedian. Return exactly the requested jokes.' },
+          { role: 'user', content: prompt }
+        ],
+        [getTokenParameter(MODEL)]: 150
+      }),
     signal: AbortSignal.timeout(15000)
   });
 

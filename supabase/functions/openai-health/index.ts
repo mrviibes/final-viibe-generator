@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const TARGET_MODEL = 'gpt-5-mini-2025-08-07'; // Match generation model
+const TARGET_MODEL = 'gpt-5-2025-08-07'; // Match primary generation model
 
 serve(async (req) => {
   // Handle CORS

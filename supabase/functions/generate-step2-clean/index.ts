@@ -16,6 +16,7 @@ import {
   enforceContextAndTone,
   type MultiRatingOutput 
 } from "./multiRating.ts";
+import { MODEL_CONFIG, getTokenParameter, supportsTemperature } from "../shared/modelConfig.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,7 +25,7 @@ const corsHeaders = {
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const MODEL = 'gpt-4.1-2025-04-14';
+const MODEL = MODEL_CONFIG.PRIMARY;
 
 async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput> {
   const startTime = Date.now();
@@ -72,7 +73,7 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
               { role: 'system', content: 'You are a professional comedian. Return exactly one joke sentence.' },
               { role: 'user', content: prompt }
             ],
-            max_completion_tokens: 100
+            [getTokenParameter(MODEL)]: 100
           }),
           signal: AbortSignal.timeout(10000)
         });
