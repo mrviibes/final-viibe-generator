@@ -6997,11 +6997,14 @@ const Index = () => {
                         
                         
                         {/* Display Tags */}
-                        {tags.length > 0 && <div className="flex flex-wrap gap-2 justify-center">
-                            {tags.map((tag, index) => <Badge key={index} variant="secondary" className="px-3 py-1 text-sm flex items-center gap-1">
+                        {tags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 justify-center">
+                            {tags.map((tag, index) => (
+                              <Badge key={index} variant="secondary" className="px-3 py-1 text-sm flex items-center gap-1">
                                 {tag}
                                 <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => removeTag(tag)} />
-                              </Badge>)}
+                              </Badge>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -7063,7 +7066,8 @@ const Index = () => {
 
                  {/* Single-Mode Generated Text Options - Show exactly 2 options */}
                  {singleModeOptions && selectedCompletionOption === "ai-assist" && !selectedGeneratedOption && (
-                   <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                   <>
+                     <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                      <div className="text-center mb-6">
                        <div className="flex items-center justify-center gap-3 mb-4">
                          <p className="text-xl text-muted-foreground">Choose one of the generated text options</p>
@@ -7101,21 +7105,19 @@ const Index = () => {
                        </div>
                      </div>
                      
-                     {/* Show warning if Explicit was downgraded */}
-                     {(["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(
-                       selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : 
-                       selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : 
-                       selectedSubOption || ''
-                     )) && selectedRatingTab === 'Explicit' && (
-                       <div className="text-center mt-4">
-                         <small className="text-muted-foreground bg-accent/50 px-3 py-1 rounded-full text-xs">
-                           ℹ️ Explicit not allowed for this category. Shown as R.
-                         </small>
-                       </div>
-                     )}
-                   </div>
-                 </div>
-               )}
+                      {/* Show warning if Explicit was downgraded */}
+                      {(["Pets", "Animals", "Dog park", "Kids", "School", "Teachers", "Daycare"].includes(
+                        selectedStyle === 'celebrations' ? celebrationOptions.find(c => c.id === selectedSubOption)?.name || selectedSubOption || '' : 
+                        selectedStyle === 'pop-culture' ? popCultureOptions.find(p => p.id === selectedSubOption)?.name || selectedSubOption || '' : 
+                        selectedSubOption || ''
+                      )) && selectedRatingTab === 'Explicit' && (
+                        <div className="text-center mt-4">
+                          <small className="text-muted-foreground bg-accent/50 px-3 py-1 rounded-full text-xs">
+                            ℹ️ Explicit not allowed for this category. Shown as R.
+                          </small>
+                        </div>
+                  </>
+                )}
 
                   {/* Legacy Generated Options Grid - Hidden in new single mode */}
                   {!singleModeOptions && (
