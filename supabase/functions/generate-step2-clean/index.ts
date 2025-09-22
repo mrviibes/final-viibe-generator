@@ -5,6 +5,7 @@ import { buildPrompt, buildPromptLegacy } from "./buildPrompt.ts";
 import { generateN } from "./generateN.ts";
 import { stripSoftEcho } from "./sanitize.ts";
 import { validate } from "./validate.ts";
+import { validateAndRepairBatch, scoreBatchQuality } from "./advancedValidator.ts";
 import { normalizeRating } from "../shared/rating.ts";
 import { 
   selectComedianForRating, 
@@ -116,14 +117,35 @@ async function generateMultiRatingJokes(inputs: any): Promise<MultiRatingOutput>
           isValidFormat = validateRatingJoke(text, normalizedRating, parsedTags);
         }
         
-        if (isValidFormat) {
+        // Apply advanced validation before accepting the joke
+        const advancedValidation = validateAndRepairBatch([text], {
+          rating: normalizedRating,
+          category: inputs.category,
+          subcategory: inputs.subcategory,
+          hardTags: parsedTags.hard,
+          softTags: parsedTags.soft,
+          comedianVoice: comedian.name,
+          requirePop: inputs.style === "pop-culture"
+        });
+        
+        const validatedText = advancedValidation[0];
+        const qualityScore = scoreBatchQuality([validatedText], {
+          rating: normalizedRating,
+          category: inputs.category,
+          subcategory: inputs.subcategory,
+          hardTags: parsedTags.hard,
+          comedianVoice: comedian.name
+        });
+        
+        if (isValidFormat && qualityScore.overallScore >= 75) {
           results[rating].push({
             voice: comedian.name,
-            text: text
+            text: validatedText
           });
-          allJokes.push(text);
+          allJokes.push(validatedText);
+          console.log(`✅ ${rating} joke validated (score: ${qualityScore.overallScore}%)`);
         } else {
-          console.warn(`⚠️ Validation failed for ${rating} option ${optionIndex + 1}, using fallback`);
+          console.warn(`⚠️ Validation failed for ${rating} option ${optionIndex + 1} (score: ${qualityScore.overallScore}%), using fallback`);
           const fallbackText = generateFallbackJoke(normalizedRating, context, comedian.name, inputs.tone, inputs.style);
           results[rating].push({
             voice: comedian.name,

@@ -2,6 +2,7 @@ import { buildPrompt } from "./buildPrompt.ts";
 import { ParsedTags } from "./tags.ts";
 import { startNewPopCultureBatch } from "../shared/popCultureV3.ts";
 import { VIIBE_CONFIG_V3 } from "../shared/viibe_config_v3.ts";
+import { validateAndRepairBatch, scoreBatchQuality, shouldRetryBatch } from "./advancedValidator.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const MODEL = 'gpt-4.1-2025-04-14';
@@ -231,11 +232,54 @@ export async function generateN(ctx: Ctx, n: number): Promise<string[]> {
     rawLines.push(best || "Generated content unavailable.");
   }
 
-  // Apply post-processing to entire batch for consistency
+  // Apply enhanced validation and repair
   const hardTag = ctx.tags.hard[0] || "";
-  const processed = postProcessBatch(rawLines, hardTag, ctx);
   
-  return processed;
+  // Use advanced validator for comprehensive quality control
+  const validated = validateAndRepairBatch(rawLines, {
+    rating: ctx.rating,
+    category: ctx.category,
+    subcategory: ctx.subcategory,
+    hardTags: ctx.tags.hard,
+    softTags: ctx.tags.soft,
+    requirePop: ctx.style === "pop-culture",
+    comedianVoice: selectComedianVoice(ctx.rating)
+  });
+  
+  // Score the batch quality
+  const qualityScore = scoreBatchQuality(validated, {
+    rating: ctx.rating,
+    category: ctx.category,
+    subcategory: ctx.subcategory,
+    hardTags: ctx.tags.hard,
+    comedianVoice: selectComedianVoice(ctx.rating)
+  });
+  
+  console.log(`📊 Batch quality score: ${qualityScore.overallScore}%`);
+  if (qualityScore.issues.length > 0) {
+    console.log(`⚠️ Quality issues: ${qualityScore.issues.join(", ")}`);
+  }
+  
+  // If quality is too low, try one retry with post-processing fallback
+  if (shouldRetryBatch(qualityScore) && rawLines.length >= 2) {
+    console.log(`🔄 Quality too low (${qualityScore.overallScore}%), applying fallback post-processing`);
+    const fallbackProcessed = postProcessBatch(rawLines, hardTag, ctx);
+    
+    // Re-validate the fallback
+    const fallbackValidated = validateAndRepairBatch(fallbackProcessed, {
+      rating: ctx.rating,
+      category: ctx.category,
+      subcategory: ctx.subcategory,
+      hardTags: ctx.tags.hard,
+      softTags: ctx.tags.soft,
+      requirePop: ctx.style === "pop-culture",
+      comedianVoice: selectComedianVoice(ctx.rating)
+    });
+    
+    return fallbackValidated;
+  }
+  
+  return validated;
 }
 
 async function callModel(prompt: string): Promise<{ text: string }> {
@@ -311,6 +355,19 @@ function finalQC(s: string): string {
   }
   
   return s;
+}
+
+// Helper function to select comedian voice based on rating
+function selectComedianVoice(rating: string): string {
+  const voices = {
+    "G": ["jim gaffigan", "nate bargatze", "ellen degeneres"],
+    "PG-13": ["kevin hart", "trevor noah", "ali wong"],
+    "R": ["bill burr", "chris rock", "wanda sykes"],
+    "Explicit": ["sarah silverman", "joan rivers", "amy schumer"]
+  };
+  
+  const ratingVoices = voices[rating as keyof typeof voices] || voices["PG-13"];
+  return ratingVoices[Math.floor(Math.random() * ratingVoices.length)];
 }
 
 function ensurePunchFirst(s: string) {
